@@ -12,4 +12,5 @@
   "jsx": {:hex, :jsx, "2.6.2"},
   "mimerl": {:hex, :mimerl, "1.0.2"},
   "poolboy": {:hex, :poolboy, "1.5.1"},
+  "qlc": {:git, "https://github.com/zackehh/qlc.git", "d24bffcf2404cd4faaee583e27b6e0dca83e5fe2", []},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.5"}}

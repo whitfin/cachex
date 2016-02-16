@@ -13,6 +13,9 @@ defmodule Cachex do
   # the default timeout for a GenServer call
   @def_timeout 500
 
+  # custom status type
+  @type status :: :ok | :error
+
   @doc """
   Initialize the ETS table for this cache, allowing the user to define their
   own options for the cache.
@@ -34,6 +37,9 @@ defmodule Cachex do
     * `:table_name` - a name to use alongside the backing ETS table
     * `:workers` - the number of workers to use for this cache, defaults to `1`
     * `:overflow` - a max number of workers to user, defaults to `workers + workers/2`
+    * `:default_ttl` - a default expiry time for all new records
+    * `:ttl_purge_interval` - how often we should purge expired records
+    * `:record_stats` - whether this cache should track usage statistics or not
 
   ## Examples
 
@@ -46,6 +52,7 @@ defmodule Cachex do
       false
 
   """
+  @spec start_link([ { atom, atom } ], [ { atom, atom } ]) :: { atom, pid }
   def start_link(options \\ [], supervisor_options \\ []) do
     Supervisor.start_link(__MODULE__, options, supervisor_options)
   end
@@ -58,53 +65,45 @@ defmodule Cachex do
   becoming a bottleneck. There's a slight overhead involved if you only care
   about a single worker, but it keeps it nice and straightforward in the code.
   """
+  @spec init([ { atom, atom } ]) :: { status, { any } }
   def init(options \\ []) when is_list(options) do
-    cache_name = case options[:cache_name] do
-      val when val == nil or not is_atom(val) ->
-        raise "Cache name must be a valid atom!"
-      val -> val
-    end
+    parsed_opts =
+      options
+      |> Cachex.Options.parse
 
-    ets_opts = Keyword.get(options, :ets_opts, [
-      { :read_concurrency, true },
-      { :write_concurrency, true },
-      :public,
-      :set
+    :mnesia.start()
+
+    table_create = :mnesia.create_table(parsed_opts.cache, [
+      { :ram_copies, [ node() ] },
+      { :attributes, [ :key, :expiration, :value ]},
+      { :type, :set },
+      { :storage_properties, [ { :ets, parsed_opts.ets_opts } ] }
     ])
 
-    table_name = case options[:table_name] do
-      val when val == nil or val == false or not is_atom(val) ->
-        :ets.new(options[:table_name], ets_opts)
-      val ->
-        :ets.new(val, ets_opts ++ [:named_table])
+    case table_create do
+      { :aborted, { :already_exists, _table } } ->
+        nil
+      { :aborted, error } ->
+        raise error
+      _other ->
+        :mnesia.add_table_index(parsed_opts.cache, :expiration)
     end
 
-    names = [
-      cache: cache_name,
-      table: table_name
-    ]
-
-    overflow = case options[:overflow] do
-      val when not is_number(val) or val < 1 -> nil
-      val -> val
+    ttl_workers = case parsed_opts.ttl_interval do
+      nil -> []
+      _other -> [worker(Cachex.Janitor, [parsed_opts])]
     end
 
-    workers = case options[:workers] do
-      nil -> 1
-      val when not is_number(val) -> 1
-      val -> val
-    end
-
-    children = [
-      :poolboy.child_spec(cache_name, [
+    children = ttl_workers ++ [
+      :poolboy.child_spec(parsed_opts.cache, [
         name: {
-          :local, cache_name
+          :local, parsed_opts.cache
         },
         worker_module: __MODULE__.Worker,
-        max_overflow: (overflow || workers + div(workers, 2)),
-        size: workers,
+        max_overflow: parsed_opts.overflow,
+        size: parsed_opts.workers,
         strategy: :fifo
-      ], options ++ names)
+      ], parsed_opts)
     ]
 
     supervise(children, strategy: :one_for_one)
@@ -123,7 +122,8 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  deft get(cache, key) do
+  @spec get(atom, any) :: { status, any }
+  defcheck get(cache, key) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :get, key }, @def_timeout)
     end)
@@ -144,7 +144,8 @@ defmodule Cachex do
       { :ok, [] }
 
   """
-  deft keys(cache) do
+  @spec keys(atom) :: [ any ]
+  defcheck keys(cache) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :keys })
     end)
@@ -159,7 +160,8 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  deft set(cache, key, value) do
+  @spec set(atom, any, any) :: { status, true | false }
+  defcheck set(cache, key, value) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :set, key, value }, @def_timeout)
     end)
@@ -169,6 +171,10 @@ defmodule Cachex do
   Increments a key directly in the cache by an amount 1. If the key does
   not exist in the cache, it is set to `0` before being incremented.
 
+  Please note that incrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
+
   ## Examples
 
       iex> Cachex.set(:my_cache, "my_key", 1)
@@ -176,11 +182,16 @@ defmodule Cachex do
       { :ok, 2 }
 
   """
-  deft inc(cache, key), do: inc(cache, key, 1, 0)
+  @spec inc(atom, any) :: { status, number }
+  defcheck inc(cache, key), do: inc(cache, key, 1, 0)
 
   @doc """
   Increments a key directly in the cache by an amount `count`. If the key does
   not exist in the cache, it is set to `0` before being incremented.
+
+  Please note that incrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
 
   ## Examples
 
@@ -188,12 +199,17 @@ defmodule Cachex do
       { :ok, 1 }
 
   """
-  deft inc(cache, key, count)
+  @spec inc(atom, any, number) :: { status, number }
+  defcheck inc(cache, key, count)
   when is_number(count), do: inc(cache, key, count, 0)
 
   @doc """
   Increments a key directly in the cache by an amount `count`. If the key does
   not exist in the cache, it is set to `initial` before being incremented.
+
+  Please note that incrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
 
   ## Examples
 
@@ -201,7 +217,8 @@ defmodule Cachex do
       { :ok, 6 }
 
   """
-  deft inc(cache, key, count, initial)
+  @spec inc(atom, any, number, number) :: { status, number }
+  defcheck inc(cache, key, count, initial)
   when is_number(count) and is_number(initial) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :inc, key, count, initial }, @def_timeout)
@@ -224,7 +241,8 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  deft delete(cache, key) do
+  @spec delete(atom, any) :: { status, true | false }
+  defcheck delete(cache, key) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :delete, key }, @def_timeout)
     end)
@@ -246,7 +264,8 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  deft take(cache, key) do
+  @spec take(atom, any) :: { status, any }
+  defcheck take(cache, key) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :take, key }, @def_timeout)
     end)
@@ -270,28 +289,10 @@ defmodule Cachex do
       { :ok, 0 }
 
   """
-  deft clear(cache) do
+  @spec clear(atom) :: { status, true | false }
+  defcheck clear(cache) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :clear }, @def_timeout)
-    end)
-  end
-
-  @doc """
-  Returns information about the backing ETS table.
-
-  ## Examples
-
-      iex> Cachex.info(:my_cache)
-      {:ok,
-       [read_concurrency: true, write_concurrency: true, compressed: false,
-        memory: 1361, owner: #PID<0.126.0>, heir: :none, name: :my_cache, size: 2,
-        node: :nonode@nohost, named_table: true, type: :set, keypos: 1,
-        protection: :public]}
-
-  """
-  deft info(cache) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :info }, @def_timeout)
     end)
   end
 
@@ -313,7 +314,8 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  deft empty?(cache) do
+  @spec empty?(atom) :: { status, true | false }
+  defcheck empty?(cache) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :empty? }, @def_timeout)
     end)
@@ -332,7 +334,8 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  deft exists?(cache, key) do
+  @spec exists?(atom, any) :: { status, true | false }
+  defcheck exists?(cache, key) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :exists?, key }, @def_timeout)
     end)
@@ -350,7 +353,8 @@ defmodule Cachex do
       { :ok, 3 }
 
   """
-  deft size(cache) do
+  @spec size(atom) :: { status, number }
+  defcheck size(cache) do
     :poolboy.transaction(cache, fn(worker) ->
       GenServer.call(worker, { :size }, @def_timeout)
     end)
@@ -367,7 +371,8 @@ defmodule Cachex do
         missCount: 0, opCount: 0, setCount: 0}}
 
   """
-  deft stats(cache) do
+  @spec stats(atom) :: { status, %Cachex.Stats{ } }
+  defcheck stats(cache) do
     aggregate(
       cache,
       fn(worker_pid) ->

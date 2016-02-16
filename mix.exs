@@ -23,7 +23,7 @@ defmodule Cachex.Mixfile do
         },
         maintainers: [ "Isaac Whitfield" ]
       },
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.1",
       deps: deps,
       docs: [
@@ -60,6 +60,7 @@ defmodule Cachex.Mixfile do
     [
       # production deps
       { :poolboy, "~> 1.5" },
+      { :qlc, github: "zackehh/qlc" },
       # documentation
       { :earmark, "~> 0.2.1",  optional: true, only: :docs },
       { :ex_doc,  "~> 0.11.3", optional: true, only: :docs },
