@@ -81,12 +81,10 @@ defmodule Cachex do
     ])
 
     case table_create do
-      { :aborted, { :already_exists, _table } } ->
-        nil
+      { :aborted, { :already_exists, _table } } -> nil
       { :aborted, error } ->
         raise error
-      _other ->
-        :mnesia.add_table_index(parsed_opts.cache, :expiration)
+      _other -> nil
     end
 
     ttl_workers = case parsed_opts.ttl_interval do
@@ -95,15 +93,7 @@ defmodule Cachex do
     end
 
     children = ttl_workers ++ [
-      :poolboy.child_spec(parsed_opts.cache, [
-        name: {
-          :local, parsed_opts.cache
-        },
-        worker_module: __MODULE__.Worker,
-        max_overflow: parsed_opts.overflow,
-        size: parsed_opts.workers,
-        strategy: :fifo
-      ], parsed_opts)
+      worker(Cachex.Worker, [parsed_opts, [name: parsed_opts.cache]])
     ]
 
     supervise(children, strategy: :one_for_one)
@@ -124,9 +114,7 @@ defmodule Cachex do
   """
   @spec get(atom, any) :: { status, any }
   defcheck get(cache, key) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :get, key }, @def_timeout)
-    end)
+    GenServer.call(cache, { :get, key }, @def_timeout)
   end
 
   @doc """
@@ -146,9 +134,7 @@ defmodule Cachex do
   """
   @spec keys(atom) :: [ any ]
   defcheck keys(cache) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :keys })
-    end)
+    GenServer.call(cache, { :keys })
   end
 
   @doc """
@@ -162,9 +148,7 @@ defmodule Cachex do
   """
   @spec set(atom, any, any) :: { status, true | false }
   defcheck set(cache, key, value) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :set, key, value }, @def_timeout)
-    end)
+    GenServer.call(cache, { :set, key, value }, @def_timeout)
   end
 
   @doc """
@@ -220,9 +204,7 @@ defmodule Cachex do
   @spec inc(atom, any, number, number) :: { status, number }
   defcheck inc(cache, key, count, initial)
   when is_number(count) and is_number(initial) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :inc, key, count, initial }, @def_timeout)
-    end)
+    GenServer.call(cache, { :inc, key, count, initial }, @def_timeout)
   end
 
   @doc """
@@ -243,9 +225,7 @@ defmodule Cachex do
   """
   @spec delete(atom, any) :: { status, true | false }
   defcheck delete(cache, key) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :delete, key }, @def_timeout)
-    end)
+    GenServer.call(cache, { :delete, key }, @def_timeout)
   end
 
   @doc """
@@ -266,9 +246,7 @@ defmodule Cachex do
   """
   @spec take(atom, any) :: { status, any }
   defcheck take(cache, key) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :take, key }, @def_timeout)
-    end)
+    GenServer.call(cache, { :take, key }, @def_timeout)
   end
 
   @doc """
@@ -291,9 +269,7 @@ defmodule Cachex do
   """
   @spec clear(atom) :: { status, true | false }
   defcheck clear(cache) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :clear }, @def_timeout)
-    end)
+    GenServer.call(cache, { :clear }, @def_timeout)
   end
 
   @doc """
@@ -316,9 +292,7 @@ defmodule Cachex do
   """
   @spec empty?(atom) :: { status, true | false }
   defcheck empty?(cache) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :empty? }, @def_timeout)
-    end)
+    GenServer.call(cache, { :empty? }, @def_timeout)
   end
 
   @doc """
@@ -336,9 +310,35 @@ defmodule Cachex do
   """
   @spec exists?(atom, any) :: { status, true | false }
   defcheck exists?(cache, key) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :exists?, key }, @def_timeout)
-    end)
+    GenServer.call(cache, { :exists?, key }, @def_timeout)
+  end
+
+  @doc """
+  Updates the expiration time on a given cache entry by the value provided.
+
+  ## Examples
+
+      iex> Cachex.expire(:my_cache, 10000)
+      {:ok, true}
+
+  """
+  @spec expire(atom, binary, number) :: { status, true | false }
+  defcheck expire(cache, key, expiration) when is_number(expiration) do
+    GenServer.call(cache, { :expire, key, expiration }, @def_timeout)
+  end
+
+  @doc """
+  Updates the expiration time on a given cache entry to the timestamp provided.
+
+  ## Examples
+
+      iex> Cachex.expire_at(:my_cache, 1455728085502)
+      {:ok, true}
+
+  """
+  @spec expire_at(atom, binary, number) :: { status, true | false }
+  defcheck expire_at(cache, key, timestamp) when is_number(timestamp) do
+    GenServer.call(cache, { :expire_at, key, timestamp }, @def_timeout)
   end
 
   @doc """
@@ -355,9 +355,7 @@ defmodule Cachex do
   """
   @spec size(atom) :: { status, number }
   defcheck size(cache) do
-    :poolboy.transaction(cache, fn(worker) ->
-      GenServer.call(worker, { :size }, @def_timeout)
-    end)
+    GenServer.call(cache, { :size }, @def_timeout)
   end
 
   @doc """
@@ -367,56 +365,30 @@ defmodule Cachex do
 
       iex> Cachex.stats(:my_cache)
       {:ok,
-       %Cachex.Stats{creationDate: 1455418875069, evictionCount: 0, hitCount: 0,
-        missCount: 0, opCount: 0, setCount: 0}}
+       %{creationDate: 1455690638577, evictionCount: 0, expiredCount: 0, hitCount: 0,
+         missCount: 0, opCount: 0, requestCount: 0, setCount: 0}}
 
   """
-  @spec stats(atom) :: { status, %Cachex.Stats{ } }
+  @spec stats(atom) :: { status, %{ } }
   defcheck stats(cache) do
-    aggregate(
-      cache,
-      fn(worker_pid) ->
-        GenServer.call(worker_pid, { :stats }, @def_timeout)
-      end,
-      fn
-        (:ok, values) ->
-          merged_stats =
-            values
-            |> Stream.map(&(elem(&1, 1)))
-            |> Enum.reduce(%__MODULE__.Stats{ }, &(__MODULE__.Stats.merge/2))
-
-          { :ok, merged_stats }
-        (:error, values) ->
-          hd(values)
-      end
-    )
+    GenServer.call(cache, { :stats }, @def_timeout)
   end
 
-  # Internal aggregator for any functions which need to retrieve a specific
-  # set of values from all workers and aggregate them together. An example
-  # of this is the `Cachex.stats/1` call, which needs to retrieve per-worker
-  # statistics in order to aggregate them together for the full picture.
-  defp aggregate(cache, generator_fun, aggregator_fun) do
-    total_workers =
-      cache
-      |> GenServer.call(:get_all_workers)
-      |> Enum.count
+  @doc """
+  Returns the TTL for a cache entry in milliseconds.
 
-    values =
-      1..total_workers
-      |> Enum.reduce([], fn(_iteration, workers) ->
-          [:poolboy.checkout(cache)|workers]
-         end)
-      |> Enum.reduce([], fn(worker_pid, values) ->
-          new_value = generator_fun.(worker_pid)
-          :poolboy.checkin(cache, worker_pid)
-          [new_value|values]
-         end)
+  If the key is not found, returns an error tuple. If the value is nil, then no
+  expiration has been set on the given key.
 
-    values
-    |> hd
-    |> elem(0)
-    |> aggregator_fun.(values)
+  ## Examples
+
+      iex> Cachex.ttl(:my_cache, "my_key")
+      {:ok, 13985}
+
+  """
+  @spec ttl(atom, binary) :: { status, number }
+  defcheck ttl(cache, key) do
+    GenServer.call(cache, { :ttl, key }, @def_timeout)
   end
 
 end

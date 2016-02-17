@@ -5,8 +5,6 @@ defmodule Cachex.Options do
 
   defstruct cache: nil,         # the name of the cache
             ets_opts: nil,      # any options to give to ETS
-            workers: nil,       # the number of worker processes
-            overflow: nil,      # the overflow of worker processes
             default_ttl: nil,   # any default ttl values to use
             ttl_interval: nil,  # the ttl check interval
             stats: nil          # potential stats container
@@ -30,11 +28,8 @@ defmodule Cachex.Options do
       { :write_concurrency, true }
     ])
 
-    workers = parse_number_option(options, :workers, 1)
-    overflow = parse_number_option(options, :overflow, workers + div(workers, 2))
-
     default_ttl = parse_number_option(options, :default_ttl)
-    ttl_interval = parse_number_option(options, :ttl_interval)
+    ttl_interval = parse_number_option(options, :ttl_purge_interval)
 
     stats = case options[:record_stats] do
       val when val == nil or val == false -> nil
@@ -46,8 +41,6 @@ defmodule Cachex.Options do
     %__MODULE__{
       "cache": cache,
       "ets_opts": ets_opts,
-      "overflow": overflow,
-      "workers": workers,
       "default_ttl": default_ttl,
       "ttl_interval": ttl_interval,
       "stats": stats

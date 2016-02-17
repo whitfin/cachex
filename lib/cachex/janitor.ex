@@ -1,7 +1,6 @@
 defmodule Cachex.Janitor do
   use Cachex.Macros
   use GenServer
-  require Qlc
 
   @moduledoc false
   # The main TTL cleanup for Cachex, providing a very basic task scheduler to
@@ -38,22 +37,31 @@ defmodule Cachex.Janitor do
 
   @doc """
   The only code which currently runs within this process, the ttl check. This
-  function will iterate and fetch all keys for which the expiry time has passed.
-  It will then proceed to delete all of these values in a single context to
-  avoid repeatedly opening a handle to the backing table. Finally, we schedule
-  this function to be called again after the interval has passed.
+  function is black magic and potentially needs to be improved, but it's super
+  fast (the best perf I've seen). We basically drop to the ETS level and provide
+  a select which only matches docs to be removed, and then ETS deletes them as it
+  goes.
   """
   definfo ttl_check do
-    :mnesia.transaction(fn ->
-      "[K || {_,K,E,_} <- C, E /= nil, E < N]"
-      |> Qlc.q([ C: :mnesia.table(state.cache), N: :os.system_time(1000) ])
-      |> Qlc.e
-      |> Enum.each(&(:mnesia.delete({ state.cache, &1 })))
-    end)
+    expired_count = :ets.select_delete(:ttl_test, [
+      {
+        { :"_", :"_", :"$3", :"_" },                # input (our records)
+        [ { :<, :"$3", :os.system_time(1000) } ],   # guards for matching
+        [ true ]                                    # our output
+      }
+    ]);
 
     state
+    |> update_evictions(expired_count)
     |> schedule_check
     |> noreply
+  end
+
+  # Schedules a check to occur after the designated interval. Once scheduled,
+  # returns the state - this is just sugar for pipelining with a state.
+  defp update_evictions(state, evictions) do
+    GenServer.cast(state.cache, { :add_evictions, evictions })
+    state
   end
 
   # Schedules a check to occur after the designated interval. Once scheduled,

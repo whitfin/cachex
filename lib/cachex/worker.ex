@@ -74,8 +74,9 @@ defmodule Cachex.Worker do
   value. The user receives `true` as output, because all writes should succeed.
   """
   defcall set(key, value) do
-    record = create_record(state, key, value)
-    :mnesia.dirty_write(state.cache, record)
+    new_record = create_record(state, key, value)
+    :mnesia.dirty_write(state.cache, new_record)
+    |> (&(&1 == :ok)).()
     |> ok
     |> reply(Stats.add_set(state))
   end
@@ -168,6 +169,42 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Refreshes the expiration on a given key based on the value passed in. We drop
+  to ETS in order to do an in-place change rather than lock, pull, and update.
+  """
+  defcall expire(key, expiration) do
+    result = case :ets.member(state.cache, key) do
+      true ->
+        update_state = { 3, :os.system_time(1000) + expiration }
+        :ets.update_element(state.cache, key, update_state)
+        |> ok
+      false ->
+        error("Key not found in cache")
+    end
+
+    result
+    |> reply(Stats.add_op(state))
+  end
+
+  @doc """
+  Refreshes the expiration on a given key to match the timestamp passed in. We
+  drop to ETS in order to do an in-place change rather than lock, pull, and update.
+  """
+  defcall expire_at(key, timestamp) do
+    result = case :ets.member(state.cache, key) do
+      true ->
+        update_state = { 3, timestamp }
+        :ets.update_element(state.cache, key, update_state)
+        |> ok
+      false ->
+        error("Key not found in cache")
+    end
+
+    result
+    |> reply(Stats.add_op(state))
+  end
+
+  @doc """
   Determines the current size of the cache, as returned by the info function.
   """
   defcall size do
@@ -184,11 +221,39 @@ defmodule Cachex.Worker do
   defcall stats do
     if state.stats do
       state.stats
+      |> Stats.finalize
       |> ok
       |> reply(state)
     else
       reply({ :error, "Stats not enabled for cache named '#{state.cache}'"}, state)
     end
+  end
+
+  @doc """
+  Returns the time remaining on a key before expiry. The value returned it in
+  milliseconds. If the key has no expiration, nil is returned.
+  """
+  defcall ttl(key) do
+    result = case :mnesia.dirty_read(state.cache, key) do
+      [{ _cache, ^key, eviction, _value }] ->
+        case eviction do
+          nil -> { :ok, nil }
+          val -> { :ok, val - :os.system_time(1000) }
+        end
+      _unrecognised_val ->
+        { :error, "Key not found in cache"}
+    end
+
+    result
+    |> reply(Stats.add_op(state))
+  end
+
+  @doc """
+  Called by the janitor process to signal evictions being added. We only care
+  about this being reported when stats are enabled for this cache.
+  """
+  defcast add_evictions(count) do
+    { :noreply, Stats.add_expiration(state, count) }
   end
 
   @doc """

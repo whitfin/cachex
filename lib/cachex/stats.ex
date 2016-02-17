@@ -11,37 +11,44 @@ defmodule Cachex.Stats do
             hitCount: 0,        # number of times a found key was asked for
             missCount: 0,       # number of times a missing key was asked for
             evictionCount: 0,   # number of deletions on the cache
+            expiredCount: 0,    # number of documents expired due to TTL
             creationDate: nil   # the date this cache was initialized
 
   @doc """
   Adds a number of evictions to the stats container, defaulting to 1.
   """
   def add_eviction(state, amount \\ 1),
-  do: increment_stat(state, :evictionCount, amount)
+  do: increment_stat(state, [:evictionCount], amount)
+
+  @doc """
+  Adds a number of expirations to the stats container, defaulting to 1.
+  """
+  def add_expiration(state, amount \\ 1),
+  do: increment_stat(state, [:opCount, :expiredCount], amount)
 
   @doc """
   Adds a number of hits to the stats container, defaulting to 1.
   """
   def add_hit(state, amount \\ 1),
-  do: increment_stat(state, :hitCount, amount)
+  do: increment_stat(state, [:opCount, :hitCount], amount)
 
   @doc """
   Adds a number of misses to the stats container, defaulting to 1.
   """
   def add_miss(state, amount \\ 1),
-  do: increment_stat(state, :missCount, amount)
+  do: increment_stat(state, [:opCount, :missCount], amount)
 
   @doc """
   Adds a number of operations to the stats container, defaulting to 1.
   """
   def add_op(state, amount \\ 1),
-  do: increment_stat(state, [], amount)
+  do: increment_stat(state, [:opCount], amount)
 
   @doc """
   Adds a number of sets to the stats container, defaulting to 1.
   """
   def add_set(state, amount \\ 1),
-  do: increment_stat(state, :setCount, amount)
+  do: increment_stat(state, [:opCount, :setCount], amount)
 
   @doc """
   Increments a stat in a container by a given number, defaulting to 1. If stats
@@ -59,12 +66,47 @@ defmodule Cachex.Stats do
   def increment_stat(state, field, amount)
   when not is_list(field), do: increment_stat(state, [field], amount)
   def increment_stat(%Cachex.Worker{ stats: %{ } = stats } = state, fields, amount) do
-    new_stats = Enum.reduce([:opCount|fields], stats, fn(field, stats) ->
+    new_stats = Enum.reduce(fields, stats, fn(field, stats) ->
       Map.put(stats, field, Map.get(stats, field, 0) + amount)
     end)
     %Cachex.Worker{ state | stats: new_stats }
   end
   def increment_stat(state, _stat, _amount), do: state
+
+  @doc """
+  Finalizes the struct into a Map containing various fields we can deduce from
+  the struct. The bonus fields are why we don't just return the struct - there's
+  no need to store these in the struct all the time, they're only needed once.
+  """
+  def finalize(%__MODULE__{ } = stats_struct) do
+    reqRates = case stats_struct.hitCount + stats_struct.missCount do
+      0 -> %{ "requestCount": 0 }
+      v ->
+        cond do
+          stats_struct.hitCount == 0 -> %{
+            "requestCount": v,
+            "hitRate": 0,
+            "missRate": 100
+          }
+          stats_struct.missCount == 0 -> %{
+            "requestCount": v,
+            "hitRate": 100,
+            "missRate": 0
+          }
+          true -> %{
+            "requestCount": v,
+            "hitRate": stats_struct.hitCount / v,
+            "missRate": stats_struct.missCount / v
+          }
+        end
+    end
+
+    stats_struct
+    |> Map.from_struct
+    |> Map.merge(reqRates)
+    |> Enum.sort(&(elem(&1, 0) > elem(&2, 0)))
+    |> Enum.into(%{})
+  end
 
   @doc """
   Merges together two stat structs, typically performing addition of both values,
