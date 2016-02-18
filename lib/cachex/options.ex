@@ -34,7 +34,7 @@ defmodule Cachex.Options do
     stats = case options[:record_stats] do
       val when val == nil or val == false -> nil
       _true -> %Cachex.Stats{
-        creationDate: :os.system_time(1000)
+        creationDate: Cachex.Util.now
       }
     end
 

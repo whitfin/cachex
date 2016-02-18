@@ -1,5 +1,6 @@
 defmodule Cachex.Janitor do
-  use Cachex.Macros
+  import Cachex.Util
+  use Cachex.Util.Macros
   use GenServer
 
   @moduledoc false
@@ -45,8 +46,14 @@ defmodule Cachex.Janitor do
   definfo ttl_check do
     expired_count = :ets.select_delete(:ttl_test, [
       {
-        { :"_", :"_", :"$3", :"_" },                # input (our records)
-        [ { :<, :"$3", :os.system_time(1000) } ],   # guards for matching
+        { :"_", :"_", :"$1", :"$2", :"_" },         # input (our records)
+        [
+          {
+            :andalso,                               # guards for matching
+            { :"/=", :"$2", nil },                  # where a TTL is set
+            { :"<", { :"+", :"$1", :"$2" }, now }   # and the TTL has passed
+          }
+        ],
         [ true ]                                    # our output
       }
     ]);

@@ -1,9 +1,11 @@
 defmodule Cachex.Worker do
-  use Cachex.Macros
+  use Cachex.Util.Macros
   use GenServer
 
-  # alias stats
+  # alias internals
   alias Cachex.Stats
+  alias Cachex.Util
+  alias Cachex.Worker.Actions
 
   @moduledoc false
   # The main workers for Cachex, providing access to the backing tables using a
@@ -46,17 +48,19 @@ defmodule Cachex.Worker do
   Basic key/value retrieval. Does a lookup on the key, and if the key exists we
   feed the value back to the user, otherwise we feed a nil back to the user.
   """
-  defcall get(key) do
-    { state, res } = case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, _eviction, value }] ->
-        { Stats.add_hit(state), value }
-      _unrecognised_val ->
+  defcall get(key, fallback_function) do
+    { state, res } = case Actions.get(state, key, fallback_function) do
+      { :lookup, val } ->
+        { Stats.add_load(state), val }
+      { :ok, nil } ->
         { Stats.add_miss(state), nil }
+      { :ok, val } ->
+        { Stats.add_hit(state), val }
     end
 
     res
-    |> ok
-    |> reply(state)
+    |> Util.ok
+    |> Util.reply(state)
   end
 
   @doc """
@@ -64,9 +68,9 @@ defmodule Cachex.Worker do
   (as far as things go), so should be avoided except when debugging.
   """
   defcall keys do
-    :mnesia.dirty_all_keys(state.cache)
-    |> ok
-    |> reply(Stats.add_op(state))
+    state
+    |> Actions.keys
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -74,11 +78,9 @@ defmodule Cachex.Worker do
   value. The user receives `true` as output, because all writes should succeed.
   """
   defcall set(key, value) do
-    new_record = create_record(state, key, value)
-    :mnesia.dirty_write(state.cache, new_record)
-    |> (&(&1 == :ok)).()
-    |> ok
-    |> reply(Stats.add_set(state))
+    state
+    |> Actions.set(key, value)
+    |> Util.reply(Stats.add_set(state))
   end
 
   @doc """
@@ -86,19 +88,18 @@ defmodule Cachex.Worker do
   it does not already exist. The value returned is the value *after* increment.
   """
   defcall inc(key, amount, initial) do
-    new_record = create_record(state, key, initial)
-    :ets.update_counter(state.cache, key, { 4, amount }, new_record)
-    |> ok
-    |> reply(Stats.add_op(state))
+    state
+    |> Actions.incr(key, amount, initial)
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
   Removes a key/value pair from the cache.
   """
   defcall delete(key) do
-    :mnesia.dirty_delete(state.cache, key)
-    |> ok
-    |> reply(Stats.add_eviction(state))
+    state
+    |> Actions.del(key)
+    |> Util.reply(Stats.add_eviction(state))
   end
 
   @doc """
@@ -106,46 +107,28 @@ defmodule Cachex.Worker do
   the key as it existed in the cache on removal.
   """
   defcall take(key) do
-    result = :mnesia.transaction(fn ->
-      value = case :mnesia.read(state.cache, key) do
-        [{ _cache, ^key, _eviction, value }] -> value
-        _unrecognised_val -> nil
-      end
-
-      state = case value do
-        nil ->
-          Stats.add_miss(state)
-        _val ->
-          :mnesia.delete(state.cache, key, :write)
-          Stats.increment_stat(state, [:hitCount,:evictionCount])
-      end
-
-      { state, value }
-    end)
-
-    { state, res } = case result do
-      { :atomic, { state, results } } -> { state, ok(results) }
-      { :aborted, reason } -> { state, error(reason) }
+    { state, res } = case Actions.take(state, key) do
+      { :ok, nil } = res ->
+        { Stats.add_miss(state), res }
+      { :ok, _val } = res ->
+        { Stats.add_eviction(state), res }
     end
 
-    reply(res, Stats.add_eviction(state))
+    Util.reply(res, state)
   end
 
   @doc """
   Removes all values from the cache.
   """
   defcall clear do
-    eviction_count = if state.stats do
-      get_size(state)
+    { state, res } = case Actions.clear(state) do
+      { :ok, nil } = res ->
+        { state, res }
+      { :ok, val } = res ->
+        { Stats.add_eviction(state, val), res }
     end
 
-    res = case :mnesia.clear_table(state.cache) do
-      { :atomic, :ok } -> { :ok, true }
-      { :aborted, reason } -> { :error, reason }
-    end
-
-    res
-    |> reply(Stats.add_eviction(state, eviction_count))
+    Util.reply(res, state)
   end
 
   @doc """
@@ -153,9 +136,9 @@ defmodule Cachex.Worker do
   the state.
   """
   defcall empty? do
-    (get_size(state) == 0)
-    |> ok
-    |> reply(Stats.add_op(state))
+    state
+    |> Actions.empty?
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -163,9 +146,9 @@ defmodule Cachex.Worker do
   the value, it's faster to do a blind get and check for nil.
   """
   defcall exists?(key) do
-    :ets.member(state.cache, key)
-    |> ok
-    |> reply(Stats.add_op(state))
+    state
+    |> Actions.exists?(key)
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -173,17 +156,9 @@ defmodule Cachex.Worker do
   to ETS in order to do an in-place change rather than lock, pull, and update.
   """
   defcall expire(key, expiration) do
-    result = case :ets.member(state.cache, key) do
-      true ->
-        update_state = { 3, :os.system_time(1000) + expiration }
-        :ets.update_element(state.cache, key, update_state)
-        |> ok
-      false ->
-        error("Key not found in cache")
-    end
-
-    result
-    |> reply(Stats.add_op(state))
+    state
+    |> Actions.expire(key, expiration)
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -191,17 +166,18 @@ defmodule Cachex.Worker do
   drop to ETS in order to do an in-place change rather than lock, pull, and update.
   """
   defcall expire_at(key, timestamp) do
-    result = case :ets.member(state.cache, key) do
-      true ->
-        update_state = { 3, timestamp }
-        :ets.update_element(state.cache, key, update_state)
-        |> ok
-      false ->
-        error("Key not found in cache")
-    end
+    state
+    |> Actions.expire_at(key, timestamp)
+    |> Util.reply(Stats.add_op(state))
+  end
 
-    result
-    |> reply(Stats.add_op(state))
+  @doc """
+  Removes a set TTL from a given key.
+  """
+  defcall persist(key) do
+    state
+    |> Actions.persist(key)
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -209,9 +185,8 @@ defmodule Cachex.Worker do
   """
   defcall size do
     state
-    |> get_size
-    |> ok
-    |> reply(Stats.add_op(state))
+    |> Actions.size
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -222,10 +197,10 @@ defmodule Cachex.Worker do
     if state.stats do
       state.stats
       |> Stats.finalize
-      |> ok
-      |> reply(state)
+      |> Util.ok
+      |> Util.reply(state)
     else
-      reply({ :error, "Stats not enabled for cache named '#{state.cache}'"}, state)
+      Util.reply({ :error, "Stats not enabled for cache named '#{state.cache}'"}, state)
     end
   end
 
@@ -234,18 +209,9 @@ defmodule Cachex.Worker do
   milliseconds. If the key has no expiration, nil is returned.
   """
   defcall ttl(key) do
-    result = case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, eviction, _value }] ->
-        case eviction do
-          nil -> { :ok, nil }
-          val -> { :ok, val - :os.system_time(1000) }
-        end
-      _unrecognised_val ->
-        { :error, "Key not found in cache"}
-    end
-
-    result
-    |> reply(Stats.add_op(state))
+    state
+    |> Actions.ttl(key)
+    |> Util.reply(Stats.add_op(state))
   end
 
   @doc """
@@ -270,39 +236,6 @@ defmodule Cachex.Worker do
   """
   def handle_info(_info, state) do
     { :noreply, state }
-  end
-
-  # Creates an input record based on a key, value and state. Uses the state to
-  # determine the expiration from a default ttl, before passing the expiration
-  # through to `create_record/4`.
-  defp create_record(state, key, value) do
-    create_record(state, key, value, state.default_ttl)
-  end
-
-  # Creates an input record based on a key, value and expiration. If the value
-  # passed is nil, then we don't apply an expiration. Otherwise we add the value
-  # to the current time (in milliseconds) and return a tuple for the table.
-  defp create_record(state, key, value, expiration) do
-    exp = case expiration do
-      nil -> nil
-      val -> :os.system_time(1000) + val
-    end
-
-    { state.cache, key, exp, value }
-  end
-
-  # Retrieves the ETS information for a given state.
-  # It simply extracts the name from the state and passes
-  # straight to `:ets.info/1`. This is needed because we
-  # use it in multiple locations.
-  defp get_info(state, key) do
-    :mnesia.table_info(state.cache, key)
-  end
-
-  # Retrieves the size information for a given ETS table.
-  # It simply plucks the `:size` field from `get_info/1`.
-  defp get_size(state) do
-    get_info(state, :size)
   end
 
 end

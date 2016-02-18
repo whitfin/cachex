@@ -1,6 +1,6 @@
 defmodule Cachex do
+  use Cachex.Util.Macros
   use Supervisor
-  use __MODULE__.Macros
 
   @moduledoc """
   This module provides simple interactions with a backing memory cache.
@@ -75,7 +75,7 @@ defmodule Cachex do
 
     table_create = :mnesia.create_table(parsed_opts.cache, [
       { :ram_copies, [ node() ] },
-      { :attributes, [ :key, :expiration, :value ]},
+      { :attributes, [ :key, :touched, :ttl, :value ]},
       { :type, :set },
       { :storage_properties, [ { :ets, parsed_opts.ets_opts } ] }
     ])
@@ -112,9 +112,9 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  @spec get(atom, any) :: { status, any }
-  defcheck get(cache, key) do
-    GenServer.call(cache, { :get, key }, @def_timeout)
+  @spec get(atom, any, function) :: { status, any }
+  defcheck get(cache, key, fallback_function \\ nil) do
+    GenServer.call(cache, { :get, key, fallback_function }, @def_timeout)
   end
 
   @doc """
@@ -152,42 +152,6 @@ defmodule Cachex do
   end
 
   @doc """
-  Increments a key directly in the cache by an amount 1. If the key does
-  not exist in the cache, it is set to `0` before being incremented.
-
-  Please note that incrementing a value does not currently refresh any set TTL
-  on the key (as the key is still mapped to the same value, the value is simply
-  mutated).
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "my_key", 1)
-      iex> Cachex.inc(:my_cache, "my_key", 1)
-      { :ok, 2 }
-
-  """
-  @spec inc(atom, any) :: { status, number }
-  defcheck inc(cache, key), do: inc(cache, key, 1, 0)
-
-  @doc """
-  Increments a key directly in the cache by an amount `count`. If the key does
-  not exist in the cache, it is set to `0` before being incremented.
-
-  Please note that incrementing a value does not currently refresh any set TTL
-  on the key (as the key is still mapped to the same value, the value is simply
-  mutated).
-
-  ## Examples
-
-      iex> Cachex.inc(:my_cache, "missing_key", 1)
-      { :ok, 1 }
-
-  """
-  @spec inc(atom, any, number) :: { status, number }
-  defcheck inc(cache, key, count)
-  when is_number(count), do: inc(cache, key, count, 0)
-
-  @doc """
   Increments a key directly in the cache by an amount `count`. If the key does
   not exist in the cache, it is set to `initial` before being incremented.
 
@@ -197,14 +161,22 @@ defmodule Cachex do
 
   ## Examples
 
+      iex> Cachex.set(:my_cache, "my_key", 1)
+      iex> Cachex.inc(:my_cache, "my_key")
+      { :ok, 2 }
+
+      iex> Cachex.set(:my_cache, "my_new_key", 1)
+      iex> Cachex.inc(:my_cache, "my_new_key", 2)
+      { :ok, 3 }
+
       iex> Cachex.inc(:my_cache, "missing_key", 1, 5)
       { :ok, 6 }
 
   """
   @spec inc(atom, any, number, number) :: { status, number }
-  defcheck inc(cache, key, count, initial)
-  when is_number(count) and is_number(initial) do
-    GenServer.call(cache, { :inc, key, count, initial }, @def_timeout)
+  defcheck inc(cache, key, amount \\ 1, initial \\ 0)
+  when is_number(amount) and is_number(initial) do
+    GenServer.call(cache, { :inc, key, amount, initial }, @def_timeout)
   end
 
   @doc """

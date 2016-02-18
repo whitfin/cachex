@@ -10,6 +10,7 @@ defmodule Cachex.Stats do
             setCount: 0,        # number of keys set on the cache
             hitCount: 0,        # number of times a found key was asked for
             missCount: 0,       # number of times a missing key was asked for
+            loadCount: 0,       # number of times a key was loaded
             evictionCount: 0,   # number of deletions on the cache
             expiredCount: 0,    # number of documents expired due to TTL
             creationDate: nil   # the date this cache was initialized
@@ -31,6 +32,12 @@ defmodule Cachex.Stats do
   """
   def add_hit(state, amount \\ 1),
   do: increment_stat(state, [:opCount, :hitCount], amount)
+
+  @doc """
+  Adds a number of misses to the stats container, defaulting to 1.
+  """
+  def add_load(state, amount \\ 1),
+  do: increment_stat(state, [:opCount, :missCount, :loadCount], amount)
 
   @doc """
   Adds a number of misses to the stats container, defaulting to 1.
