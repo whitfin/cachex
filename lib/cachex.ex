@@ -1,4 +1,5 @@
 defmodule Cachex do
+  # use Macros and Supervisor
   use Cachex.Util.Macros
   use Supervisor
 
@@ -118,23 +119,18 @@ defmodule Cachex do
   end
 
   @doc """
-  Retrieves all keys from the cache, and returns them as an (unordered) list.
+  Retrieves a value from the cache.
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
-      iex> Cachex.set(:my_cache, "key3", "value3")
-      iex> Cachex.keys(:my_cache)
-      { :ok, [ "key2", "key1", "key3" ] }
-
-      iex> Cachex.keys(:empty_cache)
-      { :ok, [] }
+      iex> Cachex.set(:my_cache, "key", [2])
+      iex> Cachex.get_and_update(:my_cache, &([1|&1]))
+      { :ok, [1, 2] }
 
   """
-  @spec keys(atom) :: [ any ]
-  defcheck keys(cache) do
-    GenServer.call(cache, { :keys })
+  @spec get_and_update(atom, any, function) :: { status, any }
+  defcheck get_and_update(cache, key, update_function \\ nil) do
+    GenServer.call(cache, { :get_and_update, key, update_function }, @def_timeout)
   end
 
   @doc """
@@ -146,9 +142,9 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec set(atom, any, any) :: { status, true | false }
-  defcheck set(cache, key, value) do
-    GenServer.call(cache, { :set, key, value }, @def_timeout)
+  @spec set(atom, any, any, number) :: { status, true | false }
+  defcheck set(cache, key, value, ttl \\ nil) do
+    GenServer.call(cache, { :set, key, value, ttl }, @def_timeout)
   end
 
   @doc """
@@ -162,64 +158,100 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.set(:my_cache, "my_key", 1)
-      iex> Cachex.inc(:my_cache, "my_key")
+      iex> Cachex.incr(:my_cache, "my_key")
       { :ok, 2 }
 
       iex> Cachex.set(:my_cache, "my_new_key", 1)
-      iex> Cachex.inc(:my_cache, "my_new_key", 2)
+      iex> Cachex.incr(:my_cache, "my_new_key", 2)
       { :ok, 3 }
 
-      iex> Cachex.inc(:my_cache, "missing_key", 1, 5)
+      iex> Cachex.incr(:my_cache, "missing_key", 1, 5)
       { :ok, 6 }
 
   """
-  @spec inc(atom, any, number, number) :: { status, number }
-  defcheck inc(cache, key, amount \\ 1, initial \\ 0)
+  @spec incr(atom, any, number, number, atom) :: { status, number }
+  defcheck incr(cache, key, amount \\ 1, initial \\ 0, touched \\ :untouched)
   when is_number(amount) and is_number(initial) do
-    GenServer.call(cache, { :inc, key, amount, initial }, @def_timeout)
+    GenServer.call(cache, { :incr, key, amount, initial, touched }, @def_timeout)
   end
 
   @doc """
-  Removes a value from the cache.
+  Decrements a key directly in the cache by an amount `count`. If the key does
+  not exist in the cache, it is set to `initial` before being decremented.
+
+  Please note that decrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
+      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.decr(:my_cache, "my_key")
+      { :ok, 9 }
 
-      iex> Cachex.delete(:my_cache, "key")
-      { :ok, true }
+      iex> Cachex.set(:my_cache, "my_new_key", 10)
+      iex> Cachex.decr(:my_cache, "my_new_key", 5)
+      { :ok, 5 }
 
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
+      iex> Cachex.decr(:my_cache, "missing_key", 10, 5)
+      { :ok, 5 }
 
   """
-  @spec delete(atom, any) :: { status, true | false }
-  defcheck delete(cache, key) do
-    GenServer.call(cache, { :delete, key }, @def_timeout)
-  end
+  @spec decr(atom, any, number, number, atom) :: { status, number }
+  defcheck decr(cache, key, amount \\ 1, initial \\ 0, touched \\ :untouched),
+  do: incr(cache, key, amount * -1, initial, touched)
 
   @doc """
-  Takes a key from the cache, whilst also removing it from the cache.
+  Increments a key directly in the cache by an amount `count`. If the key does
+  not exist in the cache, it is set to `initial` before being incremented.
+
+  Please note that incrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.take(:my_cache, "key")
-      { :ok, "value" }
+      iex> Cachex.set(:my_cache, "my_key", 1)
+      iex> Cachex.incr(:my_cache, "my_key")
+      { :ok, 2 }
 
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
+      iex> Cachex.set(:my_cache, "my_new_key", 1)
+      iex> Cachex.incr(:my_cache, "my_new_key", 2)
+      { :ok, 3 }
 
-      iex> Cachex.take(:my_cache, "missing_key")
-      { :ok, nil }
+      iex> Cachex.incr(:my_cache, "missing_key", 1, 5)
+      { :ok, 6 }
 
   """
-  @spec take(atom, any) :: { status, any }
-  defcheck take(cache, key) do
-    GenServer.call(cache, { :take, key }, @def_timeout)
-  end
+  @spec t_incr(atom, any, number, number) :: { status, number }
+  defcheck t_incr(cache, key, amount \\ 1, initial \\ 0),
+  do: incr(cache, key, amount, initial, :touched)
+
+  @doc """
+  Decrements a key directly in the cache by an amount `count`. If the key does
+  not exist in the cache, it is set to `initial` before being decremented.
+
+  Please note that decrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.decr(:my_cache, "my_key")
+      { :ok, 9 }
+
+      iex> Cachex.set(:my_cache, "my_new_key", 10)
+      iex> Cachex.decr(:my_cache, "my_new_key", 5)
+      { :ok, 5 }
+
+      iex> Cachex.decr(:my_cache, "missing_key", 10, 5)
+      { :ok, 5 }
+
+  """
+  @spec t_decr(atom, any, number, number) :: { status, number }
+  defcheck t_decr(cache, key, amount \\ 1, initial \\ 0),
+  do: decr(cache, key, amount, initial, :touched)
 
   @doc """
   Removes all items in the cache.
@@ -245,6 +277,48 @@ defmodule Cachex do
   end
 
   @doc """
+  Removes a value from the cache.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.del(:my_cache, "key")
+      { :ok, true }
+
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, nil }
+
+  """
+  @spec del(atom, any) :: { status, true | false }
+  defcheck del(cache, key) do
+    GenServer.call(cache, { :del, key }, @def_timeout)
+  end
+
+  @doc """
+  Takes a key from the cache, whilst also removing it from the cache.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.take(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, nil }
+
+      iex> Cachex.take(:my_cache, "missing_key")
+      { :ok, nil }
+
+  """
+  @spec take(atom, any) :: { status, any }
+  defcheck take(cache, key) do
+    GenServer.call(cache, { :take, key }, @def_timeout)
+  end
+
+  @doc """
   Checks whether the cache is empty.
 
   ## Examples
@@ -264,7 +338,10 @@ defmodule Cachex do
   """
   @spec empty?(atom) :: { status, true | false }
   defcheck empty?(cache) do
-    GenServer.call(cache, { :empty? }, @def_timeout)
+    case size(cache) do
+      { :ok, size } -> { :ok, size == 0 }
+      _other_value_ -> { :ok, false }
+    end
   end
 
   @doc """
@@ -311,6 +388,44 @@ defmodule Cachex do
   @spec expire_at(atom, binary, number) :: { status, true | false }
   defcheck expire_at(cache, key, timestamp) when is_number(timestamp) do
     GenServer.call(cache, { :expire_at, key, timestamp }, @def_timeout)
+  end
+
+  @doc """
+  Retrieves all keys from the cache, and returns them as an (unordered) list.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.keys(:my_cache)
+      { :ok, [ "key2", "key1", "key3" ] }
+
+      iex> Cachex.keys(:empty_cache)
+      { :ok, [] }
+
+  """
+  @spec keys(atom) :: [ any ]
+  defcheck keys(cache) do
+    GenServer.call(cache, { :keys })
+  end
+
+  @doc """
+  Removes a TTL on a given document.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value", 1000)
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 1000 }
+
+      iex> Cachex.persist(:my_cache, "key")
+      { :ok, true }
+
+  """
+  @spec persist(atom, any) :: { status, true | false }
+  defcheck persist(cache, key) do
+    GenServer.call(cache, { :persist, key }, @def_timeout)
   end
 
   @doc """

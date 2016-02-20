@@ -19,7 +19,7 @@ defmodule Cachex.Stats do
   Adds a number of evictions to the stats container, defaulting to 1.
   """
   def add_eviction(state, amount \\ 1),
-  do: increment_stat(state, [:evictionCount], amount)
+  do: increment_stat(state, [:opCount, :evictionCount], amount)
 
   @doc """
   Adds a number of expirations to the stats container, defaulting to 1.
@@ -122,20 +122,21 @@ defmodule Cachex.Stats do
   This *can* be used by the end-user, but this module will remain undocumented as
   we don't want users to accidentally taint their statistics.
   """
-  def merge(%__MODULE__{ } = a, %__MODULE__{ } = b) do
-    [__struct__|fields] = Map.keys(a)
+  def merge(%__MODULE__{ } = stats_a, %__MODULE__{ } = stats_b) do
+    stats_a
+    |> Map.keys
+    |> Kernal.tl
+    |> Enum.reduce(stats_a, fn(field, state) ->
+        a_val = Map.get(stats_a, field, 0)
+        b_val = Map.get(stats_b, field, 0)
 
-    Enum.reduce([:opCount|fields], a, fn(field, state) ->
-      a_val = Map.get(a, field, 0)
-      b_val = Map.get(b, field, 0)
-
-      case field do
-        :creationDate ->
-          Map.put(state, field, a_val < b_val && a_val || b_val)
-        _other_values ->
-          Map.put(state, field, a_val + b_val)
-      end
-    end)
+        case field do
+          :creationDate ->
+            Map.put(state, field, a_val < b_val && a_val || b_val)
+          _other_values ->
+            Map.put(state, field, a_val + b_val)
+        end
+      end)
   end
 
 end

@@ -1,211 +1,179 @@
 defmodule Cachex.Worker.Actions do
+  @moduledoc false
+  # This module defines the actions a worker can take. The reason for splitting
+  # this out is so that it's easier to use internal functions (for example, we
+  # might wish to re-use `size/1`). When defined in the Worker module, it was too
+  # messy, and it's not possible to call GenServer functions from within. This
+  # module acts as an interface to different implementations. Currently we only
+  # have local storage via ETS, but it's totally possible to plug in a remote
+  # implementation to replicate across nodes (I have one but it's still not quite
+  # finished). The module being built in this way provides a clear migration path
+  # to this in future, without having to rewrite and restructure the entire thing.
+
+  # add a utils alias
   alias Cachex.Util
 
   @doc """
   Basic key/value retrieval. Does a lookup on the key, and if the key exists we
-  feed the value back to the user, otherwise we feed a nil back to the user.
+  feed the value back to the user, otherwise we feed a nil back to the user. This
+  function delegates to the actions modules to allow for optimizations.
   """
-  def get(state, key, fb_fun \\ nil) do
-    case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, _touched, _ttl, value }] ->
-        { :ok, value }
-      _unrecognised_val ->
-        case fb_fun do
-          nil -> { :ok, nil }
-          fun -> { :loaded, fun.() }
-        end
-    end
+  def get(state, key, fb_fun \\ nil),
+  do: do_action(state, :get, [key, fb_fun])
+
+  @doc """
+  Provides a transactional interface to updating a value, by passing the value
+  back into a provided function and storing the result. Touch time is updated
+  but ttl is persisted, as this a convenient wrapper around setting a value.
+  The return value is the value returned by the update function (i.e. the updated)
+  state in the table.
+  """
+  def get_and_update(state, key, update_fun) when is_function(update_fun) do
+    get_and_update_raw(state, key, fn({ _cache, ^key, _touched, _ttl, value }) ->
+      update_fun.(value)
+    end)
   end
 
   @doc """
-  Grabs a list of keys for the user (the entire keyspace). This is pretty costly
-  (as far as things go), so should be avoided except when debugging.
+  A raw interface for the update of a document in the table. This is a for use
+  only by internal modules, as you can cause unintentional bugs with bad changes
+  in this function. `get_and_update_raw/3` takes an update function which receives
+  either the document or a faked out tuple. The new document returned is directly
+  indexed into the table.
   """
-  def keys(state) do
-    { :ok, :mnesia.dirty_all_keys(state.cache) }
+  def get_and_update_raw(state, key, update_fun) when is_function(update_fun) do
+    result = :mnesia.transaction(fn ->
+      value = { _, _, _, ttl, _ } = case :mnesia.read(state.cache, key) do
+        [{ cache, ^key, touched, ttl, value }] ->
+          { cache, key, touched, ttl, value }
+        _unrecognised_val ->
+          { state.cache, key, Util.now(), nil, nil }
+      end
+
+      new_value = update_fun.(value)
+      set(state, key, new_value, ttl)
+      new_value
+    end)
+
+    Util.handle_transaction(result)
   end
 
   @doc """
-  Basic key/value setting. Simply inserts the key into the table alongside the
-  value. The user receives `true` as output, because all writes should succeed.
+  Delegate for setting a value, simply setting a value to a key with an optional
+  ttl. This function delegates to the actions modules to allow for optimizations.
   """
-  def set(state, key, value) do
-    new_record =
-      state
-      |> create_record(key, value)
-
-    :mnesia.dirty_write(state.cache, new_record)
-    |> (&(&1 == :ok) && Util.ok(true) || Util.error(false)).()
-  end
+  def set(state, key, value, ttl \\ nil),
+  do: do_action(state, :set, [key, value, ttl])
 
   @doc """
   Increments a value by a given amount, setting the value to an initial value if
   it does not already exist. The value returned is the value *after* increment.
+  This function delegates to the actions modules to allow for optimizations.
   """
-  def incr(state, key, amount, initial_value) do
-    new_record =
-      state
-      |> create_record(key, initial_value)
-
-    :ets.update_counter(state.cache, key, { 5, amount }, new_record) |> Util.ok
-  end
+  def incr(state, key, amount, initial_value, touched),
+  do: do_action(state, :incr, [key, amount, initial_value, touched])
 
   @doc """
-  Decrements a value by a given amount, setting the value to an initial value if
-  it does not already exist. The value returned is the value *after* decrement.
+  Removes a key/value pair from the cache. This function delegates to the actions
+  modules to allow for optimizations.
   """
-  def decr(state, key, amount, initial_value),
-  do: incr(state, key, amount * -1, initial_value)
-
-  @doc """
-  Increments a value by a given amount, setting the value to an initial value if
-  it does not already exist. The value returned is the value *after* increment.
-  """
-  def t_incr(state, key, amount, initial_value) do
-    new_record =
-      state
-      |> create_record(key, initial_value)
-
-    :ets.update_counter(state.cache, key, [{ 3, Util.now() }, { 5, amount }], new_record) |> Util.ok
-  end
-
-  @doc """
-  Decrements a value by a given amount, setting the value to an initial value if
-  it does not already exist. The value returned is the value *after* decrement.
-  """
-  def t_decr(state, key, amount, initial_value),
-  do: t_incr(state, key, amount * -1, initial_value)
-
-  @doc """
-  Removes a key/value pair from the cache.
-  """
-  def del(state, key) do
-    { :ok, :mnesia.dirty_delete(state.cache, key) }
-  end
+  def del(state, key),
+  do: do_action(state, :del, [key])
 
   @doc """
   Removes a key/value pair from the cache, but returns the last known value of
-  the key as it existed in the cache on removal.
+  the key as it existed in the cache on removal. This function delegates to the
+  actions modules to allow for optimizations.
   """
-  def take(state, key) do
-    value = case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, _touched, _ttl, value }] -> value
-      _unrecognised_val -> nil
-    end
-
-    if value != nil do
-      :mnesia.dirty_delete(state.cache, key)
-    end
-
-    Util.ok(value)
-  end
+  def take(state, key),
+  do: do_action(state, :take, [key])
 
   @doc """
-  Removes all values from the cache.
+  Removes all values from the cache, this empties the entire backing table. This
+  function delegates to the actions modules to allow for optimizations.
   """
-  def clear(state) do
-    eviction_count = case size(state) do
-      { :ok, size } -> size
-      _other_value_ -> nil
-    end
-
-    case :mnesia.clear_table(state.cache) do
-      { :atomic, :ok } -> { :ok, eviction_count }
-      { :aborted, reason } -> { :error, reason }
-    end
-  end
-
-  @doc """
-  Determines whether the cache is empty or not, returning a boolean representing
-  the state.
-  """
-  def empty?(state) do
-    case size(state) do
-      { :ok, size } -> { :ok, size == 0 }
-      _other_value_ -> { :ok, false }
-    end
-  end
+  def clear(state),
+  do: do_action(state, :clear)
 
   @doc """
   Determines whether a key exists in the cache. When the intention is to retrieve
-  the value, it's faster to do a blind get and check for nil.
+  the value, it's faster to do a blind get and check for nil. It's ok for us to
+  drop to ETS for this at all times because of the speed (i.e. it's almost not
+  possible for this to be inaccurate aside from network partitions).
   """
   def exists?(state, key) do
     { :ok, :ets.member(state.cache, key) }
   end
 
   @doc """
-  Refreshes the expiration on a given key based on the value passed in. We drop
-  to ETS in order to do an in-place change rather than lock, pull, and update.
+  Modifies the expiration on a given key based on the value passed in. This
+  function delegates to the actions modules to allow for optimizations.
   """
-  def expire(state, key, expiration) do
-    if exists?(state, key) do
-      :ets.update_element(state.cache, key, [{ 3, Util.now() }, { 4, expiration }])
-      Util.ok(true)
-    else
-      Util.error("Key not found in cache")
-    end
+  def expire(state, key, expiration),
+  do: do_action(state, :expire, [key, expiration])
+
+  @doc """
+  Sets a date for expiration of a given key. The date should be a timestamp in
+  UTC milliseconds. We forward this action to the `expire/3` function to avoid
+  duplicating the logic behind the expiration.
+  """
+  def expire_at(state, key, timestamp),
+  do: expire(state, key, timestamp - Util.now())
+
+  @doc """
+  Retrieves a list of keys from the cache. This is surprisingly fast, because we
+  use a funky selection, but all the same it should be used less frequently as
+  the payload being copied and sent back over the server is potentially costly.
+  """
+  def keys(state) do
+    state.cache
+    |> :mnesia.dirty_select([ { { :"_", :"$1", :"_", :"_", :"_" }, [ ], [ :"$1" ] } ])
+    |> Util.ok
   end
 
   @doc """
-  Refreshes the expiration on a given key to match the timestamp passed in. We
-  drop to ETS in order to do an in-place change rather than lock, pull, and update.
+  Removes a TTL from a given key (and is safe if a key does not already have a
+  TTL provided). We pass this to `expire/3` to avoid duplicating the update logic.
   """
-  def expire_at(state, key, timestamp) do
-    expire(state, key, timestamp - Util.now())
-  end
+  def persist(state, key),
+  do: expire(state, key, nil)
 
   @doc """
-  Removes a set TTL from a given key.
-  """
-  def expire_at(state, key) do
-    if exists?(state, key) do
-      :ets.update_element(state.cache, key, [{ 4, nil }])
-      Util.ok(true)
-    else
-      Util.error("Key not found in cache")
-    end
-  end
-
-  @doc """
-  Determines the current size of the cache, as returned by the info function.
+  Determines the current size of the cache, as returned by the info function. This
+  is going to be accurate to the millisecond at the very worst, so we can safely
+  provide this implementation for all actions.
   """
   def size(state) do
-    { :ok, :mnesia.table_info(state.cache, :size) }
+    state.cache
+    |> :mnesia.table_info(:size)
+    |> Util.ok
   end
 
   @doc """
-  Returns the time remaining on a key before expiry. The value returned it in
-  milliseconds. If the key has no expiration, nil is returned.
+  Returns the time remaining on a key before expiry. The value returned is in
+  milliseconds. If the key has no expiration, nil is returned. This function
+  delegates to the actions modules to allow for optimizations.
   """
-  def ttl(state, key) do
-    case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, _value }] ->
-        case ttl do
-          nil -> { :ok, nil }
-          val -> { :ok, touched + val - Util.now() }
-        end
-      _unrecognised_val ->
-        { :error, "Key not found in cache"}
-    end
-  end
+  def ttl(state, key),
+  do: do_action(state, :ttl, [key])
 
-  # Creates an input record based on a key, value and state. Uses the state to
-  # determine the expiration from a default ttl, before passing the expiration
-  # through to `create_record/4`.
-  defp create_record(state, key, value) do
-    create_record(state, key, value, state.default_ttl)
-  end
-
-  # Creates an input record based on a key, value and expiration. If the value
-  # passed is nil, then we don't apply an expiration. Otherwise we add the value
-  # to the current time (in milliseconds) and return a tuple for the table.
-  defp create_record(state, key, value, expiration) do
+  @doc """
+  Creates an input record based on a key, value and expiration. If the value
+  passed is nil, then we apply any defaults. Otherwise we add the value
+  to the current time (in milliseconds) and return a tuple for the table.
+  """
+  def create_record(state, key, value, expiration \\ nil) do
     exp = case expiration do
       nil -> state.default_ttl
       val -> val
     end
     { state.cache, key, Util.now(), exp, value }
   end
+
+  # Forwards a call to the correct actions set, currently only the local actions.
+  # The idea is that in future this will delegate to distributed implementations,
+  # so it has been built out in advance to provide a clear migration path.
+  defp do_action(state, action, args \\ []),
+  do: apply(__MODULE__.Local, action, [state|args])
 
 end

@@ -1,13 +1,13 @@
 defmodule Cachex.Options do
   @moduledoc false
   # A container to ensure that all option parsing is done in a single location
-  # to avoid accidentally getting mixed field names and values across the library
+  # to avoid accidentally getting mixed field names and values across the library.
 
-  defstruct cache: nil,         # the name of the cache
-            ets_opts: nil,      # any options to give to ETS
-            default_ttl: nil,   # any default ttl values to use
-            ttl_interval: nil,  # the ttl check interval
-            stats: nil          # potential stats container
+  defstruct cache: nil,           # the name of the cache
+            ets_opts: nil,        # any options to give to ETS
+            default_ttl: nil,     # any default ttl values to use
+            ttl_interval: nil,    # the ttl check interval
+            stats: nil            # potential stats container
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like
@@ -29,11 +29,15 @@ defmodule Cachex.Options do
     ])
 
     default_ttl = parse_number_option(options, :default_ttl)
-    ttl_interval = parse_number_option(options, :ttl_purge_interval)
+    default_interval = case (!!options[:ttl_enabled] or !!default_ttl) do
+      true  -> 1000
+      false -> nil
+    end
+    ttl_interval = parse_number_option(options, :ttl_interval, default_interval)
 
     stats = case options[:record_stats] do
       val when val == nil or val == false -> nil
-      _true -> %Cachex.Stats{
+      _true -> %{
         creationDate: Cachex.Util.now
       }
     end

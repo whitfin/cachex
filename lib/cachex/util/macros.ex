@@ -8,6 +8,12 @@ defmodule Cachex.Util.Macros do
   # This module is gross, but it's compile time so I'm not going to spend too
   # much time in here.
 
+  @doc """
+  Small macro for detailing handle_call functions, without having to pay attention
+  to the syntax. You can simply define them as `defcall my_func(arg1) do:` as an
+  example. There is no support for guards, but no logic happens inside the worker
+  with regards to arguments anyway.
+  """
   defmacro defcall(head, do: body) do
     { func_name, args } = name_and_args(head)
 
@@ -18,6 +24,12 @@ defmodule Cachex.Util.Macros do
     end
   end
 
+  @doc """
+  Small macro for detailing handle_cast functions, without having to pay attention
+  to the syntax. You can simply define them as `defcast my_func(arg1) do:` as an
+  example. There is no support for guards, but no logic happens inside the worker
+  with regards to arguments anyway.
+  """
   defmacro defcast(head, do: body) do
     { func_name, args } = name_and_args(head)
 
@@ -28,6 +40,12 @@ defmodule Cachex.Util.Macros do
     end
   end
 
+  @doc """
+  This is gross, but very convenient. It will basically define a function for the
+  main Cachex module, and it short-circuits if the specified GenServer can not be
+  found. In addition, it builds up a `!` version of the function to return values
+  or throw errors explicity.
+  """
   defmacro defcheck(head, do: body) do
     explicit_head = gen_unsafe(head)
     { func_name, arguments } = name_and_args(head)
@@ -63,6 +81,10 @@ defmodule Cachex.Util.Macros do
     end
   end
 
+  @doc """
+  Very small wrapper around handle_info calls so you can define your own message
+  handler with little effort.
+  """
   defmacro definfo(head, do: body) do
     { func_name, _ } = name_and_args(head)
 
@@ -73,6 +95,7 @@ defmodule Cachex.Util.Macros do
     end
   end
 
+  # Allow use of this module
   defmacro __using__(_opts) do
     quote do
       import unquote(__MODULE__)
@@ -94,9 +117,9 @@ defmodule Cachex.Util.Macros do
 
   """
   def raise_result({ status, value }) do
-    case status do
-      :error -> raise value
-      _other -> value
+    cond do
+      status == :error and is_binary(value) -> raise value
+      true -> value
     end
   end
 

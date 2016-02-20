@@ -28,7 +28,7 @@ defmodule CachexTest do
 
   test "key deletion" do
     Enum.each(1..1000, fn(x) ->
-      assert(Cachex.delete!(@test_cache, "key#{x}"))
+      assert(Cachex.del!(@test_cache, "key#{x}"))
       assert(Cachex.size!(@test_cache) == 1000 - x)
     end)
   end
@@ -48,9 +48,9 @@ defmodule CachexTest do
 
   test "key increment" do
     assert(Cachex.set!(@test_cache, "key", 1))
-    assert(Cachex.inc!(@test_cache, "key") == 2)
-    assert(Cachex.inc!(@test_cache, "key", 2) == 4)
-    assert(Cachex.inc!(@test_cache, "keyX", 5, 5) == 10)
+    assert(Cachex.incr!(@test_cache, "key") == 2)
+    assert(Cachex.incr!(@test_cache, "key", 2) == 4)
+    assert(Cachex.incr!(@test_cache, "keyX", 5, 5) == 10)
   end
 
   test "key list retrieval" do

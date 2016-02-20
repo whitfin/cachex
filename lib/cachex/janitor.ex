@@ -1,7 +1,10 @@
 defmodule Cachex.Janitor do
-  import Cachex.Util
+  # use Macros and GenServer
   use Cachex.Util.Macros
   use GenServer
+
+  # import utils for convenience
+  import Cachex.Util
 
   @moduledoc false
   # The main TTL cleanup for Cachex, providing a very basic task scheduler to
@@ -10,8 +13,8 @@ defmodule Cachex.Janitor do
   # It's possible that certain cleanups will result in full table scans, and so
   # we split into a separate GenServer for safety in case it takes a while.
 
-  defstruct cache: nil,     # the name of the cache
-            interval: nil   # the interval to check the ttl
+  defstruct cache: nil,         # the name of the cache
+            interval: nil       # the interval to check the ttl
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -44,24 +47,32 @@ defmodule Cachex.Janitor do
   goes.
   """
   definfo ttl_check do
-    expired_count = :ets.select_delete(:ttl_test, [
-      {
-        { :"_", :"_", :"$1", :"$2", :"_" },         # input (our records)
-        [
-          {
-            :andalso,                               # guards for matching
-            { :"/=", :"$2", nil },                  # where a TTL is set
-            { :"<", { :"+", :"$1", :"$2" }, now }   # and the TTL has passed
-          }
-        ],
-        [ true ]                                    # our output
-      }
-    ]);
+    expired_count =
+      state.cache
+      |> :ets.select_delete(create_selection(true));
 
     state
     |> update_evictions(expired_count)
     |> schedule_check
     |> noreply
+  end
+
+  # Returns a selection to return the designated values, just an easier way to
+  # define this in one place - not the nicest piece in the world.
+  defp create_selection(return) do
+    [
+      {
+        { :"_", :"$1", :"$2", :"$3", :"_" },        # input (our records)
+        [
+          {
+            :andalso,                               # guards for matching
+            { :"/=", :"$3", nil },                  # where a TTL is set
+            { :"<", { :"+", :"$2", :"$3" }, now }   # and the TTL has passed
+          }
+        ],
+        [ return ]                                  # our output
+      }
+    ]
   end
 
   # Schedules a check to occur after the designated interval. Once scheduled,
