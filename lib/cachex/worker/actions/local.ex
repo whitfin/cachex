@@ -19,20 +19,23 @@ defmodule Cachex.Worker.Actions.Local do
   """
   def get(state, key, fb_fun \\ nil) do
     val = case :ets.lookup(state.cache, key) do
-      [{ _cache, ^key, _touched, _ttl, value }] -> value
+      [{ _cache, ^key, touched, ttl, value }] ->
+        case Util.has_expired(touched, ttl) do
+          true  -> Actions.del(state, key); nil;
+          false -> value
+        end
       _unrecognised_val -> nil
     end
 
     case val do
       nil ->
-        case fb_fun do
-          fun when not is_function(fun) ->
-            { :ok, nil }
-          fun ->
-            new_value = fun.()
-            Actions.set(state, key, new_value)
-            { :loaded, new_value }
-        end
+        new_value =
+          state
+          |> Util.get_fallback(key, fb_fun)
+
+        Actions.set(state, key, new_value)
+
+        { :loaded, new_value }
       val ->
         { :ok, val }
     end
@@ -47,7 +50,7 @@ defmodule Cachex.Worker.Actions.Local do
   def set(state, key, value, ttl \\ nil) do
     new_record =
       state
-      |> Actions.create_record(key, value, ttl)
+      |> Util.create_record(key, value, ttl)
 
     state.cache
     |> :ets.insert(new_record)
@@ -64,7 +67,7 @@ defmodule Cachex.Worker.Actions.Local do
   def incr(state, key, amount, initial_value, touched) do
     new_record =
       state
-      |> Actions.create_record(key, initial_value)
+      |> Util.create_record(key, initial_value)
 
     body = case touched do
       :touched   -> [{ 3, Util.now() }, { 5, amount }]
@@ -93,7 +96,11 @@ defmodule Cachex.Worker.Actions.Local do
   """
   def take(state, key) do
     value = case :ets.take(state.cache, key) do
-      [{ _cache, ^key, _touched, _ttl, value }] -> value
+      [{ _cache, ^key, touched, ttl, value }] ->
+        case Util.has_expired(touched, ttl) do
+          true  -> nil
+          false -> value
+        end
       _unrecognised_val -> nil
     end
 

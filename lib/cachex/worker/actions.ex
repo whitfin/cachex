@@ -28,9 +28,17 @@ defmodule Cachex.Worker.Actions do
   The return value is the value returned by the update function (i.e. the updated)
   state in the table.
   """
-  def get_and_update(state, key, update_fun) when is_function(update_fun) do
+  def get_and_update(state, key, update_fun, fb_fun \\ nil)
+  when is_function(update_fun) do
     get_and_update_raw(state, key, fn({ _cache, ^key, _touched, _ttl, value }) ->
-      update_fun.(value)
+      case value do
+        nil ->
+          state
+          |> Util.get_fallback(key, fb_fun)
+          |> update_fun.()
+        val ->
+          update_fun.(val)
+      end
     end)
   end
 
@@ -45,7 +53,13 @@ defmodule Cachex.Worker.Actions do
     result = :mnesia.transaction(fn ->
       value = { _, _, _, ttl, _ } = case :mnesia.read(state.cache, key) do
         [{ cache, ^key, touched, ttl, value }] ->
-          { cache, key, touched, ttl, value }
+          case Util.has_expired(touched, ttl) do
+            true ->
+              :mnesia.delete(state.cache, key, :write)
+              { cache, key, Util.now(), nil, nil }
+            false ->
+              { cache, key, touched, ttl, value }
+          end
         _unrecognised_val ->
           { state.cache, key, Util.now(), nil, nil }
       end
@@ -127,7 +141,7 @@ defmodule Cachex.Worker.Actions do
   """
   def keys(state) do
     state.cache
-    |> :mnesia.dirty_select([ { { :"_", :"$1", :"_", :"_", :"_" }, [ ], [ :"$1" ] } ])
+    |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
     |> Util.ok
   end
 
@@ -156,19 +170,6 @@ defmodule Cachex.Worker.Actions do
   """
   def ttl(state, key),
   do: do_action(state, :ttl, [key])
-
-  @doc """
-  Creates an input record based on a key, value and expiration. If the value
-  passed is nil, then we apply any defaults. Otherwise we add the value
-  to the current time (in milliseconds) and return a tuple for the table.
-  """
-  def create_record(state, key, value, expiration \\ nil) do
-    exp = case expiration do
-      nil -> state.default_ttl
-      val -> val
-    end
-    { state.cache, key, Util.now(), exp, value }
-  end
 
   # Forwards a call to the correct actions set, currently only the local actions.
   # The idea is that in future this will delegate to distributed implementations,

@@ -26,7 +26,44 @@ defmodule Cachex.Util do
   @doc """
   Lazy wrapper for creating a :reply tuple.
   """
-  def reply(value, state), do: { :reply, value, state}
+  def reply(value, state), do: { :reply, value, state }
+
+  @doc """
+  Creates an input record based on a key, value and expiration. If the value
+  passed is nil, then we apply any defaults. Otherwise we add the value
+  to the current time (in milliseconds) and return a tuple for the table.
+  """
+  def create_record(state, key, value, expiration \\ nil) do
+    exp = case expiration do
+      nil -> state.options.default_ttl
+      val -> val
+    end
+    { state.cache, key, now(), exp, value }
+  end
+
+  @doc """
+  Retrieves a fallback value for a given key, using either the provided function
+  or using the default fallback implementation.
+  """
+  def get_fallback(state, key, fb_fun \\ nil, default_val \\ nil) do
+    fun = cond do
+      is_function(fb_fun) ->
+        fb_fun
+      is_function(state.options.default_fallback) ->
+        state.options.default_fallback
+      true ->
+        default_val
+    end
+
+    case fun do
+      nil -> nil
+      val ->
+        case :erlang.fun_info(val)[:arity] do
+          1 -> val.(key)
+          _ -> val.(key, state.options.fallback_args)
+        end
+    end
+  end
 
   @doc """
   Takes a result in the format of a transaction result and returns just either
@@ -47,5 +84,25 @@ defmodule Cachex.Util do
   """
   def has_expired(_touched, nil), do: false
   def has_expired(touched, ttl), do: touched + ttl < now
+
+  @doc """
+  Returns a selection to return the designated value for all rows. Enables things
+  like finding all stored keys and all stored values.
+  """
+  def retrieve_all_rows(return) do
+    [
+      {
+        { :"_", :"$1", :"$2", :"$3", :"$4" },       # input (our records)
+        [
+          {
+            :orelse,                                # guards for matching
+            { :"==", :"$3", nil },                  # where a TTL is set
+            { :"<", { :"+", :"$2", :"$3" }, now }   # and the TTL has passed
+          }
+        ],
+        [ return ]                                  # our output
+      }
+    ]
+  end
 
 end

@@ -128,9 +128,10 @@ defmodule Cachex do
       { :ok, [1, 2] }
 
   """
-  @spec get_and_update(atom, any, function) :: { status, any }
-  defcheck get_and_update(cache, key, update_function \\ nil) do
-    GenServer.call(cache, { :get_and_update, key, update_function }, @def_timeout)
+  @spec get_and_update(atom, any, function, function) :: { status, any }
+  defcheck get_and_update(cache, key, update_function, fb_fun \\ nil)
+  when is_function(update_function) do
+    GenServer.call(cache, { :get_and_update, key, update_function, fb_fun }, @def_timeout)
   end
 
   @doc """

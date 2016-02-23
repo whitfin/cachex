@@ -3,11 +3,13 @@ defmodule Cachex.Options do
   # A container to ensure that all option parsing is done in a single location
   # to avoid accidentally getting mixed field names and values across the library.
 
-  defstruct cache: nil,           # the name of the cache
-            ets_opts: nil,        # any options to give to ETS
-            default_ttl: nil,     # any default ttl values to use
-            ttl_interval: nil,    # the ttl check interval
-            stats: nil            # potential stats container
+  defstruct cache: nil,             # the name of the cache
+            ets_opts: nil,          # any options to give to ETS
+            default_fallback: nil,  # the default fallback implementation
+            default_ttl: nil,       # any default ttl values to use
+            fallback_args: nil,     # arguments to pass to a cache loader
+            ttl_interval: nil,      # the ttl check interval
+            stats: nil              # potential stats container
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like
@@ -17,7 +19,7 @@ defmodule Cachex.Options do
   it saves us trying to duplicate this logic all over the codebase.
   """
   def parse(options \\ []) do
-    cache = case options[:cache_name] do
+    cache = case options[:name] do
       val when val == nil or not is_atom(val) ->
         raise "Cache name must be a valid atom!"
       val -> val
@@ -37,15 +39,25 @@ defmodule Cachex.Options do
 
     stats = case options[:record_stats] do
       val when val == nil or val == false -> nil
-      _true -> %{
-        creationDate: Cachex.Util.now
-      }
+      _true -> true
+    end
+
+    default_fallback = case options[:default_fallback] do
+      fun when is_function(fun) -> fun
+      _fn -> nil
+    end
+
+    fallback_args = case options[:fallback_args] do
+      args when not is_list(args) -> {}
+      args -> Enum.reduce(args, {}, &(Tuple.append(&2, &1)))
     end
 
     %__MODULE__{
       "cache": cache,
       "ets_opts": ets_opts,
+      "default_fallback": default_fallback,
       "default_ttl": default_ttl,
+      "fallback_args": fallback_args,
       "ttl_interval": ttl_interval,
       "stats": stats
     }

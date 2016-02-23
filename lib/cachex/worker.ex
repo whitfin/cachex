@@ -16,10 +16,9 @@ defmodule Cachex.Worker do
   alias Cachex.Worker.Actions
 
   # define internal struct
-  defstruct cache: nil,         # the cache name
-            default_ttl: nil,   # the time a record lives
-            interval: nil,      # the ttl check interval
-            stats: nil          # a potential struct to store stats in
+  defstruct cache: nil,     # the cache name
+            options: nil,   # the options of this cache
+            stats: nil      # a potential struct to store stats in
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -38,9 +37,10 @@ defmodule Cachex.Worker do
   def init(options \\ %Cachex.Options { }) do
     state = %__MODULE__{
       cache: options.cache,
-      default_ttl: options.default_ttl,
-      interval: options.ttl_interval,
-      stats: options.stats
+      options: options,
+      stats: options.stats && %{
+        creationDate: Util.now()
+      } || nil
     }
     { :ok, state }
   end
@@ -50,7 +50,7 @@ defmodule Cachex.Worker do
   """
   defcall get(key, fallback_function) do
     { state, res } = case Actions.get(state, key, fallback_function) do
-      { :lookup, val } ->
+      { :loaded, val } ->
         { Stats.add_load(state), val }
       { :ok, nil } ->
         { Stats.add_miss(state), nil }
@@ -66,8 +66,8 @@ defmodule Cachex.Worker do
   @doc """
   Retrieves and updates a value in the cache.
   """
-  defcall get_and_update(key, update_fun) do
-    { state, res } = case Actions.get_and_update(state, key, update_fun) do
+  defcall get_and_update(key, update_fun, fb_fun) do
+    { state, res } = case Actions.get_and_update(state, key, update_fun, fb_fun) do
       { :ok, _value } = res ->
         { Stats.add_set(state), res }
       other ->
@@ -228,22 +228,6 @@ defmodule Cachex.Worker do
   """
   defcast add_evictions(count) do
     { :noreply, Stats.add_expiration(state, count) }
-  end
-
-  @doc """
-  Catch-all for casts, to ensure that we don't hit errors when providing an
-  invalid message. This should never be hit, but it's here anyway.
-  """
-  def handle_cast(_msg, state) do
-    { :noreply, state }
-  end
-
-  @doc """
-  Catch-all for info, to ensure that we don't hit errors when providing an
-  invalid message. This should never be hit, but it's here anyway.
-  """
-  def handle_info(_info, state) do
-    { :noreply, state }
   end
 
 end
