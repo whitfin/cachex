@@ -38,7 +38,7 @@ defmodule Cachex.Worker do
     state = %__MODULE__{
       cache: options.cache,
       options: options,
-      stats: options.stats && %{
+      stats: options.record_stats && %Cachex.Stats{
         creationDate: Util.now()
       } || nil
     }
@@ -207,7 +207,7 @@ defmodule Cachex.Worker do
       |> Util.ok
       |> Util.reply(state)
     else
-      Util.reply({ :error, "Stats not enabled for cache named '#{state.cache}'"}, state)
+      Util.reply({ :error, "Stats not enabled for cache named '#{state.cache}'" }, state)
     end
   end
 

@@ -9,7 +9,7 @@ defmodule Cachex.Options do
             default_ttl: nil,       # any default ttl values to use
             fallback_args: nil,     # arguments to pass to a cache loader
             ttl_interval: nil,      # the ttl check interval
-            stats: nil              # potential stats container
+            record_stats: nil       # if we should store stats
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like
@@ -31,15 +31,16 @@ defmodule Cachex.Options do
     ])
 
     default_ttl = parse_number_option(options, :default_ttl)
-    default_interval = case (!!options[:ttl_enabled] or !!default_ttl) do
+
+    default_interval = case (!!default_ttl) do
       true  -> 1000
       false -> nil
     end
-    ttl_interval = parse_number_option(options, :ttl_interval, default_interval)
 
-    stats = case options[:record_stats] do
-      val when val == nil or val == false -> nil
-      _true -> true
+    ttl_interval = case options[:ttl_interval] do
+      nil -> default_interval
+      val when not is_number(val) or val < 0 -> nil
+      val -> val
     end
 
     default_fallback = case options[:default_fallback] do
@@ -59,7 +60,7 @@ defmodule Cachex.Options do
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
       "ttl_interval": ttl_interval,
-      "stats": stats
+      "record_stats": !!options[:record_stats]
     }
   end
 
