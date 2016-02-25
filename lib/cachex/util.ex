@@ -71,6 +71,11 @@ defmodule Cachex.Util do
   if you wish to ignore the transaction result and return a different value, but
   whilst still checking for errors.
   """
+  def handle_transaction(fun) when is_function(fun) do
+    fun
+    |> :mnesia.transaction
+    |> handle_transaction
+  end
   def handle_transaction({ :atomic, { :error, _ } = err}), do: err
   def handle_transaction({ :atomic, { :ok, _ } = res}), do: res
   def handle_transaction({ :atomic, value }), do: ok(value)

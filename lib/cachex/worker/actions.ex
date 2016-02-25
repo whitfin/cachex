@@ -30,16 +30,21 @@ defmodule Cachex.Worker.Actions do
   """
   def get_and_update(state, key, update_fun, fb_fun \\ nil)
   when is_function(update_fun) do
-    get_and_update_raw(state, key, fn({ _cache, ^key, _touched, _ttl, value }) ->
-      case value do
+    result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
+      { cache, key, touched, ttl, case value do
         nil ->
           state
           |> Util.get_fallback(key, fb_fun)
           |> update_fun.()
         val ->
           update_fun.(val)
-      end
+      end }
     end)
+
+    case result do
+      { :ok, res } -> { :ok, elem(res, 4) }
+      other_states -> other_states
+    end
   end
 
   @doc """
@@ -50,8 +55,8 @@ defmodule Cachex.Worker.Actions do
   indexed into the table.
   """
   def get_and_update_raw(state, key, update_fun) when is_function(update_fun) do
-    result = :mnesia.transaction(fn ->
-      value = { _, _, _, ttl, _ } = case :mnesia.read(state.cache, key) do
+    Util.handle_transaction(fn ->
+      value = case :mnesia.read(state.cache, key) do
         [{ cache, ^key, touched, ttl, value }] ->
           case Util.has_expired(touched, ttl) do
             true ->
@@ -65,11 +70,9 @@ defmodule Cachex.Worker.Actions do
       end
 
       new_value = update_fun.(value)
-      set(state, key, new_value, ttl)
+      :mnesia.write(new_value)
       new_value
     end)
-
-    Util.handle_transaction(result)
   end
 
   @doc """
@@ -174,7 +177,16 @@ defmodule Cachex.Worker.Actions do
   # Forwards a call to the correct actions set, currently only the local actions.
   # The idea is that in future this will delegate to distributed implementations,
   # so it has been built out in advance to provide a clear migration path.
-  defp do_action(state, action, args \\ []),
-  do: apply(__MODULE__.Local, action, [state|args])
+  defp do_action(%Cachex.Worker{ options: opts } = state, action, args \\ []) do
+    mod = cond do
+      opts.remote ->
+        __MODULE__.Remote
+      opts.transactional ->
+        __MODULE__.Transactional
+      true ->
+        __MODULE__.Local
+    end
+    apply(mod, action, [state|args])
+  end
 
 end

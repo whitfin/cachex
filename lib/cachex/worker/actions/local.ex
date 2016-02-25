@@ -14,7 +14,7 @@ defmodule Cachex.Worker.Actions.Local do
   @doc """
   Simply do an ETS lookup on the given key. If the key does not exist we check
   to see if there's a fallback function. If there is we call it and then set the
-  value into the cache ##TODO##, before returning it to the user. Otherwise we
+  value into the cache, before returning it to the user. Otherwise we
   simply return a nil value in an ok tuple.
   """
   def get(state, key, fb_fun \\ nil) do

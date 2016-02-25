@@ -8,8 +8,11 @@ defmodule Cachex.Options do
             default_fallback: nil,  # the default fallback implementation
             default_ttl: nil,       # any default ttl values to use
             fallback_args: nil,     # arguments to pass to a cache loader
-            ttl_interval: nil,      # the ttl check interval
-            record_stats: nil       # if we should store stats
+            nodes: nil,             # a list of nodes to connect to
+            record_stats: nil,      # if we should store stats
+            remote: nil,            # are we using a remote implementation
+            transactional: nil,     # use a transactional implementation
+            ttl_interval: nil       # the ttl check interval
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like
@@ -53,14 +56,22 @@ defmodule Cachex.Options do
       args -> Enum.reduce(args, {}, &(Tuple.append(&2, &1)))
     end
 
+    nodes = case options[:nodes] do
+      nodes when not is_list(nodes) -> nil
+      nodes -> nodes
+    end
+
     %__MODULE__{
       "cache": cache,
       "ets_opts": ets_opts,
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
-      "ttl_interval": ttl_interval,
-      "record_stats": !!options[:record_stats]
+      "nodes": nodes,
+      "record_stats": !!options[:record_stats],
+      "remote": (nodes != nil && nodes != [node()] || !!options[:remote]),
+      "transactional": !!options[:transactional],
+      "ttl_interval": ttl_interval
     }
   end
 
