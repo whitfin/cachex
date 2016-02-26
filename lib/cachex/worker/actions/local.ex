@@ -131,13 +131,20 @@ defmodule Cachex.Worker.Actions.Local do
   the cache we short-circuit to avoid accidentally creating a record.
   """
   def expire(state, key, expiration) do
-    if Actions.exists?(state, key) do
-      state.cache
-      |> :ets.update_element(key, [{ 3, Util.now() }, { 4, expiration }])
-      |> (&({ :ok, &1 })).()
-    else
-      { :error, "Key not found in cache"}
-    end
+    state.cache
+    |> :ets.update_element(key, [{ 3, Util.now() }, { 4, expiration }])
+    |> (&({ :ok, &1 })).()
+  end
+
+  @doc """
+  Refreshes the internal timestamp on the record to ensure that the TTL only takes
+  place from this point forward. This is useful for epheremal caches. We return an
+  error if the key does not exist in the cache.
+  """
+  def refresh(state, key) do
+    state.cache
+    |> :ets.update_element(key, { 3, Util.now() })
+    |> (&({ :ok, &1 })).()
   end
 
   @doc """

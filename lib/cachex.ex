@@ -430,6 +430,27 @@ defmodule Cachex do
   end
 
   @doc """
+  Refreshes the TTL for the provided key. This will reset the TTL to begin from
+  the current time.
+
+  ## Examples
+
+      iex> Cachex.ttl(:my_cache, "my_key")
+      {:ok, 13985}
+
+      iex> Cachex.refresh(:my_cache, "my_key")
+      {:ok, true}
+
+      iex> Cachex.ttl(:my_cache, "my_key")
+      {:ok, 20000}
+
+  """
+  @spec refresh(atom, binary) :: { status, true | false }
+  defcheck refresh(cache, key) do
+    GenServer.call(cache, { :refresh, key }, @def_timeout)
+  end
+
+  @doc """
   Determines the size of the cache.
 
   ## Examples

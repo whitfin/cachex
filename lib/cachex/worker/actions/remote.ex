@@ -93,6 +93,14 @@ defmodule Cachex.Worker.Actions.Remote do
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
+  Refreshes the internal timestamp on the record to ensure that the TTL only takes
+  place from this point forward. We pass this through to the Transactional actions
+  as we require a get/set combination.
+  """
+  defdelegate refresh(state, key),
+  to: Cachex.Worker.Actions.Transactional
+
+  @doc """
   Checks the remaining TTL on a provided key. We do this by retrieving the local
   record and pulling out the touched and ttl fields. In order to calculate the
   remaining time, we simply subtract the sum of these numbers from the current

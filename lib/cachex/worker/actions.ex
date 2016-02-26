@@ -126,8 +126,14 @@ defmodule Cachex.Worker.Actions do
   Modifies the expiration on a given key based on the value passed in. This
   function delegates to the actions modules to allow for optimizations.
   """
-  def expire(state, key, expiration),
-  do: do_action(state, :expire, [key, expiration])
+  def expire(state, key, expiration) do
+    case exists?(state, key) do
+      { :ok, true } ->
+        do_action(state, :expire, [key, expiration])
+      _other_value_ ->
+        { :error, "Key not found in cache"}
+    end
+  end
 
   @doc """
   Sets a date for expiration of a given key. The date should be a timestamp in
@@ -154,6 +160,20 @@ defmodule Cachex.Worker.Actions do
   """
   def persist(state, key),
   do: expire(state, key, nil)
+
+  @doc """
+  Refreshes the TTL on the given key - basically meaning the TTL starting expiring
+  from this point onwards. This function delegates to the actions modules to allow
+  for optimizations.
+  """
+  def refresh(state, key) do
+    case exists?(state, key) do
+      { :ok, true } ->
+        do_action(state, :refresh, [key])
+      _other_value_ ->
+        { :error, "Key not found in cache"}
+    end
+  end
 
   @doc """
   Determines the current size of the cache, as returned by the info function. This

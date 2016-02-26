@@ -133,14 +133,21 @@ defmodule Cachex.Worker.Actions.Transactional do
   This allows us to then reuse the update semantics to modify the expiration.
   """
   def expire(state, key, expiration) do
-    if Actions.exists?(state, key) do
-      Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, _, value }) ->
-        { cache, key, Util.now(), expiration, value }
-      end)
-      { :ok, true }
-    else
-      { :error, "Key not found in cache"}
-    end
+    Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, _, value }) ->
+      { cache, key, Util.now(), expiration, value }
+    end)
+    Util.ok(true)
+  end
+
+  @doc """
+  Refreshes the internal timestamp on the record to ensure that the TTL only takes
+  place from this point forward. If the key does not exist, we return an error tuple.
+  """
+  def refresh(state, key) do
+    Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, ttl, value }) ->
+      { cache, key, Util.now(), ttl, value }
+    end)
+    Util.ok(true)
   end
 
   @doc """

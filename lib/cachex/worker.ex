@@ -188,6 +188,16 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Refreshes the expiration time on a key.
+  """
+  defcall refresh(key) do
+    state
+    |> Stats.add_op
+    |> Actions.refresh(key)
+    |> Util.reply(state)
+  end
+
+  @doc """
   Determines the current size of the cache.
   """
   defcall size do
