@@ -60,22 +60,9 @@ defmodule Cachex.Worker.Actions.Transactional do
   Increments a given key by a given amount. We do this by reusing the update
   semantics defined for all Actions. If the record is missing, we insert a new
   one based on the passed values (but it has no TTL). We return the value after
-  it has been incremented. This method handles the touched increments.
+  it has been incremented.
   """
-  def incr(state, key, amount, initial_value, :touched) do
-    Actions.get_and_update_raw(state, key, fn
-      ({ cache, key, _touched, ttl, nil }) ->
-        { cache, key, Util.now(), ttl, initial_value + amount }
-      ({ cache, key, _touched, ttl, val }) ->
-        { cache, key, Util.now(), ttl, val + amount }
-    end)
-  end
-
-  @doc """
-  Similar to the other incr function, except this does not touch the value - it
-  modifies in place to keep the touched time the same.
-  """
-  def incr(state, key, amount, initial_value, _untouched) do
+  def incr(state, key, amount, initial_value) do
     Actions.get_and_update(state, key, fn
       (nil) -> initial_value + amount
       (val) -> val + amount

@@ -56,7 +56,7 @@ defmodule Cachex.Worker.Actions.Remote do
   We delegate to the Transactional actions as this function requires both a
   get/set, and as such it's only safe to do via a transaction.
   """
-  defdelegate incr(state, key, amount, initial_value, touched),
+  defdelegate incr(state, key, amount, initial_value),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """

@@ -64,18 +64,13 @@ defmodule Cachex.Worker.Actions.Local do
   insert a new one based on the passed values (but it has no TTL). We return the
   value after it has been incremented.
   """
-  def incr(state, key, amount, initial_value, touched) do
+  def incr(state, key, amount, initial_value) do
     new_record =
       state
       |> Util.create_record(key, initial_value)
 
-    body = case touched do
-      :touched   -> [{ 3, Util.now() }, { 5, amount }]
-      _untouched -> { 5, amount }
-    end
-
     state.cache
-    |> :ets.update_counter(key, body, new_record)
+    |> :ets.update_counter(key, { 5, amount }, new_record)
     |> Util.ok()
   end
 

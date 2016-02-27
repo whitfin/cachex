@@ -87,8 +87,8 @@ defmodule Cachex.Worker.Actions do
   it does not already exist. The value returned is the value *after* increment.
   This function delegates to the actions modules to allow for optimizations.
   """
-  def incr(state, key, amount, initial_value, touched),
-  do: do_action(state, :incr, [key, amount, initial_value, touched])
+  def incr(state, key, amount, initial_value),
+  do: do_action(state, :incr, [key, amount, initial_value])
 
   @doc """
   Removes a key/value pair from the cache. This function delegates to the actions

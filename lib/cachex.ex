@@ -170,10 +170,10 @@ defmodule Cachex do
       { :ok, 6 }
 
   """
-  @spec incr(atom, any, number, number, atom) :: { status, number }
-  defcheck incr(cache, key, amount \\ 1, initial \\ 0, touched \\ :untouched)
+  @spec incr(atom, any, number, number) :: { status, number }
+  defcheck incr(cache, key, amount \\ 1, initial \\ 0)
   when is_number(amount) and is_number(initial) do
-    GenServer.call(cache, { :incr, key, amount, initial, touched }, @def_timeout)
+    GenServer.call(cache, { :incr, key, amount, initial }, @def_timeout)
   end
 
   @doc """
@@ -198,61 +198,9 @@ defmodule Cachex do
       { :ok, 5 }
 
   """
-  @spec decr(atom, any, number, number, atom) :: { status, number }
-  defcheck decr(cache, key, amount \\ 1, initial \\ 0, touched \\ :untouched),
-  do: incr(cache, key, amount * -1, initial, touched)
-
-  @doc """
-  Increments a key directly in the cache by an amount `count`. If the key does
-  not exist in the cache, it is set to `initial` before being incremented.
-
-  Please note that incrementing a value does not currently refresh any set TTL
-  on the key (as the key is still mapped to the same value, the value is simply
-  mutated).
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "my_key", 1)
-      iex> Cachex.incr(:my_cache, "my_key")
-      { :ok, 2 }
-
-      iex> Cachex.set(:my_cache, "my_new_key", 1)
-      iex> Cachex.incr(:my_cache, "my_new_key", 2)
-      { :ok, 3 }
-
-      iex> Cachex.incr(:my_cache, "missing_key", 1, 5)
-      { :ok, 6 }
-
-  """
-  @spec t_incr(atom, any, number, number) :: { status, number }
-  defcheck t_incr(cache, key, amount \\ 1, initial \\ 0),
-  do: incr(cache, key, amount, initial, :touched)
-
-  @doc """
-  Decrements a key directly in the cache by an amount `count`. If the key does
-  not exist in the cache, it is set to `initial` before being decremented.
-
-  Please note that decrementing a value does not currently refresh any set TTL
-  on the key (as the key is still mapped to the same value, the value is simply
-  mutated).
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "my_key", 10)
-      iex> Cachex.decr(:my_cache, "my_key")
-      { :ok, 9 }
-
-      iex> Cachex.set(:my_cache, "my_new_key", 10)
-      iex> Cachex.decr(:my_cache, "my_new_key", 5)
-      { :ok, 5 }
-
-      iex> Cachex.decr(:my_cache, "missing_key", 10, 5)
-      { :ok, 5 }
-
-  """
-  @spec t_decr(atom, any, number, number) :: { status, number }
-  defcheck t_decr(cache, key, amount \\ 1, initial \\ 0),
-  do: decr(cache, key, amount, initial, :touched)
+  @spec decr(atom, any, number, number) :: { status, number }
+  defcheck decr(cache, key, amount \\ 1, initial \\ 0),
+  do: incr(cache, key, amount * -1, initial)
 
   @doc """
   Removes all items in the cache.

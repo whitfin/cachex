@@ -92,10 +92,10 @@ defmodule Cachex.Worker do
   @doc """
   Increments a value in the cache.
   """
-  defcall incr(key, amount, initial, touched) do
+  defcall incr(key, amount, initial) do
     state
     |> Stats.add_op
-    |> Actions.incr(key, amount, initial, touched)
+    |> Actions.incr(key, amount, initial)
     |> Util.reply(state)
   end
 
