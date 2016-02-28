@@ -125,7 +125,7 @@ defmodule Cachex.Util.Macros do
 
   # converts an when body function to an unsafe version,
   # by adding a trailing `!` to the name
-  defp gen_unsafe({:when, ctx, [head | tail]}) do
+  defp gen_unsafe({ :when, ctx, [head | tail] }) do
     scary_head = gen_unsafe(head)
     { :when, ctx, [scary_head|tail]}
   end

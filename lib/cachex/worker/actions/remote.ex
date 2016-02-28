@@ -49,7 +49,7 @@ defmodule Cachex.Worker.Actions.Remote do
     state
     |> Util.create_record(key, value, ttl)
     |> :mnesia.dirty_write
-    |> (&(&1 == :ok) && Util.ok(true) || Util.error(false)).()
+    |> (&(&1 == :ok) && Util.ok(true) || Util.ok(false)).()
   end
 
   @doc """

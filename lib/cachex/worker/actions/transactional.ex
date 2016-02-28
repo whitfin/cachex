@@ -53,7 +53,7 @@ defmodule Cachex.Worker.Actions.Transactional do
       |> Util.create_record(key, value, ttl)
       |> :mnesia.write
     end)
-    |> (&(&1 == { :ok, :ok }) && Util.ok(true) || Util.error(false)).()
+    |> (&(&1 == { :ok, :ok }) && Util.ok(true) || Util.ok(false)).()
   end
 
   @doc """

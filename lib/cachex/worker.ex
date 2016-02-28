@@ -208,6 +208,12 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Returns the current state of this worker.
+  """
+  defcall state,
+  do: Util.reply(state, state)
+
+  @doc """
   Returns the internal stats for this worker.
   """
   defcall stats do

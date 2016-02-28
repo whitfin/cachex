@@ -91,6 +91,13 @@ defmodule Cachex.Util do
   def has_expired(touched, ttl), do: touched + ttl < now
 
   @doc """
+  Converts a List into a Tuple using Enum.reduce. Until I know of a better way
+  this will have to suffice.
+  """
+  def list_to_tuple(list) when is_list(list),
+  do: Enum.reduce(list, {}, &(Tuple.append(&2, &1)))
+
+  @doc """
   Returns a selection to return the designated value for all rows. Enables things
   like finding all stored keys and all stored values.
   """

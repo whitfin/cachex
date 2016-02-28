@@ -10,7 +10,8 @@ defmodule Cachex.Worker.Actions do
   # finished). The module being built in this way provides a clear migration path
   # to this in future, without having to rewrite and restructure the entire thing.
 
-  # add a utils alias
+  # add some aliases
+  alias Cachex.Notifier
   alias Cachex.Util
 
   @doc """
@@ -198,6 +199,8 @@ defmodule Cachex.Worker.Actions do
   # The idea is that in future this will delegate to distributed implementations,
   # so it has been built out in advance to provide a clear migration path.
   defp do_action(%Cachex.Worker{ options: opts } = state, action, args \\ []) do
+    notify_args = [action|args]
+    Notifier.notify(state, :pre, notify_args)
     mod = cond do
       opts.remote ->
         __MODULE__.Remote
@@ -206,7 +209,9 @@ defmodule Cachex.Worker.Actions do
       true ->
         __MODULE__.Local
     end
-    apply(mod, action, [state|args])
+    result = apply(mod, action, [state|args])
+    Notifier.notify(state, :post, notify_args, result)
+    result
   end
 
 end

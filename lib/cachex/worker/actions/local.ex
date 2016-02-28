@@ -54,7 +54,7 @@ defmodule Cachex.Worker.Actions.Local do
 
     state.cache
     |> :ets.insert(new_record)
-    |> (&(&1 && Util.ok(true) || Util.error(false))).()
+    |> (&(&1 && Util.ok(true) || Util.ok(false))).()
   end
 
   @doc """
