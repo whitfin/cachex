@@ -80,26 +80,6 @@ defmodule Cachex.Worker.Actions.Transactional do
   end
 
   @doc """
-  This is like `del/2` but it returns the last known value of the key as it
-  existed in the cache upon deletion. We have to do a read/write combination
-  when distributed, because there's no "take" equivalent in Mnesia, only ETS.
-  """
-  def take(state, key) do
-    Util.handle_transaction(fn ->
-      value = case :mnesia.read(state.cache, key) do
-        [{ _cache, ^key, _touched, _ttl, value }] -> value
-        _unrecognised_val -> nil
-      end
-
-      if value != nil do
-        :mnesia.delete(state.cache, key, :write)
-      end
-
-      value
-    end)
-  end
-
-  @doc """
   Empties the cache entirely. We check the size of the cache beforehand using
   `size/1` in order to return the number of records which were removed.
   """
@@ -135,6 +115,26 @@ defmodule Cachex.Worker.Actions.Transactional do
       { cache, key, Util.now(), ttl, value }
     end)
     Util.ok(true)
+  end
+
+  @doc """
+  This is like `del/2` but it returns the last known value of the key as it
+  existed in the cache upon deletion. We have to do a read/write combination
+  when distributed, because there's no "take" equivalent in Mnesia, only ETS.
+  """
+  def take(state, key) do
+    Util.handle_transaction(fn ->
+      value = case :mnesia.read(state.cache, key) do
+        [{ _cache, ^key, _touched, _ttl, value }] -> value
+        _unrecognised_val -> nil
+      end
+
+      if value != nil do
+        :mnesia.delete(state.cache, key, :write)
+      end
+
+      value
+    end)
   end
 
   @doc """

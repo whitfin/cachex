@@ -16,7 +16,8 @@ defmodule Cachex.Worker do
   alias Cachex.Worker.Actions
 
   # define internal struct
-  defstruct cache: nil,     # the cache name
+  defstruct actions: nil,   # the actions implementation
+            cache: nil,     # the cache name
             options: nil,   # the options of this cache
             stats: nil      # a potential struct to store stats in
 
@@ -36,6 +37,14 @@ defmodule Cachex.Worker do
   """
   def init(options \\ %Cachex.Options { }) do
     state = %__MODULE__{
+      actions: cond do
+        options.remote ->
+          Actions.Remote
+        options.transactional ->
+          Actions.Transactional
+        true ->
+          Actions.Local
+      end,
       cache: options.cache,
       options: options,
       stats: options.record_stats && %Cachex.Stats{
@@ -50,12 +59,12 @@ defmodule Cachex.Worker do
   """
   defcall get(key, fallback_function) do
     { state, res } = case Actions.get(state, key, fallback_function) do
-      { :loaded, val } ->
-        { Stats.add_load(state), val }
       { :ok, nil } ->
         { Stats.add_miss(state), nil }
       { :ok, val } ->
         { Stats.add_hit(state), val }
+      { :loaded, val } ->
+        { Stats.add_load(state), val }
     end
 
     res
@@ -124,17 +133,13 @@ defmodule Cachex.Worker do
   end
 
   @doc """
-  Removes a key from the cache, returning the last known value for the key.
+  Like size, but more accurate - takes into account expired keys.
   """
-  defcall take(key) do
-    { state, res } = case Actions.take(state, key) do
-      { :ok, nil } = res ->
-        { Stats.add_miss(state), res }
-      { :ok, _val } = res ->
-        { Stats.add_eviction(state), res }
-    end
-
-    Util.reply(res, state)
+  defcall count do
+    state
+    |> Stats.add_op
+    |> Actions.count
+    |> Util.reply(state)
   end
 
   @doc """
@@ -225,6 +230,20 @@ defmodule Cachex.Worker do
     else
       Util.reply({ :error, "Stats not enabled for cache named '#{state.cache}'" }, state)
     end
+  end
+
+  @doc """
+  Removes a key from the cache, returning the last known value for the key.
+  """
+  defcall take(key) do
+    { state, res } = case Actions.take(state, key) do
+      { :ok, nil } = res ->
+        { Stats.add_miss(state), res }
+      { :ok, _val } = res ->
+        { Stats.add_eviction(state), res }
+    end
+
+    Util.reply(res, state)
   end
 
   @doc """

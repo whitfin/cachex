@@ -99,19 +99,21 @@ defmodule Cachex.Worker.Actions do
   do: do_action(state, :del, [key])
 
   @doc """
-  Removes a key/value pair from the cache, but returns the last known value of
-  the key as it existed in the cache on removal. This function delegates to the
-  actions modules to allow for optimizations.
-  """
-  def take(state, key),
-  do: do_action(state, :take, [key])
-
-  @doc """
   Removes all values from the cache, this empties the entire backing table. This
   function delegates to the actions modules to allow for optimizations.
   """
   def clear(state),
   do: do_action(state, :clear)
+
+  @doc """
+  Similar to `size/1`, but ignores keys which may have expired. This is slower
+  and requires extra computation, hence the name `length/1` to signal as such.
+  """
+  def count(state) do
+    state.cache
+    |> :ets.select_count(Util.retrieve_all_rows(true))
+    |> Util.ok
+  end
 
   @doc """
   Determines whether a key exists in the cache. When the intention is to retrieve
@@ -188,6 +190,14 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
+  Removes a key/value pair from the cache, but returns the last known value of
+  the key as it existed in the cache on removal. This function delegates to the
+  actions modules to allow for optimizations.
+  """
+  def take(state, key),
+  do: do_action(state, :take, [key])
+
+  @doc """
   Returns the time remaining on a key before expiry. The value returned is in
   milliseconds. If the key has no expiration, nil is returned. This function
   delegates to the actions modules to allow for optimizations.
@@ -198,19 +208,19 @@ defmodule Cachex.Worker.Actions do
   # Forwards a call to the correct actions set, currently only the local actions.
   # The idea is that in future this will delegate to distributed implementations,
   # so it has been built out in advance to provide a clear migration path.
-  defp do_action(%Cachex.Worker{ options: opts } = state, action, args \\ []) do
-    notify_args = [action|args]
-    Notifier.notify(state, :pre, notify_args)
-    mod = cond do
-      opts.remote ->
-        __MODULE__.Remote
-      opts.transactional ->
-        __MODULE__.Transactional
-      true ->
-        __MODULE__.Local
+  defp do_action(%Cachex.Worker{ actions: actions } = state, action, args \\ []) do
+    case state.options.pre_hooks do
+      [] -> nil;
+      li -> Notifier.notify(li, Util.list_to_tuple([action|args]))
     end
-    result = apply(mod, action, [state|args])
-    Notifier.notify(state, :post, notify_args, result)
+
+    result = apply(actions, action, [state|args])
+
+    case state.options.post_hooks do
+      [] -> nil;
+      li -> Notifier.notify(li, Util.list_to_tuple([action|args]))
+    end
+
     result
   end
 

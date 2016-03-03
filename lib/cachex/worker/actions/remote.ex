@@ -71,14 +71,6 @@ defmodule Cachex.Worker.Actions.Remote do
   end
 
   @doc """
-  This is like `del/2` but it returns the last known value of the key as it
-  existed in the cache upon deletion. We delegate to the Transactional actions
-  as this requires a potential get/del combination.
-  """
-  defdelegate take(state, key),
-  to: Cachex.Worker.Actions.Transactional
-
-  @doc """
   Empties the cache entirely of keys. We delegate to the Transactional actions
   as the behaviour matches between implementations.
   """
@@ -98,6 +90,14 @@ defmodule Cachex.Worker.Actions.Remote do
   as we require a get/set combination.
   """
   defdelegate refresh(state, key),
+  to: Cachex.Worker.Actions.Transactional
+
+  @doc """
+  This is like `del/2` but it returns the last known value of the key as it
+  existed in the cache upon deletion. We delegate to the Transactional actions
+  as this requires a potential get/del combination.
+  """
+  defdelegate take(state, key),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """

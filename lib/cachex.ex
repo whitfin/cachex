@@ -177,6 +177,29 @@ defmodule Cachex do
   end
 
   @doc """
+  Removes all items in the cache.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.size(:my_cache)
+      { :ok, 3 }
+
+      iex> Cachex.clear(:my_cache)
+      { :ok, true }
+
+      iex> Cachex.size(:my_cache)
+      { :ok, 0 }
+
+  """
+  @spec clear(atom) :: { status, true | false }
+  defcheck clear(cache) do
+    GenServer.call(cache, { :clear }, @def_timeout)
+  end
+
+  @doc """
   Decrements a key directly in the cache by an amount `count`. If the key does
   not exist in the cache, it is set to `initial` before being decremented.
 
@@ -203,29 +226,6 @@ defmodule Cachex do
   do: incr(cache, key, amount * -1, initial)
 
   @doc """
-  Removes all items in the cache.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
-      iex> Cachex.set(:my_cache, "key3", "value3")
-      iex> Cachex.size(:my_cache)
-      { :ok, 3 }
-
-      iex> Cachex.clear(:my_cache)
-      { :ok, true }
-
-      iex> Cachex.size(:my_cache)
-      { :ok, 0 }
-
-  """
-  @spec clear(atom) :: { status, true | false }
-  defcheck clear(cache) do
-    GenServer.call(cache, { :clear }, @def_timeout)
-  end
-
-  @doc """
   Removes a value from the cache.
 
   ## Examples
@@ -247,24 +247,21 @@ defmodule Cachex do
   end
 
   @doc """
-  Takes a key from the cache, whilst also removing it from the cache.
+  Determines the size of the cache. Unlike `size/1`, this ignores keys which
+  should have expired. Naturally there is a cost to this.
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.take(:my_cache, "key")
-      { :ok, "value" }
-
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
-
-      iex> Cachex.take(:my_cache, "missing_key")
-      { :ok, nil }
+      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.length(:my_cache)
+      { :ok, 3 }
 
   """
-  @spec take(atom, any) :: { status, any }
-  defcheck take(cache, key) do
-    GenServer.call(cache, { :take, key }, @def_timeout)
+  @spec count(atom) :: { status, number }
+  defcheck count(cache) do
+    GenServer.call(cache, { :count }, @def_timeout)
   end
 
   @doc """
@@ -399,7 +396,8 @@ defmodule Cachex do
   end
 
   @doc """
-  Determines the size of the cache.
+  Determines the size of the cache. This includes any expired but unevicted keys.
+  For a more accurate representation, use `count/1`.
 
   ## Examples
 
@@ -429,6 +427,27 @@ defmodule Cachex do
   @spec stats(atom) :: { status, %{ } }
   defcheck stats(cache) do
     GenServer.call(cache, { :stats }, @def_timeout)
+  end
+
+  @doc """
+  Takes a key from the cache, whilst also removing it from the cache.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.take(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, nil }
+
+      iex> Cachex.take(:my_cache, "missing_key")
+      { :ok, nil }
+
+  """
+  @spec take(atom, any) :: { status, any }
+  defcheck take(cache, key) do
+    GenServer.call(cache, { :take, key }, @def_timeout)
   end
 
   @doc """

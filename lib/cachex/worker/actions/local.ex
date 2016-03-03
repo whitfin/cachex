@@ -86,23 +86,6 @@ defmodule Cachex.Worker.Actions.Local do
   end
 
   @doc """
-  This is like `del/2` but it returns the last known value of the key as it
-  existed in the cache upon deletion.
-  """
-  def take(state, key) do
-    value = case :ets.take(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired(touched, ttl) do
-          true  -> nil
-          false -> value
-        end
-      _unrecognised_val -> nil
-    end
-
-    Util.ok(value)
-  end
-
-  @doc """
   Empties the cache entirely, by calling `:ets.delete_all_objects/1`. We check
   the size of the cache beforehand using `size/1` in order to return the number
   of records which were removed.
@@ -140,6 +123,23 @@ defmodule Cachex.Worker.Actions.Local do
     state.cache
     |> :ets.update_element(key, { 3, Util.now() })
     |> (&({ :ok, &1 })).()
+  end
+
+  @doc """
+  This is like `del/2` but it returns the last known value of the key as it
+  existed in the cache upon deletion.
+  """
+  def take(state, key) do
+    value = case :ets.take(state.cache, key) do
+      [{ _cache, ^key, touched, ttl, value }] ->
+        case Util.has_expired(touched, ttl) do
+          true  -> nil
+          false -> value
+        end
+      _unrecognised_val -> nil
+    end
+
+    Util.ok(value)
   end
 
   @doc """

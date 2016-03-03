@@ -8,7 +8,8 @@ defmodule Cachex.Options do
             default_fallback: nil,  # the default fallback implementation
             default_ttl: nil,       # any default ttl values to use
             fallback_args: nil,     # arguments to pass to a cache loader
-            listeners: nil,         # any debug listeners (GenEvent)
+            pre_hooks: nil,         # any pre hooks to attach
+            post_hooks: nil,        # any post hooks to attach
             nodes: nil,             # a list of nodes to connect to
             record_stats: nil,      # if we should store stats
             remote: nil,            # are we using a remote implementation
@@ -73,7 +74,8 @@ defmodule Cachex.Options do
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
-      "listeners": listeners,
+      "pre_hooks": Enum.filter(listeners, &(elem(&1, 1) == :pre)),
+      "post_hooks": Enum.filter(listeners, &(elem(&1, 1) == :post)),
       "nodes": nodes,
       "record_stats": !!options[:record_stats],
       "remote": (nodes != nil && nodes != [node()] || !!options[:remote]),
@@ -104,7 +106,7 @@ defmodule Cachex.Options do
 
     def_type = case type do
       :sync -> :sync
-      _Sync -> :async
+      _sync -> :async
     end
 
     { mod, def_block, def_type }

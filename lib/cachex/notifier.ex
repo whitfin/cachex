@@ -4,40 +4,26 @@ defmodule Cachex.Notifier do
   # data should be in the form of a tuple, and the data should be arguments which
   # were sent alongside a function call in the worker.
 
-  alias Cachex.Options
-  alias Cachex.Util
-  alias Cachex.Worker
-
   @doc """
   Notifies a listener of the passed in data. If the data is a list, we convert it
   to a tuple in order to make it easier to pattern match against. We accept a list
-  of listeners in order to allow for multiple (plugin style) listeners. This might
-  never be utilised but it's easy to support it.
+  of listeners in order to allow for multiple (plugin style) listeners. Initially
+  had the empty clause at the top but this way is better (at the very worst it's
+  the same performance).
   """
-  def notify(_state, _block, _action, _result \\ nil)
-  def notify(%Worker{ options: %Options{ listeners: [] } } = state, _block, _action, _result) do
-    state
+  def notify([listener|tail], action) do
+    emit(listener, action)
+    notify(tail, action)
   end
-  def notify(state, block, action, result) when is_list(action) do
-    notify(state, block, Util.list_to_tuple(action), result)
-  end
-  def notify(state, :pre, action, _result) do
-    emit(state, :pre, action)
-  end
-  def notify(state, :post, action, result) do
-    emit(state, :post, { action, result })
-  end
+  def notify([], _action), do: nil
 
-  # Emits the given payload to all required listeners in the state. This just
-  # strips out some code duplication.
-  defp emit(state, block, payload) do
-    state.options.listeners
-    |> Stream.filter(&(elem(&1, 1) == block))
-    |> Enum.each(fn
-        ({ ref, ^block, :sync }) -> GenEvent.sync_notify(ref, payload)
-        ({ ref, ^block, _sync }) -> GenEvent.notify(ref, payload)
-       end)
-    state
-  end
+  # Internal emission, used to define whether we send using an async request or
+  # not. We use `send/2` directly to avoid the wasted overheard in the GenEvent
+  # module (we always use the same implementation).
+  defp emit({ ref, _, :async }, action),
+  do: send(ref, { :notify, action })
+  defp emit({ ref, _, :sync }, action),
+  do: send(ref, { :sync_notify, action })
+  defp emit(_, _action), do: nil
 
 end

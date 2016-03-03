@@ -109,7 +109,7 @@ defmodule Cachex.Util do
           {
             :orelse,                                # guards for matching
             { :"==", :"$3", nil },                  # where a TTL is set
-            { :"<", { :"+", :"$2", :"$3" }, now }   # and the TTL has passed
+            { :">", { :"+", :"$2", :"$3" }, now }   # and the TTL has not passed
           }
         ],
         [ return ]                                  # our output
