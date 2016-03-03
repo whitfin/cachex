@@ -47,14 +47,25 @@ defmodule Cachex.Janitor do
   goes.
   """
   definfo ttl_check do
-    expired_count =
-      state.cache
-      |> :ets.select_delete(create_selection(true));
+    state.cache
+    |> purge_records
 
     state
-    |> update_evictions(expired_count)
     |> schedule_check
     |> noreply
+  end
+
+  @doc """
+  A public handler for purging records, so that it can be called from the main
+  process as needed. This is needed because we expose purging in the public API.
+  """
+  def purge_records(cache) when is_atom(cache) do
+    expired_count =
+      cache
+      |> :ets.select_delete(create_selection(true))
+
+    cache
+    |> update_evictions(expired_count)
   end
 
   # Returns a selection to return the designated values, just an easier way to
@@ -77,9 +88,9 @@ defmodule Cachex.Janitor do
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp update_evictions(state, evictions) do
-    GenServer.cast(state.cache, { :add_evictions, evictions })
-    state
+  defp update_evictions(cache, evictions) do
+    GenServer.cast(cache, { :add_evictions, evictions })
+    { :ok, evictions }
   end
 
   # Schedules a check to occur after the designated interval. Once scheduled,

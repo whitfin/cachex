@@ -11,6 +11,9 @@ defmodule Cachex do
   workers, no heavy processing happens in here in order to avoid bottlenecks.
   """
 
+  # add some aliases
+  alias Cachex.Janitor
+
   # the default timeout for a GenServer call
   @def_timeout 500
 
@@ -373,6 +376,20 @@ defmodule Cachex do
   defcheck persist(cache, key) do
     GenServer.call(cache, { :persist, key }, @def_timeout)
   end
+
+  @doc """
+  Triggers a TTL based eviction loop, running in the calling process rather than
+  in the TTL handler. This can be used to implement custom eviction policies.
+
+  ## Examples
+
+      iex> Cachex.purge(:my_cache)
+      {:ok, 15}
+
+  """
+  @spec purge(atom) :: { status, number }
+  defcheck purge(cache),
+  do: Janitor.purge_records(cache)
 
   @doc """
   Refreshes the TTL for the provided key. This will reset the TTL to begin from
