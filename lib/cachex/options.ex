@@ -3,6 +3,10 @@ defmodule Cachex.Options do
   # A container to ensure that all option parsing is done in a single location
   # to avoid accidentally getting mixed field names and values across the library.
 
+  # add some aliases
+  alias Cachex.Hook
+  alias Cachex.Util
+
   defstruct cache: nil,             # the name of the cache
             ets_opts: nil,          # any options to give to ETS
             default_fallback: nil,  # the default fallback implementation
@@ -11,7 +15,6 @@ defmodule Cachex.Options do
             pre_hooks: nil,         # any pre hooks to attach
             post_hooks: nil,        # any post hooks to attach
             nodes: nil,             # a list of nodes to connect to
-            record_stats: nil,      # if we should store stats
             remote: nil,            # are we using a remote implementation
             transactional: nil,     # use a transactional implementation
             ttl_interval: nil       # the ttl check interval
@@ -55,7 +58,7 @@ defmodule Cachex.Options do
 
     fallback_args = case options[:fallback_args] do
       args when not is_list(args) -> {}
-      args -> Cachex.Util.list_to_tuple(args)
+      args -> Util.list_to_tuple(args)
     end
 
     nodes = case options[:nodes] do
@@ -63,10 +66,26 @@ defmodule Cachex.Options do
       nodes -> nodes
     end
 
-    listeners = case options[:listeners] do
+    hooks = case options[:hooks] do
       nil -> []
-      mod -> start_listeners(mod)
+      mod -> Hook.initialize_hooks(mod)
     end
+
+    stats_hook = case !!options[:record_stats] do
+      true ->
+        tmp_hook = %Hook{
+          module: Cachex.Stats,
+          type: :post,
+          results: true,
+          ref: Cachex.Util.stats_for_cache(cache)
+        }
+        Hook.initialize_hooks(tmp_hook)
+      false ->
+        []
+    end
+
+    pre_hooks = Hook.hooks_by_type(hooks, :pre)
+    post_hooks = stats_hook ++ Hook.hooks_by_type(hooks, :post)
 
     %__MODULE__{
       "cache": cache,
@@ -74,10 +93,9 @@ defmodule Cachex.Options do
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
-      "pre_hooks": Enum.filter(listeners, &(elem(&1, 1) == :pre)),
-      "post_hooks": Enum.filter(listeners, &(elem(&1, 1) == :post)),
       "nodes": nodes,
-      "record_stats": !!options[:record_stats],
+      "pre_hooks": pre_hooks,
+      "post_hooks": post_hooks,
       "remote": (nodes != nil && nodes != [node()] || !!options[:remote]),
       "transactional": !!options[:transactional],
       "ttl_interval": ttl_interval
@@ -91,62 +109,6 @@ defmodule Cachex.Options do
     case options[key] do
       val when not is_number(val) or val < 1 -> default
       val -> val
-    end
-  end
-
-  # Takes a combination of args and coerces defaults for a listener. We default
-  # to a pre-hook, and async execution. I imagine this is the most common use case
-  # and so it makes the most sense to default to this. It can be overriden in the
-  # options (and should really always be explicit).
-  def parse_listener(mod, block \\ :pre, type \\ :async) do
-    def_block = case block do
-      :post -> :post
-      _post -> :pre
-    end
-
-    def_type = case type do
-      :sync -> :sync
-      _sync -> :async
-    end
-
-    { mod, def_block, def_type }
-  end
-
-  # Starts any required listeners. We allow either a list of listeners, or a
-  # single listener to ensure that users can attach N listeners (because you can
-  # technically plug in modules as plugins).
-  defp start_listeners(mod) when not is_list(mod), do: start_listeners([mod])
-  defp start_listeners(mods) when is_list(mods) do
-    mods
-    |> Stream.map(fn
-        (mod) when is_tuple(mod) ->
-          apply(__MODULE__, :parse_listener, Tuple.to_list(mod))
-        (mod) when is_list(mod) ->
-          apply(__MODULE__, :parse_listener, mod)
-        (mod) ->
-          parse_listener(mod)
-       end)
-    |> Stream.map(&(start_listener/1))
-    |> Stream.filter(&(&1 != nil))
-    |> Enum.to_list
-  end
-
-  # Starts a listener. We check to ensure that the listener is a module before
-  # trying to start it and add as a handler. If anything goes wrong at this point
-  # we just nil the listener to avoid errors later.
-  defp start_listener({ mod, block, type }) do
-    try do
-      mod.__info__(:module)
-      case GenEvent.start_link do
-        { :ok, pid } ->
-          GenEvent.add_handler(pid, mod, [])
-          { pid, block, type }
-        { :error, { :already_started, pid } } ->
-          { pid, block, type }
-        _error -> nil
-      end
-    rescue
-      _error -> nil
     end
   end
 

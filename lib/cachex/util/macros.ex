@@ -82,6 +82,26 @@ defmodule Cachex.Util.Macros do
   end
 
   @doc """
+  Simply takes the body of a function and feeds it through the action handler. We
+  use this to avoid having to manually feed the function body through the hooks
+  system.
+  """
+  defmacro defall(head, do: body) do
+    { func_name, args } = name_and_args(head)
+
+    { _, new_args } = Enum.split(args, 1)
+
+    quote do
+      def unquote(head) do
+        do_action(var!(state), [unquote(func_name)|unquote(new_args)], fn ->
+          unquote(body)
+        end)
+      end
+    end
+
+  end
+
+  @doc """
   Very small wrapper around handle_info calls so you can define your own message
   handler with little effort.
   """

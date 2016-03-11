@@ -11,6 +11,8 @@ defmodule Cachex.Worker do
   # cast functions).
 
   # add some aliases
+  alias Cachex.Hook
+  alias Cachex.Notifier
   alias Cachex.Stats
   alias Cachex.Util
   alias Cachex.Worker.Actions
@@ -19,7 +21,7 @@ defmodule Cachex.Worker do
   defstruct actions: nil,   # the actions implementation
             cache: nil,     # the cache name
             options: nil,   # the options of this cache
-            stats: nil      # a potential struct to store stats in
+            stats: nil      # the ref for where stats can be found
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -47,9 +49,7 @@ defmodule Cachex.Worker do
       end,
       cache: options.cache,
       options: options,
-      stats: options.record_stats && %Cachex.Stats{
-        creationDate: Util.now()
-      } || nil
+      stats: Hook.ref_by_module(options.post_hooks, Cachex.Stats)
     }
     { :ok, state }
   end
@@ -58,17 +58,8 @@ defmodule Cachex.Worker do
   Retrieves a value from the cache.
   """
   defcall get(key, fallback_function) do
-    { state, res } = case Actions.get(state, key, fallback_function) do
-      { :ok, nil } ->
-        { Stats.add_miss(state), nil }
-      { :ok, val } ->
-        { Stats.add_hit(state), val }
-      { :loaded, val } ->
-        { Stats.add_load(state), val }
-    end
-
-    res
-    |> Util.ok
+    state
+    |> Actions.get(key, fallback_function)
     |> Util.reply(state)
   end
 
@@ -76,26 +67,18 @@ defmodule Cachex.Worker do
   Retrieves and updates a value in the cache.
   """
   defcall get_and_update(key, update_fun, fb_fun) do
-    { state, res } = case Actions.get_and_update(state, key, update_fun, fb_fun) do
-      { :ok, _value } = res ->
-        { Stats.add_set(state), res }
-      other ->
-        { state, other }
-    end
-    Util.reply(res, state)
+    state
+    |> Actions.get_and_update(key, update_fun, fb_fun)
+    |> Util.reply(state)
   end
 
   @doc """
   Sets a value in the cache.
   """
   defcall set(key, value, ttl) do
-    { state, res } = case Actions.set(state, key, value, ttl) do
-      { :ok, _value } = res ->
-        { Stats.add_set(state), res }
-      errored_values ->
-        { state, errored_values }
-    end
-    Util.reply(res, state)
+    state
+    |> Actions.set(key, value, ttl)
+    |> Util.reply(state)
   end
 
   @doc """
@@ -103,7 +86,6 @@ defmodule Cachex.Worker do
   """
   defcall incr(key, amount, initial) do
     state
-    |> Stats.add_op
     |> Actions.incr(key, amount, initial)
     |> Util.reply(state)
   end
@@ -112,14 +94,9 @@ defmodule Cachex.Worker do
   Removes all keys from the cache.
   """
   defcall clear do
-    { state, res } = case Actions.clear(state) do
-      { :ok, nil } = res ->
-        { state, res }
-      { :ok, val } = res ->
-        { Stats.add_eviction(state, val), res }
-    end
-
-    Util.reply(res, state)
+    state
+    |> Actions.clear
+    |> Util.reply(state)
   end
 
   @doc """
@@ -127,7 +104,6 @@ defmodule Cachex.Worker do
   """
   defcall del(key) do
     state
-    |> Stats.add_eviction
     |> Actions.del(key)
     |> Util.reply(state)
   end
@@ -137,7 +113,6 @@ defmodule Cachex.Worker do
   """
   defcall count do
     state
-    |> Stats.add_op
     |> Actions.count
     |> Util.reply(state)
   end
@@ -147,7 +122,6 @@ defmodule Cachex.Worker do
   """
   defcall exists?(key) do
     state
-    |> Stats.add_op
     |> Actions.exists?(key)
     |> Util.reply(state)
   end
@@ -157,7 +131,6 @@ defmodule Cachex.Worker do
   """
   defcall expire(key, expiration) do
     state
-    |> Stats.add_op
     |> Actions.expire(key, expiration)
     |> Util.reply(state)
   end
@@ -167,7 +140,6 @@ defmodule Cachex.Worker do
   """
   defcall expire_at(key, timestamp) do
     state
-    |> Stats.add_op
     |> Actions.expire_at(key, timestamp)
     |> Util.reply(state)
   end
@@ -177,7 +149,6 @@ defmodule Cachex.Worker do
   """
   defcall keys do
     state
-    |> Stats.add_op
     |> Actions.keys
     |> Util.reply(state)
   end
@@ -187,8 +158,16 @@ defmodule Cachex.Worker do
   """
   defcall persist(key) do
     state
-    |> Stats.add_op
     |> Actions.persist(key)
+    |> Util.reply(state)
+  end
+
+  @doc """
+  Purges all expired keys.
+  """
+  defcall purge do
+    state
+    |> Actions.purge
     |> Util.reply(state)
   end
 
@@ -197,7 +176,6 @@ defmodule Cachex.Worker do
   """
   defcall refresh(key) do
     state
-    |> Stats.add_op
     |> Actions.refresh(key)
     |> Util.reply(state)
   end
@@ -207,7 +185,6 @@ defmodule Cachex.Worker do
   """
   defcall size do
     state
-    |> Stats.add_op
     |> Actions.size
     |> Util.reply(state)
   end
@@ -224,7 +201,7 @@ defmodule Cachex.Worker do
   defcall stats do
     if state.stats do
       state.stats
-      |> Stats.finalize
+      |> Stats.retrieve
       |> Util.ok
       |> Util.reply(state)
     else
@@ -236,14 +213,9 @@ defmodule Cachex.Worker do
   Removes a key from the cache, returning the last known value for the key.
   """
   defcall take(key) do
-    { state, res } = case Actions.take(state, key) do
-      { :ok, nil } = res ->
-        { Stats.add_miss(state), res }
-      { :ok, _val } = res ->
-        { Stats.add_eviction(state), res }
-    end
-
-    Util.reply(res, state)
+    state
+    |> Actions.take(key)
+    |> Util.reply(state)
   end
 
   @doc """
@@ -252,7 +224,6 @@ defmodule Cachex.Worker do
   """
   defcall ttl(key) do
     state
-    |> Stats.add_op
     |> Actions.ttl(key)
     |> Util.reply(state)
   end
@@ -261,8 +232,38 @@ defmodule Cachex.Worker do
   Called by the janitor process to signal evictions being added. We only care
   about this being reported when stats are enabled for this cache.
   """
-  defcast add_evictions(count) do
-    { :noreply, Stats.add_expiration(state, count) }
+  defcast record_purge(count) do
+    do_action(state, [:purge], fn ->
+      { :ok, count }
+    end)
+    { :noreply, state }
+  end
+
+  # Forwards a call to the correct actions set, currently only the local actions.
+  # The idea is that in future this will delegate to distributed implementations,
+  # so it has been built out in advance to provide a clear migration path.
+  def do_action(_state, _action, _args \\ [])
+  def do_action(%Cachex.Worker{ actions: actions } = state, action, args)
+  when is_atom(action) and is_list(args) do
+    do_action(state, [action|args], fn ->
+      apply(actions, action, [state|args])
+    end)
+  end
+  def do_action(%Cachex.Worker{ } = state, message, fun)
+  when is_list(message) and is_function(fun) do
+    case state.options.pre_hooks do
+      [] -> nil;
+      li -> Notifier.notify(li, Util.list_to_tuple(message))
+    end
+
+    result = fun.()
+
+    case state.options.post_hooks do
+      [] -> nil;
+      li -> Notifier.notify(li, Util.list_to_tuple(message), result)
+    end
+
+    result
   end
 
 end

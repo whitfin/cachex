@@ -8,7 +8,7 @@ defmodule Cachex.Mixfile do
     [
       app: :cachex,
       name: "Cachex",
-      description: "Powerful caching key/value store for Elixir",
+      description: "Powerful in-memory key/value storage for Elixir",
       package: %{
         files: [
           "lib",
@@ -23,7 +23,7 @@ defmodule Cachex.Mixfile do
         },
         maintainers: [ "Isaac Whitfield" ]
       },
-      version: "0.5.0",
+      version: "0.6.0",
       elixir: "~> 1.1",
       deps: deps,
       docs: [

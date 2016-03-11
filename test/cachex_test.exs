@@ -5,7 +5,7 @@ defmodule CachexTest do
   @test_file "/tmp/cache_test_file"
 
   setup do
-    Cachex.start_link([name: @test_cache, record_stats: true, transactional: true])
+    Cachex.start_link([name: @test_cache, record_stats: false, transactional: false])
     Cachex.clear!(@test_cache)
     Enum.each(1..1000, fn(x) ->
       Cachex.set!(@test_cache, "key#{x}", "value#{x}")

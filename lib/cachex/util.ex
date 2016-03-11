@@ -1,6 +1,6 @@
 defmodule Cachex.Util do
   @moduledoc false
-  # A small collection of utilities for use hroughout the library. Mainly things
+  # A small collection of utilities for use throughout the library. Mainly things
   # to do with response formatting and generally just common functions.
 
   @doc """
@@ -56,12 +56,12 @@ defmodule Cachex.Util do
     end
 
     case fun do
-      nil -> nil
-      val ->
+      val when is_function(val) ->
         case :erlang.fun_info(val)[:arity] do
-          1 -> val.(key)
-          _ -> val.(key, state.options.fallback_args)
+          1 -> { :loaded, val.(key) }
+          _ -> { :loaded, val.(key, state.options.fallback_args) }
         end
+      val -> { :ok, val }
     end
   end
 
@@ -116,5 +116,12 @@ defmodule Cachex.Util do
       }
     ]
   end
+
+  @doc """
+  Very small handler for appending "_stats" to the name of a cache in order to
+  create the name of a stats hook automatically.
+  """
+  def stats_for_cache(cache) when is_atom(cache),
+  do: String.to_atom(to_string(cache) <> "_stats")
 
 end

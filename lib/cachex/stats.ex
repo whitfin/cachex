@@ -1,10 +1,12 @@
 defmodule Cachex.Stats do
+  # use GenEvent
+  use GenEvent
+
   @moduledoc false
   # A simple statistics container, used to keep track of various operations on
-  # a given cache. This container has no knowledge of the cache it belongs to,
-  # it only keeps track of an internal struct. Provides shorthands for adding
-  # various operations, as well as a helper for merging two stat containers as
-  # needed (stats are a per-process state, so concurrency means aggregation).
+  # a given cache. This is used as a post hook for a cache and provides an example
+  # of what a hook can look like. This container has no knowledge of the cache
+  # it belongs to, it only keeps track of an internal struct.
 
   defstruct opCount: 0,         # number of operations on the cache
             setCount: 0,        # number of keys set on the cache
@@ -16,78 +18,150 @@ defmodule Cachex.Stats do
             creationDate: nil   # the date this cache was initialized
 
   @doc """
-  Adds a number of evictions to the stats container, defaulting to 1.
+  Initializes a new stats container, setting the creation date to the current time.
+  This state will be passed into each handler in this server.
   """
-  def add_eviction(state, amount \\ 1),
-  do: increment_stat(state, [:opCount, :evictionCount], amount)
+  def init(_options \\ []) do
+    { :ok, %__MODULE__{ creationDate: Cachex.Util.now() } }
+  end
 
   @doc """
-  Adds a number of expirations to the stats container, defaulting to 1.
+  Add a cache miss, as a nil value was retrieved from the cache.
   """
-  def add_expiration(state, amount \\ 1),
-  do: increment_stat(state, [:opCount, :expiredCount], amount)
+  def handle_event({ { :get, _key, _fallback }, { :ok, nil } }, stats) do
+    { :ok, increment(stats, [:opCount, :missCount]) }
+  end
 
   @doc """
-  Adds a number of hits to the stats container, defaulting to 1.
+  Add a cache hit, as a found value was retrieved from the cache.
   """
-  def add_hit(state, amount \\ 1),
-  do: increment_stat(state, [:opCount, :hitCount], amount)
+  def handle_event({ { :get, _key, _fallback }, { :ok, _val } }, stats) do
+    { :ok, increment(stats, [:opCount, :hitCount]) }
+  end
 
   @doc """
-  Adds a number of misses to the stats container, defaulting to 1.
+  Add a cache miss, and also increment the load count.
   """
-  def add_load(state, amount \\ 1),
-  do: increment_stat(state, [:opCount, :missCount, :loadCount], amount)
+  def handle_event({ { :get, _key, _fallback }, { :loaded, _val } }, stats) do
+    { :ok, increment(stats, [:opCount, :missCount, :loadCount]) }
+  end
 
   @doc """
-  Adds a number of misses to the stats container, defaulting to 1.
+  Add a set operation, as a key/value was set in the cache.
   """
-  def add_miss(state, amount \\ 1),
-  do: increment_stat(state, [:opCount, :missCount], amount)
+  def handle_event({ { :set, _key, _value, _ttl }, _result }, stats) do
+    { :ok, increment(stats, [:opCount, :setCount]) }
+  end
 
   @doc """
-  Adds a number of operations to the stats container, defaulting to 1.
+  Add evictions to the stats, using the amount provided in the results.
   """
-  def add_op(state, amount \\ 1),
-  do: increment_stat(state, [:opCount], amount)
+  def handle_event({ { :clear }, { :ok, amount } }, stats) do
+    { :ok, increment(stats, [:opCount, :evictionCount], amount) }
+  end
 
   @doc """
-  Adds a number of sets to the stats container, defaulting to 1.
+  Add evictions to the stats, using the amount provided in the results.
   """
-  def add_set(state, amount \\ 1),
-  do: increment_stat(state, [:opCount, :setCount], amount)
+  def handle_event({ { :purge }, { :ok, amount } }, stats) do
+    { :ok, increment(stats, [:opCount, :evictionCount], amount) }
+  end
 
   @doc """
-  Increments a stat in a container by a given number, defaulting to 1. If stats
-  are disaled for the state, we short-circuit and return the unmodified state.
-
-  This is used internally by all other shorthand functions. We allow for multiple
-  fields to be passed in order to increment them in a single pass without recreating
-  the the stats struct.
-
-  In addition to the passed in counter, we also increment the operation counter,
-  due to the fact that all counters represent an operation.
+  Add an eviction to the stats, representing the delete operation.
   """
-  def increment_stat(_state, _field, _amount \\ 1)
-  def increment_stat(%Cachex.Worker{ stats: nil } = state, _field, _amount), do: state
-  def increment_stat(state, field, amount)
-  when not is_list(field), do: increment_stat(state, [field], amount)
-  def increment_stat(%Cachex.Worker{ stats: %{ } = stats } = state, fields, amount) do
-    new_stats = Enum.reduce(fields, stats, fn(field, stats) ->
+  def handle_event({ { :del, _key }, _result }, stats) do
+    { :ok, increment(stats, [:opCount, :evictionCount]) }
+  end
+
+  @doc """
+  Add a cache miss, as taking a value from the cache did not retrieve a value.
+  We do not add a cache eviction, as the value did not exist.
+  """
+  def handle_event({ { :take, _key }, { :ok, nil } }, stats) do
+    { :ok, increment(stats, [:opCount, :missCount]) }
+  end
+
+  @doc """
+  Add a cache hit, as taking a value from the cache returned a value. We also add
+  a cache eviction as the value is now removed.
+  """
+  def handle_event({ { :take, _key }, { :ok, _val } }, stats) do
+    { :ok, increment(stats, [:opCount, :hitCount, :evictionCount]) }
+  end
+
+  @doc """
+  For all operations which are not specifically handled, we add an operation to
+  the stats container. This is basically just a catch-all to make sure operations
+  are represented in some way.
+  """
+  def handle_event(_, stats) do
+    { :ok, increment(stats, [:opCount]) }
+  end
+
+  @doc """
+  Handles a call to retrieve the stats as they currently stand. We finalize the
+  stats and return them to the calling process.
+  """
+  def handle_call(:retrieve_stats, stats) do
+    { :ok, finalize(stats), stats }
+  end
+
+  @doc """
+  Merges together two stat structs, typically performing addition of both values,
+  but otherwise based on some internal logic. This is currently unused but it's
+  likely it will be in future (e.g. with worker pooling), so it will not be taken
+  out of the codebase at this point.
+
+  This *can* be used by the end-user, but this module will remain undocumented as
+  we don't want users to accidentally taint their statistics.
+  """
+  def merge(%__MODULE__{ } = stats_base, %__MODULE__{ } = stats_merge) do
+    stats_base
+    |> Map.keys
+    |> Kernal.tl
+    |> Enum.reduce(stats_base, fn(field, state) ->
+        a_val = Map.get(stats_base, field, 0)
+        b_val = Map.get(stats_merge, field, 0)
+
+        case field do
+          :creationDate ->
+            Map.put(state, field, a_val < b_val && a_val || b_val)
+          _other_values ->
+            Map.put(state, field, a_val + b_val)
+        end
+      end)
+  end
+
+  @doc """
+  Retrieves the stats for a given cache. This is simply shorthand for firing off
+  a request to the stats hook. We provide it to make it more obvious to retrieve
+  statistics.
+  """
+  def retrieve(stats_ref) do
+    GenEvent.call(stats_ref, __MODULE__, :retrieve_stats)
+  end
+
+  # Increments a given set of statistics by a given amount. If the amount is not
+  # provided, we default to a value of 1. We accept a list of fields to work with
+  # as it's not unusual for an action to increment various fields at the same time.
+  defp increment(_stats, _field, _amount \\ 1)
+  defp increment(stats, fields, amount) when is_list(fields) do
+    Enum.reduce(fields, stats, fn(field, stats) ->
       Map.put(stats, field, Map.get(stats, field, 0) + amount)
     end)
-    %Cachex.Worker{ state | stats: new_stats }
   end
-  def increment_stat(state, _stat, _amount), do: state
+  defp increment(stats, field, amount) do
+    increment(stats, [field], amount)
+  end
 
-  @doc """
-  Finalizes the struct into a Map containing various fields we can deduce from
-  the struct. The bonus fields are why we don't just return the struct - there's
-  no need to store these in the struct all the time, they're only needed once.
-  """
-  def finalize(%__MODULE__{ } = stats_struct) do
+  # Finalizes the struct into a Map containing various fields we can deduce from
+  # the struct. The bonus fields are why we don't just return the struct - there's
+  # no need to store these in the struct all the time, they're only needed once.
+  defp finalize(%__MODULE__{ } = stats_struct) do
     reqRates = case stats_struct.hitCount + stats_struct.missCount do
-      0 -> %{ "requestCount": 0 }
+      0 ->
+        %{ "requestCount": 0 }
       v ->
         cond do
           stats_struct.hitCount == 0 -> %{
@@ -113,30 +187,6 @@ defmodule Cachex.Stats do
     |> Map.merge(reqRates)
     |> Enum.sort(&(elem(&1, 0) > elem(&2, 0)))
     |> Enum.into(%{})
-  end
-
-  @doc """
-  Merges together two stat structs, typically performing addition of both values,
-  but otherwise based on some internal logic.
-
-  This *can* be used by the end-user, but this module will remain undocumented as
-  we don't want users to accidentally taint their statistics.
-  """
-  def merge(%__MODULE__{ } = stats_a, %__MODULE__{ } = stats_b) do
-    stats_a
-    |> Map.keys
-    |> Kernal.tl
-    |> Enum.reduce(stats_a, fn(field, state) ->
-        a_val = Map.get(stats_a, field, 0)
-        b_val = Map.get(stats_b, field, 0)
-
-        case field do
-          :creationDate ->
-            Map.put(state, field, a_val < b_val && a_val || b_val)
-          _other_values ->
-            Map.put(state, field, a_val + b_val)
-        end
-      end)
   end
 
 end

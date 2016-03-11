@@ -21,21 +21,23 @@ defmodule Cachex.Worker.Actions.Local do
     val = case :ets.lookup(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired(touched, ttl) do
-          true  -> Actions.del(state, key); nil;
+          true  -> Actions.del(state, key); :missing;
           false -> value
         end
-      _unrecognised_val -> nil
+      _unrecognised_val -> :missing
     end
 
     case val do
-      nil ->
-        new_value =
-          state
-          |> Util.get_fallback(key, fb_fun)
+      :missing ->
+        { status, new_value } =
+          result =
+            state
+            |> Util.get_fallback(key, fb_fun)
 
-        Actions.set(state, key, new_value)
+        state
+        |> Actions.set(key, new_value)
 
-        { :loaded, new_value }
+        result
       val ->
         { :ok, val }
     end

@@ -1,4 +1,7 @@
 defmodule Cachex.Worker.Actions do
+  # use Macros
+  use Cachex.Util.Macros
+
   @moduledoc false
   # This module defines the actions a worker can take. The reason for splitting
   # this out is so that it's easier to use internal functions (for example, we
@@ -10,8 +13,11 @@ defmodule Cachex.Worker.Actions do
   # finished). The module being built in this way provides a clear migration path
   # to this in future, without having to rewrite and restructure the entire thing.
 
+  # import worker for convenience
+  import Cachex.Worker
+
   # add some aliases
-  alias Cachex.Notifier
+  alias Cachex.Janitor
   alias Cachex.Util
 
   @doc """
@@ -30,6 +36,7 @@ defmodule Cachex.Worker.Actions do
   state in the table.
   """
   def get_and_update(state, key, update_fun, fb_fun \\ nil)
+  defall get_and_update(state, key, update_fun, fb_fun)
   when is_function(update_fun) do
     result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
       { cache, key, touched, ttl, case value do
@@ -55,7 +62,7 @@ defmodule Cachex.Worker.Actions do
   either the document or a faked out tuple. The new document returned is directly
   indexed into the table.
   """
-  def get_and_update_raw(state, key, update_fun) when is_function(update_fun) do
+  defall get_and_update_raw(state, key, update_fun) when is_function(update_fun) do
     Util.handle_transaction(fn ->
       value = case :mnesia.read(state.cache, key) do
         [{ cache, ^key, touched, ttl, value }] ->
@@ -109,7 +116,7 @@ defmodule Cachex.Worker.Actions do
   Similar to `size/1`, but ignores keys which may have expired. This is slower
   and requires extra computation, hence the name `length/1` to signal as such.
   """
-  def count(state) do
+  defall count(state) do
     state.cache
     |> :ets.select_count(Util.retrieve_all_rows(true))
     |> Util.ok
@@ -121,7 +128,7 @@ defmodule Cachex.Worker.Actions do
   drop to ETS for this at all times because of the speed (i.e. it's almost not
   possible for this to be inaccurate aside from network partitions).
   """
-  def exists?(state, key) do
+  defall exists?(state, key) do
     { :ok, :ets.member(state.cache, key) }
   end
 
@@ -151,7 +158,7 @@ defmodule Cachex.Worker.Actions do
   use a funky selection, but all the same it should be used less frequently as
   the payload being copied and sent back over the server is potentially costly.
   """
-  def keys(state) do
+  defall keys(state) do
     state.cache
     |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
     |> Util.ok
@@ -163,6 +170,13 @@ defmodule Cachex.Worker.Actions do
   """
   def persist(state, key),
   do: expire(state, key, nil)
+
+  @doc """
+  Purges all expired keys based on their current TTL values. We return the number
+  of deleted records as an ok tuple.
+  """
+  defall purge(state),
+  do: Janitor.purge_records(state.cache)
 
   @doc """
   Refreshes the TTL on the given key - basically meaning the TTL starting expiring
@@ -183,7 +197,7 @@ defmodule Cachex.Worker.Actions do
   is going to be accurate to the millisecond at the very worst, so we can safely
   provide this implementation for all actions.
   """
-  def size(state) do
+  defall size(state) do
     state.cache
     |> :mnesia.table_info(:size)
     |> Util.ok
@@ -204,24 +218,5 @@ defmodule Cachex.Worker.Actions do
   """
   def ttl(state, key),
   do: do_action(state, :ttl, [key])
-
-  # Forwards a call to the correct actions set, currently only the local actions.
-  # The idea is that in future this will delegate to distributed implementations,
-  # so it has been built out in advance to provide a clear migration path.
-  defp do_action(%Cachex.Worker{ actions: actions } = state, action, args \\ []) do
-    case state.options.pre_hooks do
-      [] -> nil;
-      li -> Notifier.notify(li, Util.list_to_tuple([action|args]))
-    end
-
-    result = apply(actions, action, [state|args])
-
-    case state.options.post_hooks do
-      [] -> nil;
-      li -> Notifier.notify(li, Util.list_to_tuple([action|args]))
-    end
-
-    result
-  end
 
 end
