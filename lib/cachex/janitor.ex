@@ -1,6 +1,6 @@
 defmodule Cachex.Janitor do
   # use Macros and GenServer
-  use Cachex.Util.Macros
+  use Cachex.Macros.GenServer
   use GenServer
 
   # import utils for convenience

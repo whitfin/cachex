@@ -1,6 +1,6 @@
 defmodule Cachex.Worker.Actions do
   # use Macros
-  use Cachex.Util.Macros
+  use Cachex.Macros.Actions
 
   @moduledoc false
   # This module defines the actions a worker can take. The reason for splitting
@@ -25,8 +25,8 @@ defmodule Cachex.Worker.Actions do
   feed the value back to the user, otherwise we feed a nil back to the user. This
   function delegates to the actions modules to allow for optimizations.
   """
-  def get(state, key, fb_fun \\ nil),
-  do: do_action(state, :get, [key, fb_fun])
+  def get(state, key, fb_fun \\ nil)
+  defaction get(state, key, fb_fun)
 
   @doc """
   Provides a transactional interface to updating a value, by passing the value
@@ -36,8 +36,7 @@ defmodule Cachex.Worker.Actions do
   state in the table.
   """
   def get_and_update(state, key, update_fun, fb_fun \\ nil)
-  defall get_and_update(state, key, update_fun, fb_fun)
-  when is_function(update_fun) do
+  defaction get_and_update(state, key, update_fun, fb_fun) when is_function(update_fun) do
     result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
       { cache, key, touched, ttl, case value do
         nil ->
@@ -62,7 +61,7 @@ defmodule Cachex.Worker.Actions do
   either the document or a faked out tuple. The new document returned is directly
   indexed into the table.
   """
-  defall get_and_update_raw(state, key, update_fun) when is_function(update_fun) do
+  defaction get_and_update_raw(state, key, update_fun) when is_function(update_fun) do
     Util.handle_transaction(fn ->
       value = case :mnesia.read(state.cache, key) do
         [{ cache, ^key, touched, ttl, value }] ->
@@ -87,36 +86,33 @@ defmodule Cachex.Worker.Actions do
   Delegate for setting a value, simply setting a value to a key with an optional
   ttl. This function delegates to the actions modules to allow for optimizations.
   """
-  def set(state, key, value, ttl \\ nil),
-  do: do_action(state, :set, [key, value, ttl])
+  def set(state, key, value, ttl \\ nil)
+  defaction set(state, key, value, ttl)
 
   @doc """
   Increments a value by a given amount, setting the value to an initial value if
   it does not already exist. The value returned is the value *after* increment.
   This function delegates to the actions modules to allow for optimizations.
   """
-  def incr(state, key, amount, initial_value),
-  do: do_action(state, :incr, [key, amount, initial_value])
+  defaction incr(state, key, amount, initial_value)
 
   @doc """
   Removes a key/value pair from the cache. This function delegates to the actions
   modules to allow for optimizations.
   """
-  def del(state, key),
-  do: do_action(state, :del, [key])
+  defaction del(state, key)
 
   @doc """
   Removes all values from the cache, this empties the entire backing table. This
   function delegates to the actions modules to allow for optimizations.
   """
-  def clear(state),
-  do: do_action(state, :clear)
+  defaction clear(state)
 
   @doc """
   Similar to `size/1`, but ignores keys which may have expired. This is slower
   and requires extra computation, hence the name `length/1` to signal as such.
   """
-  defall count(state) do
+  defaction count(state) do
     state.cache
     |> :ets.select_count(Util.retrieve_all_rows(true))
     |> Util.ok
@@ -128,7 +124,7 @@ defmodule Cachex.Worker.Actions do
   drop to ETS for this at all times because of the speed (i.e. it's almost not
   possible for this to be inaccurate aside from network partitions).
   """
-  defall exists?(state, key) do
+  defaction exists?(state, key) do
     { :ok, :ets.member(state.cache, key) }
   end
 
@@ -136,10 +132,10 @@ defmodule Cachex.Worker.Actions do
   Modifies the expiration on a given key based on the value passed in. This
   function delegates to the actions modules to allow for optimizations.
   """
-  def expire(state, key, expiration) do
+  defaction expire(state, key, expiration) do
     case exists?(state, key) do
       { :ok, true } ->
-        do_action(state, :expire, [key, expiration])
+        state.actions.expire(state, key, expiration)
       _other_value_ ->
         { :error, "Key not found in cache"}
     end
@@ -150,7 +146,7 @@ defmodule Cachex.Worker.Actions do
   UTC milliseconds. We forward this action to the `expire/3` function to avoid
   duplicating the logic behind the expiration.
   """
-  def expire_at(state, key, timestamp),
+  defaction expire_at(state, key, timestamp),
   do: expire(state, key, timestamp - Util.now())
 
   @doc """
@@ -158,7 +154,7 @@ defmodule Cachex.Worker.Actions do
   use a funky selection, but all the same it should be used less frequently as
   the payload being copied and sent back over the server is potentially costly.
   """
-  defall keys(state) do
+  defaction keys(state) do
     state.cache
     |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
     |> Util.ok
@@ -168,25 +164,26 @@ defmodule Cachex.Worker.Actions do
   Removes a TTL from a given key (and is safe if a key does not already have a
   TTL provided). We pass this to `expire/3` to avoid duplicating the update logic.
   """
-  def persist(state, key),
+  defaction persist(state, key),
   do: expire(state, key, nil)
 
   @doc """
   Purges all expired keys based on their current TTL values. We return the number
   of deleted records as an ok tuple.
   """
-  defall purge(state),
-  do: Janitor.purge_records(state.cache)
+  defaction purge(state) do
+    Janitor.purge_records(state.cache)
+  end
 
   @doc """
   Refreshes the TTL on the given key - basically meaning the TTL starting expiring
   from this point onwards. This function delegates to the actions modules to allow
   for optimizations.
   """
-  def refresh(state, key) do
+  defaction refresh(state, key) do
     case exists?(state, key) do
       { :ok, true } ->
-        do_action(state, :refresh, [key])
+        state.actions.refresh(state, key)
       _other_value_ ->
         { :error, "Key not found in cache"}
     end
@@ -197,7 +194,7 @@ defmodule Cachex.Worker.Actions do
   is going to be accurate to the millisecond at the very worst, so we can safely
   provide this implementation for all actions.
   """
-  defall size(state) do
+  defaction size(state) do
     state.cache
     |> :mnesia.table_info(:size)
     |> Util.ok
@@ -208,15 +205,13 @@ defmodule Cachex.Worker.Actions do
   the key as it existed in the cache on removal. This function delegates to the
   actions modules to allow for optimizations.
   """
-  def take(state, key),
-  do: do_action(state, :take, [key])
+  defaction take(state, key)
 
   @doc """
   Returns the time remaining on a key before expiry. The value returned is in
   milliseconds. If the key has no expiration, nil is returned. This function
   delegates to the actions modules to allow for optimizations.
   """
-  def ttl(state, key),
-  do: do_action(state, :ttl, [key])
+  defaction ttl(state, key)
 
 end

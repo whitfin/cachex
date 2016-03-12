@@ -1,6 +1,6 @@
 defmodule Cachex.Worker do
   # use Macros and GenServer
-  use Cachex.Util.Macros
+  use Cachex.Macros.GenServer
   use GenServer
 
   @moduledoc false
@@ -242,13 +242,6 @@ defmodule Cachex.Worker do
   # Forwards a call to the correct actions set, currently only the local actions.
   # The idea is that in future this will delegate to distributed implementations,
   # so it has been built out in advance to provide a clear migration path.
-  def do_action(_state, _action, _args \\ [])
-  def do_action(%Cachex.Worker{ actions: actions } = state, action, args)
-  when is_atom(action) and is_list(args) do
-    do_action(state, [action|args], fn ->
-      apply(actions, action, [state|args])
-    end)
-  end
   def do_action(%Cachex.Worker{ } = state, message, fun)
   when is_list(message) and is_function(fun) do
     case state.options.pre_hooks do

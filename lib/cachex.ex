@@ -1,6 +1,6 @@
 defmodule Cachex do
   # use Macros and Supervisor
-  use Cachex.Util.Macros
+  use Cachex.Macros.Check
   use Supervisor
 
   @moduledoc """

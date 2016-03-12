@@ -1,5 +1,6 @@
 defmodule Cachex.Stats do
-  # use GenEvent
+  # use Macros and GenEvent
+  use Cachex.Macros.Stats
   use GenEvent
 
   @moduledoc false
@@ -89,6 +90,14 @@ defmodule Cachex.Stats do
   def handle_event({ { :take, _key }, { :ok, _val } }, stats) do
     { :ok, increment(stats, [:opCount, :hitCount, :evictionCount]) }
   end
+
+  @doc """
+  Various states which need to be swallowed to avoid incrementing stats.
+  """
+  defswallow swallow({ { :expire, _key, _date }, { :error, _ } })
+  defswallow swallow({ { :expire_at, _key, _date }, _ })
+  defswallow swallow({ { :persist, _key }, _ })
+  defswallow swallow({ { :refresh, _key }, { :error, _ } })
 
   @doc """
   For all operations which are not specifically handled, we add an operation to

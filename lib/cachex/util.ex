@@ -91,6 +91,13 @@ defmodule Cachex.Util do
   def has_expired(touched, ttl), do: touched + ttl < now
 
   @doc """
+  Retrieves the last item in a Tuple. This is just shorthand around sizeof and
+  pulling the last element.
+  """
+  def last_of_tuple(tuple) when is_tuple(tuple),
+  do: elem(tuple, tuple_size(tuple) - 1)
+
+  @doc """
   Converts a List into a Tuple using Enum.reduce. Until I know of a better way
   this will have to suffice.
   """
