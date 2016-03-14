@@ -15,12 +15,13 @@ defmodule Cachex.Macros.Actions do
   """
   defmacro defaction(head) do
     { func_name, args } = Macros.name_and_args(head)
-    { _, new_args } = Enum.split(args, 1)
+    sanitized_args = Macros.trim_defaults(args)
+    { _, new_args } = Enum.split(sanitized_args, 1)
 
     quote do
       def unquote(head) do
         do_action(var!(state), [unquote(func_name)|unquote(new_args)], fn ->
-          var!(state).actions.unquote(func_name)(unquote_splicing(args))
+          var!(state).actions.unquote(func_name)(unquote_splicing(sanitized_args))
         end)
       end
     end
@@ -33,7 +34,8 @@ defmodule Cachex.Macros.Actions do
   """
   defmacro defaction(head, do: body) do
     { func_name, args } = Macros.name_and_args(head)
-    { _, new_args } = Enum.split(args, 1)
+    sanitized_args = Macros.trim_defaults(args)
+    { _, new_args } = Enum.split(sanitized_args, 1)
 
     quote do
       def unquote(head) do
@@ -50,5 +52,4 @@ defmodule Cachex.Macros.Actions do
       import unquote(__MODULE__)
     end
   end
-
 end

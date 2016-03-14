@@ -25,8 +25,7 @@ defmodule Cachex.Worker.Actions do
   feed the value back to the user, otherwise we feed a nil back to the user. This
   function delegates to the actions modules to allow for optimizations.
   """
-  def get(state, key, fb_fun \\ nil)
-  defaction get(state, key, fb_fun)
+  defaction get(state, key, options \\ [])
 
   @doc """
   Provides a transactional interface to updating a value, by passing the value
@@ -35,8 +34,11 @@ defmodule Cachex.Worker.Actions do
   The return value is the value returned by the update function (i.e. the updated)
   state in the table.
   """
-  def get_and_update(state, key, update_fun, fb_fun \\ nil)
-  defaction get_and_update(state, key, update_fun, fb_fun) when is_function(update_fun) do
+  defaction get_and_update(state, key, update_fun, options \\ []) when is_function(update_fun) do
+    fb_fun =
+      options
+      |> Util.get_opt_function(:fallback)
+
     result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
       { cache, key, touched, ttl, case value do
         nil ->
@@ -86,33 +88,25 @@ defmodule Cachex.Worker.Actions do
   Delegate for setting a value, simply setting a value to a key with an optional
   ttl. This function delegates to the actions modules to allow for optimizations.
   """
-  def set(state, key, value, ttl \\ nil)
-  defaction set(state, key, value, ttl)
-
-  @doc """
-  Increments a value by a given amount, setting the value to an initial value if
-  it does not already exist. The value returned is the value *after* increment.
-  This function delegates to the actions modules to allow for optimizations.
-  """
-  defaction incr(state, key, amount, initial_value)
+  defaction set(state, key, value, options \\ [])
 
   @doc """
   Removes a key/value pair from the cache. This function delegates to the actions
   modules to allow for optimizations.
   """
-  defaction del(state, key)
+  defaction del(state, key, options \\ [])
 
   @doc """
   Removes all values from the cache, this empties the entire backing table. This
   function delegates to the actions modules to allow for optimizations.
   """
-  defaction clear(state)
+  defaction clear(state, options \\ [])
 
   @doc """
   Similar to `size/1`, but ignores keys which may have expired. This is slower
   and requires extra computation, hence the name `length/1` to signal as such.
   """
-  defaction count(state) do
+  defaction count(state, options \\ []) do
     state.cache
     |> :ets.select_count(Util.retrieve_all_rows(true))
     |> Util.ok
@@ -124,7 +118,7 @@ defmodule Cachex.Worker.Actions do
   drop to ETS for this at all times because of the speed (i.e. it's almost not
   possible for this to be inaccurate aside from network partitions).
   """
-  defaction exists?(state, key) do
+  defaction exists?(state, key, options \\ []) do
     { :ok, :ets.member(state.cache, key) }
   end
 
@@ -132,10 +126,10 @@ defmodule Cachex.Worker.Actions do
   Modifies the expiration on a given key based on the value passed in. This
   function delegates to the actions modules to allow for optimizations.
   """
-  defaction expire(state, key, expiration) do
+  defaction expire(state, key, expiration, options \\ []) do
     case exists?(state, key) do
       { :ok, true } ->
-        state.actions.expire(state, key, expiration)
+        state.actions.expire(state, key, expiration, options)
       _other_value_ ->
         { :error, "Key not found in cache"}
     end
@@ -146,32 +140,39 @@ defmodule Cachex.Worker.Actions do
   UTC milliseconds. We forward this action to the `expire/3` function to avoid
   duplicating the logic behind the expiration.
   """
-  defaction expire_at(state, key, timestamp),
-  do: expire(state, key, timestamp - Util.now())
+  defaction expire_at(state, key, timestamp, options \\ []),
+  do: expire(state, key, timestamp - Util.now(), options)
 
   @doc """
   Retrieves a list of keys from the cache. This is surprisingly fast, because we
   use a funky selection, but all the same it should be used less frequently as
   the payload being copied and sent back over the server is potentially costly.
   """
-  defaction keys(state) do
+  defaction keys(state, options \\ []) do
     state.cache
     |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
     |> Util.ok
   end
 
   @doc """
+  Increments a value by a given amount, setting the value to an initial value if
+  it does not already exist. The value returned is the value *after* increment.
+  This function delegates to the actions modules to allow for optimizations.
+  """
+  defaction incr(state, key, amount, options \\ [])
+
+  @doc """
   Removes a TTL from a given key (and is safe if a key does not already have a
   TTL provided). We pass this to `expire/3` to avoid duplicating the update logic.
   """
-  defaction persist(state, key),
-  do: expire(state, key, nil)
+  defaction persist(state, key, options \\ []),
+  do: expire(state, key, nil, options)
 
   @doc """
   Purges all expired keys based on their current TTL values. We return the number
   of deleted records as an ok tuple.
   """
-  defaction purge(state) do
+  defaction purge(state, options \\ []) do
     Janitor.purge_records(state.cache)
   end
 
@@ -180,10 +181,10 @@ defmodule Cachex.Worker.Actions do
   from this point onwards. This function delegates to the actions modules to allow
   for optimizations.
   """
-  defaction refresh(state, key) do
+  defaction refresh(state, key, options \\ []) do
     case exists?(state, key) do
       { :ok, true } ->
-        state.actions.refresh(state, key)
+        state.actions.refresh(state, key, options)
       _other_value_ ->
         { :error, "Key not found in cache"}
     end
@@ -194,7 +195,7 @@ defmodule Cachex.Worker.Actions do
   is going to be accurate to the millisecond at the very worst, so we can safely
   provide this implementation for all actions.
   """
-  defaction size(state) do
+  defaction size(state, options \\ []) do
     state.cache
     |> :mnesia.table_info(:size)
     |> Util.ok
@@ -205,13 +206,13 @@ defmodule Cachex.Worker.Actions do
   the key as it existed in the cache on removal. This function delegates to the
   actions modules to allow for optimizations.
   """
-  defaction take(state, key)
+  defaction take(state, key, options \\ [])
 
   @doc """
   Returns the time remaining on a key before expiry. The value returned is in
   milliseconds. If the key has no expiration, nil is returned. This function
   delegates to the actions modules to allow for optimizations.
   """
-  defaction ttl(state, key)
+  defaction ttl(state, key, options \\ [])
 
 end

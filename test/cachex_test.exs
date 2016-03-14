@@ -50,7 +50,7 @@ defmodule CachexTest do
     assert(Cachex.set!(@test_cache, "key", 1))
     assert(Cachex.incr!(@test_cache, "key") == 2)
     assert(Cachex.incr!(@test_cache, "key", 2) == 4)
-    assert(Cachex.incr!(@test_cache, "keyX", 5, 5) == 10)
+    assert(Cachex.incr!(@test_cache, "keyX", 5, initial: 5) == 10)
   end
 
   test "key list retrieval" do

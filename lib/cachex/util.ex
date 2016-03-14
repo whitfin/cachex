@@ -55,13 +55,67 @@ defmodule Cachex.Util do
         default_val
     end
 
+    l =
+      state.options.fallback_args
+      |> length
+      |> &(&1 + 1)
+
     case fun do
       val when is_function(val) ->
         case :erlang.fun_info(val)[:arity] do
-          1 -> { :loaded, val.(key) }
-          _ -> { :loaded, val.(key, state.options.fallback_args) }
+          0  ->
+            { :loaded, val.() }
+          1  ->
+            { :loaded, val.(key) }
+          ^l ->
+            { :loaded, apply(val, [key|state.options.fallback_args]) }
+          _  ->
+            { :ok, default_val }
         end
-      val -> { :ok, val }
+      val ->
+        { :ok, val }
+    end
+  end
+
+  @doc """
+  Pulls a function from a set of options. If the value is not a function, we return
+  nil unless a default value has been provided, in which case we return that.
+  """
+  def get_opt_function(options, key, default \\ nil),
+  do: get_opt(options, key, default, &(is_function/1))
+
+  @doc """
+  Pulls a list from a set of options. If the value is not a list, we return
+  nil unless a default value has been provided, in which case we return that.
+  """
+  def get_opt_list(options, key, default \\ nil),
+  do: get_opt(options, key, default, &(is_list/1))
+
+  @doc """
+  Pulls a number from a set of options. If the value is not a number, we return
+  nil unless a default value has been provided, in which case we return that.
+  """
+  def get_opt_number(options, key, default \\ nil),
+  do: get_opt(options, key, default, &(is_number/1))
+
+  @doc """
+  Pulls a positive number from a set of options. If the value is not positive, we
+  return nil unless a default value has been provided, in which case we return that.
+  """
+  def get_opt_positive(options, key, default \\ nil),
+  do: get_opt(options, key, default, &(is_number(&1) && &1 > 0))
+
+  @doc """
+  Pulls a value from a set of options. If the value satisfies the condition passed
+  in, we return it. Otherwise we return a default value.
+  """
+  def get_opt(options, key, default, condition) do
+    try do
+      case options[key] do
+        val -> if condition.(val), do: val, else: default
+      end
+    rescue
+      _e -> default
     end
   end
 

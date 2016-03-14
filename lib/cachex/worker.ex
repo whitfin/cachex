@@ -57,175 +57,156 @@ defmodule Cachex.Worker do
   @doc """
   Retrieves a value from the cache.
   """
-  defcall get(key, fallback_function) do
+  defcall get(key, options) do
     state
-    |> Actions.get(key, fallback_function)
-    |> Util.reply(state)
+    |> Actions.get(key, options)
   end
 
   @doc """
   Retrieves and updates a value in the cache.
   """
-  defcall get_and_update(key, update_fun, fb_fun) do
+  defcall get_and_update(key, update_fun, options) do
     state
-    |> Actions.get_and_update(key, update_fun, fb_fun)
-    |> Util.reply(state)
+    |> Actions.get_and_update(key, update_fun, options)
   end
 
   @doc """
-  Sets a value in the cache.
+  Sets a value in the cache in a blocking fashion.
   """
-  defcall set(key, value, ttl) do
-    state
-    |> Actions.set(key, value, ttl)
-    |> Util.reply(state)
-  end
-
-  @doc """
-  Increments a value in the cache.
-  """
-  defcall incr(key, amount, initial) do
-    state
-    |> Actions.incr(key, amount, initial)
-    |> Util.reply(state)
-  end
-
-  @doc """
-  Removes all keys from the cache.
-  """
-  defcall clear do
-    state
-    |> Actions.clear
-    |> Util.reply(state)
+  defcc set(key, value, options) do
+    Actions.set(state, key, value, options)
   end
 
   @doc """
   Removes a key from the cache.
   """
-  defcall del(key) do
+  defcc del(key, options) do
     state
-    |> Actions.del(key)
-    |> Util.reply(state)
+    |> Actions.del(key, options)
+  end
+
+  @doc """
+  Removes all keys from the cache.
+  """
+  defcc clear(options) do
+    state
+    |> Actions.clear(options)
   end
 
   @doc """
   Like size, but more accurate - takes into account expired keys.
   """
-  defcall count do
+  defcall count(options) do
     state
-    |> Actions.count
-    |> Util.reply(state)
+    |> Actions.count(options)
   end
 
   @doc """
   Determines whether a key exists in the cache.
   """
-  defcall exists?(key) do
+  defcall exists?(key, options) do
     state
-    |> Actions.exists?(key)
-    |> Util.reply(state)
+    |> Actions.exists?(key, options)
   end
 
   @doc """
   Refreshes the expiration on a given key based on the value passed in.
   """
-  defcall expire(key, expiration) do
+  defcc expire(key, expiration, options) do
     state
-    |> Actions.expire(key, expiration)
-    |> Util.reply(state)
+    |> Actions.expire(key, expiration, options)
   end
 
   @doc """
   Refreshes the expiration on a given key to match the timestamp passed in.
   """
-  defcall expire_at(key, timestamp) do
+  defcc expire_at(key, timestamp, options) do
     state
-    |> Actions.expire_at(key, timestamp)
-    |> Util.reply(state)
+    |> Actions.expire_at(key, timestamp, options)
   end
 
   @doc """
   Grabs a list of keys for the user (the entire keyspace).
   """
-  defcall keys do
+  defcall keys(options) do
     state
-    |> Actions.keys
-    |> Util.reply(state)
+    |> Actions.keys(options)
+  end
+
+  @doc """
+  Increments a value in the cache.
+  """
+  defcc incr(key, amount, options) do
+    state
+    |> Actions.incr(key, amount, options)
   end
 
   @doc """
   Removes a set TTL from a given key.
   """
-  defcall persist(key) do
+  defcc persist(key, options) do
     state
-    |> Actions.persist(key)
-    |> Util.reply(state)
+    |> Actions.persist(key, options)
   end
 
   @doc """
   Purges all expired keys.
   """
-  defcall purge do
+  defcc purge(options) do
     state
-    |> Actions.purge
-    |> Util.reply(state)
+    |> Actions.purge(options)
   end
 
   @doc """
   Refreshes the expiration time on a key.
   """
-  defcall refresh(key) do
+  defcc refresh(key, options) do
     state
-    |> Actions.refresh(key)
-    |> Util.reply(state)
+    |> Actions.refresh(key, options)
   end
 
   @doc """
   Determines the current size of the cache.
   """
-  defcall size do
+  defcall size(options) do
     state
-    |> Actions.size
-    |> Util.reply(state)
+    |> Actions.size(options)
   end
 
   @doc """
   Returns the current state of this worker.
   """
   defcall state,
-  do: Util.reply(state, state)
+  do: state
 
   @doc """
   Returns the internal stats for this worker.
   """
-  defcall stats do
+  defcall stats(_options) do
     if state.stats do
       state.stats
       |> Stats.retrieve
       |> Util.ok
-      |> Util.reply(state)
     else
-      Util.reply({ :error, "Stats not enabled for cache named '#{state.cache}'" }, state)
+      { :error, "Stats not enabled for cache with ref '#{state.cache}'" }
     end
   end
 
   @doc """
   Removes a key from the cache, returning the last known value for the key.
   """
-  defcall take(key) do
+  defcall take(key, options) do
     state
-    |> Actions.take(key)
-    |> Util.reply(state)
+    |> Actions.take(key, options)
   end
 
   @doc """
   Returns the time remaining on a key before expiry. The value returned it in
   milliseconds. If the key has no expiration, nil is returned.
   """
-  defcall ttl(key) do
+  defcall ttl(key, options) do
     state
-    |> Actions.ttl(key)
-    |> Util.reply(state)
+    |> Actions.ttl(key, options)
   end
 
   @doc """

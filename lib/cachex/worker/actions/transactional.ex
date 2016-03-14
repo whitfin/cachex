@@ -15,7 +15,11 @@ defmodule Cachex.Worker.Actions.Transactional do
   is we call it and then set the value into the cache, before returning it to the
   user. Otherwise we simply return a nil value in an ok tuple.
   """
-  def get(state, key, fb_fun \\ nil) do
+  def get(state, key, options) do
+    fb_fun =
+      options
+      |> Util.get_opt_function(:fallback)
+
     Util.handle_transaction(fn ->
       val = case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, value }] ->
@@ -49,33 +53,24 @@ defmodule Cachex.Worker.Actions.Transactional do
   provides us our TTL implementation. We transform the result of the insert into
   an ok/error tuple.
   """
-  def set(state, key, value, ttl \\ nil) do
+  def set(state, key, value, options) do
+    ttl =
+      options
+      |> Util.get_opt_number(:ttl)
+
     Util.handle_transaction(fn ->
       state
       |> Util.create_record(key, value, ttl)
       |> :mnesia.write
     end)
-    |> (&(&1 == { :ok, :ok }) && Util.ok(true) || Util.ok(false)).()
-  end
-
-  @doc """
-  Increments a given key by a given amount. We do this by reusing the update
-  semantics defined for all Actions. If the record is missing, we insert a new
-  one based on the passed values (but it has no TTL). We return the value after
-  it has been incremented.
-  """
-  def incr(state, key, amount, initial_value) do
-    Actions.get_and_update(state, key, fn
-      (nil) -> initial_value + amount
-      (val) -> val + amount
-    end)
+    |> (&(&1 == { :ok, :ok }) && Util.ok(true) || Util.error(false)).()
   end
 
   @doc """
   Removes a record from the cache using the provided key. We wrap this in a
   write lock in order to ensure no clashing writes occur at the same time.
   """
-  def del(state, key) do
+  def del(state, key, _options) do
     Util.handle_transaction(fn ->
       :mnesia.delete(state.cache, key, :write)
     end)
@@ -85,7 +80,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   Empties the cache entirely. We check the size of the cache beforehand using
   `size/1` in order to return the number of records which were removed.
   """
-  def clear(state) do
+  def clear(state, _options) do
     eviction_count = case Actions.size(state) do
       { :ok, size } -> size
       _other_value_ -> nil
@@ -101,7 +96,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   check locally to see if the key actually exists, returning an error if it doesn't.
   This allows us to then reuse the update semantics to modify the expiration.
   """
-  def expire(state, key, expiration) do
+  def expire(state, key, expiration, _options) do
     Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, _, value }) ->
       { cache, key, Util.now(), expiration, value }
     end)
@@ -109,10 +104,27 @@ defmodule Cachex.Worker.Actions.Transactional do
   end
 
   @doc """
+  Increments a given key by a given amount. We do this by reusing the update
+  semantics defined for all Actions. If the record is missing, we insert a new
+  one based on the passed values (but it has no TTL). We return the value after
+  it has been incremented.
+  """
+  def incr(state, key, amount, options) do
+    initial =
+      options
+      |> Util.get_opt_number(:initial, 0)
+
+    Actions.get_and_update(state, key, fn
+      (nil) -> initial + amount
+      (val) -> val + amount
+    end)
+  end
+
+  @doc """
   Refreshes the internal timestamp on the record to ensure that the TTL only takes
   place from this point forward. If the key does not exist, we return an error tuple.
   """
-  def refresh(state, key) do
+  def refresh(state, key, _options) do
     Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, ttl, value }) ->
       { cache, key, Util.now(), ttl, value }
     end)
@@ -124,7 +136,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   existed in the cache upon deletion. We have to do a read/write combination
   when distributed, because there's no "take" equivalent in Mnesia, only ETS.
   """
-  def take(state, key) do
+  def take(state, key, _options) do
     Util.handle_transaction(fn ->
       value = case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, _touched, _ttl, value }] -> value
@@ -146,7 +158,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   time in milliseconds. We return the remaining time to live in an ok tuple. If
   the key does not exist in the cache, we return an error tuple with a warning.
   """
-  def ttl(state, key) do
+  def ttl(state, key, _options) do
     Util.handle_transaction(fn ->
       case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, _value }] ->

@@ -17,7 +17,11 @@ defmodule Cachex.Worker.Actions.Remote do
   set the value into the cache before returning it to the user. Otherwise we
   simply return a nil value in an ok tuple.
   """
-  def get(state, key, fb_fun \\ nil) do
+  def get(state, key, options) do
+    fb_fun =
+      options
+      |> Util.get_opt_function(:fallback)
+
     val = case :mnesia.dirty_read(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired(touched, ttl) do
@@ -47,26 +51,23 @@ defmodule Cachex.Worker.Actions.Remote do
   Inserts a value into the Mnesia tables, without caring about overwrites. We
   transform the result into an ok/error tuple to keep consistency in the API.
   """
-  def set(state, key, value, ttl \\ nil) do
+  def set(state, key, value, options) do
+    ttl =
+      options
+      |> Util.get_opt_number(:ttl)
+
     state
     |> Util.create_record(key, value, ttl)
     |> :mnesia.dirty_write
-    |> (&(&1 == :ok) && Util.ok(true) || Util.ok(false)).()
+    |> (&(&1 == :ok) && Util.ok(true) || Util.error(false)).()
   end
-
-  @doc """
-  We delegate to the Transactional actions as this function requires both a
-  get/set, and as such it's only safe to do via a transaction.
-  """
-  defdelegate incr(state, key, amount, initial_value),
-  to: Cachex.Worker.Actions.Transactional
 
   @doc """
   Removes a record from the cache using the provided key. Regardless of whether
   the key exists or not, we return a truthy value (to signify the record is not
   in the cache).
   """
-  def del(state, key) do
+  def del(state, key, _options) do
     state.cache
     |> :mnesia.dirty_delete(key)
     |> Util.ok()
@@ -76,14 +77,21 @@ defmodule Cachex.Worker.Actions.Remote do
   Empties the cache entirely of keys. We delegate to the Transactional actions
   as the behaviour matches between implementations.
   """
-  defdelegate clear(state),
+  defdelegate clear(state, options),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
   Sets the expiration time on a given key based on the value passed in. We pass
   this through to the Transactional actions as we require a get/set combination.
   """
-  defdelegate expire(state, key, expiration),
+  defdelegate expire(state, key, expiration, options),
+  to: Cachex.Worker.Actions.Transactional
+
+  @doc """
+  We delegate to the Transactional actions as this function requires both a
+  get/set, and as such it's only safe to do via a transaction.
+  """
+  defdelegate incr(state, key, amount, options),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
@@ -91,7 +99,7 @@ defmodule Cachex.Worker.Actions.Remote do
   place from this point forward. We pass this through to the Transactional actions
   as we require a get/set combination.
   """
-  defdelegate refresh(state, key),
+  defdelegate refresh(state, key, options),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
@@ -99,7 +107,7 @@ defmodule Cachex.Worker.Actions.Remote do
   existed in the cache upon deletion. We delegate to the Transactional actions
   as this requires a potential get/del combination.
   """
-  defdelegate take(state, key),
+  defdelegate take(state, key, options),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
@@ -109,7 +117,7 @@ defmodule Cachex.Worker.Actions.Remote do
   time in milliseconds. We return the remaining time to live in an ok tuple. If
   the key does not exist in the cache, we return an error tuple with a warning.
   """
-  def ttl(state, key) do
+  def ttl(state, key, _options) do
     case :mnesia.dirty_read(state.cache, key) do
       [{ _cache, ^key, touched, ttl, _value }] ->
         case ttl do

@@ -38,33 +38,18 @@ defmodule Cachex.Options do
       { :write_concurrency, true }
     ])
 
-    default_ttl = parse_number_option(options, :default_ttl)
-
-    default_interval = case (!!default_ttl) do
+    default_ttl  = Util.get_opt_positive(options, :default_ttl)
+    ttl_interval = Util.get_opt_positive(options, :ttl_interval, case (!!default_ttl) do
       true  -> 1000
       false -> nil
-    end
+    end)
 
-    ttl_interval = case options[:ttl_interval] do
-      nil -> default_interval
-      val when not is_number(val) or val < 0 -> nil
-      val -> val
-    end
+    remote_node_list = Util.get_opt_list(options, :nodes)
+    default_fallback = Util.get_opt_function(options, :default_fallback)
 
-    default_fallback = case options[:default_fallback] do
-      fun when is_function(fun) -> fun
-      _fn -> nil
-    end
-
-    fallback_args = case options[:fallback_args] do
-      args when not is_list(args) -> {}
-      args -> Util.list_to_tuple(args)
-    end
-
-    nodes = case options[:nodes] do
-      nodes when not is_list(nodes) -> nil
-      nodes -> nodes
-    end
+    fallback_args =
+      options
+      |> Util.get_opt_list(options, :fallback_args, [])
 
     hooks = case options[:hooks] do
       nil -> []
@@ -73,13 +58,12 @@ defmodule Cachex.Options do
 
     stats_hook = case !!options[:record_stats] do
       true ->
-        tmp_hook = %Hook{
+        Hook.initialize_hooks(%Hook{
           module: Cachex.Stats,
           type: :post,
           results: true,
           ref: Cachex.Util.stats_for_cache(cache)
-        }
-        Hook.initialize_hooks(tmp_hook)
+        })
       false ->
         []
     end
@@ -87,29 +71,25 @@ defmodule Cachex.Options do
     pre_hooks = Hook.hooks_by_type(hooks, :pre)
     post_hooks = stats_hook ++ Hook.hooks_by_type(hooks, :post)
 
+    is_remote = cond do
+      remote_node_list != nil && remote_node_list != [node()] -> true
+      !!options[:remote] -> true
+      true -> false
+    end
+
     %__MODULE__{
       "cache": cache,
       "ets_opts": ets_opts,
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
-      "nodes": nodes,
+      "nodes": remote_node_list,
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
-      "remote": (nodes != nil && nodes != [node()] || !!options[:remote]),
+      "remote": is_remote,
       "transactional": !!options[:transactional],
       "ttl_interval": ttl_interval
     }
-  end
-
-  # Retrieves a field from the options as a number. Numbers must be strictly
-  # positive for our uses, so if the value is not a number (or is less than 0)
-  # we move to a default value. If no default is provided, we just nil the value.
-  defp parse_number_option(options, key, default \\ nil) do
-    case options[key] do
-      val when not is_number(val) or val < 1 -> default
-      val -> val
-    end
   end
 
 end

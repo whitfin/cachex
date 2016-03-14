@@ -1,4 +1,4 @@
-defmodule Cachex.Macros.Check do
+defmodule Cachex.Macros.Boilerplate do
   @moduledoc false
   # Provides shorthand wrappers to a Cachex action, by verifying that the provided
   # cache exists before executing an action. If the cache does not exist, an error
@@ -78,6 +78,7 @@ defmodule Cachex.Macros.Check do
       true -> value
     end
   end
+  def raise_result(value), do: value
 
   # Converts various function input to an unsafe version by adding a trailing
   # "!" to the function name.

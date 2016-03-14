@@ -1,7 +1,10 @@
 defmodule Cachex do
   # use Macros and Supervisor
-  use Cachex.Macros.Check
+  use Cachex.Macros.Boilerplate
   use Supervisor
+
+  # add some aliases
+  alias Cachex.Util
 
   @moduledoc """
   This module provides simple interactions with a backing memory cache.
@@ -11,11 +14,11 @@ defmodule Cachex do
   workers, no heavy processing happens in here in order to avoid bottlenecks.
   """
 
-  # add some aliases
-  alias Cachex.Janitor
-
   # the default timeout for a GenServer call
   @def_timeout 500
+
+  # custom options type
+  @type options :: [ { atom, any } ]
 
   # custom status type
   @type status :: :ok | :error
@@ -56,7 +59,7 @@ defmodule Cachex do
       false
 
   """
-  @spec start_link([ { atom, atom } ], [ { atom, atom } ]) :: { atom, pid }
+  @spec start_link(options, options) :: { atom, pid }
   def start_link(options \\ [], supervisor_options \\ []) do
     Supervisor.start_link(__MODULE__, options, supervisor_options)
   end
@@ -69,7 +72,7 @@ defmodule Cachex do
   becoming a bottleneck. There's a slight overhead involved if you only care
   about a single worker, but it keeps it nice and straightforward in the code.
   """
-  @spec init([ { atom, atom } ]) :: { status, { any } }
+  @spec init(options) :: { status, { any } }
   def init(options \\ []) when is_list(options) do
     parsed_opts =
       options
@@ -116,9 +119,9 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  @spec get(atom, any, function) :: { status, any }
-  defcheck get(cache, key, fallback_function \\ nil) do
-    GenServer.call(cache, { :get, key, fallback_function }, @def_timeout)
+  @spec get(atom, any, options) :: { status, any }
+  defcheck get(cache, key, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :get, key, options }, @def_timeout)
   end
 
   @doc """
@@ -131,10 +134,10 @@ defmodule Cachex do
       { :ok, [1, 2] }
 
   """
-  @spec get_and_update(atom, any, function, function) :: { status, any }
-  defcheck get_and_update(cache, key, update_function, fb_fun \\ nil)
-  when is_function(update_function) do
-    GenServer.call(cache, { :get_and_update, key, update_function, fb_fun }, @def_timeout)
+  @spec get_and_update(atom, any, function, options) :: { status, any }
+  defcheck get_and_update(cache, key, update_function, options \\ [])
+  when is_function(update_function) and is_list(options) do
+    GenServer.call(cache, { :get_and_update, key, update_function, options }, @def_timeout)
   end
 
   @doc """
@@ -146,37 +149,30 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec set(atom, any, any, number) :: { status, true | false }
-  defcheck set(cache, key, value, ttl \\ nil) do
-    GenServer.call(cache, { :set, key, value, ttl }, @def_timeout)
+  @spec set(atom, any, any, options) :: { status, true | false }
+  defcheck set(cache, key, value, options \\ []) when is_list(options) do
+    handle_async(cache, { :set, key, value, options }, options)
   end
 
   @doc """
-  Increments a key directly in the cache by an amount `count`. If the key does
-  not exist in the cache, it is set to `initial` before being incremented.
-
-  Please note that incrementing a value does not currently refresh any set TTL
-  on the key (as the key is still mapped to the same value, the value is simply
-  mutated).
+  Removes a value from the cache.
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", 1)
-      iex> Cachex.incr(:my_cache, "my_key")
-      { :ok, 2 }
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
 
-      iex> Cachex.set(:my_cache, "my_new_key", 1)
-      iex> Cachex.incr(:my_cache, "my_new_key", 2)
-      { :ok, 3 }
+      iex> Cachex.del(:my_cache, "key")
+      { :ok, true }
 
-      iex> Cachex.incr(:my_cache, "missing_key", 1, 5)
-      { :ok, 6 }
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, nil }
 
   """
-  @spec incr(atom, any, number, number) :: { status, number }
-  defcheck incr(cache, key, amount \\ 1, initial \\ 0)
-  when is_number(amount) and is_number(initial) do
-    GenServer.call(cache, { :incr, key, amount, initial }, @def_timeout)
+  @spec del(atom, any, options) :: { status, true | false }
+  defcheck del(cache, key, options \\ []) when is_list(options) do
+    handle_async(cache, { :del, key, options }, options)
   end
 
   @doc """
@@ -197,9 +193,27 @@ defmodule Cachex do
       { :ok, 0 }
 
   """
-  @spec clear(atom) :: { status, true | false }
-  defcheck clear(cache) do
-    GenServer.call(cache, { :clear }, @def_timeout)
+  @spec clear(atom, options) :: { status, true | false }
+  defcheck clear(cache, options \\ []) when is_list(options) do
+    handle_async(cache, { :clear, options }, options)
+  end
+
+  @doc """
+  Determines the size of the cache. Unlike `size/1`, this ignores keys which
+  should have expired. Naturally there is a cost to this.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.length(:my_cache)
+      { :ok, 3 }
+
+  """
+  @spec count(atom, options) :: { status, number }
+  defcheck count(cache, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :count, options }, @def_timeout)
   end
 
   @doc """
@@ -224,48 +238,9 @@ defmodule Cachex do
       { :ok, 5 }
 
   """
-  @spec decr(atom, any, number, number) :: { status, number }
-  defcheck decr(cache, key, amount \\ 1, initial \\ 0),
-  do: incr(cache, key, amount * -1, initial)
-
-  @doc """
-  Removes a value from the cache.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
-
-      iex> Cachex.del(:my_cache, "key")
-      { :ok, true }
-
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
-
-  """
-  @spec del(atom, any) :: { status, true | false }
-  defcheck del(cache, key) do
-    GenServer.call(cache, { :del, key }, @def_timeout)
-  end
-
-  @doc """
-  Determines the size of the cache. Unlike `size/1`, this ignores keys which
-  should have expired. Naturally there is a cost to this.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
-      iex> Cachex.set(:my_cache, "key3", "value3")
-      iex> Cachex.length(:my_cache)
-      { :ok, 3 }
-
-  """
-  @spec count(atom) :: { status, number }
-  defcheck count(cache) do
-    GenServer.call(cache, { :count }, @def_timeout)
-  end
+  @spec decr(atom, any, number, options) :: { status, number }
+  defcheck decr(cache, key, amount \\ 1, options \\ []),
+  do: incr(cache, key, amount * -1, options)
 
   @doc """
   Checks whether the cache is empty.
@@ -285,8 +260,8 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec empty?(atom) :: { status, true | false }
-  defcheck empty?(cache) do
+  @spec empty?(atom, options) :: { status, true | false }
+  defcheck empty?(cache, options \\ []) when is_list(options) do
     case size(cache) do
       { :ok, size } -> { :ok, size == 0 }
       _other_value_ -> { :ok, false }
@@ -306,9 +281,9 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec exists?(atom, any) :: { status, true | false }
-  defcheck exists?(cache, key) do
-    GenServer.call(cache, { :exists?, key }, @def_timeout)
+  @spec exists?(atom, any, options) :: { status, true | false }
+  defcheck exists?(cache, key, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :exists?, key, options }, @def_timeout)
   end
 
   @doc """
@@ -320,9 +295,10 @@ defmodule Cachex do
       {:ok, true}
 
   """
-  @spec expire(atom, binary, number) :: { status, true | false }
-  defcheck expire(cache, key, expiration) when is_number(expiration) do
-    GenServer.call(cache, { :expire, key, expiration }, @def_timeout)
+  @spec expire(atom, binary, number, options) :: { status, true | false }
+  defcheck expire(cache, key, expiration, options \\ [])
+  when is_number(expiration) and is_list(options) do
+    handle_async(cache, { :expire, key, expiration, options }, options)
   end
 
   @doc """
@@ -334,9 +310,10 @@ defmodule Cachex do
       {:ok, true}
 
   """
-  @spec expire_at(atom, binary, number) :: { status, true | false }
-  defcheck expire_at(cache, key, timestamp) when is_number(timestamp) do
-    GenServer.call(cache, { :expire_at, key, timestamp }, @def_timeout)
+  @spec expire_at(atom, binary, number, options) :: { status, true | false }
+  defcheck expire_at(cache, key, timestamp, options \\ [])
+  when is_number(timestamp) and is_list(options) do
+    handle_async(cache, { :expire_at, key, timestamp, options }, options)
   end
 
   @doc """
@@ -354,9 +331,36 @@ defmodule Cachex do
       { :ok, [] }
 
   """
-  @spec keys(atom) :: [ any ]
-  defcheck keys(cache) do
-    GenServer.call(cache, { :keys })
+  @spec keys(atom, options) :: [ any ]
+  defcheck keys(cache, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :keys, options }, @def_timeout)
+  end
+
+  @doc """
+  Increments a key directly in the cache by an amount `count`. If the key does
+  not exist in the cache, it is set to `initial` before being incremented.
+
+  Please note that incrementing a value does not currently refresh any set TTL
+  on the key (as the key is still mapped to the same value, the value is simply
+  mutated).
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "my_key", 1)
+      iex> Cachex.incr(:my_cache, "my_key")
+      { :ok, 2 }
+
+      iex> Cachex.set(:my_cache, "my_new_key", 1)
+      iex> Cachex.incr(:my_cache, "my_new_key", 2)
+      { :ok, 3 }
+
+      iex> Cachex.incr(:my_cache, "missing_key", 1, 5)
+      { :ok, 6 }
+
+  """
+  @spec incr(atom, any, options) :: { status, number }
+  defcheck incr(cache, key, amount \\ 1, options \\ []) when is_list(options) do
+    handle_async(cache, { :incr, key, amount, options }, options)
   end
 
   @doc """
@@ -372,9 +376,9 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec persist(atom, any) :: { status, true | false }
-  defcheck persist(cache, key) do
-    GenServer.call(cache, { :persist, key }, @def_timeout)
+  @spec persist(atom, any, options) :: { status, true | false }
+  defcheck persist(cache, key, options \\ []) when is_list(options) do
+    handle_async(cache, { :persist, key, options }, options)
   end
 
   @doc """
@@ -387,9 +391,11 @@ defmodule Cachex do
       {:ok, 15}
 
   """
-  @spec purge(atom) :: { status, number }
-  defcheck purge(cache),
-  do: Janitor.purge_records(cache)
+  @spec purge(atom, options) :: { status, number }
+  defcheck purge(cache, options \\ []) when is_list(options) do
+    handle_async(cache, { :purge, options }, options)
+  end
+
 
   @doc """
   Refreshes the TTL for the provided key. This will reset the TTL to begin from
@@ -407,9 +413,9 @@ defmodule Cachex do
       {:ok, 20000}
 
   """
-  @spec refresh(atom, binary) :: { status, true | false }
-  defcheck refresh(cache, key) do
-    GenServer.call(cache, { :refresh, key }, @def_timeout)
+  @spec refresh(atom, binary, options) :: { status, true | false }
+  defcheck refresh(cache, key, options \\ []) when is_list(options) do
+    handle_async(cache, { :refresh, key, options }, options)
   end
 
   @doc """
@@ -425,9 +431,9 @@ defmodule Cachex do
       { :ok, 3 }
 
   """
-  @spec size(atom) :: { status, number }
-  defcheck size(cache) do
-    GenServer.call(cache, { :size }, @def_timeout)
+  @spec size(atom, options) :: { status, number }
+  defcheck size(cache, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :size, options }, @def_timeout)
   end
 
   @doc """
@@ -441,9 +447,9 @@ defmodule Cachex do
          missCount: 0, opCount: 0, requestCount: 0, setCount: 0}}
 
   """
-  @spec stats(atom) :: { status, %{ } }
-  defcheck stats(cache) do
-    GenServer.call(cache, { :stats }, @def_timeout)
+  @spec stats(atom, options) :: { status, %{ } }
+  defcheck stats(cache, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :stats, options }, @def_timeout)
   end
 
   @doc """
@@ -462,9 +468,9 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  @spec take(atom, any) :: { status, any }
-  defcheck take(cache, key) do
-    GenServer.call(cache, { :take, key }, @def_timeout)
+  @spec take(atom, any, options) :: { status, any }
+  defcheck take(cache, key, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :take, key, options }, @def_timeout)
   end
 
   @doc """
@@ -479,9 +485,21 @@ defmodule Cachex do
       {:ok, 13985}
 
   """
-  @spec ttl(atom, binary) :: { status, number }
-  defcheck ttl(cache, key) do
-    GenServer.call(cache, { :ttl, key }, @def_timeout)
+  @spec ttl(atom, binary, options) :: { status, number }
+  defcheck ttl(cache, key, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :ttl, key, options }, @def_timeout)
+  end
+
+  # Internal function to handle async delegation. This is just a wrapper around
+  # the call/cast functions inside the GenServer module.
+  defp handle_async(cache, args, options) do
+    if options[:async] do
+      cache
+      |> GenServer.cast(args)
+      |> (&(&1 && Util.ok(true) || Util.error(false))).()
+    else
+      GenServer.call(cache, args, @def_timeout)
+    end
   end
 
 end

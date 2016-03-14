@@ -17,7 +17,11 @@ defmodule Cachex.Worker.Actions.Local do
   value into the cache, before returning it to the user. Otherwise we
   simply return a nil value in an ok tuple.
   """
-  def get(state, key, fb_fun \\ nil) do
+  def get(state, key, options) do
+    fb_fun =
+      options
+      |> Util.get_opt_function(:fallback)
+
     val = case :ets.lookup(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired(touched, ttl) do
@@ -49,31 +53,18 @@ defmodule Cachex.Worker.Actions.Local do
   which provides us our TTL implementation. We transform the result of the insert
   into an ok/error tuple.
   """
-  def set(state, key, value, ttl \\ nil) do
+  def set(state, key, value, options) do
+    ttl =
+      options
+      |> Util.get_opt_number(:ttl)
+
     new_record =
       state
       |> Util.create_record(key, value, ttl)
 
     state.cache
     |> :ets.insert(new_record)
-    |> (&(&1 && Util.ok(true) || Util.ok(false))).()
-  end
-
-  @doc """
-  Increments a given key by a given amount. We do this using the internal ETS
-  `update_counter/4` function. We allow for touching the record or keeping it
-  persistent (for use cases such as rate limiting). If the record is missing, we
-  insert a new one based on the passed values (but it has no TTL). We return the
-  value after it has been incremented.
-  """
-  def incr(state, key, amount, initial_value) do
-    new_record =
-      state
-      |> Util.create_record(key, initial_value)
-
-    state.cache
-    |> :ets.update_counter(key, { 5, amount }, new_record)
-    |> Util.ok()
+    |> (&(&1 && Util.ok(true) || Util.error(false))).()
   end
 
   @doc """
@@ -81,7 +72,7 @@ defmodule Cachex.Worker.Actions.Local do
   the key exists or not, we return a truthy value (to signify the record is not
   in the cache).
   """
-  def del(state, key) do
+  def del(state, key, _options) do
     state.cache
     |> :ets.delete(key)
     |> Util.ok()
@@ -92,7 +83,7 @@ defmodule Cachex.Worker.Actions.Local do
   the size of the cache beforehand using `size/1` in order to return the number
   of records which were removed.
   """
-  def clear(state) do
+  def clear(state, _options) do
     eviction_count = case Actions.size(state) do
       { :ok, size } -> size
       _other_value_ -> nil
@@ -110,10 +101,31 @@ defmodule Cachex.Worker.Actions.Local do
   the key does not expire until `now() + expiration`. If the key is not found in
   the cache we short-circuit to avoid accidentally creating a record.
   """
-  def expire(state, key, expiration) do
+  def expire(state, key, expiration, _options) do
     state.cache
     |> :ets.update_element(key, [{ 3, Util.now() }, { 4, expiration }])
     |> (&({ :ok, &1 })).()
+  end
+
+  @doc """
+  Increments a given key by a given amount. We do this using the internal ETS
+  `update_counter/4` function. We allow for touching the record or keeping it
+  persistent (for use cases such as rate limiting). If the record is missing, we
+  insert a new one based on the passed values (but it has no TTL). We return the
+  value after it has been incremented.
+  """
+  def incr(state, key, amount, options) do
+    initial =
+      options
+      |> Util.get_opt_number(:initial, 0)
+
+    new_record =
+      state
+      |> Util.create_record(key, initial)
+
+    state.cache
+    |> :ets.update_counter(key, { 5, amount }, new_record)
+    |> Util.ok()
   end
 
   @doc """
@@ -121,7 +133,7 @@ defmodule Cachex.Worker.Actions.Local do
   place from this point forward. This is useful for epheremal caches. We return an
   error if the key does not exist in the cache.
   """
-  def refresh(state, key) do
+  def refresh(state, key, _options) do
     state.cache
     |> :ets.update_element(key, { 3, Util.now() })
     |> (&({ :ok, &1 })).()
@@ -131,7 +143,7 @@ defmodule Cachex.Worker.Actions.Local do
   This is like `del/2` but it returns the last known value of the key as it
   existed in the cache upon deletion.
   """
-  def take(state, key) do
+  def take(state, key, _options) do
     value = case :ets.take(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired(touched, ttl) do
@@ -151,7 +163,7 @@ defmodule Cachex.Worker.Actions.Local do
   time in milliseconds. We return the remaining time to live in an ok tuple. If
   the key does not exist in the cache, we return an error tuple with a warning.
   """
-  def ttl(state, key) do
+  def ttl(state, key, _options) do
     case :ets.lookup(state.cache, key) do
       [{ _cache, ^key, touched, ttl, _value }] ->
         case ttl do
