@@ -49,7 +49,7 @@ defmodule Cachex.Options do
 
     fallback_args =
       options
-      |> Util.get_opt_list(options, :fallback_args, [])
+      |> Util.get_opt_list(:fallback_args, [])
 
     hooks = case options[:hooks] do
       nil -> []

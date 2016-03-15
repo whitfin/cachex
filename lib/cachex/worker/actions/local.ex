@@ -64,7 +64,18 @@ defmodule Cachex.Worker.Actions.Local do
 
     state.cache
     |> :ets.insert(new_record)
-    |> (&(&1 && Util.ok(true) || Util.error(false))).()
+    |> (&(Util.create_truthy_result/1)).()
+  end
+
+  @doc """
+  Updates a value directly in the cache. We directly update the value, without
+  retrieving the value beforehand. Any TTL is left as-is as well as the touch
+  time. We transform the result of the insert into an ok/error tuple.
+  """
+  def update(state, key, value, _options) do
+    state.cache
+    |> :ets.update_element(key, { 5, value })
+    |> (&(Util.create_truthy_result/1)).()
   end
 
   @doc """
@@ -91,7 +102,7 @@ defmodule Cachex.Worker.Actions.Local do
 
     state.cache
     |> :ets.delete_all_objects
-    |> (&(&1 && { :ok, eviction_count })).()
+    |> (&(&1 && Util.ok(eviction_count) || Util.error(0))).()
   end
 
   @doc """
@@ -104,7 +115,7 @@ defmodule Cachex.Worker.Actions.Local do
   def expire(state, key, expiration, _options) do
     state.cache
     |> :ets.update_element(key, [{ 3, Util.now() }, { 4, expiration }])
-    |> (&({ :ok, &1 })).()
+    |> (&(Util.create_truthy_result/1)).()
   end
 
   @doc """
@@ -136,7 +147,7 @@ defmodule Cachex.Worker.Actions.Local do
   def refresh(state, key, _options) do
     state.cache
     |> :ets.update_element(key, { 3, Util.now() })
-    |> (&({ :ok, &1 })).()
+    |> (&(Util.create_truthy_result/1)).()
   end
 
   @doc """

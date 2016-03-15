@@ -155,6 +155,25 @@ defmodule Cachex do
   end
 
   @doc """
+  Updates a value in the cache.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.update(:my_cache, "key", "new_value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "new_value" }
+
+  """
+  @spec update(atom, any, any, options) :: { status, any }
+  defcheck update(cache, key, value, options \\ []) when is_list(options) do
+    GenServer.call(cache, { :update, key, value, options }, @def_timeout)
+  end
+
+  @doc """
   Removes a value from the cache.
 
   ## Examples

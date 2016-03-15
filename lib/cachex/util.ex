@@ -42,6 +42,13 @@ defmodule Cachex.Util do
   end
 
   @doc """
+  Takes an input and returns an ok/error tuple based on whether the input is of
+  a truthy nature or not.
+  """
+  def create_truthy_result(result) when result, do: ok(true)
+  def create_truthy_result(_result), do: error(false)
+
+  @doc """
   Retrieves a fallback value for a given key, using either the provided function
   or using the default fallback implementation.
   """
@@ -58,7 +65,7 @@ defmodule Cachex.Util do
     l =
       state.options.fallback_args
       |> length
-      |> &(&1 + 1)
+      |> (&(&1 + 1)).()
 
     case fun do
       val when is_function(val) ->

@@ -63,7 +63,23 @@ defmodule Cachex.Worker.Actions.Transactional do
       |> Util.create_record(key, value, ttl)
       |> :mnesia.write
     end)
-    |> (&(&1 == { :ok, :ok }) && Util.ok(true) || Util.error(false)).()
+    |> (&(Util.create_truthy_result(&1 == { :ok, :ok }))).()
+  end
+
+  @doc """
+  Updates a key in the cache to have a new value. This does not change the touch
+  time or the TTL on the key. We return an ok/error tuple representing the state
+  of the update request.
+  """
+  def update(state, key, value, _options) do
+    { status, ^value } = Actions.get_and_update(state, key, fn(_val) ->
+      value
+    end)
+
+    case status do
+      :ok -> Util.ok(true)
+      _ok -> Util.error(false)
+    end
   end
 
   @doc """

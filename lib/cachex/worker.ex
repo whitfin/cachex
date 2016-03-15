@@ -71,10 +71,17 @@ defmodule Cachex.Worker do
   end
 
   @doc """
-  Sets a value in the cache in a blocking fashion.
+  Sets a value in the cache.
   """
   defcc set(key, value, options) do
     Actions.set(state, key, value, options)
+  end
+
+  @doc """
+  Updates a value in the cache.
+  """
+  defcc update(key, value, options) do
+    Actions.update(state, key, value, options)
   end
 
   @doc """

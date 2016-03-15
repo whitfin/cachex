@@ -59,8 +59,15 @@ defmodule Cachex.Worker.Actions.Remote do
     state
     |> Util.create_record(key, value, ttl)
     |> :mnesia.dirty_write
-    |> (&(&1 == :ok) && Util.ok(true) || Util.error(false)).()
+    |> (&(Util.create_truthy_result(&1 == :ok))).()
   end
+
+  @doc """
+  We delegate to the Transactional actions as this function requires both a
+  get/set, and as such it's only safe to do via a transaction.
+  """
+  defdelegate update(state, key, value, options),
+  to: Cachex.Worker.Actions.Transactional
 
   @doc """
   Removes a record from the cache using the provided key. Regardless of whether

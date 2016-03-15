@@ -91,6 +91,12 @@ defmodule Cachex.Worker.Actions do
   defaction set(state, key, value, options \\ [])
 
   @doc """
+  Delegate for updating a value, simply setting a value to a key. This function
+  delegates to the actions modules to allow for optimizations.
+  """
+  defaction update(state, key, value, options \\ [])
+
+  @doc """
   Removes a key/value pair from the cache. This function delegates to the actions
   modules to allow for optimizations.
   """
