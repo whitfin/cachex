@@ -35,7 +35,10 @@ defmodule Cachex.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
-        coveralls: :test
+        "coveralls": :test,
+        "coveralls.detail": :test,
+        "coveralls.html": :test,
+        "coveralls.travis": :test
       ]
     ]
   end
@@ -60,12 +63,13 @@ defmodule Cachex.Mixfile do
     [
       # documentation
       { :earmark, "~> 0.2.1",  optional: true, only: :docs },
-      { :ex_doc,  "~> 0.11.3", optional: true, only: :docs },
+      { :ex_doc,  "~> 0.11.4", optional: true, only: :docs },
       # testing
-      { :benchfella,  "~> 0.3.1", optional: true, only: :test },
-      { :benchwarmer, "~> 0.0.2", optional: true, only: :test },
-      { :excoveralls, "~> 0.4.5", optional: true, only: :test },
-      { :exprof,      "~> 0.2.0", optional: true, only: :test }
+      { :benchfella,   "~> 0.3.2", optional: true, only: :test },
+      { :benchwarmer,  "~> 0.0.2", optional: true, only: :test },
+      { :excoveralls,  "~> 0.5.1", optional: true, only: :test },
+      { :exprof,       "~> 0.2.0", optional: true, only: :test },
+      { :power_assert, "~> 0.0.8", optional: true, only: :test }
     ]
   end
 end
