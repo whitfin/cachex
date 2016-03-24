@@ -7,6 +7,7 @@ defmodule Cachex.Macros.Boilerplate do
   # each function. Unsafe functions will throw any errors, and return raw results.
 
   # alias the parent module
+  alias Cachex.ExecutionError
   alias Cachex.Macros
   alias Cachex.Util
 
@@ -74,7 +75,8 @@ defmodule Cachex.Macros.Boilerplate do
   """
   def raise_result({ status, value }) do
     cond do
-      status == :error and is_binary(value) -> raise value
+      status == :error and is_binary(value) ->
+        raise ExecutionError, message: value
       true -> value
     end
   end

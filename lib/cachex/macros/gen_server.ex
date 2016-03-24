@@ -64,10 +64,12 @@ defmodule Cachex.Macros.GenServer do
 
     quote do
       def handle_call({ unquote(func_name), unquote_splicing(args) }, _, var!(state)) do
-        unquote(body) |> Util.reply(var!(state))
+        unquote(body)
+        |> Util.reply(var!(state))
       end
       def handle_cast({ unquote(func_name), unquote_splicing(args) }, var!(state)) do
-        unquote(body); { :noreply, var!(state) }
+        unquote(body)
+        |> Util.noreply(var!(state))
       end
     end
   end
