@@ -33,7 +33,7 @@ defmodule CachexTest.Refresh.Remote do
 
     { status, ttl } = Cachex.ttl(state.cache, "my_key")
     assert(status == :ok)
-    assert(ttl < 900)
+    assert(ttl < 901)
 
     refresh_result = Cachex.refresh(state.cache, "my_key")
     assert(refresh_result == { :ok, true })
