@@ -1,0 +1,27 @@
+{
+  "default_stop_words": [
+    "defmodule",
+    "defrecord",
+    "defimpl",
+    "defexception",
+    "defprotocol",
+    "defstruct",
+    "defdelegate",
+    "def.+(.+\\\\.+).+do",
+    "^\\s+use\\s+"
+  ],
+  "custom_stop_words": [
+    "defaction.+(.+\\\\.+),?",
+    "defcheck.+(.+\\\\.+),?"
+  ],
+  "coverage_options": {
+    "treat_no_relevant_lines_as_covered": true
+  },
+  "skip_files": [
+    "lib/cachex/macros.ex",
+    "lib/cachex/macros/actions.ex",
+    "lib/cachex/macros/boilerplate.ex",
+    "lib/cachex/macros/gen_server.ex",
+    "lib/cachex/macros/stats.ex"
+  ]
+}
