@@ -1,7 +1,7 @@
 defmodule Cachex.Stats do
-  # use Macros and GenEvent
+  # use Macros and Hook
+  use Cachex.Hook
   use Cachex.Macros.Stats
-  use GenEvent
 
   @moduledoc false
   # A simple statistics container, used to keep track of various operations on
@@ -27,51 +27,51 @@ defmodule Cachex.Stats do
   end
 
   @doc """
-  Add a cache miss, as a nil value was retrieved from the cache.
+  Add a cache hit, as a found value was retrieved from the cache.
   """
-  def handle_event({ { :get, _key, _fallback }, { :ok, nil } }, stats) do
-    { :ok, increment(stats, [:opCount, :missCount]) }
+  def handle_notify({ :get, _key, _options }, { :ok, _val }, stats) do
+    { :ok, increment(stats, [:opCount, :hitCount]) }
   end
 
   @doc """
-  Add a cache hit, as a found value was retrieved from the cache.
+  Add a cache miss, as a nil value was retrieved from the cache.
   """
-  def handle_event({ { :get, _key, _fallback }, { :ok, _val } }, stats) do
-    { :ok, increment(stats, [:opCount, :hitCount]) }
+  def handle_notify({ :get, _key, _options }, { :missing, nil }, stats) do
+    { :ok, increment(stats, [:opCount, :missCount]) }
   end
 
   @doc """
   Add a cache miss, and also increment the load count.
   """
-  def handle_event({ { :get, _key, _fallback }, { :loaded, _val } }, stats) do
+  def handle_notify({ :get, _key, _options }, { :loaded, _val }, stats) do
     { :ok, increment(stats, [:opCount, :missCount, :loadCount]) }
   end
 
   @doc """
   Add a set operation, as a key/value was set in the cache.
   """
-  def handle_event({ { :set, _key, _value, _ttl }, _result }, stats) do
+  def handle_notify({ :set, _key, _value, _options }, _result, stats) do
     { :ok, increment(stats, [:opCount, :setCount]) }
   end
 
   @doc """
   Add evictions to the stats, using the amount provided in the results.
   """
-  def handle_event({ { :clear }, { :ok, amount } }, stats) do
+  def handle_notify({ :clear, _options }, { :ok, amount }, stats) do
     { :ok, increment(stats, [:opCount, :evictionCount], amount) }
   end
 
   @doc """
   Add evictions to the stats, using the amount provided in the results.
   """
-  def handle_event({ { :purge }, { :ok, amount } }, stats) do
+  def handle_notify({ :purge, _options }, { :ok, amount }, stats) do
     { :ok, increment(stats, [:opCount, :evictionCount], amount) }
   end
 
   @doc """
   Add an eviction to the stats, representing the delete operation.
   """
-  def handle_event({ { :del, _key }, _result }, stats) do
+  def handle_notify({ :del, _key, _options }, _result, stats) do
     { :ok, increment(stats, [:opCount, :evictionCount]) }
   end
 
@@ -79,7 +79,7 @@ defmodule Cachex.Stats do
   Add a cache miss, as taking a value from the cache did not retrieve a value.
   We do not add a cache eviction, as the value did not exist.
   """
-  def handle_event({ { :take, _key }, { :ok, nil } }, stats) do
+  def handle_notify({ :take, _key, _options }, { :ok, nil }, stats) do
     { :ok, increment(stats, [:opCount, :missCount]) }
   end
 
@@ -87,24 +87,24 @@ defmodule Cachex.Stats do
   Add a cache hit, as taking a value from the cache returned a value. We also add
   a cache eviction as the value is now removed.
   """
-  def handle_event({ { :take, _key }, { :ok, _val } }, stats) do
+  def handle_notify({ :take, _key, _options }, { :ok, _val }, stats) do
     { :ok, increment(stats, [:opCount, :hitCount, :evictionCount]) }
   end
 
   @doc """
   Various states which need to be swallowed to avoid incrementing stats.
   """
-  defswallow swallow({ { :expire, _key, _date }, { :error, _ } })
-  defswallow swallow({ { :expire_at, _key, _date }, _ })
-  defswallow swallow({ { :persist, _key }, _ })
-  defswallow swallow({ { :refresh, _key }, { :error, _ } })
+  defswallow swallow({ :expire, _key, _ttl, _options }, { :error, _ })
+  defswallow swallow({ :expire_at, _key, _date, _options }, _result)
+  defswallow swallow({ :persist, _key, _options }, _result)
+  defswallow swallow({ :refresh, _key, _options }, { :error, _ })
 
   @doc """
   For all operations which are not specifically handled, we add an operation to
   the stats container. This is basically just a catch-all to make sure operations
   are represented in some way.
   """
-  def handle_event(_, stats) do
+  def handle_notify(_, _result, stats) do
     { :ok, increment(stats, [:opCount]) }
   end
 
@@ -114,32 +114,6 @@ defmodule Cachex.Stats do
   """
   def handle_call(:retrieve_stats, stats) do
     { :ok, finalize(stats), stats }
-  end
-
-  @doc """
-  Merges together two stat structs, typically performing addition of both values,
-  but otherwise based on some internal logic. This is currently unused but it's
-  likely it will be in future (e.g. with worker pooling), so it will not be taken
-  out of the codebase at this point.
-
-  This *can* be used by the end-user, but this module will remain undocumented as
-  we don't want users to accidentally taint their statistics.
-  """
-  def merge(%__MODULE__{ } = stats_base, %__MODULE__{ } = stats_merge) do
-    stats_base
-    |> Map.keys
-    |> Kernal.tl
-    |> Enum.reduce(stats_base, fn(field, state) ->
-        a_val = Map.get(stats_base, field, 0)
-        b_val = Map.get(stats_merge, field, 0)
-
-        case field do
-          :creationDate ->
-            Map.put(state, field, a_val < b_val && a_val || b_val)
-          _other_values ->
-            Map.put(state, field, a_val + b_val)
-        end
-      end)
   end
 
   @doc """
@@ -154,14 +128,12 @@ defmodule Cachex.Stats do
   # Increments a given set of statistics by a given amount. If the amount is not
   # provided, we default to a value of 1. We accept a list of fields to work with
   # as it's not unusual for an action to increment various fields at the same time.
-  defp increment(_stats, _field, _amount \\ 1)
-  defp increment(stats, fields, amount) when is_list(fields) do
-    Enum.reduce(fields, stats, fn(field, stats) ->
-      Map.put(stats, field, Map.get(stats, field, 0) + amount)
-    end)
-  end
-  defp increment(stats, field, amount) do
-    increment(stats, [field], amount)
+  defp increment(stats, fields, amount \\ 1) do
+    fields
+    |> List.wrap
+    |> Enum.reduce(stats, fn(field, stats) ->
+        Map.put(stats, field, Map.get(stats, field, 0) + amount)
+       end)
   end
 
   # Finalizes the struct into a Map containing various fields we can deduce from

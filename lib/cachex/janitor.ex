@@ -36,7 +36,7 @@ defmodule Cachex.Janitor do
     state = %__MODULE__{
       cache: options.cache,
       interval: options.ttl_interval,
-      stats_ref: Hook.ref_by_module(options.post_hooks, Cachex.Stats)
+      stats_ref: Cachex.Hook.ref_by_module(options.post_hooks, Cachex.Stats)
     }
     { :ok, schedule_check(state) }
   end

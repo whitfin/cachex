@@ -21,7 +21,8 @@ defmodule Cachex.Util do
   @doc """
   Lazy wrapper for creating a :noreply tuple.
   """
-  def noreply(value), do: { :noreply, value }
+  def noreply(state), do: { :noreply, state }
+  def noreply(_value, state), do: { :noreply, state }
 
   @doc """
   Lazy wrapper for creating a :reply tuple.
@@ -33,7 +34,7 @@ defmodule Cachex.Util do
   passed is nil, then we apply any defaults. Otherwise we add the value
   to the current time (in milliseconds) and return a tuple for the table.
   """
-  def create_record(state, key, value, expiration \\ nil) do
+  def create_record(%Cachex.Worker{ } = state, key, value, expiration \\ nil) do
     exp = case expiration do
       nil -> state.options.default_ttl
       val -> val
@@ -45,21 +46,18 @@ defmodule Cachex.Util do
   Takes an input and returns an ok/error tuple based on whether the input is of
   a truthy nature or not.
   """
-  def create_truthy_result(result) when result, do: ok(true)
-  def create_truthy_result(_result), do: error(false)
+  def create_truthy_result(result) do
+    if result, do: ok(true), else: error(false)
+  end
 
   @doc """
   Retrieves a fallback value for a given key, using either the provided function
   or using the default fallback implementation.
   """
   def get_fallback(state, key, fb_fun \\ nil, default_val \\ nil) do
-    fun = cond do
-      is_function(fb_fun) ->
-        fb_fun
-      is_function(state.options.default_fallback) ->
-        state.options.default_fallback
-      true ->
-        default_val
+    fun = case get_fallback_function(state, fb_fun) do
+      nil -> default_val
+      val -> val
     end
 
     l =
@@ -81,6 +79,22 @@ defmodule Cachex.Util do
         end
       val ->
         { :ok, val }
+    end
+  end
+
+  @doc """
+  Finds a potential fallback function based on the provided state and a provided
+  fallback function. The second arg takes priority, with the state defaults being
+  used if none is provided.
+  """
+  def get_fallback_function(state, fb_fun \\ nil) do
+    cond do
+      is_function(fb_fun) ->
+        fb_fun
+      is_function(state.options.default_fallback) ->
+        state.options.default_fallback
+      true ->
+        nil
     end
   end
 
@@ -139,6 +153,8 @@ defmodule Cachex.Util do
   end
   def handle_transaction({ :atomic, { :error, _ } = err}), do: err
   def handle_transaction({ :atomic, { :ok, _ } = res}), do: res
+  def handle_transaction({ :atomic, { :loaded, _ } = res}), do: res
+  def handle_transaction({ :atomic, { :missing, _ } = res}), do: res
   def handle_transaction({ :atomic, value }), do: ok(value)
   def handle_transaction({ :aborted, reason }), do: error(reason)
   def handle_transaction({ :atomic, _value }, value), do: ok(value)
@@ -148,15 +164,33 @@ defmodule Cachex.Util do
   Small utility to figure out if a document has expired based on the last touched
   time and the TTL of the document.
   """
-  def has_expired(_touched, nil), do: false
-  def has_expired(touched, ttl), do: touched + ttl < now
+  def has_expired?(touched, ttl) when is_number(touched) and is_number(ttl) do
+    touched + ttl < now
+  end
+  def has_expired?(_touched, _ttl), do: false
+
+  @doc """
+  Determines whether the provided function has any of the given arities. This is
+  used when checking the arity of a fallback function.
+  """
+  def has_arity?(fun, arities) when is_function(fun) do
+    fun_arity = :erlang.fun_info(fun)[:arity]
+
+    arities
+    |> List.wrap
+    |> Enum.any?(&(&1 == fun_arity))
+  end
 
   @doc """
   Retrieves the last item in a Tuple. This is just shorthand around sizeof and
   pulling the last element.
   """
-  def last_of_tuple(tuple) when is_tuple(tuple),
-  do: elem(tuple, tuple_size(tuple) - 1)
+  def last_of_tuple(tuple) when is_tuple(tuple) do
+    case tuple_size(tuple) do
+      0 -> nil
+      n -> elem(tuple, n - 1)
+    end
+  end
 
   @doc """
   Converts a List into a Tuple using Enum.reduce. Until I know of a better way

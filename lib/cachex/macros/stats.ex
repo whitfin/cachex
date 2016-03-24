@@ -17,7 +17,7 @@ defmodule Cachex.Macros.Stats do
       |> Macros.name_and_args
 
     quote do
-      def handle_event(unquote_splicing(args), var!(stats)) do
+      def handle_notify(unquote_splicing(args), var!(stats)) do
         { :ok, var!(stats) }
       end
     end

@@ -1,4 +1,7 @@
 defmodule Cachex.Notifier do
+  # require the Logger
+  require Logger
+
   @moduledoc false
   # A very small notification module to send data to a listening payload. This
   # data should be in the form of a tuple, and the data should be arguments which
@@ -37,10 +40,15 @@ defmodule Cachex.Notifier do
     end
   end
   defp emit(%Hook{ "async": true, "ref": ref }, payload) do
-    send(ref, { :notify, payload })
+    send(ref, { :notify, { :async, payload } })
   end
-  defp emit(%Hook{ "async": false, "ref": ref }, payload) do
-    send(ref, { :sync_notify, payload })
+  defp emit(%Hook{ "async": false } = hook, payload) do
+    send(hook.ref, { :notify, { :sync, self, payload } })
+    receive do
+      _ -> nil
+    after
+      hook.max_timeout -> nil
+    end
   end
   defp emit(_, _action), do: nil
 

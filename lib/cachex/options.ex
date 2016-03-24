@@ -26,10 +26,11 @@ defmodule Cachex.Options do
   function has the potential to become a little messy - but that's okay, since
   it saves us trying to duplicate this logic all over the codebase.
   """
-  def parse(options \\ []) do
+  def parse(options \\ [])
+  def parse(options) when is_list(options) do
     cache = case options[:name] do
       val when val == nil or not is_atom(val) ->
-        raise "Cache name must be a valid atom!"
+        raise ArgumentError, message: "Cache name must be a valid atom"
       val -> val
     end
 
@@ -59,10 +60,13 @@ defmodule Cachex.Options do
     stats_hook = case !!options[:record_stats] do
       true ->
         Hook.initialize_hooks(%Hook{
+          args: [ ],
           module: Cachex.Stats,
           type: :post,
           results: true,
-          ref: Cachex.Util.stats_for_cache(cache)
+          server_args: [
+            name: Cachex.Util.stats_for_cache(cache)
+          ]
         })
       false ->
         []
@@ -91,5 +95,6 @@ defmodule Cachex.Options do
       "ttl_interval": ttl_interval
     }
   end
+  def parse(_options), do: parse([])
 
 end

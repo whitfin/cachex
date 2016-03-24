@@ -1,4 +1,7 @@
 defmodule Cachex.Hook do
+  # require the Logger
+  require Logger
+
   @moduledoc false
   # This module defines the hook implementations for Cachex, allowing the user to
   # add hooks into the command execution. This means that users can build plugin
@@ -7,10 +10,13 @@ defmodule Cachex.Hook do
   # needed. You can also define that the results of the command are provided to
   # post-hooks, in case you wish to use the results in things such as log messages.
 
-  defstruct async: true,
+  defstruct args: [],
+            async: true,
+            max_timeout: 5,
             module: nil,
             ref: nil,
             results: false,
+            server_args: [],
             type: :pre
 
   @doc """
@@ -23,95 +29,60 @@ defmodule Cachex.Hook do
   def initialize_hooks(mods) when is_list(mods) do
     mods
     |> Stream.map(fn
-        (%__MODULE__{ } = hook) ->
-          hook
-        (mod) when is_tuple(mod) ->
-          apply(__MODULE__, :parse_hook, Tuple.to_list(mod))
-        (mod) when is_list(mod) ->
-          apply(__MODULE__, :parse_hook, mod)
-        (_) ->
-          nil
+        (%__MODULE__{ } = hook) -> hook
+        (_) -> nil
        end)
     |> Stream.map(&(start_hook/1))
     |> Stream.filter(&(&1 != nil))
     |> Enum.to_list
   end
 
-  @doc """
-  Takes a combination of args and coerces defaults for a listener. We default to a
-  pre-hook, and async execution. I imagine this is the most common use case and so
-  it makes the most sense to default to this. It can be overriden in the options,
-  and should really always be explicit.
-  """
-  def parse_hook(_mod, _opts \\ [])
-  def parse_hook(mod, opts) when not is_list(opts) do
-    parse_hook(mod, [])
-  end
-  def parse_hook(mod, opts) do
-    def_async = case opts[:async] do
-      false -> false
-      _true -> true
-    end
-
-    %__MODULE__{
-      "async": def_async,
-      "module": mod,
-      "results": !!opts[:include_results],
-      "type": case opts[:type] do
-        :post -> :post
-        _post -> :pre
-      end
-    }
-  end
-
-  @doc """
-  Starts a listener. We check to ensure that the listener is a module before
-  trying to start it and add as a handler. If anything goes wrong at this point
-  we just nil the listener to avoid errors later.
-  """
-  def start_hook(%__MODULE__{ } = hook) do
+  # Starts a listener. We check to ensure that the listener is a module before
+  # trying to start it and add as a handler. If anything goes wrong at this point
+  # we just nil the listener to avoid errors later.
+  defp start_hook(%__MODULE__{ } = hook) do
     try do
       hook.module.__info__(:module)
 
-      args = if is_atom(hook.ref) do
-        [ name: hook.ref ]
-      else
-        []
-      end
-
-      pid = case GenEvent.start_link(args) do
+      pid = case GenEvent.start_link(hook.server_args) do
         { :ok, pid } ->
-          GenEvent.add_handler(pid, hook.module, [])
+          GenEvent.add_handler(pid, hook.module, hook.args)
           pid
         { :error, { :already_started, pid } } ->
+          Logger.warn("Unable to assign hook (server already assigned): #{hook.module}")
           pid
         _error -> nil
       end
 
       case pid do
         nil -> nil
-        pid -> %__MODULE__{ hook | "ref": (args[:name] || pid) }
+        pid -> %__MODULE__{ hook | "ref": pid }
       end
     rescue
-      _error -> nil
+      e ->
+        Logger.warn(fn ->
+          """
+          Unable to assign hook (uncaught error): #{inspect(e)}
+          #{Exception.format_stacktrace(System.stacktrace())}
+          """
+        end)
+        nil
     end
   end
-  def start_hook(_), do: nil
+  defp start_hook(_), do: nil
 
   @doc """
   Allows for finding a hook by the name of the module. This is only for convenience
   when trying to locate a potential Cachex.Stats hook.
   """
-  def hook_by_module(hooks, module) when not is_list(hooks) do
-    hook_by_module([hooks], module)
+  def hook_by_module(hooks, module) do
+    hooks
+    |> List.wrap
+    |> Enum.find(nil, fn
+        (%__MODULE__{ "module": ^module }) -> true
+        (_) -> false
+       end)
   end
-  def hook_by_module([hook|tail], module) do
-    case hook do
-      %__MODULE__{ "module": ^module } -> hook
-      _ -> hook_by_module(tail, module)
-    end
-  end
-  def hook_by_module([], _module), do: nil
 
   @doc """
   Simple shorthanding for pulling the ref of a hook which is found by module. This
@@ -129,14 +100,96 @@ defmodule Cachex.Hook do
   execution phases in order to achieve a smaller iteration at later stages of
   execution (it saves a microsecond or so).
   """
-  def hooks_by_type(hooks, type) when not is_list(hooks) do
-    hooks_by_type([hooks], type) 
-  end
   def hooks_by_type(hooks, type) when type in [ :pre, :post ] do
-    Enum.filter(hooks, fn
-      (%__MODULE__{ "type": ^type }) -> true
-      (_) -> false
-    end)
+    hooks
+    |> List.wrap
+    |> Enum.filter(fn
+        (%__MODULE__{ "type": ^type }) -> true
+        (_) -> false
+       end)
+  end
+
+  @doc false
+  defmacro __using__(_) do
+    quote location: :keep do
+      # inherit GenEvent
+      use GenEvent
+
+      # force the Hook behaviours
+      @behaviour Cachex.Hook.Behaviour
+
+      @doc false
+      def init(args) do
+        {:ok, args}
+      end
+
+      @doc false
+      def handle_notify(event, state) do
+        {:ok, state}
+      end
+
+      @doc false
+      def handle_notify(event, results, state) do
+        {:ok, state}
+      end
+
+      @doc false
+      def handle_event({ :async, event }, state),
+      do: delegate_notify(event, state)
+      def handle_event({ :sync, ref, event }, state) do
+        res = delegate_notify(event, state)
+        send(ref, :ack)
+        res
+      end
+      def handle_event(_msg, state) do
+        {:ok, state}
+      end
+
+      @doc false
+      def handle_call(msg, state) do
+        {:ok, state}
+      end
+
+      @doc false
+      def handle_info(_msg, state) do
+        {:ok, state}
+      end
+
+      @doc false
+      def terminate(_reason, _state) do
+        :ok
+      end
+
+      @doc false
+      def code_change(_old, state, _extra) do
+        {:ok, state}
+      end
+
+      # Internal function to simply delegate the message through to the override.
+      # This is only needed because we want to pass the results as a separate
+      # argument, rather than passing through a tuple of message and results.
+      defp delegate_notify(event, state) do
+        case event do
+          { msg, result } when is_tuple(msg) and is_tuple(result) ->
+            handle_notify(msg, result, state)
+          other ->
+            handle_notify(other, state)
+        end
+      end
+
+      # Allow overrides of everything *except* the handle_event implementation.
+      # We reserve that for internal use in order to make Hook definitions as
+      # straightforward as possible.
+      defoverridable [
+        init: 1,
+        handle_notify: 2,
+        handle_notify: 3,
+        handle_call: 2,
+        handle_info: 2,
+        terminate: 2,
+        code_change: 3
+      ]
+    end
   end
 
 end
