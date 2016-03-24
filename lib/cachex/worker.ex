@@ -13,15 +13,15 @@ defmodule Cachex.Worker do
   # add some aliases
   alias Cachex.Hook
   alias Cachex.Notifier
+  alias Cachex.Options
   alias Cachex.Stats
   alias Cachex.Util
   alias Cachex.Worker.Actions
 
   # define internal struct
-  defstruct actions: nil,   # the actions implementation
-            cache: nil,     # the cache name
-            options: nil,   # the options of this cache
-            stats: nil      # the ref for where stats can be found
+  defstruct actions: Actions.Local,   # the actions implementation
+            cache: nil,               # the cache name
+            options: %Options{ }      # the options of this cache
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -48,8 +48,7 @@ defmodule Cachex.Worker do
           Actions.Local
       end,
       cache: options.cache,
-      options: options,
-      stats: Hook.ref_by_module(options.post_hooks, Cachex.Stats)
+      options: options
     }
     { :ok, state }
   end
@@ -143,9 +142,9 @@ defmodule Cachex.Worker do
   @doc """
   Increments a value in the cache.
   """
-  defcc incr(key, amount, options) do
+  defcc incr(key, options) do
     state
-    |> Actions.incr(key, amount, options)
+    |> Actions.incr(key, options)
   end
 
   @doc """
@@ -190,12 +189,13 @@ defmodule Cachex.Worker do
   Returns the internal stats for this worker.
   """
   defcall stats(_options) do
-    if state.stats do
-      state.stats
-      |> Stats.retrieve
-      |> Util.ok
-    else
-      { :error, "Stats not enabled for cache with ref '#{state.cache}'" }
+    case Hook.ref_by_module(state.options.post_hooks, Cachex.Stats) do
+      nil ->
+        { :error, "Stats not enabled for cache with ref '#{state.cache}'" }
+      ref ->
+        ref
+        |> Stats.retrieve
+        |> Util.ok
     end
   end
 

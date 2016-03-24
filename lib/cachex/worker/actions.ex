@@ -39,21 +39,29 @@ defmodule Cachex.Worker.Actions do
       options
       |> Util.get_opt_function(:fallback)
 
-    result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
+    is_loaded = case exists?(state, key) do
+      { :ok, false } ->
+        case Util.get_fallback_function(state, fb_fun) do
+          nil -> false
+          val ->
+            Util.has_arity?(val, [0, 1, length(state.options.fallback_args) + 1])
+        end
+      _other_results -> false
+    end
+
+    { :ok, result } = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
       { cache, key, touched, ttl, case value do
         nil ->
           state
           |> Util.get_fallback(key, fb_fun)
+          |> elem(1)
           |> update_fun.()
         val ->
           update_fun.(val)
       end }
     end)
 
-    case result do
-      { :ok, res } -> { :ok, elem(res, 4) }
-      other_states -> other_states
-    end
+    { is_loaded && :loaded || :ok, elem(result, 4) }
   end
 
   @doc """
@@ -67,7 +75,7 @@ defmodule Cachex.Worker.Actions do
     Util.handle_transaction(fn ->
       value = case :mnesia.read(state.cache, key) do
         [{ cache, ^key, touched, ttl, value }] ->
-          case Util.has_expired(touched, ttl) do
+          case Util.has_expired?(touched, ttl) do
             true ->
               :mnesia.delete(state.cache, key, :write)
               { cache, key, Util.now(), nil, nil }
@@ -94,7 +102,14 @@ defmodule Cachex.Worker.Actions do
   Delegate for updating a value, simply setting a value to a key. This function
   delegates to the actions modules to allow for optimizations.
   """
-  defaction update(state, key, value, options \\ [])
+  defaction update(state, key, value, options \\ []) do
+    case exists?(state, key) do
+      { :ok, true } ->
+        state.actions.update(state, key, value, options)
+      _other_value_ ->
+        { :missing, false }
+    end
+  end
 
   @doc """
   Removes a key/value pair from the cache. This function delegates to the actions
@@ -110,7 +125,7 @@ defmodule Cachex.Worker.Actions do
 
   @doc """
   Similar to `size/1`, but ignores keys which may have expired. This is slower
-  and requires extra computation, hence the name `length/1` to signal as such.
+  and requires extra computation, hence the name `count/1` to signal as such.
   """
   defaction count(state, options \\ []) do
     state.cache
@@ -137,7 +152,7 @@ defmodule Cachex.Worker.Actions do
       { :ok, true } ->
         state.actions.expire(state, key, expiration, options)
       _other_value_ ->
-        { :error, "Key not found in cache"}
+        { :missing, false }
     end
   end
 
@@ -146,26 +161,33 @@ defmodule Cachex.Worker.Actions do
   UTC milliseconds. We forward this action to the `expire/3` function to avoid
   duplicating the logic behind the expiration.
   """
-  defaction expire_at(state, key, timestamp, options \\ []),
-  do: expire(state, key, timestamp - Util.now(), options)
+  defaction expire_at(state, key, timestamp, options \\ []) do
+    case exists?(state, key) do
+      { :ok, true } ->
+        case timestamp - Util.now() do
+          val when val > 0 ->
+            state.actions.expire(state, key, val, options)
+          _expired_already ->
+            del(state, key)
+        end
+      _other_value_ ->
+        { :missing, false }
+    end
+  end
 
   @doc """
   Retrieves a list of keys from the cache. This is surprisingly fast, because we
   use a funky selection, but all the same it should be used less frequently as
   the payload being copied and sent back over the server is potentially costly.
   """
-  defaction keys(state, options \\ []) do
-    state.cache
-    |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
-    |> Util.ok
-  end
+  defaction keys(state, options \\ [])
 
   @doc """
   Increments a value by a given amount, setting the value to an initial value if
   it does not already exist. The value returned is the value *after* increment.
   This function delegates to the actions modules to allow for optimizations.
   """
-  defaction incr(state, key, amount, options \\ [])
+  defaction incr(state, key, options \\ [])
 
   @doc """
   Removes a TTL from a given key (and is safe if a key does not already have a
@@ -192,7 +214,7 @@ defmodule Cachex.Worker.Actions do
       { :ok, true } ->
         state.actions.refresh(state, key, options)
       _other_value_ ->
-        { :error, "Key not found in cache"}
+        { :missing, false }
     end
   end
 

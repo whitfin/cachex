@@ -24,7 +24,7 @@ defmodule Cachex.Worker.Actions.Local do
 
     val = case :ets.lookup(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired(touched, ttl) do
+        case Util.has_expired?(touched, ttl) do
           true  -> Actions.del(state, key); :missing;
           false -> value
         end
@@ -41,7 +41,10 @@ defmodule Cachex.Worker.Actions.Local do
         state
         |> Actions.set(key, new_value)
 
-        result
+        case status do
+          :ok -> { :missing, new_value }
+          :loaded -> result
+        end
       val ->
         { :ok, val }
     end
@@ -81,12 +84,12 @@ defmodule Cachex.Worker.Actions.Local do
   @doc """
   Removes a record from the cache using the provided key. Regardless of whether
   the key exists or not, we return a truthy value (to signify the record is not
-  in the cache).
+  in the cache any longer).
   """
   def del(state, key, _options) do
     state.cache
     |> :ets.delete(key)
-    |> Util.ok()
+    |> Util.ok
   end
 
   @doc """
@@ -119,13 +122,28 @@ defmodule Cachex.Worker.Actions.Local do
   end
 
   @doc """
+  Uses a select internally to fetch all the keys in the underlying Mnesia table.
+  We use a fast select to determine that we only pull keys back which are not
+  already expired.
+  """
+  def keys(state, _options) do
+    state.cache
+    |> :ets.select(Util.retrieve_all_rows(:"$1"))
+    |> Util.ok
+  end
+
+  @doc """
   Increments a given key by a given amount. We do this using the internal ETS
   `update_counter/4` function. We allow for touching the record or keeping it
   persistent (for use cases such as rate limiting). If the record is missing, we
   insert a new one based on the passed values (but it has no TTL). We return the
   value after it has been incremented.
   """
-  def incr(state, key, amount, options) do
+  def incr(state, key, options) do
+    amount =
+      options
+      |> Util.get_opt_number(:amount, 1)
+
     initial =
       options
       |> Util.get_opt_number(:initial, 0)
@@ -157,7 +175,7 @@ defmodule Cachex.Worker.Actions.Local do
   def take(state, key, _options) do
     value = case :ets.take(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired(touched, ttl) do
+        case Util.has_expired?(touched, ttl) do
           true  -> nil
           false -> value
         end
@@ -182,7 +200,7 @@ defmodule Cachex.Worker.Actions.Local do
           val -> { :ok, touched + val - Util.now() }
         end
       _unrecognised_val ->
-        { :error, "Key not found in cache"}
+        { :missing, nil }
     end
   end
 

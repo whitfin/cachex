@@ -23,7 +23,7 @@ defmodule Cachex.Worker.Actions.Transactional do
     Util.handle_transaction(fn ->
       val = case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, value }] ->
-          case Util.has_expired(touched, ttl) do
+          case Util.has_expired?(touched, ttl) do
             true  -> Actions.del(state, key); :missing;
             false -> value
           end
@@ -40,7 +40,10 @@ defmodule Cachex.Worker.Actions.Transactional do
           state
           |> Actions.set(key, new_value)
 
-          result
+          case status do
+            :ok -> { :missing, new_value }
+            :loaded -> result
+          end
         val ->
           { :ok, val }
       end
@@ -72,14 +75,9 @@ defmodule Cachex.Worker.Actions.Transactional do
   of the update request.
   """
   def update(state, key, value, _options) do
-    { status, ^value } = Actions.get_and_update(state, key, fn(_val) ->
-      value
-    end)
-
-    case status do
-      :ok -> Util.ok(true)
-      _ok -> Util.error(false)
-    end
+    state
+    |> Actions.get_and_update(key, fn(_val) -> value end)
+    |> (&(Util.create_truthy_result(elem(&1, 0) == :ok))).()
   end
 
   @doc """
@@ -87,9 +85,9 @@ defmodule Cachex.Worker.Actions.Transactional do
   write lock in order to ensure no clashing writes occur at the same time.
   """
   def del(state, key, _options) do
-    Util.handle_transaction(fn ->
-      :mnesia.delete(state.cache, key, :write)
-    end)
+    fn -> :mnesia.delete(state.cache, key, :write) end
+    |> Util.handle_transaction()
+    |> (&(Util.create_truthy_result(&1 == { :ok, :ok }))).()
   end
 
   @doc """
@@ -120,12 +118,26 @@ defmodule Cachex.Worker.Actions.Transactional do
   end
 
   @doc """
+  Uses a select internally to fetch all the keys in the underlying Mnesia table.
+  We use a select to pull only keys which have not expired.
+  """
+  def keys(state, _options) do
+    Util.handle_transaction(fn ->
+      :mnesia.dirty_select(state.cache, Util.retrieve_all_rows(:"$1"))
+    end)
+  end
+
+  @doc """
   Increments a given key by a given amount. We do this by reusing the update
   semantics defined for all Actions. If the record is missing, we insert a new
   one based on the passed values (but it has no TTL). We return the value after
   it has been incremented.
   """
-  def incr(state, key, amount, options) do
+  def incr(state, key, options) do
+    amount =
+      options
+      |> Util.get_opt_number(:amount, 1)
+
     initial =
       options
       |> Util.get_opt_number(:initial, 0)
@@ -183,7 +195,7 @@ defmodule Cachex.Worker.Actions.Transactional do
             val -> { :ok, touched + val - Util.now() }
           end
         _unrecognised_val ->
-          { :error, "Key not found in cache"}
+          { :missing, nil }
       end
     end)
   end

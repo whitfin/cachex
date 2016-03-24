@@ -24,7 +24,7 @@ defmodule Cachex.Worker.Actions.Remote do
 
     val = case :mnesia.dirty_read(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired(touched, ttl) do
+        case Util.has_expired?(touched, ttl) do
           true  -> Actions.del(state, key); :missing;
           false -> value
         end
@@ -41,7 +41,10 @@ defmodule Cachex.Worker.Actions.Remote do
         state
         |> Actions.set(key, new_value)
 
-        result
+        case status do
+          :ok -> { :missing, new_value }
+          :loaded -> result
+        end
       val ->
         { :ok, val }
     end
@@ -77,7 +80,7 @@ defmodule Cachex.Worker.Actions.Remote do
   def del(state, key, _options) do
     state.cache
     |> :mnesia.dirty_delete(key)
-    |> Util.ok()
+    |> (&(Util.create_truthy_result(&1 == :ok))).()
   end
 
   @doc """
@@ -95,10 +98,21 @@ defmodule Cachex.Worker.Actions.Remote do
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
+  Uses a select internally to fetch all the keys in the underlying Mnesia table.
+  We use a fast select to determine that we only pull keys back which are not
+  already expired.
+  """
+  def keys(state, _options) do
+    state.cache
+    |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
+    |> Util.ok
+  end
+
+  @doc """
   We delegate to the Transactional actions as this function requires both a
   get/set, and as such it's only safe to do via a transaction.
   """
-  defdelegate incr(state, key, amount, options),
+  defdelegate incr(state, key, options),
   to: Cachex.Worker.Actions.Transactional
 
   @doc """
@@ -132,7 +146,7 @@ defmodule Cachex.Worker.Actions.Remote do
           val -> { :ok, touched + val - Util.now() }
         end
       _unrecognised_val ->
-        { :error, "Key not found in cache"}
+        { :missing, nil }
     end
   end
 
