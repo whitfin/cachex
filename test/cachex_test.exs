@@ -2,7 +2,31 @@ defmodule CachexTest do
   use PowerAssert
 
   setup do
-    { :ok, cache: TestHelper.create_cache() }
+    { :ok, cache: TestHelper.create_cache(), name: String.to_atom(TestHelper.gen_random_string_of_length(16)) }
+  end
+
+  test "starting a cache with an invalid name", _state do
+    start_result = Cachex.start_link([name: "test"])
+    assert(start_result == { :error, "Cache name must be a valid atom" })
+  end
+
+  test "starting a cache twice returns an error", state do
+    { status, pid } = Cachex.start_link([name: state.name])
+    assert(status == :ok)
+    assert(is_pid(pid))
+
+    fake_pid =
+      pid
+      |> Kernel.inspect
+      |> String.slice(5..10)
+      |> String.split(".")
+      |> Enum.at(1)
+      |> Integer.parse
+      |> Kernel.elem(0)
+      |> (&(:c.pid(0, IO.inspect(&1) + 2, 0))).()
+
+    start_result = Cachex.start_link([name: state.name])
+    assert(start_result == { :error, "Cache name already in use for #{inspect(fake_pid)}" })
   end
 
   test "defcheck macro cannot accept non-atom caches", _state do

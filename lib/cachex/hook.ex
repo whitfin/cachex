@@ -49,7 +49,9 @@ defmodule Cachex.Hook do
           GenEvent.add_handler(pid, hook.module, hook.args)
           pid
         { :error, { :already_started, pid } } ->
-          Logger.warn("Unable to assign hook (server already assigned): #{hook.module}")
+          Logger.warn(fn ->
+            "Unable to assign hook (server already assigned): #{hook.module}"
+          end)
           pid
         _error -> nil
       end

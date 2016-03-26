@@ -150,7 +150,17 @@ defmodule Cachex do
   """
   @spec start_link(options, options) :: { atom, pid }
   def start_link(options \\ [], supervisor_options \\ []) do
-    Supervisor.start_link(__MODULE__, options, supervisor_options)
+    case options[:name] do
+      name when not is_atom(name) or name == nil ->
+        { :error, "Cache name must be a valid atom" }
+      name ->
+        case Process.whereis(name) do
+          nil ->
+            Supervisor.start_link(__MODULE__, options, supervisor_options)
+          pid ->
+            { :error, "Cache name already in use for #{inspect(pid)}" }
+        end
+    end
   end
 
   @doc """
@@ -165,8 +175,6 @@ defmodule Cachex do
       options
       |> Cachex.Options.parse
 
-    :mnesia.start()
-
     table_create = :mnesia.create_table(parsed_opts.cache, [
       { :ram_copies, parsed_opts.nodes },
       { :attributes, [ :key, :touched, :ttl, :value ]},
@@ -174,20 +182,17 @@ defmodule Cachex do
       { :storage_properties, [ { :ets, parsed_opts.ets_opts } ] }
     ])
 
-    case table_create do
-      { :aborted, error } when elem(error, 0) != :already_exists ->
-        { :error, error }
-      _safely_created ->
-        ttl_workers = case parsed_opts.ttl_interval do
-          nil -> []
-          _other -> [worker(Cachex.Janitor, [parsed_opts])]
-        end
+    with { :atomic, :ok } <- table_create do
+      ttl_workers = case parsed_opts.ttl_interval do
+        nil -> []
+        _other -> [worker(Cachex.Janitor, [parsed_opts])]
+      end
 
-        children = ttl_workers ++ [
-          worker(Cachex.Worker, [parsed_opts, [name: parsed_opts.cache]])
-        ]
+      children = ttl_workers ++ [
+        worker(Cachex.Worker, [parsed_opts, [name: parsed_opts.cache]])
+      ]
 
-        supervise(children, strategy: :one_for_one)
+      supervise(children, strategy: :one_for_one)
     end
   end
 
