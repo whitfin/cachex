@@ -8,13 +8,13 @@ defmodule CachexTest.Options do
   end
 
   test "options parsing requires a valid atom as a cache name", state do
-    assert_raise ArgumentError, "Cache name must be a valid atom", &(Options.parse/0)
-    assert_raise ArgumentError, "Cache name must be a valid atom", fn ->
+    assert_raise(ArgumentError, "Cache name must be a valid atom", &(Options.parse/0))
+    assert_raise(ArgumentError, "Cache name must be a valid atom", fn ->
       Options.parse(nil)
-    end
-    assert_raise ArgumentError, "Cache name must be a valid atom", fn ->
+    end)
+    assert_raise(ArgumentError, "Cache name must be a valid atom", fn ->
       Options.parse([name: "test"])
-    end
+    end)
 
     Options.parse([name: state.name])
   end
@@ -43,7 +43,7 @@ defmodule CachexTest.Options do
     parsed_opts = Options.parse(name: state.name, default_ttl: :timer.seconds(5))
 
     assert(parsed_opts.default_ttl == :timer.seconds(5))
-    assert(parsed_opts.ttl_interval == :timer.seconds(1))
+    assert(parsed_opts.ttl_interval == :timer.seconds(3))
   end
 
   test "options does not allow negative default ttls", state do
@@ -57,6 +57,18 @@ defmodule CachexTest.Options do
     parsed_opts = Options.parse(name: state.name, ttl_interval: :timer.seconds(2))
 
     assert(parsed_opts.ttl_interval == :timer.seconds(2))
+  end
+
+  test "options allows default ttl intervals", state do
+    parsed_opts = Options.parse(name: state.name, ttl_interval: true)
+
+    assert(parsed_opts.ttl_interval == :timer.seconds(3))
+  end
+
+  test "options does not allow false-y", state do
+    parsed_opts = Options.parse(name: state.name, ttl_interval: false)
+
+    assert(parsed_opts.ttl_interval == nil)
   end
 
   test "options does not allow negative ttl intervals", state do

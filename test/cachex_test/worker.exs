@@ -19,7 +19,7 @@ defmodule CachexTest.Worker do
         write_concurrency: true
       ],
       fallback_args: [],
-      nodes: nil,
+      nodes: [node()],
       post_hooks: [],
       pre_hooks: [],
       remote: false,

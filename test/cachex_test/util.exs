@@ -126,6 +126,22 @@ defmodule CachexTest.Util do
     assert(fun == nil)
   end
 
+  test "util.get_opt_function/3 defaults to returning nil" do
+    assert(Util.get_opt_function([], :test) == nil)
+  end
+
+  test "util.get_opt_list/3 defaults to returning nil" do
+    assert(Util.get_opt_list([], :test) == nil)
+  end
+
+  test "util.get_opt_number/3 defaults to returning nil" do
+    assert(Util.get_opt_number([], :test) == nil)
+  end
+
+  test "util.get_opt_positive/3 defaults to returning nil" do
+    assert(Util.get_opt_positive([], :test) == nil)
+  end
+
   test "util.get_opt/4 returns options from a map" do
     input_fun = fn -> :ok end
     val = Util.get_opt([fun: input_fun], :fun, fn -> :error end, &(is_function/1))

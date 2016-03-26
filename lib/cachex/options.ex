@@ -39,13 +39,15 @@ defmodule Cachex.Options do
       { :write_concurrency, true }
     ])
 
-    default_ttl  = Util.get_opt_positive(options, :default_ttl)
-    ttl_interval = Util.get_opt_positive(options, :ttl_interval, case (!!default_ttl) do
-      true  -> 1000
-      false -> nil
-    end)
+    default_ttl = Util.get_opt_positive(options, :default_ttl)
+    ttl_interval = case Keyword.get(options, :ttl_interval) do
+      true -> :timer.seconds(3)
+      nil when default_ttl != nil -> :timer.seconds(3)
+      val when is_number(val) and val > 0 -> val
+      _na -> nil
+    end
 
-    remote_node_list = Util.get_opt_list(options, :nodes)
+    remote_node_list = Util.get_opt_list(options, :nodes, [node()])
     default_fallback = Util.get_opt_function(options, :default_fallback)
 
     fallback_args =

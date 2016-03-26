@@ -168,7 +168,7 @@ defmodule Cachex do
     :mnesia.start()
 
     table_create = :mnesia.create_table(parsed_opts.cache, [
-      { :ram_copies, [ node() ] },
+      { :ram_copies, parsed_opts.nodes },
       { :attributes, [ :key, :touched, :ttl, :value ]},
       { :type, :set },
       { :storage_properties, [ { :ets, parsed_opts.ets_opts } ] }
