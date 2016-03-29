@@ -23,7 +23,7 @@ defmodule CachexTest do
       |> Enum.at(1)
       |> Integer.parse
       |> Kernel.elem(0)
-      |> (&(:c.pid(0, IO.inspect(&1) + 2, 0))).()
+      |> (&(:c.pid(0, &1 + 2, 0))).()
 
     start_result = Cachex.start_link([name: state.name])
     assert(start_result == { :error, "Cache name already in use for #{inspect(fake_pid)}" })

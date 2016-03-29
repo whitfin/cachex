@@ -7,7 +7,7 @@
   "exjsx": {:hex, :exjsx, "3.2.0"},
   "exprintf": {:hex, :exprintf, "0.1.6"},
   "exprof": {:hex, :exprof, "0.2.0"},
-  "hackney": {:hex, :hackney, "1.5.7"},
+  "hackney": {:hex, :hackney, "1.6.0"},
   "idna": {:hex, :idna, "1.2.0"},
   "jsx": {:hex, :jsx, "2.6.2"},
   "metrics": {:hex, :metrics, "1.0.1"},
