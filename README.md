@@ -13,6 +13,23 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Cache Options](#cache-options)
+- [Multi-Layered Caches](#multi-layered-caches)
+- [Execution Hooks](#execution-hooks)
+    - [Definition](#definition)
+    - [Registration](#registration)
+    - [Performance](#performance)
+- [TTL Implementation](#ttl-implementation)
+    - [On Demand Expiration](#on-demand-expiration)
+    - [Janitors](#janitors)
+    - [TTL Distribution](#ttl-distribution)
+- [Interface](#interface)
+- [Contributions](#contributions)
+
 ## Installation
 
 As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the package via:
