@@ -140,7 +140,12 @@ defmodule Cachex.Worker.Actions do
   possible for this to be inaccurate aside from network partitions).
   """
   defaction exists?(state, key, options \\ []) do
-    { :ok, :ets.member(state.cache, key) }
+    case :ets.lookup(state.cache, key) do
+      [{ _cache, ^key, touched, ttl, _value }] ->
+        { :ok, !Util.has_expired?(touched, ttl) }
+      _unrecognised_val ->
+        { :ok, false }
+    end
   end
 
   @doc """

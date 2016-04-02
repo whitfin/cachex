@@ -190,9 +190,15 @@ defmodule Cachex.Worker.Actions.Transactional do
     Util.handle_transaction(fn ->
       case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, _value }] ->
-          case ttl do
-            nil -> { :ok, nil }
-            val -> { :ok, touched + val - Util.now() }
+          case Util.has_expired?(touched, ttl) do
+            true  ->
+              Actions.del(state, key)
+              { :missing, nil }
+            false ->
+              case ttl do
+                nil -> { :ok, nil }
+                val -> { :ok, touched + val - Util.now() }
+              end
           end
         _unrecognised_val ->
           { :missing, nil }

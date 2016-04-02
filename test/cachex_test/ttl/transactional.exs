@@ -33,4 +33,18 @@ defmodule CachexTest.Ttl.Transactional do
     assert(ttl_result == { :missing, nil })
   end
 
+  test "ttl with expired key removes the key", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(10)
+
+    exists_result = Cachex.exists?(state.cache, "my_key")
+    assert(exists_result == { :ok, false })
+    assert(:ets.member(state.cache, "my_key"))
+
+    ttl_result = Cachex.ttl(state.cache, "my_key")
+    assert(ttl_result == { :missing, nil })
+  end
+
 end

@@ -91,8 +91,9 @@ defmodule CachexTest.Get.Remote do
 
     :timer.sleep(10)
 
-    { :ok, ttl_result } = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result < 0)
+    exists_result = Cachex.exists?(state.cache, "my_key")
+    assert(exists_result == { :ok, false })
+    assert(:ets.member(state.cache, "my_key"))
 
     get_result = Cachex.get(state.cache, "my_key")
     assert(get_result == { :missing, nil })

@@ -455,10 +455,9 @@ defmodule Cachex do
   @doc """
   Determines whether a given key exists inside the cache.
 
-  This only determines if the key lives in the keyspace of the cache, it does
-  not check whether these keys are expired or not. As such you may get a truthy
-  result on a key which will be purged in the next TTL run. If this is not desirable
-  you can use `ttl/3`.
+  This only determines if the key lives in the keyspace of the cache. Note that
+  this determines existence within the bounds of TTLs; this means that if a key
+  doesn't "exist", it may still be occupying memory in the cache.
 
   ## Examples
 

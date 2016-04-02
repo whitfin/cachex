@@ -20,6 +20,17 @@ defmodule CachexTest.Exists.Default do
     assert(exists_result == { :ok, true })
   end
 
+  test "exists? with an expired key", state do
+    set_result = Cachex.set(state.cache, "my_key", 5, ttl: 5)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(10)
+
+    exists_result = Cachex.exists?(state.cache, "my_key")
+    assert(exists_result == { :ok, false })
+    assert(:ets.member(state.cache, "my_key"))
+  end
+
   test "exists? with a missing key", state do
     exists_result = Cachex.exists?(state.cache, "missing_key")
     assert(exists_result == { :ok, false })
