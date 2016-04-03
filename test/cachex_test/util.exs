@@ -205,19 +205,20 @@ defmodule CachexTest.Util do
   end
 
   test "util.retrieve_all_rows/1 returns a select on all rows" do
-    assert(Util.retrieve_all_rows(true) == [
-      {
-        { :"_", :"$1", :"$2", :"$3", :"$4" },
-        [
-          {
-            :orelse,
-            { :"==", :"$3", nil },
-            { :">", { :"+", :"$2", :"$3" }, Util.now() }
-          }
-        ],
-        [ true ]
-      }
-    ])
+    [ { variables, condition, result } ] =
+      true
+      |> Util.retrieve_all_rows
+
+    assert(variables == { :"_", :"$1", :"$2", :"$3", :"$4" })
+    assert(result == [ true ])
+
+    [ { type, cond1, { sign, sum, date } } ] = condition
+
+    assert(type == :orelse)
+    assert(cond1 == { :"==", :"$3", nil })
+    assert(sign == :">")
+    assert(sum == { :"+", :"$2", :"$3" })
+    assert_in_delta(date, Util.now, 2)
   end
 
   test "util.stats_for_cache/1 converts a cache name to a stats name" do
