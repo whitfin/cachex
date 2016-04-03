@@ -43,13 +43,22 @@ defmodule Cachex.Notifier do
     send(ref, { :notify, { :async, payload } })
   end
   defp emit(%Hook{ "async": false } = hook, payload) do
-    send(hook.ref, { :notify, { :sync, self, payload } })
+    msg = :random.uniform(1000) - 1
+    send(hook.ref, { :notify, { :sync, { self, msg }, payload } })
+    wait(hook, msg)
+  end
+  defp emit(_, _action), do: nil
+
+  # Waits for a specified hook to send a specified message back to this process.
+  # We clear out any old messages as well to avoid having old hooks clash with
+  # this notification.
+  defp wait(%Hook{ "ref": ref } = hook, msg) do
     receive do
-      _ -> nil
+      { :ack, ^ref, ^msg } -> nil
+      { :ack, ^ref, _msg } -> wait(hook, msg)
     after
       hook.max_timeout -> nil
     end
   end
-  defp emit(_, _action), do: nil
 
 end
