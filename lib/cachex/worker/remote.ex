@@ -1,4 +1,4 @@
-defmodule Cachex.Worker.Actions.Remote do
+defmodule Cachex.Worker.Remote do
   @moduledoc false
   # This module defines the Remote actions a worker can take. Functions in this
   # module are focused around the sole use of Mnesia in order to provide needed
@@ -9,7 +9,7 @@ defmodule Cachex.Worker.Actions.Remote do
 
   # add some aliases
   alias Cachex.Util
-  alias Cachex.Worker.Actions
+  alias Cachex.Worker
 
   @doc """
   Simply do an Mnesia dirty read on the given key. If the key does not exist we
@@ -25,7 +25,7 @@ defmodule Cachex.Worker.Actions.Remote do
     val = case :mnesia.dirty_read(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired?(touched, ttl) do
-          true  -> Actions.del(state, key); :missing;
+          true  -> Worker.del(state, key); :missing;
           false -> value
         end
       _unrecognised_val -> :missing
@@ -39,7 +39,7 @@ defmodule Cachex.Worker.Actions.Remote do
             |> Util.get_fallback(key, fb_fun)
 
         state
-        |> Actions.set(key, new_value)
+        |> Worker.set(key, new_value)
 
         case status do
           :ok -> { :missing, new_value }
@@ -70,7 +70,7 @@ defmodule Cachex.Worker.Actions.Remote do
   get/set, and as such it's only safe to do via a transaction.
   """
   defdelegate update(state, key, value, options),
-  to: Cachex.Worker.Actions.Transactional
+  to: Cachex.Worker.Transactional
 
   @doc """
   Removes a record from the cache using the provided key. Regardless of whether
@@ -88,14 +88,14 @@ defmodule Cachex.Worker.Actions.Remote do
   as the behaviour matches between implementations.
   """
   defdelegate clear(state, options),
-  to: Cachex.Worker.Actions.Transactional
+  to: Cachex.Worker.Transactional
 
   @doc """
   Sets the expiration time on a given key based on the value passed in. We pass
   this through to the Transactional actions as we require a get/set combination.
   """
   defdelegate expire(state, key, expiration, options),
-  to: Cachex.Worker.Actions.Transactional
+  to: Cachex.Worker.Transactional
 
   @doc """
   Uses a select internally to fetch all the keys in the underlying Mnesia table.
@@ -113,7 +113,7 @@ defmodule Cachex.Worker.Actions.Remote do
   get/set, and as such it's only safe to do via a transaction.
   """
   defdelegate incr(state, key, options),
-  to: Cachex.Worker.Actions.Transactional
+  to: Cachex.Worker.Transactional
 
   @doc """
   Refreshes the internal timestamp on the record to ensure that the TTL only takes
@@ -121,7 +121,7 @@ defmodule Cachex.Worker.Actions.Remote do
   as we require a get/set combination.
   """
   defdelegate refresh(state, key, options),
-  to: Cachex.Worker.Actions.Transactional
+  to: Cachex.Worker.Transactional
 
   @doc """
   This is like `del/2` but it returns the last known value of the key as it
@@ -129,7 +129,7 @@ defmodule Cachex.Worker.Actions.Remote do
   as this requires a potential get/del combination.
   """
   defdelegate take(state, key, options),
-  to: Cachex.Worker.Actions.Transactional
+  to: Cachex.Worker.Transactional
 
   @doc """
   Checks the remaining TTL on a provided key. We do this by retrieving the local
@@ -143,7 +143,7 @@ defmodule Cachex.Worker.Actions.Remote do
       [{ _cache, ^key, touched, ttl, _value }] ->
         case Util.has_expired?(touched, ttl) do
           true  ->
-            Actions.del(state, key)
+            Worker.del(state, key)
             { :missing, nil }
           false ->
             case ttl do

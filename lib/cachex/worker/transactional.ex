@@ -1,4 +1,4 @@
-defmodule Cachex.Worker.Actions.Transactional do
+defmodule Cachex.Worker.Transactional do
   @moduledoc false
   # This module defines the Transactional actions a worker can take. Functions
   # in this module are required to use Mnesia for row locking and replication.
@@ -7,7 +7,7 @@ defmodule Cachex.Worker.Actions.Transactional do
 
   # add some aliases
   alias Cachex.Util
-  alias Cachex.Worker.Actions
+  alias Cachex.Worker
 
   @doc """
   Read back the key from Mnesia, wrapping inside a read locked transaction. If
@@ -24,7 +24,7 @@ defmodule Cachex.Worker.Actions.Transactional do
       val = case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, value }] ->
           case Util.has_expired?(touched, ttl) do
-            true  -> Actions.del(state, key); :missing;
+            true  -> Worker.del(state, key); :missing;
             false -> value
           end
         _unrecognised_val -> :missing
@@ -38,7 +38,7 @@ defmodule Cachex.Worker.Actions.Transactional do
               |> Util.get_fallback(key, fb_fun)
 
           state
-          |> Actions.set(key, new_value)
+          |> Worker.set(key, new_value)
 
           case status do
             :ok -> { :missing, new_value }
@@ -76,7 +76,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   """
   def update(state, key, value, _options) do
     state
-    |> Actions.get_and_update(key, fn(_val) -> value end)
+    |> Worker.get_and_update(key, fn(_val) -> value end)
     |> (&(Util.create_truthy_result(elem(&1, 0) == :ok))).()
   end
 
@@ -95,7 +95,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   `size/1` in order to return the number of records which were removed.
   """
   def clear(state, _options) do
-    eviction_count = case Actions.size(state) do
+    eviction_count = case Worker.size(state) do
       { :ok, size } -> size
       _other_value_ -> nil
     end
@@ -111,7 +111,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   This allows us to then reuse the update semantics to modify the expiration.
   """
   def expire(state, key, expiration, _options) do
-    Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, _, value }) ->
+    Worker.get_and_update_raw(state, key, fn({ cache, ^key, _, _, value }) ->
       { cache, key, Util.now(), expiration, value }
     end)
     Util.ok(true)
@@ -129,7 +129,7 @@ defmodule Cachex.Worker.Actions.Transactional do
 
   @doc """
   Increments a given key by a given amount. We do this by reusing the update
-  semantics defined for all Actions. If the record is missing, we insert a new
+  semantics defined for all Worker. If the record is missing, we insert a new
   one based on the passed values (but it has no TTL). We return the value after
   it has been incremented.
   """
@@ -142,7 +142,7 @@ defmodule Cachex.Worker.Actions.Transactional do
       options
       |> Util.get_opt_number(:initial, 0)
 
-    Actions.get_and_update(state, key, fn
+    Worker.get_and_update(state, key, fn
       (nil) -> initial + amount
       (val) -> val + amount
     end)
@@ -153,7 +153,7 @@ defmodule Cachex.Worker.Actions.Transactional do
   place from this point forward. If the key does not exist, we return an error tuple.
   """
   def refresh(state, key, _options) do
-    Actions.get_and_update_raw(state, key, fn({ cache, ^key, _, ttl, value }) ->
+    Worker.get_and_update_raw(state, key, fn({ cache, ^key, _, ttl, value }) ->
       { cache, key, Util.now(), ttl, value }
     end)
     Util.ok(true)
@@ -192,7 +192,7 @@ defmodule Cachex.Worker.Actions.Transactional do
         [{ _cache, ^key, touched, ttl, _value }] ->
           case Util.has_expired?(touched, ttl) do
             true  ->
-              Actions.del(state, key)
+              Worker.del(state, key)
               { :missing, nil }
             false ->
               case ttl do

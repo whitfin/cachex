@@ -64,13 +64,54 @@ defmodule Cachex.Macros.GenServer do
 
     quote do
       def handle_call({ unquote(func_name), unquote_splicing(args) }, _, var!(state)) do
-        unquote(body)
-        |> Util.reply(var!(state))
+        unquote(body) |> Util.reply(var!(state))
       end
       def handle_cast({ unquote(func_name), unquote_splicing(args) }, var!(state)) do
-        unquote(body)
-        |> Util.noreply(var!(state))
+        unquote(body) |> Util.noreply(var!(state))
       end
+    end
+  end
+
+  @doc """
+  Generates a simple delegate binding for GenServer methods. This is in case the
+  raw function is provided in the module and it should be accessible via the server
+  as well.
+  """
+  defmacro gen_delegate(head, type: types) do
+    { func_name, args } = Macros.name_and_args(head)
+    { call, cast } = case types do
+      list when is_list(list) ->
+        { Enum.member?(list, :call), Enum.member?(list, :cast) }
+      :call ->
+        { true, false }
+      :cast ->
+        { false, true }
+    end
+
+    args_without_state = case List.first(args) do
+      { :state, _, _ } -> Enum.drop(args, 1)
+      _other_first_val -> args
+    end
+
+    called_quote = if call do
+      quote do
+        defcall unquote(func_name)(unquote_splicing(args_without_state)) do
+          unquote(func_name)(unquote_splicing(args))
+        end
+      end
+    end
+
+    casted_quote = if cast do
+      quote do
+        defcast unquote(func_name)(unquote_splicing(args_without_state)) do
+          unquote(func_name)(unquote_splicing(args))
+        end
+      end
+    end
+
+    quote do
+      unquote(called_quote)
+      unquote(casted_quote)
     end
   end
 

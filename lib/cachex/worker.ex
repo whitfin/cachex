@@ -12,16 +12,16 @@ defmodule Cachex.Worker do
 
   # add some aliases
   alias Cachex.Hook
+  alias Cachex.Janitor
   alias Cachex.Notifier
   alias Cachex.Options
   alias Cachex.Stats
   alias Cachex.Util
-  alias Cachex.Worker.Actions
 
   # define internal struct
-  defstruct actions: Actions.Local,   # the actions implementation
-            cache: nil,               # the cache name
-            options: %Options{ }      # the options of this cache
+  defstruct actions: __MODULE__.Local,  # the actions implementation
+            cache: nil,                 # the cache name
+            options: %Options{ }        # the options of this cache
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -41,11 +41,11 @@ defmodule Cachex.Worker do
     state = %__MODULE__{
       actions: cond do
         options.remote ->
-          Actions.Remote
+          __MODULE__.Remote
         options.transactional ->
-          Actions.Transactional
+          __MODULE__.Transactional
         true ->
-          Actions.Local
+          __MODULE__.Local
       end,
       cache: options.cache,
       options: options
@@ -53,137 +53,274 @@ defmodule Cachex.Worker do
     { :ok, state }
   end
 
+  ###
+  # Publicly exported functions and operations.
+  ###
+
   @doc """
   Retrieves a value from the cache.
   """
-  defcall get(key, options) do
-    state
-    |> Actions.get(key, options)
+  def get(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :get, key, options }, fn ->
+      state.actions.get(state, key, options)
+    end)
   end
 
   @doc """
   Retrieves and updates a value in the cache.
   """
-  defcall get_and_update(key, update_fun, options) do
-    state
-    |> Actions.get_and_update(key, update_fun, options)
+  def get_and_update(%__MODULE__{ } = state, key, update_fun, options \\ [])
+  when is_function(update_fun) and is_list(options) do
+    do_action(state, { :get_and_update, key, update_fun, options }, fn ->
+      fb_fun =
+        options
+        |> Util.get_opt_function(:fallback)
+
+      is_loaded = case exists?(state, key) do
+        { :ok, false } ->
+          case Util.get_fallback_function(state, fb_fun) do
+            nil -> false
+            val ->
+              Util.has_arity?(val, [0, 1, length(state.options.fallback_args) + 1])
+          end
+        _other_results -> false
+      end
+
+      { :ok, result } = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
+        { cache, key, touched, ttl, case value do
+          nil ->
+            state
+            |> Util.get_fallback(key, fb_fun)
+            |> elem(1)
+            |> update_fun.()
+          val ->
+            update_fun.(val)
+        end }
+      end)
+
+      { is_loaded && :loaded || :ok, elem(result, 4) }
+    end)
   end
 
   @doc """
   Sets a value in the cache.
   """
-  defcc set(key, value, options) do
-    Actions.set(state, key, value, options)
+  def set(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
+    do_action(state, { :set, key, value, options }, fn ->
+      state.actions.set(state, key, value, options)
+    end)
   end
 
   @doc """
   Updates a value in the cache.
   """
-  defcc update(key, value, options) do
-    Actions.update(state, key, value, options)
+  def update(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
+    case exists?(state, key) do
+      { :ok, true } ->
+        state.actions.update(state, key, value, options)
+      _other_value_ ->
+        { :missing, false }
+    end
   end
 
   @doc """
   Removes a key from the cache.
   """
-  defcc del(key, options) do
-    state
-    |> Actions.del(key, options)
+  def del(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :del, key, options }, fn ->
+      state.actions.del(state, key, options)
+    end)
   end
 
   @doc """
   Removes all keys from the cache.
   """
-  defcc clear(options) do
-    state
-    |> Actions.clear(options)
+  def clear(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    do_action(state, { :clear, options }, fn ->
+      state.actions.clear(state, options)
+    end)
   end
 
   @doc """
   Like size, but more accurate - takes into account expired keys.
   """
-  defcall count(options) do
-    state
-    |> Actions.count(options)
+  def count(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    do_action(state, { :count, options }, fn ->
+      state.cache
+      |> :ets.select_count(Util.retrieve_all_rows(true))
+      |> Util.ok
+    end)
   end
 
   @doc """
   Determines whether a key exists in the cache.
   """
-  defcall exists?(key, options) do
-    state
-    |> Actions.exists?(key, options)
+  def exists?(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :exists?, key, options }, fn ->
+      case :ets.lookup(state.cache, key) do
+        [{ _cache, ^key, touched, ttl, _value }] ->
+          { :ok, !Util.has_expired?(touched, ttl) }
+        _unrecognised_val ->
+          { :ok, false }
+      end
+    end)
   end
 
   @doc """
   Refreshes the expiration on a given key based on the value passed in.
   """
-  defcc expire(key, expiration, options) do
-    state
-    |> Actions.expire(key, expiration, options)
+  def expire(%__MODULE__{ } = state, key, expiration, options \\ []) when is_list(options) do
+    do_action(state, { :expire, key, expiration, options }, fn ->
+      case exists?(state, key) do
+        { :ok, true } ->
+          state.actions.expire(state, key, expiration, options)
+        _other_value_ ->
+          { :missing, false }
+      end
+    end)
   end
 
   @doc """
   Refreshes the expiration on a given key to match the timestamp passed in.
   """
-  defcc expire_at(key, timestamp, options) do
-    state
-    |> Actions.expire_at(key, timestamp, options)
+  def expire_at(%__MODULE__{ } = state, key, timestamp, options \\ []) when is_list(options) do
+    do_action(state, { :expire_at, key, timestamp, options }, fn ->
+      case exists?(state, key) do
+        { :ok, true } ->
+          case timestamp - Util.now() do
+            val when val > 0 ->
+              state.actions.expire(state, key, val, options)
+            _expired_already ->
+              del(state, key)
+          end
+        _other_value_ ->
+          { :missing, false }
+      end
+    end)
   end
 
   @doc """
   Grabs a list of keys for the user (the entire keyspace).
   """
-  defcall keys(options) do
-    state
-    |> Actions.keys(options)
+  def keys(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    do_action(state, { :keys, options }, fn ->
+      state.actions.keys(state, options)
+    end)
   end
 
   @doc """
   Increments a value in the cache.
   """
-  defcc incr(key, options) do
-    state
-    |> Actions.incr(key, options)
+  def incr(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :incr, key, options }, fn ->
+      state.actions.incr(state, key, options)
+    end)
   end
 
   @doc """
   Removes a set TTL from a given key.
   """
-  defcc persist(key, options) do
-    state
-    |> Actions.persist(key, options)
+  def persist(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :persist, key, options }, fn ->
+      expire(state, key, nil, options)
+    end)
   end
 
   @doc """
   Purges all expired keys.
   """
-  defcc purge(options) do
-    state
-    |> Actions.purge(options)
+  def purge(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    do_action(state, { :purge, options }, fn ->
+      Janitor.purge_records(state.cache)
+    end)
   end
 
   @doc """
   Refreshes the expiration time on a key.
   """
-  defcc refresh(key, options) do
-    state
-    |> Actions.refresh(key, options)
+  def refresh(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :refresh, key, options }, fn ->
+      case exists?(state, key) do
+        { :ok, true } ->
+          state.actions.refresh(state, key, options)
+        _other_value_ ->
+          { :missing, false }
+      end
+    end)
   end
 
   @doc """
   Determines the current size of the cache.
   """
-  defcall size(options) do
-    state
-    |> Actions.size(options)
+  def size(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    do_action(state, { :size, options }, fn ->
+      state.cache
+      |> :mnesia.table_info(:size)
+      |> Util.ok
+    end)
+  end
+
+  @doc """
+  Removes a key from the cache, returning the last known value for the key.
+  """
+  def take(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :take, key, options }, fn ->
+      state.actions.take(state, key, options)
+    end)
+  end
+
+  @doc """
+  Returns the time remaining on a key before expiry. The value returned it in
+  milliseconds. If the key has no expiration, nil is returned.
+  """
+  def ttl(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
+    do_action(state, { :ttl, key, options }, fn ->
+      state.actions.ttl(state, key, options)
+    end)
+  end
+
+  ###
+  # GenServer delegate functions for call/cast.
+  ###
+
+  gen_delegate get(state, key, options), type: :call
+  gen_delegate get_and_update(state, key, update_fun, options), type: :call
+  gen_delegate set(state, key, value, options), type: [ :call, :cast ]
+  gen_delegate update(state, key, value, options), type: [ :call, :cast ]
+  gen_delegate del(state, key, options), type: [ :call, :cast ]
+  gen_delegate clear(state, options), type: [ :call, :cast ]
+  gen_delegate count(state, options), type: :call
+  gen_delegate exists?(state, key, options), type: :call
+  gen_delegate expire(state, key, expiration, options), type: [ :call, :cast ]
+  gen_delegate expire_at(state, key, timestamp, options), type: [ :call, :cast ]
+  gen_delegate keys(state, options), type: [ :call, :cast ]
+  gen_delegate incr(state, key, options), type: [ :call, :cast ]
+  gen_delegate persist(state, key, options), type: [ :call, :cast ]
+  gen_delegate purge(state, options), type: [ :call, :cast ]
+  gen_delegate refresh(state, key, options), type: [ :call, :cast ]
+  gen_delegate size(state, options), type: :call
+  gen_delegate take(state, key, options), type: :call
+  gen_delegate ttl(state, key, options), type: :call
+
+  ###
+  # GenServer manual handlers for call/cast.
+  ###
+
+  @doc """
+  Called by the janitor process to signal evictions being added. We only care
+  about this being reported when stats are enabled for this cache.
+  """
+  defcast record_purge(count) do
+    do_action(state, [:purge], fn ->
+      { :ok, count }
+    end)
+    { :noreply, state }
   end
 
   @doc """
   Returns the current state of this worker.
   """
-  defcall state,
-  do: state
+  defcall state, do: state
 
   @doc """
   Returns the internal stats for this worker.
@@ -199,52 +336,59 @@ defmodule Cachex.Worker do
     end
   end
 
-  @doc """
-  Removes a key from the cache, returning the last known value for the key.
-  """
-  defcall take(key, options) do
-    state
-    |> Actions.take(key, options)
-  end
+  ###
+  # Private utilities.
+  ###
 
   @doc """
-  Returns the time remaining on a key before expiry. The value returned it in
-  milliseconds. If the key has no expiration, nil is returned.
+  Forwards a call to the correct actions set, currently only the local actions.
+  The idea is that in future this will delegate to distributed implementations,
+  so it has been built out in advance to provide a clear migration path.
   """
-  defcall ttl(key, options) do
-    state
-    |> Actions.ttl(key, options)
-  end
-
-  @doc """
-  Called by the janitor process to signal evictions being added. We only care
-  about this being reported when stats are enabled for this cache.
-  """
-  defcast record_purge(count) do
-    do_action(state, [:purge], fn ->
-      { :ok, count }
-    end)
-    { :noreply, state }
-  end
-
-  # Forwards a call to the correct actions set, currently only the local actions.
-  # The idea is that in future this will delegate to distributed implementations,
-  # so it has been built out in advance to provide a clear migration path.
-  def do_action(%Cachex.Worker{ } = state, message, fun)
-  when is_list(message) and is_function(fun) do
+  def do_action(%__MODULE__{ } = state, message, fun) when is_list(message),
+  do: do_action(state, Util.list_to_tuple(message), fun)
+  def do_action(%__MODULE__{ } = state, message, fun)
+  when is_tuple(message) and is_function(fun) do
     case state.options.pre_hooks do
       [] -> nil;
-      li -> Notifier.notify(li, Util.list_to_tuple(message))
+      li -> Notifier.notify(li, message)
     end
 
     result = fun.()
 
     case state.options.post_hooks do
       [] -> nil;
-      li -> Notifier.notify(li, Util.list_to_tuple(message), result)
+      li -> Notifier.notify(li, message, result)
     end
 
     result
+  end
+
+  @doc """
+  Retrieves and updates a raw record in the database. This is used in several
+  places in order to allow easy modification. The record is fed to an update
+  function and the return value is placed in the cache instead. If the record
+  does not exist, then nil is passed to the update function.
+  """
+  def get_and_update_raw(%__MODULE__{ } = state, key, update_fun) when is_function(update_fun) do
+    Util.handle_transaction(fn ->
+      value = case :mnesia.read(state.cache, key) do
+        [{ cache, ^key, touched, ttl, value }] ->
+          case Util.has_expired?(touched, ttl) do
+            true ->
+              :mnesia.delete(state.cache, key, :write)
+              { cache, key, Util.now(), nil, nil }
+            false ->
+              { cache, key, touched, ttl, value }
+          end
+        _unrecognised_val ->
+          { state.cache, key, Util.now(), nil, nil }
+      end
+
+      new_value = update_fun.(value)
+      :mnesia.write(new_value)
+      new_value
+    end)
   end
 
 end

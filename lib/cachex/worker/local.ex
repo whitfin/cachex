@@ -1,15 +1,15 @@
-defmodule Cachex.Worker.Actions.Local do
+defmodule Cachex.Worker.Local do
   @moduledoc false
   # This module defines the Local actions a worker can take. Functions in this
   # module are focused around the sole use of ETS (although it can make use of
   # Mnesia as needed). This allows us to provid the fastest possible throughput
   # for a simple local, in-memory cache. Please note that when calling functions
   # from inside this module (internal functions), you should go through the
-  # Actions parent module to avoid creating potentially messy internal dependency.
+  # Worker parent module to avoid creating potentially messy internal dependency.
 
   # add some aliases
   alias Cachex.Util
-  alias Cachex.Worker.Actions
+  alias Cachex.Worker
 
   @doc """
   Simply do an ETS lookup on the given key. If the key does not exist we check
@@ -25,7 +25,7 @@ defmodule Cachex.Worker.Actions.Local do
     val = case :ets.lookup(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired?(touched, ttl) do
-          true  -> Actions.del(state, key); :missing;
+          true  -> Worker.del(state, key); :missing;
           false -> value
         end
       _unrecognised_val -> :missing
@@ -39,7 +39,7 @@ defmodule Cachex.Worker.Actions.Local do
             |> Util.get_fallback(key, fb_fun)
 
         state
-        |> Actions.set(key, new_value)
+        |> Worker.set(key, new_value)
 
         case status do
           :ok -> { :missing, new_value }
@@ -98,7 +98,7 @@ defmodule Cachex.Worker.Actions.Local do
   of records which were removed.
   """
   def clear(state, _options) do
-    eviction_count = case Actions.size(state) do
+    eviction_count = case Worker.size(state) do
       { :ok, size } -> size
       _other_value_ -> nil
     end
@@ -197,7 +197,7 @@ defmodule Cachex.Worker.Actions.Local do
       [{ _cache, ^key, touched, ttl, _value }] ->
         case Util.has_expired?(touched, ttl) do
           true  ->
-            Actions.del(state, key)
+            Worker.del(state, key)
             { :missing, nil }
           false ->
             case ttl do
