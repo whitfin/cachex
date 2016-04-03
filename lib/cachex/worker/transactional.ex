@@ -1,4 +1,7 @@
 defmodule Cachex.Worker.Transactional do
+  # ensure we use the actions interface
+  @behaviour Cachex.Worker
+
   @moduledoc false
   # This module defines the Transactional actions a worker can take. Functions
   # in this module are required to use Mnesia for row locking and replication.
@@ -123,7 +126,7 @@ defmodule Cachex.Worker.Transactional do
   """
   def keys(state, _options) do
     Util.handle_transaction(fn ->
-      :mnesia.dirty_select(state.cache, Util.retrieve_all_rows(:"$1"))
+      :mnesia.select(state.cache, Util.retrieve_all_rows(:"$1"))
     end)
   end
 

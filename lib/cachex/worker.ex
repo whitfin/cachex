@@ -280,6 +280,28 @@ defmodule Cachex.Worker do
   end
 
   ###
+  # Behaviours to enforce on all types of workers.
+  ###
+
+  @doc """
+  Invoked when retrieving a key from the cache. This callback should be implemented
+  such that either a key is returned, or a nil value is returned. A status should
+  also be provided which is any of `:ok`, `:missing`, or `:loaded` to represent
+  how the key was retrieved.
+  """
+  @callback get(__MODULE__, any, list) :: { :ok | :loaded | :missing, any }
+  @callback set(__MODULE__, any, any, list) :: { :ok, true | false }
+  @callback update(__MODULE__, any, any, list) :: { :ok, true | false }
+  @callback del(__MODULE__, any, list) :: { :ok, true | false }
+  @callback clear(__MODULE__, list) :: { :ok, number }
+  @callback expire(__MODULE__, any, number, list) :: { :ok, true | false }
+  @callback keys(__MODULE__, list) :: { :ok, list }
+  @callback incr(__MODULE__, any, list) :: { :ok, number }
+  @callback refresh(__MODULE__, any, list) :: { :ok, true | false }
+  @callback take(__MODULE__, any, list) :: { :ok | :missing, any }
+  @callback ttl(__MODULE__, any, list) :: { :ok | :missing, any }
+
+  ###
   # GenServer delegate functions for call/cast.
   ###
 
@@ -337,7 +359,8 @@ defmodule Cachex.Worker do
   end
 
   ###
-  # Private utilities.
+  # Functions designed to only be used internally (i.e. those not forwarded to
+  # the main Cachex interfaces).
   ###
 
   @doc """

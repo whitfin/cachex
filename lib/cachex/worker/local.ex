@@ -1,4 +1,7 @@
 defmodule Cachex.Worker.Local do
+  # ensure we use the actions interface
+  @behaviour Cachex.Worker
+
   @moduledoc false
   # This module defines the Local actions a worker can take. Functions in this
   # module are focused around the sole use of ETS (although it can make use of

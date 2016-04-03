@@ -1,4 +1,7 @@
 defmodule Cachex.Worker.Remote do
+  # ensure we use the actions interface
+  @behaviour Cachex.Worker
+
   @moduledoc false
   # This module defines the Remote actions a worker can take. Functions in this
   # module are focused around the sole use of Mnesia in order to provide needed
