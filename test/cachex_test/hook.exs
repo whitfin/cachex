@@ -77,6 +77,24 @@ defmodule CachexTest.Hook do
     assert(sync_time < 100)
   end
 
+  test "hooks can handle old messages in synchronous hooks", state do
+    hooks = %Cachex.Hook{
+      args: state.name,
+      async: false,
+      module: CachexTest.Hook.TestHook,
+      type: :pre
+    }
+
+    Cachex.start_link([ name: state.name, hooks: hooks ])
+
+    { sync_time, _res } = :timer.tc(fn ->
+      Cachex.get(state.name, "sync_double_hook")
+    end)
+
+    assert(sync_time > 10000 && sync_time < 17500)
+  end
+
+
   test "hooks with results attached in a pre-hook", state do
     hooks = %Cachex.Hook{
       args: self(),
@@ -188,12 +206,18 @@ defmodule CachexTest.Hook.TestHook do
   use Cachex.Hook
 
   def handle_notify({ :get, "async_pre_hook", _options }, state) do
-    :timer.sleep(200)
+    :timer.sleep(100)
     { :ok, state }
   end
 
   def handle_notify({ :get, "sync_pre_hook", _options }, state) do
-    :timer.sleep(200)
+    :timer.sleep(100)
+    { :ok, state }
+  end
+
+  def handle_notify({ :get, "sync_double_hook", _options }, state) do
+    send(state, { :ack, self, 1111 })
+    :timer.sleep(100)
     { :ok, state }
   end
 
