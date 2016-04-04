@@ -150,17 +150,10 @@ defmodule Cachex do
   """
   @spec start_link(options, options) :: { atom, pid }
   def start_link(options \\ [], supervisor_options \\ []) do
-    case options[:name] do
-      name when not is_atom(name) or name == nil ->
-        { :error, "Cache name must be a valid atom" }
-      name ->
-        case Process.whereis(name) do
-          nil ->
-            Supervisor.start_link(__MODULE__, options, supervisor_options)
-          pid ->
-            { :error, "Cache name already in use for #{inspect(pid)}" }
-        end
-    end
+    with { :ok, true } <- ensure_not_started(options[:name]),
+         { :ok, opts } <- parse_options(options),
+         { :ok, true } <- start_table(opts),
+     do: Supervisor.start_link(__MODULE__, opts, supervisor_options)
   end
 
   @doc """
@@ -170,30 +163,17 @@ defmodule Cachex do
   to setup the internal workers. Workers are then given to `supervise/2`.
   """
   @spec init(options) :: { status, { any } }
-  def init(options \\ []) when is_list(options) do
-    parsed_opts =
-      options
-      |> Cachex.Options.parse
-
-    table_create = :mnesia.create_table(parsed_opts.cache, [
-      { :ram_copies, parsed_opts.nodes },
-      { :attributes, [ :key, :touched, :ttl, :value ]},
-      { :type, :set },
-      { :storage_properties, [ { :ets, parsed_opts.ets_opts } ] }
-    ])
-
-    with { :atomic, :ok } <- table_create do
-      ttl_workers = case parsed_opts.ttl_interval do
-        nil -> []
-        _other -> [worker(Cachex.Janitor, [parsed_opts])]
-      end
-
-      children = ttl_workers ++ [
-        worker(Cachex.Worker, [parsed_opts, [name: parsed_opts.cache]])
-      ]
-
-      supervise(children, strategy: :one_for_one)
+  def init(%Cachex.Options{ } = options) do
+    ttl_workers = case options.ttl_interval do
+      nil -> []
+      _other -> [worker(Cachex.Janitor, [options])]
     end
+
+    children = ttl_workers ++ [
+      worker(Cachex.Worker, [options, [name: options.cache]])
+    ]
+
+    supervise(children, strategy: :one_for_one)
   end
 
   @doc """
@@ -764,6 +744,24 @@ defmodule Cachex do
     GenServer.call(cache, { :ttl, key, options }, @def_timeout)
   end
 
+  ###
+  # Private utility functions.
+  ###
+
+  # Determines whether a process has started or not. If the process has started,
+  # an error message is returned - otherwise `true` is returned to represent not
+  # being started.
+  defp ensure_not_started(name) when not is_atom(name),
+  do: { :error, "Cache name must be a valid atom" }
+  defp ensure_not_started(name) do
+    case Process.whereis(name) do
+      nil ->
+        { :ok, true }
+      pid ->
+        { :error, "Cache name already in use for #{inspect(pid)}" }
+    end
+  end
+
   # Internal function to handle async delegation. This is just a wrapper around
   # the call/cast functions inside the GenServer module.
   defp handle_async(cache, args, options) do
@@ -773,6 +771,29 @@ defmodule Cachex do
       |> (&(Util.create_truthy_result/1)).()
     else
       GenServer.call(cache, args, @def_timeout)
+    end
+  end
+
+  # Parses a keyword list of options into a Cachex Options structure. We return
+  # it in tuple just to avoid compiler warnings when using it with the `with` block.
+  defp parse_options(options) when is_list(options),
+  do: { :ok, Cachex.Options.parse(options) }
+
+  # Starts up an Mnesia table based on the provided options. If an error occurs
+  # when setting up the table, we return an error tuple to represent the issue.
+  defp start_table(%Cachex.Options{ } = options) do
+    table_create = :mnesia.create_table(options.cache, [
+      { :ram_copies, options.nodes },
+      { :attributes, [ :key, :touched, :ttl, :value ]},
+      { :type, :set },
+      { :storage_properties, [ { :ets, options.ets_opts } ] }
+    ])
+
+    case table_create do
+      { :atomic, :ok } ->
+        { :ok, true }
+      _other_statuses_ ->
+        { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
     end
   end
 

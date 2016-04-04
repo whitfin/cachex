@@ -23,10 +23,15 @@ defmodule CachexTest do
       |> Enum.at(1)
       |> Integer.parse
       |> Kernel.elem(0)
-      |> (&(:c.pid(0, &1 + 2, 0))).()
+      |> (&(:c.pid(0, &1 + 1, 0))).()
 
     start_result = Cachex.start_link([name: state.name])
     assert(start_result == { :error, "Cache name already in use for #{inspect(fake_pid)}" })
+  end
+
+  test "starting a cache over an invalid mnesia table", state do
+    start_result = Cachex.start_link([name: state.name, nodes: ["failnode@testhost.com"]])
+    assert(start_result == { :error, "Mnesia table setup failed due to {:aborted, {:bad_type, :#{state.name}, \"failnode@testhost.com\"}}" })
   end
 
   test "defcheck macro cannot accept non-atom caches", _state do
