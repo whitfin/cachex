@@ -23,7 +23,7 @@ defmodule Cachex.Mixfile do
         },
         maintainers: [ "Isaac Whitfield" ]
       },
-      version: "0.8.1",
+      version: "0.8.2",
       elixir: "~> 1.2",
       deps: deps,
       docs: [
