@@ -91,10 +91,6 @@ defmodule CachexTest.Get.Local do
 
     :timer.sleep(10)
 
-    exists_result = Cachex.exists?(state.cache, "my_key")
-    assert(exists_result == { :ok, false })
-    assert(:ets.member(state.cache, "my_key"))
-
     get_result = Cachex.get(state.cache, "my_key")
     assert(get_result == { :missing, nil })
   end

@@ -1,4 +1,4 @@
-defmodule CachexTest.Exists.Default do
+defmodule CachexTest.Exists do
   use PowerAssert
 
   setup do
@@ -28,7 +28,6 @@ defmodule CachexTest.Exists.Default do
 
     exists_result = Cachex.exists?(state.cache, "my_key")
     assert(exists_result == { :ok, false })
-    assert(:ets.member(state.cache, "my_key"))
   end
 
   test "exists? with a missing key", state do

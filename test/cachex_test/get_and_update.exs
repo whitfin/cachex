@@ -110,10 +110,6 @@ defmodule CachexTest.GetAndUpdate do
 
     :timer.sleep(10)
 
-    exists_result = Cachex.exists?(state.cache, "my_key")
-    assert(exists_result == { :ok, false })
-    assert(:ets.member(state.cache, "my_key"))
-
     gau_result = Cachex.get_and_update(state.cache, "my_key", fn
       (nil) -> true
       (_na) -> false

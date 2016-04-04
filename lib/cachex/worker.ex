@@ -159,7 +159,15 @@ defmodule Cachex.Worker do
     do_action(state, { :exists?, key, options }, fn ->
       case :ets.lookup(state.cache, key) do
         [{ _cache, ^key, touched, ttl, _value }] ->
-          { :ok, !Util.has_expired?(touched, ttl) }
+          expired =
+            touched
+            |> Util.has_expired?(ttl)
+
+          if expired do
+            del(state, key)
+          end
+
+          { :ok, !expired }
         _unrecognised_val ->
           { :ok, false }
       end
@@ -315,7 +323,7 @@ defmodule Cachex.Worker do
   gen_delegate exists?(state, key, options), type: :call
   gen_delegate expire(state, key, expiration, options), type: [ :call, :cast ]
   gen_delegate expire_at(state, key, timestamp, options), type: [ :call, :cast ]
-  gen_delegate keys(state, options), type: [ :call, :cast ]
+  gen_delegate keys(state, options), type: :call
   gen_delegate incr(state, key, options), type: [ :call, :cast ]
   gen_delegate persist(state, key, options), type: [ :call, :cast ]
   gen_delegate purge(state, options), type: [ :call, :cast ]
