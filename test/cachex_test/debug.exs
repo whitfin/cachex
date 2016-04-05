@@ -10,17 +10,19 @@ defmodule CachexTest.Debug do
   end
 
   test "debug can track memory usage", state do
-    debug_result = Cachex.debug(state.cache, :memory)
+    { status, result } = Cachex.debug(state.cache, :memory)
 
-    assert(debug_result == { :ok, 10624 })
+    assert(status == :ok)
+    assert_in_delta(result, 10600, 100)
 
     set_result = Cachex.set(state.cache, "key", "value")
 
     assert(set_result == { :ok, true })
 
-    debug_result = Cachex.debug(state.cache, :memory)
+    { status, result } = Cachex.debug(state.cache, :memory)
 
-    assert(debug_result == { :ok, 10752 })
+    assert(status == :ok)
+    assert_in_delta(result, 10800, 100)
   end
 
   test "debug can return an internal worker", state do
