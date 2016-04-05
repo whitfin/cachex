@@ -24,7 +24,7 @@ defmodule CachexTest.Execute do
   end
 
   test "execute requires a single arity function", state do
-    worker = Cachex.debug!(state.cache, :state)
+    worker = Cachex.inspect!(state.cache, :state)
 
     assert_raise(FunctionClauseError, fn ->
       Cachex.Worker.execute(worker, "test")

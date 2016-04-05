@@ -24,7 +24,7 @@ defmodule Cachex.Macros.Boilerplate do
     quote do
       def unquote(head) do
         cond do
-          is_atom(var!(cache)) or is_pid(var!(cache)) ->
+          is_atom(var!(cache)) ->
             if GenServer.whereis(var!(cache)) == nil do
               invalid_err(var!(cache))
             else
@@ -32,7 +32,11 @@ defmodule Cachex.Macros.Boilerplate do
             end
           is_map(var!(cache)) ->
             if var!(cache).__struct__ == Cachex.Worker do
-              apply(Cachex.Worker, unquote(func_name), [unquote_splicing(sanitized_args)])
+              if not unquote(func_name) in [:inspect] do
+                apply(Cachex.Worker, unquote(func_name), [unquote_splicing(sanitized_args)])
+              else
+                unquote(body)
+              end
             else
               invalid_err(var!(cache))
             end

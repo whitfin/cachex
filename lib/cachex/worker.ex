@@ -153,27 +153,6 @@ defmodule Cachex.Worker do
   end
 
   @doc """
-  Various debugging options to retrieve internal information about a cache.
-  """
-  def debug(%__MODULE__{ } = state, :memory_bytes) do
-    mem_words = :mnesia.table_info(state.cache, :memory)
-    { :ok, mem_words * :erlang.system_info(:wordsize) }
-  end
-  def debug(%__MODULE__{ } = state, :memory_str) do
-    with { :ok, bytes } <- debug(state, :memory_bytes) do
-      bytes
-      |> Util.bytes_to_readable
-      |> Util.ok
-    end
-  end
-  def debug(%__MODULE__{ } = state, option) when option in [ :state, :worker ] do
-    { :ok, state }
-  end
-  def debug(%__MODULE__{ } = _state, _option) do
-    { :error, "Invalid debug option provided" }
-  end
-
-  @doc """
   Executes a block of cache actions inside the cache.
   """
   def execute(%__MODULE__{ } = state, operation, options \\ [])
@@ -363,7 +342,6 @@ defmodule Cachex.Worker do
   gen_delegate del(state, key, options), type: [ :call, :cast ]
   gen_delegate clear(state, options), type: [ :call, :cast ]
   gen_delegate count(state, options), type: :call
-  gen_delegate debug(state, option), type: :call
   gen_delegate execute(state, operations, options), type: [ :call, :cast ]
   gen_delegate exists?(state, key, options), type: :call
   gen_delegate expire(state, key, expiration, options), type: [ :call, :cast ]
@@ -392,6 +370,11 @@ defmodule Cachex.Worker do
     end)
     { :noreply, state }
   end
+
+  @doc """
+  Very tiny wrapper to retrieve the current state of a cache
+  """
+  defcall state, do: state
 
   @doc """
   Returns the internal stats for this worker.

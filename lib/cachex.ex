@@ -4,6 +4,7 @@ defmodule Cachex do
   use Supervisor
 
   # add some aliases
+  alias Cachex.Inspector
   alias Cachex.Util
 
   @moduledoc """
@@ -31,7 +32,7 @@ defmodule Cachex do
   """
 
   # the cache type
-  @type cache :: atom | pid | Cachex.Worker
+  @type cache :: atom | Cachex.Worker
 
   # custom options type
   @type options :: [ { atom, any } ]
@@ -399,47 +400,6 @@ defmodule Cachex do
   end
 
   @doc """
-  Debug operations for a cache. This should only be used sparingly and should be
-  avoided in mission critical systems whenever possible.
-
-  All operations look at the immediate (local) node regardless of whether the cache
-  is distributed or not. Debug functions rely on the assumption that the entire
-  store is already consistent.
-
-  Accepted options are only provided for convenience and should not be relied upon.
-  They are not part of the public interface (despite being documented) and as such
-  may be removed at any time.
-
-  Please use cautiously. `debug/2` utilises a 5 second GenServer timeout and
-  performance is not a big concern. It is provided mainly for test purposes.
-
-  ## Options
-
-    * `:memory_bytes` - the memory footprint of the cache in bytes.
-    * `:memory_str` - the memory footprint of the cache in binary format.
-    * `:worker` - the internal state of the cache worker.
-
-  ## Examples
-
-      iex> Cachex.debug(:my_cache, :memory)
-      { :ok, 10624 }
-
-      iex> Cachex.debug(:my_cache, :worker)
-      {:ok,
-        %Cachex.Worker{actions: Cachex.Worker.Local, cache: :my_cache,
-         options: %Cachex.Options{cache: :my_cache, default_fallback: nil,
-          default_ttl: nil,
-          ets_opts: [read_concurrency: true, write_concurrency: true],
-          fallback_args: [], nodes: [:nonode@nohost], post_hooks: [], pre_hooks: [],
-          remote: false, transactional: false, ttl_interval: nil}}}
-
-  """
-  @spec debug(cache, atom | tuple) :: { status, any }
-  defcheck debug(cache, option) do
-    GenServer.call(cache, { :debug, option })
-  end
-
-  @doc """
   Decrements a key directly in the cache.
 
   This operation is an internal mutation, and as such any set TTL persists - i.e.
@@ -702,6 +662,49 @@ defmodule Cachex do
   defcheck incr(cache, key, options \\ []) when is_list(options) do
     handle_async(cache, { :incr, key, options }, options)
   end
+
+  @doc """
+  Debug operations for a cache. These operations typically happen outside of the
+  worker process (i.e. in the calling process). As such they have no impact on the
+  actions being taken by the worker. This means that these operations are safe
+  safe for use with hot caches, but come with a stricter set of limitations.
+
+  All operations look at the immediate (local) node regardless of whether the cache
+  is distributed or not. Inspection functions rely on the assumption that the entire
+  store is already consistent.
+
+  Accepted options are only provided for convenience and should not be relied upon.
+  They are not part of the public interface (despite being documented) and as such
+  may be removed at any time (however this does not mean that they will be).
+
+  Please use cautiously. `inspect/2` is provided mainly for testing purposes and
+  so performance isn't as much of a concern.
+
+  ## Options
+
+    * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
+    * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
+    * `:worker` - the internal state of the cache worker. This blocks the cache
+      worker process, so please use cautiously and sparingly.
+
+  ## Examples
+
+      iex> Cachex.inspect(:my_cache, { :memory, :bytes })
+      { :ok, 10624 }
+
+      iex> Cachex.inspect(:my_cache, :worker)
+      {:ok,
+        %Cachex.Worker{actions: Cachex.Worker.Local, cache: :my_cache,
+         options: %Cachex.Options{cache: :my_cache, default_fallback: nil,
+          default_ttl: nil,
+          ets_opts: [read_concurrency: true, write_concurrency: true],
+          fallback_args: [], nodes: [:nonode@nohost], post_hooks: [], pre_hooks: [],
+          remote: false, transactional: false, ttl_interval: nil}}}
+
+  """
+  @spec inspect(cache, atom | tuple) :: { status, any }
+  defcheck inspect(cache, option),
+  do: Inspector.inspect(cache, option)
 
   @doc """
   Removes a TTL on a given document.
