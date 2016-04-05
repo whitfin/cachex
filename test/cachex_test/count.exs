@@ -6,7 +6,7 @@ defmodule CachexTest.Count do
   end
 
   test "count requires an existing cache name", _state do
-    assert(Cachex.count("test") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.count("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "count with an empty cache", state do

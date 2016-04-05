@@ -6,7 +6,7 @@ defmodule CachexTest.Del do
   end
 
   test "del requires an existing cache name", _state do
-    assert(Cachex.del("test", "key") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.del("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
   
 end

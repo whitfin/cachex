@@ -6,7 +6,7 @@ defmodule CachexTest.GetAndUpdate do
   end
 
   test "get and update requires an existing cache name", _state do
-    assert(Cachex.get_and_update("test", "key", &(&1)) == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.get_and_update("test", "key", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "get and update with missing key", state do

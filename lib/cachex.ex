@@ -33,6 +33,9 @@ defmodule Cachex do
   # the default timeout for a GenServer call
   @def_timeout 250
 
+  # the cache type
+  @type cache :: atom | pid | Cachex.Worker
+
   # custom options type
   @type options :: [ { atom, any } ]
 
@@ -156,13 +159,12 @@ defmodule Cachex do
      do: Supervisor.start_link(__MODULE__, opts, supervisor_options)
   end
 
-  @doc """
-  Basic initialization phase, being passed arguments by the Supervisor.
-
-  This function sets up the Mnesia table and options are parsed before being used
-  to setup the internal workers. Workers are then given to `supervise/2`.
-  """
-  @spec init(options) :: { status, { any } }
+  @doc false
+  # Basic initialization phase, being passed arguments by the Supervisor.
+  #
+  # This function sets up the Mnesia table and options are parsed before being used
+  # to setup the internal workers. Workers are then given to `supervise/2`.
+  @spec init(Cachex.Options) :: { status, any }
   def init(%Cachex.Options{ } = options) do
     ttl_workers = case options.ttl_interval do
       nil -> []
@@ -198,7 +200,7 @@ defmodule Cachex do
       { :loaded, "yek_gnissim" }
 
   """
-  @spec get(atom, any, options) :: { status | :loaded, any }
+  @spec get(cache, any, options) :: { status | :loaded, any }
   defcheck get(cache, key, options \\ []) when is_list(options) do
     GenServer.call(cache, { :get, key, options }, @def_timeout)
   end
@@ -225,7 +227,7 @@ defmodule Cachex do
       { :loaded, [ "value", "yek_gnissim" ] }
 
   """
-  @spec get_and_update(atom, any, function, options) :: { status | :loaded, any }
+  @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defcheck get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
     GenServer.call(cache, { :get_and_update, key, update_function, options }, @def_timeout)
@@ -256,7 +258,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec set(atom, any, any, options) :: { status, true | false }
+  @spec set(cache, any, any, options) :: { status, true | false }
   defcheck set(cache, key, value, options \\ []) when is_list(options) do
     handle_async(cache, { :set, key, value, options }, options)
   end
@@ -291,7 +293,7 @@ defmodule Cachex do
       { :missing, false }
 
   """
-  @spec update(atom, any, any, options) :: { status, any }
+  @spec update(cache, any, any, options) :: { status, any }
   defcheck update(cache, key, value, options \\ []) when is_list(options) do
     handle_async(cache, { :update, key, value, options }, options)
   end
@@ -316,10 +318,30 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec del(atom, any, options) :: { status, true | false }
+  @spec del(cache, any, options) :: { status, true | false }
   defcheck del(cache, key, options \\ []) when is_list(options) do
     handle_async(cache, { :del, key, options }, options)
   end
+
+  @doc """
+  Aborts a transaction. Does nothing when called outside of a transaction.
+
+  ## Examples
+
+      iex> Cachex.transaction(:my_cache, fn(worker) ->
+      ...>   { status, val } = Cachex.get(worker, "key")
+      ...>   if status == :missing do
+      ...>     Cachex.abort(worker, :missing_key)
+      ...>   else
+      ...>     Cachex.update(worker, "key", val + 1)
+      ...>   end
+      ...> end)
+      { :error, :missing_key }
+
+  """
+  @spec abort(cache, any, options) :: Exception
+  def abort(_cache, reason, options \\ []) when is_list(options),
+  do: :mnesia.is_transaction && :mnesia.abort(reason)
 
   @doc """
   Removes all key/value pairs from the cache.
@@ -343,7 +365,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec clear(atom, options) :: { status, true | false }
+  @spec clear(cache, options) :: { status, true | false }
   defcheck clear(cache, options \\ []) when is_list(options) do
     handle_async(cache, { :clear, options }, options)
   end
@@ -364,7 +386,7 @@ defmodule Cachex do
       { :ok, 3 }
 
   """
-  @spec count(atom, options) :: { status, number }
+  @spec count(cache, options) :: { status, number }
   defcheck count(cache, options \\ []) when is_list(options) do
     GenServer.call(cache, { :count, options }, @def_timeout)
   end
@@ -400,7 +422,7 @@ defmodule Cachex do
       { :ok, -5 }
 
   """
-  @spec decr(atom, any, options) :: { status, number }
+  @spec decr(cache, any, options) :: { status, number }
   defcheck decr(cache, key, options \\ []),
   do: incr(cache, key, Keyword.update(options, :amount, -1, &(&1 * -1)))
 
@@ -424,12 +446,47 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec empty?(atom, options) :: { status, true | false }
+  @spec empty?(cache, options) :: { status, true | false }
   defcheck empty?(cache, options \\ []) when is_list(options) do
     case size(cache) do
       { :ok, 0 } -> { :ok, true }
       _other_value_ -> { :ok, false }
     end
+  end
+
+  @doc """
+  Executes a function in the context of a cache worker. This can be used when
+  carrying out several operations at once to avoid the jumps between processes.
+
+  However this does **not** provide a transactional execution (i.e. no rollbacks),
+  it's simply to avoid the overhead of jumping between processes. For a transactional
+  implementation, see `transaction/3`.
+
+  It should be noted that this provides a blocking execution inside the worker,
+  and therefore when you're working with a local cache, you can be sure that the
+  cache will be consistent across actions. This is **only** the case with local
+  caches. For distributed caches, please use the transactional interface.
+
+  You **must** use the worker instance passed to the provided function when calling
+  the cache, otherwise your request will time out. This is due to the blocking
+  nature of the execution, and can not be avoided (at this time).
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.execute(:my_cache, fn(worker) ->
+      ...>   val1 = Cachex.get!(worker, "key1")
+      ...>   val2 = Cachex.get!(worker, "key2")
+      ...>   [val1, val2]
+      ...> end)
+      { :ok, [ "value1", "value2" ] }
+
+  """
+  @spec execute(cache, function, options) :: { status, any }
+  defcheck execute(cache, operation, options \\ [])
+  when is_function(operation) and is_list(options) do
+    handle_async(cache, { :execute, operation, options }, options)
   end
 
   @doc """
@@ -449,7 +506,7 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec exists?(atom, any, options) :: { status, true | false }
+  @spec exists?(cache, any, options) :: { status, true | false }
   defcheck exists?(cache, key, options \\ []) when is_list(options) do
     GenServer.call(cache, { :exists?, key, options }, @def_timeout)
   end
@@ -481,7 +538,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec expire(atom, any, number, options) :: { status, true | false }
+  @spec expire(cache, any, number, options) :: { status, true | false }
   defcheck expire(cache, key, expiration, options \\ [])
   when is_number(expiration) and is_list(options) do
     handle_async(cache, { :expire, key, expiration, options }, options)
@@ -515,7 +572,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec expire_at(atom, binary, number, options) :: { status, true | false }
+  @spec expire_at(cache, binary, number, options) :: { status, true | false }
   defcheck expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
     handle_async(cache, { :expire_at, key, timestamp, options }, options)
@@ -537,7 +594,7 @@ defmodule Cachex do
       { :ok, [] }
 
   """
-  @spec keys(atom, options) :: [ any ]
+  @spec keys(cache, options) :: [ any ]
   defcheck keys(cache, options \\ []) when is_list(options) do
     GenServer.call(cache, { :keys, options }, @def_timeout)
   end
@@ -573,7 +630,7 @@ defmodule Cachex do
       { :ok, 5 }
 
   """
-  @spec incr(atom, any, options) :: { status, number }
+  @spec incr(cache, any, options) :: { status, number }
   defcheck incr(cache, key, options \\ []) when is_list(options) do
     handle_async(cache, { :incr, key, options }, options)
   end
@@ -599,7 +656,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec persist(atom, any, options) :: { status, true | false }
+  @spec persist(cache, any, options) :: { status, true | false }
   defcheck persist(cache, key, options \\ []) when is_list(options) do
     handle_async(cache, { :persist, key, options }, options)
   end
@@ -625,7 +682,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec purge(atom, options) :: { status, number }
+  @spec purge(cache, options) :: { status, number }
   defcheck purge(cache, options \\ []) when is_list(options) do
     handle_async(cache, { :purge, options }, options)
   end
@@ -658,7 +715,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec refresh(atom, any, options) :: { status, true | false }
+  @spec refresh(cache, any, options) :: { status, true | false }
   defcheck refresh(cache, key, options \\ []) when is_list(options) do
     handle_async(cache, { :refresh, key, options }, options)
   end
@@ -678,7 +735,7 @@ defmodule Cachex do
       { :ok, 3 }
 
   """
-  @spec size(atom, options) :: { status, number }
+  @spec size(cache, options) :: { status, number }
   defcheck size(cache, options \\ []) when is_list(options) do
     GenServer.call(cache, { :size, options }, @def_timeout)
   end
@@ -699,7 +756,7 @@ defmodule Cachex do
       { :error, "Stats not enabled for cache with ref ':cache_with_no_stats'" }
 
   """
-  @spec stats(atom, options) :: { status, %{ } }
+  @spec stats(cache, options) :: { status, %{ } }
   defcheck stats(cache, options \\ []) when is_list(options) do
     GenServer.call(cache, { :stats, options }, @def_timeout)
   end
@@ -722,9 +779,45 @@ defmodule Cachex do
       { :missing, nil }
 
   """
-  @spec take(atom, any, options) :: { status, any }
+  @spec take(cache, any, options) :: { status, any }
   defcheck take(cache, key, options \\ []) when is_list(options) do
     GenServer.call(cache, { :take, key, options }, @def_timeout)
+  end
+
+  @doc """
+  Transactional equivalent of `execute/3`. This provides a safe execution of
+  operation across distributed nodes. You can also rollback the transaction at
+  any time using `abort/1`.
+
+  You **must** use the worker instance passed to the provided function when calling
+  the cache, otherwise your request will time out. This is due to the blocking
+  nature of the execution, and can not be avoided (at this time).
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.transaction(:my_cache, fn(worker) ->
+      ...>   val1 = Cachex.get(worker, "key1")
+      ...>   val2 = Cachex.get(worker, "key2")
+      ...>   [val1, val2]
+      ...> end)
+      { :ok, [ "value1", "value2" ] }
+
+      iex> Cachex.transaction(:my_cache, fn(worker) ->
+      ...>   Cachex.set(worker, "key3", "value3")
+      ...>   Cachex.abort(:exit_early)
+      ...> end)
+      { :error, :exit_early }
+
+      iex> Cachex.get(:my_cache, "key3")
+      { :missing, nil }
+
+  """
+  @spec transaction(cache, function, options) :: { status, any }
+  defcheck transaction(cache, operation, options \\ [])
+  when is_function(operation) and is_list(options) do
+    handle_async(cache, { :transaction, operation, options }, options)
   end
 
   @doc """
@@ -739,7 +832,7 @@ defmodule Cachex do
       { :missing, nil }
 
   """
-  @spec ttl(atom, any, options) :: { status, number }
+  @spec ttl(cache, any, options) :: { status, number }
   defcheck ttl(cache, key, options \\ []) when is_list(options) do
     GenServer.call(cache, { :ttl, key, options }, @def_timeout)
   end
@@ -789,10 +882,10 @@ defmodule Cachex do
       { :storage_properties, [ { :ets, options.ets_opts } ] }
     ])
 
-    case table_create do
-      { :atomic, :ok } ->
+    case Util.successfully_started?(table_create) do
+      true ->
         { :ok, true }
-      _other_statuses_ ->
+      false ->
         { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
     end
   end

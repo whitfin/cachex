@@ -6,7 +6,7 @@ defmodule CachexTest.Size do
   end
 
   test "size requires an existing cache name", _state do
-    assert(Cachex.size("test") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.size("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "size with an empty cache", state do

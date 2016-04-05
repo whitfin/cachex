@@ -6,7 +6,7 @@ defmodule CachexTest.Persist do
   end
 
   test "persist requires an existing cache name", _state do
-    assert(Cachex.persist("test", "key") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.persist("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "persist with a key with no ttl", state do

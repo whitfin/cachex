@@ -9,7 +9,6 @@ defmodule Cachex.Macros.Boilerplate do
   # alias the parent module
   alias Cachex.ExecutionError
   alias Cachex.Macros
-  alias Cachex.Util
 
   @doc """
   This is gross, but very convenient. It will basically define a function for the
@@ -20,34 +19,31 @@ defmodule Cachex.Macros.Boilerplate do
   defmacro defcheck(head, do: body) do
     explicit_head = gen_unsafe(head)
     { func_name, arguments } = Macros.name_and_args(head)
-
-    args_list =
-      arguments
-      |> Macro.prewalk([], fn(x, acc) ->
-          case x do
-            { key, _, _ } when key != :\\ ->
-              { x, [key|acc] }
-            _other ->
-              { x, acc }
-          end
-        end)
-      |> Util.last_of_tuple
-      |> Enum.reverse
+    sanitized_args = Macros.trim_defaults(arguments)
 
     quote do
       def unquote(head) do
-        if not is_atom(var!(cache)) or GenServer.whereis(var!(cache)) == nil do
-          { :error, "Invalid cache name provided, got: #{inspect var!(cache)}" }
-        else
-          unquote(body)
+        cond do
+          is_atom(var!(cache)) or is_pid(var!(cache)) ->
+            if GenServer.whereis(var!(cache)) == nil do
+              invalid_err(var!(cache))
+            else
+              unquote(body)
+            end
+          is_map(var!(cache)) ->
+            if var!(cache).__struct__ == Cachex.Worker do
+              apply(Cachex.Worker, unquote(func_name), [unquote_splicing(sanitized_args)])
+            else
+              invalid_err(var!(cache))
+            end
+          true ->
+            invalid_err(var!(cache))
         end
       end
 
       @doc false
       def unquote(explicit_head) do
-        args = binding()
-        fun_args = Enum.map(unquote(args_list), &(args[&1]))
-        raise_result(apply(Cachex, unquote(func_name), fun_args))
+        raise_result(apply(Cachex, unquote(func_name), [unquote_splicing(sanitized_args)]))
       end
     end
   end
@@ -57,6 +53,13 @@ defmodule Cachex.Macros.Boilerplate do
     quote do
       import unquote(__MODULE__)
     end
+  end
+
+  @doc """
+  Very small handler just used to raise a common error tuple.
+  """
+  def invalid_err(name) do
+    { :error, "Invalid cache provided, got: #{inspect name}" }
   end
 
   @doc """

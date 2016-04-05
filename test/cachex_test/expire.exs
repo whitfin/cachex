@@ -6,7 +6,7 @@ defmodule CachexTest.Expire do
   end
 
   test "expire requires an existing cache name", _state do
-    assert(Cachex.expire("test", "key", :timer.seconds(1)) == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.expire("test", "key", :timer.seconds(1)) == { :error, "Invalid cache provided, got: \"test\"" })
   end
   
 end

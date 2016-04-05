@@ -147,9 +147,15 @@ defmodule Cachex.Util do
   whilst still checking for errors.
   """
   def handle_transaction(fun) when is_function(fun) do
-    fun
-    |> :mnesia.transaction
-    |> handle_transaction
+    case :mnesia.is_transaction do
+      true  ->
+        { :atomic, fun.() }
+        |> handle_transaction
+      false ->
+        fun
+        |> :mnesia.transaction
+        |> handle_transaction
+    end
   end
   def handle_transaction({ :atomic, { :error, _ } = err}), do: err
   def handle_transaction({ :atomic, { :ok, _ } = res}), do: res
@@ -225,5 +231,13 @@ defmodule Cachex.Util do
   """
   def stats_for_cache(cache) when is_atom(cache),
   do: String.to_atom(to_string(cache) <> "_stats")
+
+  @doc """
+  Very small unwrapper for an Mnesia start result. We accept already started tables
+  due to re-creation inside tests and setup/teardown scenarios.
+  """
+  def successfully_started?({ :atomic, :ok }), do: true
+  def successfully_started?({ :aborted, { :already_exists, _table } }), do: true
+  def successfully_started?(_), do: false
 
 end

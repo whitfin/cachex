@@ -6,7 +6,7 @@ defmodule CachexTest.Decr do
   end
 
   test "decr requires an existing cache name", _state do
-    assert(Cachex.decr("test", "key") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.decr("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
   
 end

@@ -6,7 +6,7 @@ defmodule CachexTest.Stats do
   end
 
   test "stats requires an existing cache name", _state do
-    assert(Cachex.stats("test") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.stats("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "stats returns an error if disabled", _state do

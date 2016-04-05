@@ -6,7 +6,7 @@ defmodule CachexTest.Clear do
   end
 
   test "clear requires an existing cache name", _state do
-    assert(Cachex.clear("test") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.clear("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
   
 end

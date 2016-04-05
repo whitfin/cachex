@@ -6,7 +6,7 @@ defmodule CachexTest.Empty do
   end
 
   test "empty? requires an existing cache name", _state do
-    assert(Cachex.empty?("test") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.empty?("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "empty? with values in the cache", state do

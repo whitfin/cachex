@@ -6,7 +6,7 @@ defmodule CachexTest.Purge do
   end
 
   test "purge requires an existing cache name", _state do
-    assert(Cachex.purge("test") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.purge("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "purge with an empty cache", state do

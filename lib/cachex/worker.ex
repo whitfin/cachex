@@ -153,6 +153,16 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Executes a block of cache actions inside the cache.
+  """
+  def execute(%__MODULE__{ } = state, operation, options \\ [])
+  when is_function(operation, 1) and is_list(options) do
+    state
+    |> operation.()
+    |> Util.ok
+  end
+
+  @doc """
   Determines whether a key exists in the cache.
   """
   def exists?(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
@@ -278,6 +288,18 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Executes a transaction of cache actions inside the cache.
+  """
+  def transaction(%__MODULE__{ } = state, operation, options \\ [])
+  when is_function(operation, 1) and is_list(options) do
+    Util.handle_transaction(fn ->
+      %__MODULE__{ state | actions: __MODULE__.Transactional }
+      |> operation.()
+      |> Util.ok
+    end)
+  end
+
+  @doc """
   Returns the time remaining on a key before expiry. The value returned it in
   milliseconds. If the key has no expiration, nil is returned.
   """
@@ -320,6 +342,7 @@ defmodule Cachex.Worker do
   gen_delegate del(state, key, options), type: [ :call, :cast ]
   gen_delegate clear(state, options), type: [ :call, :cast ]
   gen_delegate count(state, options), type: :call
+  gen_delegate execute(state, operations, options), type: [ :call, :cast ]
   gen_delegate exists?(state, key, options), type: :call
   gen_delegate expire(state, key, expiration, options), type: [ :call, :cast ]
   gen_delegate expire_at(state, key, timestamp, options), type: [ :call, :cast ]
@@ -330,6 +353,7 @@ defmodule Cachex.Worker do
   gen_delegate refresh(state, key, options), type: [ :call, :cast ]
   gen_delegate size(state, options), type: :call
   gen_delegate take(state, key, options), type: :call
+  gen_delegate transaction(state, operations, options), type: [ :call, :cast ]
   gen_delegate ttl(state, key, options), type: :call
 
   ###

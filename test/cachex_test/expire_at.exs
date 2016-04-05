@@ -8,7 +8,7 @@ defmodule CachexTest.ExpireAt do
   end
 
   test "expire at requires an existing cache name", _state do
-    assert(Cachex.expire_at("test", "key", Util.now()) == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.expire_at("test", "key", Util.now()) == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "expire at with an existing key and no ttl", state do

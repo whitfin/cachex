@@ -6,7 +6,7 @@ defmodule CachexTest.Ttl do
   end
 
   test "ttl requires an existing cache name", _state do
-    assert(Cachex.ttl("test", "key") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.ttl("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
 end

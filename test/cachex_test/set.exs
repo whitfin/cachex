@@ -6,7 +6,7 @@ defmodule CachexTest.Set do
   end
 
   test "set requires an existing cache name", _state do
-    assert(Cachex.set("test", "key", "value") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.set("test", "key", "value") == { :error, "Invalid cache provided, got: \"test\"" })
   end
   
 end

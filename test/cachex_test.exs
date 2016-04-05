@@ -36,7 +36,7 @@ defmodule CachexTest do
 
   test "defcheck macro cannot accept non-atom caches", _state do
     get_result = Cachex.get("test", "key")
-    assert(get_result == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(get_result == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "defcheck macro provides unsafe wrappers", state do
@@ -46,9 +46,9 @@ defmodule CachexTest do
     get_result = Cachex.get!(state.cache, "key")
     assert(get_result == "value")
 
-    assert_raise Cachex.ExecutionError, "Invalid cache name provided, got: \"test\"", fn ->
+    assert_raise(Cachex.ExecutionError, "Invalid cache provided, got: \"test\"", fn ->
       Cachex.get!("test", "key")
-    end
+    end)
   end
 
 end

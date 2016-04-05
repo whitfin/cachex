@@ -6,7 +6,7 @@ defmodule CachexTest.Exists do
   end
 
   test "exists? requires an existing cache name", _state do
-    assert(Cachex.exists?("test", "key") == { :error, "Invalid cache name provided, got: \"test\"" })
+    assert(Cachex.exists?("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
   test "exists? with an existing key", state do
