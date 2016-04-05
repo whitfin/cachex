@@ -415,7 +415,8 @@ defmodule Cachex do
 
   ## Options
 
-    * `:memory` - the memory footprint of the cache (in bytes).
+    * `:memory_bytes` - the memory footprint of the cache in bytes.
+    * `:memory_str` - the memory footprint of the cache in binary format.
     * `:worker` - the internal state of the cache worker.
 
   ## Examples

@@ -30,6 +30,19 @@ defmodule Cachex.Util do
   def reply(value, state), do: { :reply, value, state }
 
   @doc """
+  Converts a number of memory bytes to a binary representation.
+  """
+  def bytes_to_readable(size),
+  do: bytes_to_readable(size, ["B","KiB","MiB","GiB"])
+  def bytes_to_readable(size, [_|tail]) when size >= 1024,
+  do: bytes_to_readable(size / 1024, tail)
+  def bytes_to_readable(size, [head|_]) do
+    "~.2f ~s"
+    |> :io_lib.format([size, head])
+    |> IO.iodata_to_binary
+  end
+
+  @doc """
   Creates an input record based on a key, value and expiration. If the value
   passed is nil, then we apply any defaults. Otherwise we add the value
   to the current time (in milliseconds) and return a tuple for the table.

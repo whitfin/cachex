@@ -40,7 +40,7 @@ defmodule CachexTest.Hook do
       Cachex.get(state.name, "async_pre_hook")
     end)
 
-    assert(async_time < 100)
+    assert(async_time < 125)
   end
 
   test "hooks can time out a synchronous notification", state do
@@ -74,7 +74,7 @@ defmodule CachexTest.Hook do
       Cachex.get(state.name, "fast_sync_hook")
     end)
 
-    assert(sync_time < 100)
+    assert(sync_time < 125)
   end
 
   test "hooks can handle old messages in synchronous hooks", state do

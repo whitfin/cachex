@@ -155,9 +155,16 @@ defmodule Cachex.Worker do
   @doc """
   Various debugging options to retrieve internal information about a cache.
   """
-  def debug(%__MODULE__{ } = state, :memory) do
+  def debug(%__MODULE__{ } = state, :memory_bytes) do
     mem_words = :mnesia.table_info(state.cache, :memory)
     { :ok, mem_words * :erlang.system_info(:wordsize) }
+  end
+  def debug(%__MODULE__{ } = state, :memory_str) do
+    with { :ok, bytes } <- debug(state, :memory_bytes) do
+      bytes
+      |> Util.bytes_to_readable
+      |> Util.ok
+    end
   end
   def debug(%__MODULE__{ } = state, option) when option in [ :state, :worker ] do
     { :ok, state }
