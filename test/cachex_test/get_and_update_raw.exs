@@ -3,7 +3,7 @@ defmodule CachexTest.GetAndUpdateRaw do
 
   setup do
     cache = TestHelper.create_cache()
-    { :ok, cache: cache, worker: GenServer.call(cache, { :state })}
+    { :ok, cache: cache, worker: Cachex.debug!(cache, :state)}
   end
 
   test "get_and_update_raw with missing key", state do

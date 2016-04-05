@@ -10,7 +10,7 @@ defmodule CachexTest.Transaction do
   end
 
   test "transaction requires a single arity function", state do
-    worker = GenServer.call(state.cache, { :state })
+    worker = Cachex.debug!(state.cache, :state)
 
     assert_raise(FunctionClauseError, fn ->
       Cachex.Worker.transaction(worker, "test")

@@ -399,6 +399,46 @@ defmodule Cachex do
   end
 
   @doc """
+  Debug operations for a cache. This should only be used sparingly and should be
+  avoided in mission critical systems whenever possible.
+
+  All operations look at the immediate (local) node regardless of whether the cache
+  is distributed or not. Debug functions rely on the assumption that the entire
+  store is already consistent.
+
+  Accepted options are only provided for convenience and should not be relied upon.
+  They are not part of the public interface (despite being documented) and as such
+  may be removed at any time.
+
+  Please use cautiously. `debug/2` utilises a 5 second GenServer timeout and
+  performance is not a big concern. It is provided mainly for test purposes.
+
+  ## Options
+
+    * `:memory` - the memory footprint of the cache (in bytes).
+    * `:worker` - the internal state of the cache worker.
+
+  ## Examples
+
+      iex> Cachex.debug(:my_cache, :memory)
+      { :ok, 10624 }
+
+      iex> Cachex.debug(:my_cache, :worker)
+      {:ok,
+        %Cachex.Worker{actions: Cachex.Worker.Local, cache: :my_cache,
+         options: %Cachex.Options{cache: :my_cache, default_fallback: nil,
+          default_ttl: nil,
+          ets_opts: [read_concurrency: true, write_concurrency: true],
+          fallback_args: [], nodes: [:nonode@nohost], post_hooks: [], pre_hooks: [],
+          remote: false, transactional: false, ttl_interval: nil}}}
+
+  """
+  @spec debug(cache, atom | tuple) :: { status, any }
+  defcheck debug(cache, option) do
+    GenServer.call(cache, { :debug, option })
+  end
+
+  @doc """
   Decrements a key directly in the cache.
 
   This operation is an internal mutation, and as such any set TTL persists - i.e.

@@ -6,7 +6,7 @@ defmodule CachexTest.Worker do
   end
 
   test "worker is able to return internal state", state do
-    worker = GenServer.call(state.cache, { :state })
+    worker = Cachex.debug!(state.cache, :state)
 
     assert(worker.actions == Cachex.Worker.Local)
     assert(worker.cache == state.cache)
