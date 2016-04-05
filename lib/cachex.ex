@@ -30,9 +30,6 @@ defmodule Cachex do
   example usage.
   """
 
-  # the default timeout for a GenServer call
-  @def_timeout 250
-
   # the cache type
   @type cache :: atom | pid | Cachex.Worker
 
@@ -186,6 +183,7 @@ defmodule Cachex do
     * `:fallback` - a fallback function for multi-layered caches, overriding any
       default fallback functions. The value returned by this fallback is placed
       in the cache against the provided key, before being returned to the user.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -202,7 +200,7 @@ defmodule Cachex do
   """
   @spec get(cache, any, options) :: { status | :loaded, any }
   defcheck get(cache, key, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :get, key, options }, @def_timeout)
+    GenServer.call(cache, { :get, key, options }, timeout(options))
   end
 
   @doc """
@@ -216,6 +214,7 @@ defmodule Cachex do
     * `:fallback` - a fallback function for multi-layered caches, overriding any
       default fallback functions. The value returned by this fallback is passed
       into the update function.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -230,7 +229,7 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defcheck get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    GenServer.call(cache, { :get_and_update, key, update_function, options }, @def_timeout)
+    GenServer.call(cache, { :get_and_update, key, update_function, options }, timeout(options))
   end
 
   @doc """
@@ -243,6 +242,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
     * `:ttl` - a time-to-live for the provided key/value pair, overriding any
       default ttl. This value should be in milliseconds.
 
@@ -274,6 +274,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -308,6 +309,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -353,6 +355,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -377,6 +380,10 @@ defmodule Cachex do
   potentially expired keys into account, it is far more expensive than simply
   calling `size/2` and should only be used when completely necessary.
 
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
+
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -388,7 +395,7 @@ defmodule Cachex do
   """
   @spec count(cache, options) :: { status, number }
   defcheck count(cache, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :count, options }, @def_timeout)
+    GenServer.call(cache, { :count, options }, timeout(options))
   end
 
   @doc """
@@ -404,6 +411,7 @@ defmodule Cachex do
     * `:amount` - an amount to decrement by. This will default to 1.
     * `:initial` - if the key does not exist, it will be initialized to this amount.
       Defaults to 0.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -432,6 +440,10 @@ defmodule Cachex do
   This operates based on keys living in the cache, regardless of whether they should
   have expired previously or not. Internally this is just sugar for checking if
   `size/2` returns 0.
+
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -471,6 +483,10 @@ defmodule Cachex do
   the cache, otherwise your request will time out. This is due to the blocking
   nature of the execution, and can not be avoided (at this time).
 
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
+
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -496,6 +512,10 @@ defmodule Cachex do
   this determines existence within the bounds of TTLs; this means that if a key
   doesn't "exist", it may still be occupying memory in the cache.
 
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
+
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
@@ -508,7 +528,7 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, options) :: { status, true | false }
   defcheck exists?(cache, key, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :exists?, key, options }, @def_timeout)
+    GenServer.call(cache, { :exists?, key, options }, timeout(options))
   end
 
   @doc """
@@ -521,6 +541,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -555,6 +576,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -581,6 +603,10 @@ defmodule Cachex do
   @doc """
   Retrieves all keys from the cache, and returns them as an (unordered) list.
 
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
+
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -596,7 +622,7 @@ defmodule Cachex do
   """
   @spec keys(cache, options) :: [ any ]
   defcheck keys(cache, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :keys, options }, @def_timeout)
+    GenServer.call(cache, { :keys, options }, timeout(options))
   end
 
   @doc """
@@ -612,6 +638,7 @@ defmodule Cachex do
     * `:amount` - an amount to increment by. This will default to 1.
     * `:initial` - if the key does not exist, it will be initialized to this amount
       before being modified. Defaults to 0.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -642,6 +669,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -672,6 +700,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -696,6 +725,7 @@ defmodule Cachex do
 
     * `:async` - whether to wait on a response from the server, or to execute in
       the background.
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -726,6 +756,10 @@ defmodule Cachex do
   This includes any expired but unevicted keys. For a more representation which
   doesn't include expired keys, use `count/2`.
 
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
+
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -737,13 +771,17 @@ defmodule Cachex do
   """
   @spec size(cache, options) :: { status, number }
   defcheck size(cache, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :size, options }, @def_timeout)
+    GenServer.call(cache, { :size, options }, timeout(options))
   end
 
   @doc """
   Retrieves the statistics of a cache.
 
   If statistics gathering is not enabled, an error is returned.
+
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -758,13 +796,17 @@ defmodule Cachex do
   """
   @spec stats(cache, options) :: { status, %{ } }
   defcheck stats(cache, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :stats, options }, @def_timeout)
+    GenServer.call(cache, { :stats, options }, timeout(options))
   end
 
   @doc """
   Takes a key from the cache.
 
   This is equivalent to running `get/3` followed by `del/3` in a single action.
+
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -781,7 +823,7 @@ defmodule Cachex do
   """
   @spec take(cache, any, options) :: { status, any }
   defcheck take(cache, key, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :take, key, options }, @def_timeout)
+    GenServer.call(cache, { :take, key, options }, timeout(options))
   end
 
   @doc """
@@ -792,6 +834,10 @@ defmodule Cachex do
   You **must** use the worker instance passed to the provided function when calling
   the cache, otherwise your request will time out. This is due to the blocking
   nature of the execution, and can not be avoided (at this time).
+
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -823,6 +869,10 @@ defmodule Cachex do
   @doc """
   Returns the TTL for a cache entry in milliseconds.
 
+  ## Options
+
+    * `:timeout` - the timeout for any calls to the worker.
+
   ## Examples
 
       iex> Cachex.ttl(:my_cache, "my_key")
@@ -834,7 +884,7 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, options) :: { status, number }
   defcheck ttl(cache, key, options \\ []) when is_list(options) do
-    GenServer.call(cache, { :ttl, key, options }, @def_timeout)
+    GenServer.call(cache, { :ttl, key, options }, timeout(options))
   end
 
   ###
@@ -863,7 +913,7 @@ defmodule Cachex do
       |> GenServer.cast(args)
       |> (&(Util.create_truthy_result/1)).()
     else
-      GenServer.call(cache, args, @def_timeout)
+      GenServer.call(cache, args, timeout(options))
     end
   end
 
@@ -889,5 +939,10 @@ defmodule Cachex do
         { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
     end
   end
+
+  # Figure out a timeout for all calls. This is just a minor wrapper around checking
+  # for a `timeout` key in the list of options.
+  defp timeout(options) when is_list(options),
+  do: Keyword.get(options, :timeout, 250)
 
 end
