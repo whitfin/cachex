@@ -27,6 +27,10 @@ All of these features are optional and are off by default so you can pick and ch
     - [On Demand Expiration](#on-demand-expiration)
     - [Janitors](#janitors)
     - [TTL Distribution](#ttl-distribution)
+- [Action Blocks](#action-blocks)
+    - [Execution Blocks](#execution-blocks)
+    - [Transaction Blocks](#transaction-blocks)
+    - [Things To Remember](#things-to-remember)
 - [Interface](#interface)
 - [Contributions](#contributions)
 
@@ -285,6 +289,72 @@ The combination of Janitors and ODE means that distributed TTL becomes way easie
 This has the benefit of all machines cleaning up their local environment (assuming they all use the same schedules, which will always be the case in practice). Even though these schedules can get out of sync, if you access a key which should have expired, it'll then be removed due to ODE. This means that it's not possible to retrieve a key which has expired on one node and not another. This is a small example of eventual consistency and in theory (and practice) should be safe enough.
 
 During tests, the replication of a TTL purge during a transaction took an *extremely* long time. The same purge mentioned above (of 500,000 keys) took at least 6 seconds when done in a potentially unsafe way. When carried out in a totally transactional way it took upwards of 20 seconds. Clearly, this is definitely not good enough for potentially high throughput systems, and as such opting for each node cleaning only itself up was decided on.
+
+## Action Blocks
+
+As of `v0.9.0` support for execution blocks has been incorporated in Cachex. These blocks provide ways of ensuring many actions occur one after another (with some caveats, so read carefully). They come in two flavours; Execution Blocks and Transaction Blocks.
+
+#### Execution Blocks
+
+Execution Blocks were introduced to simply avoid the cost of passing messages back and forth when it could be done in one step. For example, rather than:
+
+```elixir
+val1 = Cachex.get!(:my_cache, "key1")
+val2 = Cachex.get!(:my_cache, "key2")
+```
+
+You can do something like this:
+
+```elixir
+{ val1, val2 } = Cachex.execute!(:my_cache, fn(worker) ->
+  v1 = Cachex.get!(worker, "key1")
+  v2 = Cachex.get!(worker, "key2")
+  { v1, v2 }
+end)
+```
+
+Although this looks more complicated, it saves you a round trip of message passing, which actually trims off ~50% of the time it takes to retrieve both of your values (in theory).
+
+It should be noted that the consistency of these actions depends on which type of cache you're working with. In a local cache, all actions go via a single `GenServer`. This has the nice effect of ensuring that an execution block is consistent and nothing can interrupt your actions - for example, a `set` followed by a `get` is guaranteed to return the value just written.
+
+This is **not** the case when working with remote nodes, because other nodes might carry out actions. This is very important to keep in mind, and if this poses an issue, you might wish to move to [Transaction Blocks](#transaction-blocks) instead.
+
+In addition, all actions taken inside an execution block are committed immediately. This means that there is no way to abort your block. Again, if this is a requirement please take a look at [Transaction Blocks](#transaction-blocks).
+
+#### Transaction Blocks
+
+Transaction Blocks are the consistent counterpart of Execution Blocks. They bind all actions into a transaction in order to ensure consistency even in distributed situations. This means that all actions you define in your transaction will execute one after another and are guaranteed successful. These blocks look identical to Execution Blocks:
+
+```elixir
+{ val1, val2 } = Cachex.transaction!(:my_cache, fn(worker) ->
+  v1 = Cachex.get!(worker, "key1")
+  v2 = Cachex.get!(worker, "key2")
+  { v1, v2 }
+end)
+```
+
+However, the other major difference is that they do not commit their changes immediately - only if the block executes successfully. This means that you can `abort/3` a transaction!
+
+```elixir
+# abort a write op
+Cachex.transaction!(:my_cache, fn(worker) ->
+  Cachex.set(worker, "key", "val")
+  Cachex.abort(worker, :i_want_to_abort) # second arg is the reason
+end)
+
+# write never happened
+Cachex.exists?(:my_cache, "key") == { :ok, false }
+```
+
+Cool, right?
+
+Of course it should be noted (and obvious) that transactions have quite a bit of overhead to them, so only use them when you have to.
+
+#### Things To Remember
+
+Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. This is because your blocks are executed inside the cache process.
+
+Calling with a cache name means that your actions will be sent to the worker process. Sadly, because you're waiting on the result of an action which executes after your block, your actions will just time out. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
 
 ## Interface
 
