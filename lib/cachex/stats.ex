@@ -62,6 +62,20 @@ defmodule Cachex.Stats do
   end
 
   @doc """
+  Add a hit to show that the key existed.
+  """
+  def handle_notify({ :exists?, _key, _options }, { :ok, true }, stats) do
+    { :ok, increment(stats, [:opCount, :hitCount]) }
+  end
+
+  @doc """
+  Add a miss to show that the key did not exist.
+  """
+  def handle_notify({ :exists?, _key, _options }, { :ok, false }, stats) do
+    { :ok, increment(stats, [:opCount, :missCount]) }
+  end
+
+  @doc """
   Add evictions to the stats, using the amount provided in the results.
   """
   def handle_notify({ :purge, _options }, { :ok, amount }, stats) do
