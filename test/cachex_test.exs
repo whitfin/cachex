@@ -34,12 +34,12 @@ defmodule CachexTest do
     assert(start_result == { :error, "Mnesia table setup failed due to {:aborted, {:bad_type, :#{state.name}, \"failnode@testhost.com\"}}" })
   end
 
-  test "defcheck macro cannot accept non-atom caches", _state do
+  test "defwrap macro cannot accept non-atom or non-worker caches", _state do
     get_result = Cachex.get("test", "key")
     assert(get_result == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
-  test "defcheck macro provides unsafe wrappers", state do
+  test "defwrap macro provides unsafe wrappers", state do
     set_result = Cachex.set!(state.cache, "key", "value")
     assert(set_result == true)
 

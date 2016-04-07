@@ -9,6 +9,11 @@ defmodule CachexTest.Count do
     assert(Cachex.count("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "count with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.count(state_result) == { :ok, 0 })
+  end
+
   test "count with an empty cache", state do
     count_result = Cachex.count(state.cache)
     assert(count_result == { :ok, 0 })

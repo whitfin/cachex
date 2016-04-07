@@ -9,6 +9,12 @@ defmodule CachexTest.Stats do
     assert(Cachex.stats("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "stats with a worker instance", _state do
+    cache = TestHelper.create_cache([record_stats: false])
+    state_result = Cachex.inspect!(cache, :worker)
+    assert(Cachex.stats(state_result) == { :error, "Stats not enabled for cache with ref '#{cache}'" })
+  end
+
   test "stats returns an error if disabled", _state do
     cache = TestHelper.create_cache([record_stats: false])
 

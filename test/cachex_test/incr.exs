@@ -8,5 +8,10 @@ defmodule CachexTest.Incr do
   test "incr requires an existing cache name", _state do
     assert(Cachex.incr("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
-  
+
+  test "incr with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.incr(state_result, "key") == { :ok, 1 })
+  end
+
 end

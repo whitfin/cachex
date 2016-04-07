@@ -9,4 +9,9 @@ defmodule CachexTest.Take do
     assert(Cachex.take("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "take with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.take(state_result, "key") == { :ok, nil })
+  end
+
 end

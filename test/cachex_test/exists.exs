@@ -9,6 +9,11 @@ defmodule CachexTest.Exists do
     assert(Cachex.exists?("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "exists? with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.exists?(state_result, "key") == { :ok, false })
+  end
+
   test "exists? with an existing key", state do
     set_result = Cachex.set(state.cache, "my_key", 5)
     assert(set_result == { :ok, true })

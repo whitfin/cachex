@@ -11,6 +11,11 @@ defmodule CachexTest.ExpireAt do
     assert(Cachex.expire_at("test", "key", Util.now()) == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "expire at with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.expire_at(state_result, "key", Util.now() + 5) == { :missing, false })
+  end
+
   test "expire at with an existing key and no ttl", state do
     set_result = Cachex.set(state.cache, "my_key", 5)
     assert(set_result == { :ok, true })

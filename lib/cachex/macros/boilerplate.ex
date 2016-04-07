@@ -11,43 +11,27 @@ defmodule Cachex.Macros.Boilerplate do
   alias Cachex.Macros
 
   @doc """
-  This is gross, but very convenient. It will basically define a function for the
-  main Cachex module, and it short-circuits if the specified GenServer can not be
-  found. In addition, it builds up a `!` version of the function to return values
-  or throw errors explicity.
+  Defines both a safe and unsafe version of an interface function, the unsafe
+  version simply unwrapping (hence `defwrap`) the results of the safe version.
   """
-  defmacro defcheck(head, do: body) do
+  defmacro defwrap(head, do: body) do
     explicit_head = gen_unsafe(head)
     { func_name, arguments } = Macros.name_and_args(head)
     sanitized_args = Macros.trim_defaults(arguments)
 
     quote do
       def unquote(head) do
-        cond do
-          is_atom(var!(cache)) ->
-            if GenServer.whereis(var!(cache)) == nil do
-              invalid_err(var!(cache))
-            else
-              unquote(body)
-            end
-          is_map(var!(cache)) ->
-            if var!(cache).__struct__ == Cachex.Worker do
-              if not unquote(func_name) in [:inspect] do
-                apply(Cachex.Worker, unquote(func_name), [unquote_splicing(sanitized_args)])
-              else
-                unquote(body)
-              end
-            else
-              invalid_err(var!(cache))
-            end
-          true ->
-            invalid_err(var!(cache))
-        end
+        unquote(body)
       end
 
       @doc false
       def unquote(explicit_head) do
-        raise_result(apply(Cachex, unquote(func_name), [unquote_splicing(sanitized_args)]))
+        case apply(Cachex, unquote(func_name), [unquote_splicing(sanitized_args)]) do
+          { :error, value } when is_binary(value) ->
+            raise ExecutionError, message: value
+          { _state, value } ->
+            value
+        end
       end
     end
   end
@@ -58,36 +42,6 @@ defmodule Cachex.Macros.Boilerplate do
       import unquote(__MODULE__)
     end
   end
-
-  @doc """
-  Very small handler just used to raise a common error tuple.
-  """
-  def invalid_err(name) do
-    { :error, "Invalid cache provided, got: #{inspect name}" }
-  end
-
-  @doc """
-  Neat little guy you can use to wrap the result of a function call returning
-  an :ok/:error tuple to return just the result or throw the error. This is used
-  when autogenerating `!` functions.
-
-  ## Examples
-
-      iex> Cachex.Macros.raise_result({ :ok, "value" })
-      "value"
-
-      iex> Cachex.Macros.raise_result({ :error, "value" })
-      ** (RuntimeError) value
-
-  """
-  def raise_result({ status, value }) do
-    cond do
-      status == :error and is_binary(value) ->
-        raise ExecutionError, message: value
-      true -> value
-    end
-  end
-  def raise_result(value), do: value
 
   # Converts various function input to an unsafe version by adding a trailing
   # "!" to the function name.

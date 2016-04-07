@@ -9,6 +9,11 @@ defmodule CachexTest.Transaction do
     assert(Cachex.transaction("test", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "transaction with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.transaction(state_result, &(!!&1)) == { :ok, true })
+  end
+
   test "transaction requires a single arity function", state do
     worker = Cachex.inspect!(state.cache, :state)
 

@@ -9,4 +9,9 @@ defmodule CachexTest.Update do
     assert(Cachex.update("test", "key", "value") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "update with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.update(state_result, "key", "value") == { :missing, false })
+  end
+
 end

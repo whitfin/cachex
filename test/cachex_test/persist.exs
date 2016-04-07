@@ -9,6 +9,11 @@ defmodule CachexTest.Persist do
     assert(Cachex.persist("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "persist with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.persist(state_result, "key") == { :missing, false })
+  end
+
   test "persist with a key with no ttl", state do
     set_result = Cachex.set(state.cache, "my_key", 5)
     assert(set_result == { :ok, true })

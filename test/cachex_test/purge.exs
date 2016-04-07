@@ -9,6 +9,11 @@ defmodule CachexTest.Purge do
     assert(Cachex.purge("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "purge with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.purge(state_result) == { :ok, 0 })
+  end
+
   test "purge with an empty cache", state do
     purge_result = Cachex.purge(state.cache)
     assert(purge_result == { :ok, 0 })

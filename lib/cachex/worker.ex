@@ -279,6 +279,20 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Returns the internal stats for this worker.
+  """
+  def stats(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    case Hook.ref_by_module(state.options.post_hooks, Cachex.Stats) do
+      nil ->
+        { :error, "Stats not enabled for cache with ref '#{state.cache}'" }
+      ref ->
+        ref
+        |> Stats.retrieve
+        |> Util.ok
+    end
+  end
+
+  @doc """
   Removes a key from the cache, returning the last known value for the key.
   """
   def take(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
@@ -352,6 +366,7 @@ defmodule Cachex.Worker do
   gen_delegate purge(state, options), type: [ :call, :cast ]
   gen_delegate refresh(state, key, options), type: [ :call, :cast ]
   gen_delegate size(state, options), type: :call
+  gen_delegate stats(state, options), type: :call
   gen_delegate take(state, key, options), type: :call
   gen_delegate transaction(state, operations, options), type: [ :call, :cast ]
   gen_delegate ttl(state, key, options), type: :call
@@ -375,20 +390,6 @@ defmodule Cachex.Worker do
   Very tiny wrapper to retrieve the current state of a cache
   """
   defcall state, do: state
-
-  @doc """
-  Returns the internal stats for this worker.
-  """
-  defcall stats(_options) do
-    case Hook.ref_by_module(state.options.post_hooks, Cachex.Stats) do
-      nil ->
-        { :error, "Stats not enabled for cache with ref '#{state.cache}'" }
-      ref ->
-        ref
-        |> Stats.retrieve
-        |> Util.ok
-    end
-  end
 
   ###
   # Functions designed to only be used internally (i.e. those not forwarded to

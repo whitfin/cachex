@@ -9,6 +9,11 @@ defmodule CachexTest.Size do
     assert(Cachex.size("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "size with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.size(state_result) == { :ok, 0 })
+  end
+
   test "size with an empty cache", state do
     size_result = Cachex.size(state.cache)
     assert(size_result == { :ok, 0 })
@@ -50,5 +55,5 @@ defmodule CachexTest.Size do
     size_result = Cachex.size(state.cache)
     assert(size_result == { :ok, 20 })
   end
-  
+
 end

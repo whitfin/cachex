@@ -35,7 +35,7 @@ defmodule Cachex.Macros.GenServer do
 
     quote do
       def handle_cast({ unquote(func_name), unquote_splicing(args) }, var!(state)) do
-        unquote(body); { :noreply, var!(state) }
+        unquote(body) |> Util.noreply(var!(state))
       end
     end
   end
@@ -50,24 +50,6 @@ defmodule Cachex.Macros.GenServer do
     quote do
       def handle_info(unquote(func_name), var!(state)) do
         unquote(body)
-      end
-    end
-  end
-
-  @doc """
-  Very small binding to allow either cast/call access to the same function body.
-  This is used for async writes, where the behaviour is the same regardless of
-  whether it's a call or a cast.
-  """
-  defmacro defcc(head, do: body) do
-    { func_name, args } = Macros.name_and_args(head)
-
-    quote do
-      def handle_call({ unquote(func_name), unquote_splicing(args) }, _, var!(state)) do
-        unquote(body) |> Util.reply(var!(state))
-      end
-      def handle_cast({ unquote(func_name), unquote_splicing(args) }, var!(state)) do
-        unquote(body) |> Util.noreply(var!(state))
       end
     end
   end

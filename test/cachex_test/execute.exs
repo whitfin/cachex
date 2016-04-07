@@ -9,6 +9,11 @@ defmodule CachexTest.Execute do
     assert(Cachex.execute("test", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "execute with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.execute(state_result, &(!!&1)) == { :ok, true })
+  end
+
   test "execute carries out many actions", state do
     result = Cachex.execute(state.cache, fn(worker) ->
       Cachex.set(worker, "my_key1", "my_value1")

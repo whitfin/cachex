@@ -10,6 +10,11 @@ defmodule CachexTest.Inspect do
     assert(Cachex.Inspector.inspect("test", "test") == { :error, "Invalid cache reference provided" })
   end
 
+  test "inspect with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.inspect(state_result, :worker) == { :ok, state_result })
+  end
+
   test "inspect requires a valid option", state do
     assert(Cachex.inspect(state.cache, "failed") == { :error, "Invalid inspect option provided" })
   end

@@ -9,6 +9,11 @@ defmodule CachexTest.GetAndUpdate do
     assert(Cachex.get_and_update("test", "key", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "get and update with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.get_and_update(state_result, "key", &(&1)) == { :ok, nil })
+  end
+
   test "get and update with missing key", state do
     gau_result = Cachex.get_and_update(state.cache, "my_key", fn
       (nil) -> 1

@@ -9,6 +9,11 @@ defmodule CachexTest.Empty do
     assert(Cachex.empty?("test") == { :error, "Invalid cache provided, got: \"test\"" })
   end
 
+  test "empty? with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.empty?(state_result) == { :ok, true })
+  end
+
   test "empty? with values in the cache", state do
     set_result = Cachex.set(state.cache, "my_key", 5)
     assert(set_result == { :ok, true })
