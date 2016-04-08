@@ -380,7 +380,7 @@ defmodule Cachex.Worker do
   about this being reported when stats are enabled for this cache.
   """
   defcast record_purge(count) do
-    do_action(state, [:purge], fn ->
+    do_action(state, { :purge, [] }, fn ->
       { :ok, count }
     end)
     { :noreply, state }
