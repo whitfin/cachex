@@ -376,17 +376,6 @@ defmodule Cachex.Worker do
   ###
 
   @doc """
-  Called by the janitor process to signal evictions being added. We only care
-  about this being reported when stats are enabled for this cache.
-  """
-  defcast record_purge(count) do
-    do_action(state, { :purge, [] }, fn ->
-      { :ok, count }
-    end)
-    { :noreply, state }
-  end
-
-  @doc """
   Very tiny wrapper to retrieve the current state of a cache
   """
   defcall state, do: state
