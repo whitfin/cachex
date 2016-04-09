@@ -57,7 +57,7 @@ defmodule CachexTest.Hook do
       Cachex.get(state.name, "sync_pre_hook")
     end)
 
-    assert(sync_time > 10000 && sync_time < 17500)
+    assert(sync_time > 5000 && sync_time < 7500)
   end
 
   test "hooks with synchronous notifications have minimal overhead", state do
@@ -91,7 +91,7 @@ defmodule CachexTest.Hook do
       Cachex.get(state.name, "sync_double_hook")
     end)
 
-    assert(sync_time > 10000 && sync_time < 17500)
+    assert(sync_time > 5000 && sync_time < 7500)
   end
 
 

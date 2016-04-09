@@ -45,9 +45,9 @@ defmodule CachexTest.Stats do
     assert(stats_result.hitRate == 0.5)
     assert(stats_result.missCount == 1)
     assert(stats_result.missRate == 0.5)
-    assert(stats_result.opCount == 4)
+    assert(stats_result.opCount == 3)
     assert(stats_result.requestCount == 2)
-    assert(stats_result.setCount == 2)
+    assert(stats_result.setCount == 1)
   end
 
 end
