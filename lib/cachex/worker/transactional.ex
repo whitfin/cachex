@@ -35,17 +35,12 @@ defmodule Cachex.Worker.Transactional do
 
       case val do
         :missing ->
-          { status, new_value } =
-            result =
-              state
-              |> Util.get_fallback(key, fb_fun)
-
-          state
-          |> Worker.set(key, new_value)
-
-          case status do
-            :ok -> { :missing, new_value }
-            :loaded -> result
+          case Util.get_fallback(state, key, fb_fun) do
+            { :ok, new_value } ->
+              { :missing, new_value }
+            { :loaded, new_value } = result ->
+              Worker.set(state, key, new_value)
+              result
           end
         val ->
           { :ok, val }
