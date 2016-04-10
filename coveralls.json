@@ -19,7 +19,6 @@
   "skip_files": [
     "lib/cachex/macros.ex",
     "lib/cachex/macros/boilerplate.ex",
-    "lib/cachex/macros/gen_server.ex",
-    "lib/cachex/macros/stats.ex"
+    "lib/cachex/macros/gen_server.ex"
   ]
 }

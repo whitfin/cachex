@@ -171,16 +171,18 @@ defmodule Cachex.Worker.Local do
   existed in the cache upon deletion.
   """
   def take(state, key, _options) do
-    value = case :ets.take(state.cache, key) do
+    case :ets.take(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired?(touched, ttl) do
-          true  -> nil
-          false -> value
+          true  ->
+            Worker.del(state, key)
+            { :missing, nil }
+          false ->
+            { :ok, value }
         end
-      _unrecognised_val -> nil
+      _unrecognised_val ->
+        { :missing, nil }
     end
-
-    Util.ok(value)
   end
 
   @doc """

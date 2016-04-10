@@ -83,8 +83,9 @@ defmodule Cachex.Worker.Transactional do
   write lock in order to ensure no clashing writes occur at the same time.
   """
   def del(state, key, _options) do
-    fn -> :mnesia.delete(state.cache, key, :write) end
-    |> Util.handle_transaction()
+    Util.handle_transaction(fn ->
+      :mnesia.delete(state.cache, key, :write)
+    end)
     |> (&(Util.create_truthy_result(&1 == { :ok, :ok }))).()
   end
 
@@ -165,12 +166,20 @@ defmodule Cachex.Worker.Transactional do
   def take(state, key, _options) do
     Util.handle_transaction(fn ->
       value = case :mnesia.read(state.cache, key) do
-        [{ _cache, ^key, _touched, _ttl, value }] -> value
-        _unrecognised_val -> nil
+        [{ _cache, ^key, touched, ttl, value }] ->
+          case Util.has_expired?(touched, ttl) do
+            true  ->
+              Worker.del(state, key)
+              { :missing, nil }
+            false ->
+              { :ok, value }
+          end
+        _unrecognised_val ->
+          { :missing, nil }
       end
 
       if value != nil do
-        :mnesia.delete(state.cache, key, :write)
+        Worker.del(state, key)
       end
 
       value
