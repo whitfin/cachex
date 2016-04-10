@@ -29,12 +29,12 @@ defmodule CachexTest.Decr.Local do
 
   test "decr with missing key with no initial value", state do
     decr_result = Cachex.decr(state.cache, "my_key")
-    assert(decr_result == { :ok, -1 })
+    assert(decr_result == { :missing, -1 })
   end
 
   test "decr with missing key with initial value", state do
     decr_result = Cachex.decr(state.cache, "my_key", initial: 5)
-    assert(decr_result == { :ok, 4 })
+    assert(decr_result == { :missing, 4 })
   end
 
   test "decr with async is faster than non-async", state do

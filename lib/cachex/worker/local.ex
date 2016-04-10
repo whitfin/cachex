@@ -150,9 +150,20 @@ defmodule Cachex.Worker.Local do
       state
       |> Util.create_record(key, initial)
 
-    state.cache
-    |> :ets.update_counter(key, { 5, amount }, new_record)
-    |> Util.ok()
+    exists_key =
+      state
+      |> Worker.quietly_exists?(key)
+
+    new_value =
+      state.cache
+      |> :ets.update_counter(key, { 5, amount }, new_record)
+
+    case exists_key do
+      { :ok, true } ->
+        { :ok, new_value }
+      { :ok, false } ->
+        { :missing, new_value }
+    end
   end
 
   @doc """

@@ -29,12 +29,12 @@ defmodule CachexTest.Incr.Local do
 
   test "incr with missing key with no initial value", state do
     incr_result = Cachex.incr(state.cache, "my_key")
-    assert(incr_result == { :ok, 1 })
+    assert(incr_result == { :missing, 1 })
   end
 
   test "incr with missing key with initial value", state do
     incr_result = Cachex.incr(state.cache, "my_key", initial: 5)
-    assert(incr_result == { :ok, 6 })
+    assert(incr_result == { :missing, 6 })
   end
 
   test "incr with async is faster than non-async", state do

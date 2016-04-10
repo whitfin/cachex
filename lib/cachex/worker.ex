@@ -76,14 +76,17 @@ defmodule Cachex.Worker do
         options
         |> Util.get_opt_function(:fallback)
 
-      is_loaded = case quietly_exists?(state, key) do
+      status = case quietly_exists?(state, key) do
+        { :ok, true } ->
+          :ok
         { :ok, false } ->
           case Util.get_fallback_function(state, fb_fun) do
-            nil -> false
+            nil ->
+              :missing
             val ->
-              Util.has_arity?(val, [0, 1, length(state.options.fallback_args) + 1])
+              has_arity = Util.has_arity?(val, [0, 1, length(state.options.fallback_args) + 1])
+              has_arity && :loaded || :missing
           end
-        _other_results -> false
       end
 
       { :ok, result } = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
@@ -98,7 +101,7 @@ defmodule Cachex.Worker do
         end }
       end)
 
-      { is_loaded && :loaded || :ok, elem(result, 4) }
+      { status, elem(result, 4) }
     end)
   end
 
