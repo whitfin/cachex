@@ -467,7 +467,7 @@ defmodule Cachex do
       { :ok, 5 }
 
       iex> Cachex.decr(:my_cache, "missing_key", amount: 5, initial: 0)
-      { :ok, -5 }
+      { :missing, -5 }
 
   """
   @spec decr(cache, any, options) :: { status, number }
@@ -721,7 +721,7 @@ defmodule Cachex do
       { :ok, 15 }
 
       iex> Cachex.incr(:my_cache, "missing_key", amount: 5, initial: 0)
-      { :ok, 5 }
+      { :missing, 5 }
 
   """
   @spec incr(cache, any, options) :: { status, number }
@@ -915,14 +915,24 @@ defmodule Cachex do
 
   ## Options
 
+    * `:for` - a specific set of actions to retrieve statistics for.
     * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
       iex> Cachex.stats(:my_cache)
+      {:ok, %{creationDate: 1460312824198, missCount: 1, opCount: 2, setCount: 1}}
+
+      iex> Cachex.stats(:my_cache, for: :get)
+      {:ok, %{creationDate: 1460312824198, get: %{missing: 1}}}
+
+      iex> Cachex.stats(:my_cache, for: :raw)
       {:ok,
-       %{creationDate: 1455690638577, evictionCount: 0, expiredCount: 0, hitCount: 0,
-         missCount: 0, opCount: 0, requestCount: 0, setCount: 0}}
+       %{get: %{missing: 1}, global: %{missCount: 1, opCount: 2, setCount: 1},
+         meta: %{creationDate: 1460312824198}, set: %{true: 1}}}
+
+      iex> Cachex.stats(:my_cache, for: [ :get, :set ])
+      {:ok, %{creationDate: 1460312824198, get: %{missing: 1}, set: %{true: 1}}}
 
       iex> Cachex.stats(:cache_with_no_stats)
       { :error, "Stats not enabled for cache with ref ':cache_with_no_stats'" }
@@ -1110,7 +1120,7 @@ defmodule Cachex do
   # Determine if we have a valid cache passed in or not. Deal with atom caches
   # first to ensure we deal with the more common use case.
   defp valid_cache?(cache) when is_atom(cache) do
-    :erlang.whereis(cache) != nil
+    :erlang.whereis(cache) != :undefined
   end
   defp valid_cache?(%Cachex.Worker{ }), do: true
   defp valid_cache?(_), do: false

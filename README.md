@@ -384,8 +384,8 @@ nil
 iex(3)> Cachex.get(:missing_cache, "key")
 {:error, "Invalid cache name provided, got: :missing_cache"}
 iex(4)> Cachex.get!(:missing_cache, "key")
-** (Cachex.ExecutionError) Invalid cache name provided, got: :missing_cache
-    (cachex) lib/cachex/macros/boilerplate.ex:77: Cachex.Macros.Boilerplate.raise_result/1
+** (Cachex.ExecutionError) Invalid cache provided, got: :missing_cache
+    (cachex) lib/cachex.ex:204: Cachex.get!/3
 ```
 
 I'd typically recommend checking the values and using the safe version which gives you a tuple, but sometimes it's easier to use the unsafe version (for example in unit tests).
