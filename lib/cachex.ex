@@ -738,10 +738,12 @@ defmodule Cachex do
   end
 
   @doc """
-  Debug operations for a cache. These operations typically happen outside of the
-  worker process (i.e. in the calling process). As such they have no impact on the
-  actions being taken by the worker. This means that these operations are safe
-  safe for use with hot caches, but come with a stricter set of limitations.
+  Various debug operations for a cache.
+
+  These operations typically happen outside of the worker process (i.e. in the
+  calling process). As such they have no impact on the actions being taken by the
+  worker. This means that these operations are safe for use with hot caches, but
+  come with a stricter set of limitations.
 
   All operations look at the immediate (local) node regardless of whether the cache
   is distributed or not. Inspection functions rely on the assumption that the entire
