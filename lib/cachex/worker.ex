@@ -194,7 +194,7 @@ defmodule Cachex.Worker do
             val when val == nil or val > 0 ->
               state.actions.expire(state, key, expiration, options)
             _expired_already ->
-              del(state, key, notify: false)
+              del(state, key)
           end
         _other_value_ ->
           { :missing, false }
