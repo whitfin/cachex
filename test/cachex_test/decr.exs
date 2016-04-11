@@ -11,7 +11,7 @@ defmodule CachexTest.Decr do
 
   test "decr with a worker instance", state do
     state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.decr(state_result, "key") == { :ok, -1 })
+    assert(Cachex.decr(state_result, "key") == { :missing, -1 })
   end
 
 end

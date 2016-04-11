@@ -10,6 +10,9 @@ defmodule Cachex.Worker.Local do
   # from inside this module (internal functions), you should go through the
   # Worker parent module to avoid creating potentially messy internal dependency.
 
+  # no notify opts
+  @no_notify [ notify: false ]
+
   # add some aliases
   alias Cachex.Util
   alias Cachex.Worker
@@ -96,7 +99,7 @@ defmodule Cachex.Worker.Local do
   of records which were removed.
   """
   def clear(state, _options) do
-    eviction_count = case Worker.size(state) do
+    eviction_count = case Worker.size(state, @no_notify) do
       { :ok, size } -> size
       _other_value_ -> nil
     end
@@ -150,9 +153,20 @@ defmodule Cachex.Worker.Local do
       state
       |> Util.create_record(key, initial)
 
-    state.cache
-    |> :ets.update_counter(key, { 5, amount }, new_record)
-    |> Util.ok()
+    exists_key =
+      state
+      |> Worker.quietly_exists?(key)
+
+    new_value =
+      state.cache
+      |> :ets.update_counter(key, { 5, amount }, new_record)
+
+    case exists_key do
+      { :ok, true } ->
+        { :ok, new_value }
+      { :ok, false } ->
+        { :missing, new_value }
+    end
   end
 
   @doc """
@@ -171,16 +185,18 @@ defmodule Cachex.Worker.Local do
   existed in the cache upon deletion.
   """
   def take(state, key, _options) do
-    value = case :ets.take(state.cache, key) do
+    case :ets.take(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired?(touched, ttl) do
-          true  -> nil
-          false -> value
+          true  ->
+            Worker.del(state, key)
+            { :missing, nil }
+          false ->
+            { :ok, value }
         end
-      _unrecognised_val -> nil
+      _unrecognised_val ->
+        { :missing, nil }
     end
-
-    Util.ok(value)
   end
 
   @doc """

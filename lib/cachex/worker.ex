@@ -76,14 +76,17 @@ defmodule Cachex.Worker do
         options
         |> Util.get_opt_function(:fallback)
 
-      is_loaded = case exists?(state, key) do
+      status = case quietly_exists?(state, key) do
+        { :ok, true } ->
+          :ok
         { :ok, false } ->
           case Util.get_fallback_function(state, fb_fun) do
-            nil -> false
+            nil ->
+              :missing
             val ->
-              Util.has_arity?(val, [0, 1, length(state.options.fallback_args) + 1])
+              has_arity = Util.has_arity?(val, [0, 1, length(state.options.fallback_args) + 1])
+              has_arity && :loaded || :missing
           end
-        _other_results -> false
       end
 
       { :ok, result } = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
@@ -98,7 +101,7 @@ defmodule Cachex.Worker do
         end }
       end)
 
-      { is_loaded && :loaded || :ok, elem(result, 4) }
+      { status, elem(result, 4) }
     end)
   end
 
@@ -115,12 +118,14 @@ defmodule Cachex.Worker do
   Updates a value in the cache.
   """
   def update(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
-    case exists?(state, key) do
-      { :ok, true } ->
-        state.actions.update(state, key, value, options)
-      _other_value_ ->
-        { :missing, false }
-    end
+    do_action(state, { :update, key, value, options }, fn ->
+      case quietly_exists?(state, key) do
+        { :ok, true } ->
+          state.actions.update(state, key, value, options)
+        _other_value_ ->
+          { :missing, false }
+      end
+    end)
   end
 
   @doc """
@@ -169,14 +174,8 @@ defmodule Cachex.Worker do
     do_action(state, { :exists?, key, options }, fn ->
       case :ets.lookup(state.cache, key) do
         [{ _cache, ^key, touched, ttl, _value }] ->
-          expired =
-            touched
-            |> Util.has_expired?(ttl)
-
-          if expired do
-            del(state, key)
-          end
-
+          expired = Util.has_expired?(touched, ttl)
+          expired && del(state, key)
           { :ok, !expired }
         _unrecognised_val ->
           { :ok, false }
@@ -189,7 +188,7 @@ defmodule Cachex.Worker do
   """
   def expire(%__MODULE__{ } = state, key, expiration, options \\ []) when is_list(options) do
     do_action(state, { :expire, key, expiration, options }, fn ->
-      case exists?(state, key) do
+      case quietly_exists?(state, key) do
         { :ok, true } ->
           state.actions.expire(state, key, expiration, options)
         _other_value_ ->
@@ -203,7 +202,7 @@ defmodule Cachex.Worker do
   """
   def expire_at(%__MODULE__{ } = state, key, timestamp, options \\ []) when is_list(options) do
     do_action(state, { :expire_at, key, timestamp, options }, fn ->
-      case exists?(state, key) do
+      case quietly_exists?(state, key) do
         { :ok, true } ->
           case timestamp - Util.now() do
             val when val > 0 ->
@@ -240,7 +239,12 @@ defmodule Cachex.Worker do
   """
   def persist(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :persist, key, options }, fn ->
-      expire(state, key, nil, options)
+      case quietly_exists?(state, key) do
+        { :ok, true } ->
+          state.actions.expire(state, key, nil, options)
+        _other_value_ ->
+          { :missing, false }
+      end
     end)
   end
 
@@ -258,7 +262,7 @@ defmodule Cachex.Worker do
   """
   def refresh(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :refresh, key, options }, fn ->
-      case exists?(state, key) do
+      case quietly_exists?(state, key) do
         { :ok, true } ->
           state.actions.refresh(state, key, options)
         _other_value_ ->
@@ -287,7 +291,7 @@ defmodule Cachex.Worker do
         { :error, "Stats not enabled for cache with ref '#{state.cache}'" }
       ref ->
         ref
-        |> Stats.retrieve
+        |> Stats.retrieve(options)
         |> Util.ok
     end
   end
@@ -390,20 +394,27 @@ defmodule Cachex.Worker do
   The idea is that in future this will delegate to distributed implementations,
   so it has been built out in advance to provide a clear migration path.
   """
-  def do_action(%__MODULE__{ } = state, message, fun) when is_list(message),
-  do: do_action(state, Util.list_to_tuple(message), fun)
   def do_action(%__MODULE__{ } = state, message, fun)
   when is_tuple(message) and is_function(fun) do
-    case state.options.pre_hooks do
-      [] -> nil;
-      li -> Notifier.notify(li, message)
+    notify =
+      message
+      |> Util.last_of_tuple
+      |> Keyword.get(:notify, true)
+
+    if notify do
+      case state.options.pre_hooks do
+        [] -> nil;
+        li -> Notifier.notify(li, message)
+      end
     end
 
     result = fun.()
 
-    case state.options.post_hooks do
-      [] -> nil;
-      li -> Notifier.notify(li, message, result)
+    if notify do
+      case state.options.post_hooks do
+        [] -> nil;
+        li -> Notifier.notify(li, message, result)
+      end
     end
 
     result
@@ -434,6 +445,15 @@ defmodule Cachex.Worker do
       :mnesia.write(new_value)
       new_value
     end)
+  end
+
+  @doc """
+  Carries out a quiet check to determine whether a key exists or not - a quiet
+  check is one which does not notify hooks (and so can be used from within other
+  actions).
+  """
+  def quietly_exists?(%__MODULE__{ } = state, key) do
+    exists?(state, key, [ notify: false ])
   end
 
 end

@@ -11,7 +11,12 @@ defmodule CachexTest.GetAndUpdate do
 
   test "get and update with a worker instance", state do
     state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.get_and_update(state_result, "key", &(&1)) == { :ok, nil })
+    assert(Cachex.get_and_update(state_result, "key", &(&1)) == { :missing, nil })
+  end
+
+  test "get and update with a worker instance defaults options safely", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.Worker.get_and_update(state_result, "key", &(&1)) == { :missing, nil })
   end
 
   test "get and update with missing key", state do
@@ -19,7 +24,7 @@ defmodule CachexTest.GetAndUpdate do
       (nil) -> 1
       (val) -> val
     end)
-    assert(gau_result == { :ok, 1 })
+    assert(gau_result == { :missing, 1 })
 
     get_result = Cachex.get(state.cache, "my_key")
     assert(get_result == { :ok, 1 })
@@ -106,7 +111,7 @@ defmodule CachexTest.GetAndUpdate do
       |> TestHelper.create_cache
       |> Cachex.get_and_update("my_key", &(to_string/1), fallback: &(&1 <> &2 <> &3))
 
-    assert(gau_result == { :ok, "" })
+    assert(gau_result == { :missing, "" })
   end
 
   test "get_and_update with expired key", state do
@@ -119,7 +124,7 @@ defmodule CachexTest.GetAndUpdate do
       (nil) -> true
       (_na) -> false
     end)
-    assert(gau_result == { :ok, true })
+    assert(gau_result == { :missing, true })
   end
 
   test "get and update with touch/ttl times being maintained", state do

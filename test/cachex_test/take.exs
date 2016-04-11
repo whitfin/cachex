@@ -11,7 +11,7 @@ defmodule CachexTest.Take do
 
   test "take with a worker instance", state do
     state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.take(state_result, "key") == { :ok, nil })
+    assert(Cachex.take(state_result, "key") == { :missing, nil })
   end
 
 end
