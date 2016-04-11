@@ -76,7 +76,7 @@ defmodule Cachex.Worker do
         options
         |> Util.get_opt_function(:fallback)
 
-      status = case quietly_exists?(state, key) do
+      status = case exists?(state, key, notify: false) do
         { :ok, true } ->
           :ok
         { :ok, false } ->
@@ -119,7 +119,7 @@ defmodule Cachex.Worker do
   """
   def update(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
     do_action(state, { :update, key, value, options }, fn ->
-      case quietly_exists?(state, key) do
+      case exists?(state, key, notify: false) do
         { :ok, true } ->
           state.actions.update(state, key, value, options)
         _other_value_ ->
@@ -188,27 +188,13 @@ defmodule Cachex.Worker do
   """
   def expire(%__MODULE__{ } = state, key, expiration, options \\ []) when is_list(options) do
     do_action(state, { :expire, key, expiration, options }, fn ->
-      case quietly_exists?(state, key) do
+      case exists?(state, key, notify: false) do
         { :ok, true } ->
-          state.actions.expire(state, key, expiration, options)
-        _other_value_ ->
-          { :missing, false }
-      end
-    end)
-  end
-
-  @doc """
-  Refreshes the expiration on a given key to match the timestamp passed in.
-  """
-  def expire_at(%__MODULE__{ } = state, key, timestamp, options \\ []) when is_list(options) do
-    do_action(state, { :expire_at, key, timestamp, options }, fn ->
-      case quietly_exists?(state, key) do
-        { :ok, true } ->
-          case timestamp - Util.now() do
-            val when val > 0 ->
-              state.actions.expire(state, key, val, options)
+          case expiration do
+            val when val == nil or val > 0 ->
+              state.actions.expire(state, key, expiration, options)
             _expired_already ->
-              del(state, key)
+              del(state, key, notify: false)
           end
         _other_value_ ->
           { :missing, false }
@@ -235,20 +221,6 @@ defmodule Cachex.Worker do
   end
 
   @doc """
-  Removes a set TTL from a given key.
-  """
-  def persist(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :persist, key, options }, fn ->
-      case quietly_exists?(state, key) do
-        { :ok, true } ->
-          state.actions.expire(state, key, nil, options)
-        _other_value_ ->
-          { :missing, false }
-      end
-    end)
-  end
-
-  @doc """
   Purges all expired keys.
   """
   def purge(%__MODULE__{ } = state, options \\ []) when is_list(options) do
@@ -262,7 +234,7 @@ defmodule Cachex.Worker do
   """
   def refresh(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :refresh, key, options }, fn ->
-      case quietly_exists?(state, key) do
+      case exists?(state, key, notify: false) do
         { :ok, true } ->
           state.actions.refresh(state, key, options)
         _other_value_ ->
@@ -363,10 +335,8 @@ defmodule Cachex.Worker do
   gen_delegate execute(state, operations, options), type: [ :call, :cast ]
   gen_delegate exists?(state, key, options), type: :call
   gen_delegate expire(state, key, expiration, options), type: [ :call, :cast ]
-  gen_delegate expire_at(state, key, timestamp, options), type: [ :call, :cast ]
   gen_delegate keys(state, options), type: :call
   gen_delegate incr(state, key, options), type: [ :call, :cast ]
-  gen_delegate persist(state, key, options), type: [ :call, :cast ]
   gen_delegate purge(state, options), type: [ :call, :cast ]
   gen_delegate refresh(state, key, options), type: [ :call, :cast ]
   gen_delegate size(state, options), type: :call
@@ -396,10 +366,18 @@ defmodule Cachex.Worker do
   """
   def do_action(%__MODULE__{ } = state, message, fun)
   when is_tuple(message) and is_function(fun) do
-    notify =
+    options =
       message
       |> Util.last_of_tuple
+
+    notify =
+      options
       |> Keyword.get(:notify, true)
+
+    message = case options[:via] do
+      nil -> message
+      val -> put_elem(message, 0, val)
+    end
 
     if notify do
       case state.options.pre_hooks do
@@ -445,15 +423,6 @@ defmodule Cachex.Worker do
       :mnesia.write(new_value)
       new_value
     end)
-  end
-
-  @doc """
-  Carries out a quiet check to determine whether a key exists or not - a quiet
-  check is one which does not notify hooks (and so can be used from within other
-  actions).
-  """
-  def quietly_exists?(%__MODULE__{ } = state, key) do
-    exists?(state, key, [ notify: false ])
   end
 
 end

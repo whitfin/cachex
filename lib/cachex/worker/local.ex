@@ -10,9 +10,6 @@ defmodule Cachex.Worker.Local do
   # from inside this module (internal functions), you should go through the
   # Worker parent module to avoid creating potentially messy internal dependency.
 
-  # no notify opts
-  @no_notify [ notify: false ]
-
   # add some aliases
   alias Cachex.Util
   alias Cachex.Worker
@@ -99,7 +96,7 @@ defmodule Cachex.Worker.Local do
   of records which were removed.
   """
   def clear(state, _options) do
-    eviction_count = case Worker.size(state, @no_notify) do
+    eviction_count = case Worker.size(state, notify: false) do
       { :ok, size } -> size
       _other_value_ -> nil
     end
@@ -155,7 +152,7 @@ defmodule Cachex.Worker.Local do
 
     exists_key =
       state
-      |> Worker.quietly_exists?(key)
+      |> Worker.exists?(key, notify: false)
 
     new_value =
       state.cache

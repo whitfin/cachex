@@ -82,7 +82,7 @@ defmodule Cachex.Stats.Registry do
 
   # Both the get_and_update and increment calls do either an update or a set depending on whether
   # the key existed in the cache before the operation.
-  defp process_action(action, { status, _value }) when action in [ :get_and_update, :incr ] do
+  defp process_action(action, { status, _value }) when action in [ :get_and_update, :decr, :incr ] do
     [ { action, status, 1 }, { :global, status == :ok && :updateCount || :setCount, 1 } ]
   end
 

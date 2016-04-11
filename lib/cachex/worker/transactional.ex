@@ -8,9 +8,6 @@ defmodule Cachex.Worker.Transactional do
   # As such these implementations are far slower than others, but provide a good
   # level of consistency across nodes.
 
-  # no notify opts
-  @no_notify [ notify: false ]
-
   # add some aliases
   alias Cachex.Util
   alias Cachex.Worker
@@ -79,7 +76,7 @@ defmodule Cachex.Worker.Transactional do
   """
   def update(state, key, value, _options) do
     state
-    |> Worker.get_and_update(key, fn(_val) -> value end, @no_notify)
+    |> Worker.get_and_update(key, fn(_val) -> value end, notify: false)
     |> (&(Util.create_truthy_result(elem(&1, 0) == :ok))).()
   end
 
@@ -99,7 +96,7 @@ defmodule Cachex.Worker.Transactional do
   `size/1` in order to return the number of records which were removed.
   """
   def clear(state, _options) do
-    eviction_count = case Worker.size(state, @no_notify) do
+    eviction_count = case Worker.size(state, notify: false) do
       { :ok, size } -> size
       _other_value_ -> nil
     end
@@ -149,7 +146,7 @@ defmodule Cachex.Worker.Transactional do
     Worker.get_and_update(state, key, fn
       (nil) -> initial + amount
       (val) -> val + amount
-    end, @no_notify)
+    end, notify: false)
   end
 
   @doc """
@@ -184,7 +181,7 @@ defmodule Cachex.Worker.Transactional do
       end
 
       if value != nil do
-        Worker.del(state, key, @no_notify)
+        Worker.del(state, key, notify: false)
       end
 
       value

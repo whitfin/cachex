@@ -33,6 +33,25 @@ defmodule CachexTest.Stats.Registry.Transactional do
     assert(stats[:global] == %{ opCount: 1 })
   end
 
+  test "stats with an decr action", state do
+    set_result = Cachex.set(state.cache, "key", 1)
+    assert(set_result == { :ok, true })
+
+    decr_result = Cachex.decr(state.cache, "key")
+    assert(decr_result == { :ok, 0 })
+
+    decr_result = Cachex.decr(state.cache, "missing_key")
+    assert(decr_result == { :missing, -1 })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:decr] == %{ ok: 1, missing: 1 })
+    # setCount is 2 because missing keys are set
+    # updateCount is 1 because only :ok is an update
+    assert(stats[:global] == %{ opCount: 3, setCount: 2, updateCount: 1 })
+  end
+
   test "stats with a del action", state do
     set_result = Cachex.set(state.cache, "key", "value")
     assert(set_result == { :ok, true })
