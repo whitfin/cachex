@@ -1,15 +1,6 @@
 defmodule CachexTest.Stats do
   use PowerAssert
 
-  @status_based %{
-    expire: [ 1000 ],
-    expire_at: [ Cachex.Util.now() + :timer.minutes(1) ],
-    persist: [ ],
-    refresh: [ ],
-    take: [ ],
-    ttl: [ ]
-  }
-
   setup do
     { :ok, cache: TestHelper.create_cache([record_stats: true]) }
   end
@@ -37,6 +28,11 @@ defmodule CachexTest.Stats do
     set_result = Cachex.set(state.cache, "my_key", "my_value")
     assert(set_result == { :ok, true })
 
+    { stats_status, stats_result } = Cachex.stats(state.cache)
+
+    assert(stats_status == :ok)
+    refute(Map.has_key?(stats_result, :requestCount))
+
     get_result = Cachex.get(state.cache, "missing_key")
     assert(get_result == { :missing, nil })
 
@@ -62,6 +58,19 @@ defmodule CachexTest.Stats do
     assert_in_delta(stats_result.creationDate, creation_date, 5)
   end
 
+  test "stats returns global as a key when requested separately", state do
+    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :global ])
+
+    assert(stats_status == :ok)
+    refute(Map.has_key?(stats_result, :global))
+
+    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :global, :get ])
+
+    assert(stats_status == :ok)
+    assert(Map.has_key?(stats_result, :get))
+    assert(Map.has_key?(stats_result, :global))
+  end
+
   test "stats can return the raw statistics", state do
     set_result = Cachex.set(state.cache, "my_key", "my_value")
     assert(set_result == { :ok, true })
@@ -77,31 +86,106 @@ defmodule CachexTest.Stats do
     assert(stats_result[:set] == %{ true: 1 })
   end
 
-  test "stats correctly tracks status based functions", state do
-    Enum.each(@status_based, fn({ action, args }) ->
-      set_result = Cachex.set(state.cache, "my_key", 1)
-      assert(set_result == { :ok, true })
-
-      { result, _value } = apply(Cachex, action, [state.cache|["my_key"|args]])
-      assert({ action, result } == { action, :ok })
-
-      { result, _value } = apply(Cachex, action, [state.cache|["missing_key"|args]])
-      assert({ action, result } == { action, :missing })
-
-      { stats_status, stats_result } = Cachex.stats(state.cache, for: action)
-
-      assert(stats_status == :ok)
-      assert(Enum.count(stats_result) == 2)
-      assert(stats_result[action] == %{ ok: 1, missing: 1 })
-    end)
-  end
-
-  test "stats correctly tracks loadable based functions", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
+  test "stats with a clear action", state do
+    set_result = Cachex.set(state.cache, "key1", "value")
     assert(set_result == { :ok, true })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    set_result = Cachex.set(state.cache, "key2", "value")
+    assert(set_result == { :ok, true })
+
+    clear_result = Cachex.clear(state.cache)
+    assert(clear_result == { :ok, 2 })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:clear] == %{ total: 2 })
+    # opCount is 4 because count/2 does an internal size/2
+    assert(stats[:global] == %{ evictionCount: 2, opCount: 4, setCount: 2 })
+  end
+
+  test "stats with a count action", state do
+    count_result = Cachex.count(state.cache)
+    assert(count_result == { :ok, 0 })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:count] == %{ calls: 1 })
+    assert(stats[:global] == %{ opCount: 1 })
+  end
+
+  test "stats with a del action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    del_result = Cachex.del(state.cache, "key")
+    assert(del_result == { :ok, true })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:del] == %{ true: 1 })
+    assert(stats[:global] == %{ evictionCount: 1, opCount: 2, setCount: 1 })
+  end
+
+  test "stats with an exists? action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    exists_result = Cachex.exists?(state.cache, "key")
+    assert(exists_result == { :ok, true })
+
+    exists_result = Cachex.exists?(state.cache, "missing_key")
+    assert(exists_result == { :ok, false })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:exists?] == %{ true: 1, false: 1 })
+    assert(stats[:global] == %{ opCount: 3, setCount: 1, hitCount: 1, missCount: 1 })
+  end
+
+  test "stats with an expire action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    expire_result = Cachex.expire(state.cache, "key", 5000)
+    assert(expire_result == { :ok, true })
+
+    expire_result = Cachex.expire(state.cache, "missing_key", 5000)
+    assert(expire_result == { :missing, false })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:expire] == %{ true: 1, false: 1 })
+    assert(stats[:global] == %{ opCount: 3, updateCount: 1, setCount: 1 })
+  end
+
+  test "stats with an expire_at action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    expire_at_result = Cachex.expire_at(state.cache, "key", Cachex.Util.now() + 5000)
+    assert(expire_at_result == { :ok, true })
+
+    expire_at_result = Cachex.expire_at(state.cache, "missing_key", Cachex.Util.now() + 5000)
+    assert(expire_at_result == { :missing, false })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:expire_at] == %{ true: 1, false: 1 })
+    assert(stats[:global] == %{ opCount: 3, updateCount: 1, setCount: 1 })
+  end
+
+  test "stats with a get action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "key")
+    assert(get_result == { :ok, "value" })
 
     get_result = Cachex.get(state.cache, "missing_key")
     assert(get_result == { :missing, nil })
@@ -109,86 +193,196 @@ defmodule CachexTest.Stats do
     get_result = Cachex.get(state.cache, "missing_key", fallback: &(&1))
     assert(get_result == { :loaded, "missing_key" })
 
-    Cachex.del(state.cache, "missing_key")
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
 
-    get_result = Cachex.get_and_update(state.cache, "missing_key", &(&1), fallback: &(&1))
-    assert(get_result == { :loaded, "missing_key" })
-
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :get, :get_and_update ])
-
-    assert(stats_status == :ok)
-    assert(Enum.count(stats_result) == 3)
-    assert(stats_result[:get] == %{ ok: 1, loaded: 1, missing: 1 })
-    assert(stats_result[:get_and_update] == %{ loaded: 1 })
+    assert(status == :ok)
+    assert(stats[:get] == %{ ok: 1, missing: 1, loaded: 1 })
+    # setCount is 2 fallbacks also do a set into the cache
+    # missCount is 2 because loading a key also is a miss
+    assert(stats[:global] == %{ opCount: 5, setCount: 2, hitCount: 1, missCount: 2, loadCount: 1 })
   end
 
-  test "stats correctly tracks value based functions", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
+  test "stats with a get_and_update action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
     assert(set_result == { :ok, true })
 
-    exists_result = Cachex.exists?(state.cache, "my_key")
-    assert(exists_result == { :ok, true })
+    get_result = Cachex.get_and_update(state.cache, "key", &(&1))
+    assert(get_result == { :ok, "value" })
 
-    del_result = Cachex.del(state.cache, "my_key")
-    assert(del_result == { :ok, true })
+    get_result = Cachex.get_and_update(state.cache, "missing_key", &(&1))
+    assert(get_result == { :missing, nil })
 
-    exists_result = Cachex.exists?(state.cache, "my_key")
-    assert(exists_result == { :ok, false })
+    get_result = Cachex.get_and_update(state.cache, "another_missing_key", &(&1), fallback: &(&1))
+    assert(get_result == { :loaded, "another_missing_key" })
 
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:get_and_update] == %{ ok: 1, missing: 1, loaded: 1 })
+    # opCount is 4 because fallbacks don't set before being used as an update
+    # setCount is 3 because loaded keys are set, not updates
+    # updateCount is 1 because only :ok is an update
+    assert(stats[:global] == %{ opCount: 4, setCount: 3, updateCount: 1 })
+  end
+
+  test "stats with an incr action", state do
+    set_result = Cachex.set(state.cache, "key", 1)
     assert(set_result == { :ok, true })
 
-    update_result = Cachex.update(state.cache, "my_key", "new_value")
+    incr_result = Cachex.incr(state.cache, "key")
+    assert(incr_result == { :ok, 2 })
+
+    incr_result = Cachex.incr(state.cache, "missing_key")
+    assert(incr_result == { :missing, 1 })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:incr] == %{ ok: 1, missing: 1 })
+    # setCount is 2 because missing keys are set
+    # updateCount is 1 because only :ok is an update
+    assert(stats[:global] == %{ opCount: 3, setCount: 2, updateCount: 1 })
+  end
+
+  test "stats with a keys action", state do
+    keys_result = Cachex.keys(state.cache)
+    assert(keys_result == { :ok, [] })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:keys] == %{ calls: 1 })
+    assert(stats[:global] == %{ opCount: 1 })
+  end
+
+  test "stats with a persist action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    persist_result = Cachex.persist(state.cache, "key")
+    assert(persist_result == { :ok, true })
+
+    persist_result = Cachex.persist(state.cache, "missing_key")
+    assert(persist_result == { :missing, false })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:persist] == %{ true: 1, false: 1 })
+    assert(stats[:global] == %{ opCount: 3, updateCount: 1, setCount: 1 })
+  end
+
+  test "stats with a purge action", _state do
+    cache = TestHelper.create_cache(record_stats: true)
+
+    set_result = Cachex.set(cache, "key1", 1, ttl: 1)
+    assert(set_result == { :ok, true })
+
+    set_result = Cachex.set(cache, "key2", 1, ttl: 1)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(2)
+
+    purge_result = Cachex.purge(cache)
+    assert(purge_result == { :ok, 2 })
+
+    { status, stats } = Cachex.stats(cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:purge] == %{ total: 2 })
+    assert(stats[:global] == %{ opCount: 3, setCount: 2, expiredCount: 2 })
+  end
+
+  test "stats with a refresh action", state do
+    set_result = Cachex.set(state.cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    refresh_result = Cachex.refresh(state.cache, "key")
+    assert(refresh_result == { :ok, true })
+
+    refresh_result = Cachex.refresh(state.cache, "missing_key")
+    assert(refresh_result == { :missing, false })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:refresh] == %{ true: 1, false: 1 })
+    assert(stats[:global] == %{ opCount: 3, updateCount: 1, setCount: 1 })
+  end
+
+  test "stats with a set action", state do
+    set_result = Cachex.set(state.cache, "key", 1)
+    assert(set_result == { :ok, true })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:set] == %{ true: 1 })
+    assert(stats[:global] == %{ opCount: 1, setCount: 1 })
+  end
+
+  test "stats with a size action", state do
+    size_result = Cachex.size(state.cache)
+    assert(size_result == { :ok, 0 })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:size] == %{ calls: 1 })
+    assert(stats[:global] == %{ opCount: 1 })
+  end
+
+  test "stats with a take action", state do
+    set_result = Cachex.set(state.cache, "key", 1)
+    assert(set_result == { :ok, true })
+
+    take_result = Cachex.take(state.cache, "key")
+    assert(take_result == { :ok, 1 })
+
+    take_result = Cachex.take(state.cache, "key")
+    assert(take_result == { :missing, nil })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:take] == %{ ok: 1, missing: 1 })
+    assert(stats[:global] == %{ opCount: 3, setCount: 1, hitCount: 1, missCount: 1, evictionCount: 1 })
+  end
+
+  test "stats with a ttl action", state do
+    set_result = Cachex.set(state.cache, "key", 1, ttl: :timer.seconds(5))
+    assert(set_result == { :ok, true })
+
+    take_result = Cachex.ttl(state.cache, "key")
+    assert(elem(take_result, 0) == :ok)
+    assert_in_delta(elem(take_result, 1), 1000, 5000)
+
+    take_result = Cachex.ttl(state.cache, "missing_key")
+    assert(take_result == { :missing, nil })
+
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
+
+    assert(status == :ok)
+    assert(stats[:ttl] == %{ ok: 1, missing: 1 })
+    # no hits or misses, as this is not explicit retrieval
+    assert(stats[:global] == %{ opCount: 3, setCount: 1 })
+  end
+
+  test "stats with an update action", state do
+    set_result = Cachex.set(state.cache, "key", 1)
+    assert(set_result == { :ok, true })
+
+    update_result = Cachex.update(state.cache, "key", "value")
     assert(update_result == { :ok, true })
 
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :set, :del, :exists?, :update ])
+    update_result = Cachex.update(state.cache, "missing_key", "value")
+    assert(update_result == { :missing, false })
 
-    assert(stats_status == :ok)
-    assert(Enum.count(stats_result) == 5)
-    assert(stats_result[:del] == %{ true: 1 })
-    assert(stats_result[:set] == %{ true: 2 })
-    assert(stats_result[:exists?] == %{ true: 1, false: 1 })
-    assert(stats_result[:update] == %{ true: 1 })
-  end
+    { status, stats } = Cachex.stats(state.cache, for: :raw)
 
-  test "stats correctly tracks amount based functions", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 1)
-    assert(set_result == { :ok, true })
-
-    :timer.sleep(3)
-
-    purge_result = Cachex.purge(state.cache)
-    assert(purge_result == { :ok, 1 })
-
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    clear_result = Cachex.clear(state.cache)
-    assert(clear_result == { :ok, 1 })
-
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :clear, :purge ])
-
-    assert(stats_status == :ok)
-    assert(Enum.count(stats_result) == 3)
-    assert(stats_result[:clear] == %{ total: 1 })
-    assert(stats_result[:purge] == %{ total: 1 })
-
-    { stats_status, stats_result } = Cachex.stats(state.cache)
-
-    assert(stats_status == :ok)
-    assert(stats_result[:evictionCount] == 1)
-    assert(stats_result[:expiredCount] == 1)
-  end
-
-  test "stats correctly tracks call based functions", state do
-    keys_result = Cachex.keys(state.cache)
-    assert(keys_result == { :ok, [ ] })
-
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :keys ])
-
-    assert(stats_status == :ok)
-    assert(Enum.count(stats_result) == 2)
-    assert(stats_result[:keys] == %{ calls: 1 })
+    assert(status == :ok)
+    assert(stats[:update] == %{ true: 1, false: 1 })
+    assert(stats[:global] == %{ opCount: 3, setCount: 1, updateCount: 1 })
   end
 
 end

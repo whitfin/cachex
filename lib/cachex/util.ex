@@ -201,6 +201,20 @@ defmodule Cachex.Util do
   end
 
   @doc """
+  Shorthand increments for a map key. If the value is not a number, it is assumed
+  to be 0.
+  """
+  def increment_map_key(map, key, amount) do
+    { _, updated_map } = Map.get_and_update(map, key, fn
+      (val) when is_number(val) ->
+        { val, amount + val }
+      (val) ->
+        { val, amount }
+    end)
+    updated_map
+  end
+
+  @doc """
   Retrieves the last item in a Tuple. This is just shorthand around sizeof and
   pulling the last element.
   """

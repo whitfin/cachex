@@ -232,7 +232,12 @@ defmodule Cachex.Worker do
   """
   def persist(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :persist, key, options }, fn ->
-      expire(state, key, nil, options)
+      case quietly_exists?(state, key) do
+        { :ok, true } ->
+          state.actions.expire(state, key, nil, options)
+        _other_value_ ->
+          { :missing, false }
+      end
     end)
   end
 
