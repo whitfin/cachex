@@ -471,8 +471,12 @@ defmodule Cachex do
 
   """
   @spec decr(cache, any, options) :: { status, number }
-  defwrap decr(cache, key, options \\ []),
-  do: incr(cache, key, Keyword.update(options, :amount, -1, &(&1 * -1)))
+  defwrap decr(cache, key, options \\ []) do
+    mod_opts =
+      options
+      |> Keyword.update(:amount, -1, &(&1 * -1))
+    incr(cache, key, via(:decr, mod_opts))
+  end
 
   @doc """
   Checks whether the cache is empty.
@@ -586,8 +590,12 @@ defmodule Cachex do
   @doc """
   Sets a TTL on a key in the cache in milliseconds.
 
-  If the key does not exist in the cache, you will receive a result indicating
-  this.
+  The following rules apply:
+
+  - If the key does not exist in the cache, you will receive a result indicating
+    this.
+  - If the value provided is `nil`, the TTL is removed.
+  - If the value is less than `0`, the key is immediately evicted.
 
   ## Options
 
@@ -613,7 +621,7 @@ defmodule Cachex do
   """
   @spec expire(cache, any, number, options) :: { status, true | false }
   defwrap expire(cache, key, expiration, options \\ [])
-  when is_number(expiration) and is_list(options) do
+  when (expiration == nil or is_number(expiration)) and is_list(options) do
     do_action(cache, fn
       (cache) when is_atom(cache) ->
         handle_async(cache, { :expire, key, expiration, options }, options)
@@ -654,12 +662,7 @@ defmodule Cachex do
   @spec expire_at(cache, binary, number, options) :: { status, true | false }
   defwrap expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :expire_at, key, timestamp, options }, options)
-      (cache) ->
-        Worker.expire_at(cache, key, timestamp, options)
-    end)
+    expire(cache, key, timestamp - Util.now(), via(:expire_at, options))
   end
 
   @doc """
@@ -800,14 +803,8 @@ defmodule Cachex do
 
   """
   @spec persist(cache, any, options) :: { status, true | false }
-  defwrap persist(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :persist, key, options }, options)
-      (cache) ->
-        Worker.persist(cache, key, options)
-    end)
-  end
+  defwrap persist(cache, key, options \\ []) when is_list(options),
+  do: expire(cache, key, nil, via(:persist, options))
 
   @doc """
   Triggers a mass deletion of all expired keys.
@@ -1124,5 +1121,8 @@ defmodule Cachex do
   end
   defp valid_cache?(%Cachex.Worker{ }), do: true
   defp valid_cache?(_), do: false
+
+  # Simply adds a "via" param to the options to allow the use of delegates.
+  defp via(via, options), do: [ { :via, via } | options ]
 
 end
