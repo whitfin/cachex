@@ -172,7 +172,14 @@ defmodule Cachex.Worker do
   """
   def exists?(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :exists?, key, options }, fn ->
-      quietly_exists?(state, key)
+      case :ets.lookup(state.cache, key) do
+        [{ _cache, ^key, touched, ttl, _value }] ->
+          expired = Util.has_expired?(touched, ttl)
+          expired && del(state, key)
+          { :ok, !expired }
+        _unrecognised_val ->
+          { :ok, false }
+      end
     end)
   end
 
@@ -389,16 +396,25 @@ defmodule Cachex.Worker do
   """
   def do_action(%__MODULE__{ } = state, message, fun)
   when is_tuple(message) and is_function(fun) do
-    case state.options.pre_hooks do
-      [] -> nil;
-      li -> Notifier.notify(li, message)
+    notify =
+      message
+      |> Util.last_of_tuple
+      |> Keyword.get(:notify, true)
+
+    if notify do
+      case state.options.pre_hooks do
+        [] -> nil;
+        li -> Notifier.notify(li, message)
+      end
     end
 
     result = fun.()
 
-    case state.options.post_hooks do
-      [] -> nil;
-      li -> Notifier.notify(li, message, result)
+    if notify do
+      case state.options.post_hooks do
+        [] -> nil;
+        li -> Notifier.notify(li, message, result)
+      end
     end
 
     result
@@ -437,14 +453,7 @@ defmodule Cachex.Worker do
   actions).
   """
   def quietly_exists?(%__MODULE__{ } = state, key) do
-    case :ets.lookup(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, _value }] ->
-        expired = Util.has_expired?(touched, ttl)
-        expired && del(state, key)
-        { :ok, !expired }
-      _unrecognised_val ->
-        { :ok, false }
-    end
+    exists?(state, key, [ notify: false ])
   end
 
 end
