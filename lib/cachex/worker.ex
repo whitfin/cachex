@@ -119,11 +119,8 @@ defmodule Cachex.Worker do
   """
   def update(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
     do_action(state, { :update, key, value, options }, fn ->
-      case exists?(state, key, notify: false) do
-        { :ok, true } ->
-          state.actions.update(state, key, value, options)
-        _other_value_ ->
-          { :missing, false }
+      with { :ok, true } <- check_exists(state, key) do
+        state.actions.update(state, key, value, options)
       end
     end)
   end
@@ -188,16 +185,13 @@ defmodule Cachex.Worker do
   """
   def expire(%__MODULE__{ } = state, key, expiration, options \\ []) when is_list(options) do
     do_action(state, { :expire, key, expiration, options }, fn ->
-      case exists?(state, key, notify: false) do
-        { :ok, true } ->
-          case expiration do
-            val when val == nil or val > 0 ->
-              state.actions.expire(state, key, expiration, options)
-            _expired_already ->
-              del(state, key)
-          end
-        _other_value_ ->
-          { :missing, false }
+      with { :ok, true } <- check_exists(state, key) do
+        case expiration do
+          val when val == nil or val > 0 ->
+            state.actions.expire(state, key, expiration, options)
+          _expired_already ->
+            del(state, key)
+        end
       end
     end)
   end
@@ -234,11 +228,8 @@ defmodule Cachex.Worker do
   """
   def refresh(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :refresh, key, options }, fn ->
-      case exists?(state, key, notify: false) do
-        { :ok, true } ->
-          state.actions.refresh(state, key, options)
-        _other_value_ ->
-          { :missing, false }
+      with { :ok, true } <- check_exists(state, key) do
+        state.actions.refresh(state, key, options)
       end
     end)
   end
@@ -423,6 +414,21 @@ defmodule Cachex.Worker do
       :mnesia.write(new_value)
       new_value
     end)
+  end
+
+  ###
+  # Private functions only to be used from inside this module.
+  ###
+
+  # Shorthand for doing an internal exists check - normalizing to a missing tuple
+  # of { :missing, false } to allow `with` sugar.
+  defp check_exists(state, key) do
+    case exists?(state, key, notify: false) do
+      { :ok, false } ->
+        { :missing, false }
+      other_results ->
+        other_results
+    end
   end
 
 end
