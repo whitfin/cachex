@@ -35,6 +35,25 @@ defmodule CachexTest.Util do
     assert(Util.reply(:value, :test) == { :reply, :value, :test })
   end
 
+  test "util.create_node_name/1 generates a node name on the local host" do
+    nodename = Util.create_node_name("my_name")
+    hostname = :inet.gethostname |> elem(1) |> to_string
+
+    assert(to_string(nodename) == "my_name@#{hostname}")
+  end
+
+  test "util.create_node_name/1 works with an atom name" do
+    nodename = Util.create_node_name(:my_name)
+    hostname = :inet.gethostname |> elem(1) |> to_string
+
+    assert(to_string(nodename) == "my_name@#{hostname}")
+  end
+
+  test "util.create_node_name/1 generates a node name on a given host" do
+    nodename = Util.create_node_name("my_name", "localhost")
+    assert(to_string(nodename) == "my_name@localhost")
+  end
+
   test "util.create_record/3 generates records with no expiration" do
     { cache, key, date, ttl, value } = Util.create_record(%Cachex.Worker{ "cache": :test }, "key", "value")
 

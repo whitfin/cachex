@@ -397,7 +397,7 @@ If you feel something can be improved, or have any questions about certain behav
 If you *do* make changes to the codebase, please make sure you test your changes thoroughly, and include any unit tests alongside new or changed behaviours. Cachex currently uses the excellent [excoveralls](https://github.com/parroty/excoveralls) to track code coverage.
 
 ```elixir
-$ mix test --trace
-$ mix coveralls
-$ mix coveralls.html && open cover/excoveralls.html
+$ mix cachex.test
+$ mix cachex.coveralls
+$ mix cachex.coveralls.html && open cover/excoveralls.html
 ```

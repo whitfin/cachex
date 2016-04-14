@@ -49,7 +49,7 @@ defmodule Cachex.Options do
         nil
     end
 
-    remote_node_list = Util.get_opt_list(options, :nodes, [node()])
+    remote_node_list = Enum.uniq([ node | Util.get_opt_list(options, :nodes, [])])
     default_fallback = Util.get_opt_function(options, :default_fallback)
 
     fallback_args =

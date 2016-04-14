@@ -3,8 +3,12 @@ defmodule Cachex do
   use Cachex.Macros.Boilerplate
   use Supervisor
 
+  # import Connection
+  import Cachex.Connection
+
   # add some aliases
   alias Cachex.Inspector
+  alias Cachex.Options
   alias Cachex.Util
   alias Cachex.Worker
 
@@ -154,6 +158,7 @@ defmodule Cachex do
   def start_link(options \\ [], supervisor_options \\ []) do
     with { :ok, true } <- ensure_not_started(options[:name]),
          { :ok, opts } <- parse_options(options),
+         { :ok, true } <- ensure_connection(opts),
          { :ok, true } <- start_table(opts),
      do: Supervisor.start_link(__MODULE__, opts, supervisor_options)
   end
@@ -163,8 +168,8 @@ defmodule Cachex do
   #
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
-  @spec init(Cachex.Options) :: { status, any }
-  def init(%Cachex.Options{ } = options) do
+  @spec init(Options) :: { status, any }
+  def init(%Options{ } = options) do
     ttl_workers = case options.ttl_interval do
       nil -> []
       _other -> [worker(Cachex.Janitor, [options])]
@@ -369,10 +374,45 @@ defmodule Cachex do
 
   """
   @spec abort(cache, any, options) :: Exception
-  def abort(cache, reason, options \\ []) when is_list(options) do
+  defwrap abort(cache, reason, options \\ []) when is_list(options) do
     do_action(cache, fn(_) ->
       :mnesia.is_transaction && :mnesia.abort(reason)
     end)
+  end
+
+  @doc """
+  Adds a remote node to this cache. This should typically only be called internally.
+
+  Calling `add_node/2` will add the provided node to Mnesia and then create a new
+  replica on the node. We update the worker with knowledge of the node change to
+  ensure consistency.
+
+  ## Examples
+
+      iex> Cachex.add_node(:my_cache, :node@remotehost)
+      { :ok, :true }
+
+  """
+  @spec add_node(cache, atom) :: { status, true | false | binary }
+  defwrap add_node(cache, node) when is_atom(node) do
+    case :net_adm.ping(node) do
+      :pong ->
+        :mnesia.change_config(:extra_db_nodes, [node])
+        :mnesia.add_table_copy(cache, node, :ram_copies)
+
+        server = case cache do
+          val when is_atom(val) ->
+            val
+          val ->
+            val.cache
+        end
+
+        GenServer.call(server, { :add_node, node })
+
+        { :ok, true }
+      :pang ->
+        { :error, "Unable to reach remote node!" }
+    end
   end
 
   @doc """
@@ -1091,14 +1131,13 @@ defmodule Cachex do
   # Parses a keyword list of options into a Cachex Options structure. We return
   # it in tuple just to avoid compiler warnings when using it with the `with` block.
   defp parse_options(options) when is_list(options),
-  do: { :ok, Cachex.Options.parse(options) }
+  do: { :ok, Options.parse(options) }
 
   # Starts up an Mnesia table based on the provided options. If an error occurs
   # when setting up the table, we return an error tuple to represent the issue.
-  defp start_table(%Cachex.Options{ } = options) do
+  defp start_table(%Options{ } = options) do
     table_create = :mnesia.create_table(options.cache, [
-      { :ram_copies, options.nodes },
-      { :attributes, [ :key, :touched, :ttl, :value ]},
+      { :attributes, [ :key, :touched, :ttl, :value ] },
       { :type, :set },
       { :storage_properties, [ { :ets, options.ets_opts } ] }
     ])

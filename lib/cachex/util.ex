@@ -43,6 +43,20 @@ defmodule Cachex.Util do
   end
 
   @doc """
+  Creates a long machine name from a provided binary name. If a hostname is given,
+  it will be used - otherwise we default to using the local node's hostname.
+  """
+  def create_node_name(name, hostname \\ nil)
+  def create_node_name(name, hostname) when is_atom(name),
+  do: name |> to_string |> create_node_name(hostname)
+  def create_node_name(name, hostname) when is_binary(name) do
+    String.to_atom(name <> "@" <> case hostname do
+      nil -> local_hostname()
+      val -> val
+    end)
+  end
+
+  @doc """
   Creates an input record based on a key, value and expiration. If the value
   passed is nil, then we apply any defaults. Otherwise we add the value
   to the current time (in milliseconds) and return a tuple for the table.
@@ -231,6 +245,15 @@ defmodule Cachex.Util do
   """
   def list_to_tuple(list) when is_list(list),
   do: Enum.reduce(list, {}, &(Tuple.append(&2, &1)))
+
+  @doc """
+  Retrieves the local hostname of this node.
+  """
+  def local_hostname do
+    :inet.gethostname
+    |> elem(1)
+    |> to_string
+  end
 
   @doc """
   Returns a selection to return the designated value for all rows. Enables things

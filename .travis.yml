@@ -5,7 +5,12 @@ otp_release:
   - 18.2
   - 18.1
   - 18.0
+before_script:
+  - epmd -daemon
 script:
-  - mix test --trace
+  - mix cachex.test --trace
 after_success:
-  - mix coveralls.travis
+  - mix cachex.coveralls.travis
+branches:
+  only:
+    - master

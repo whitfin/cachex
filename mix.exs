@@ -35,10 +35,11 @@ defmodule Cachex.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
-        "coveralls": :test,
-        "coveralls.detail": :test,
-        "coveralls.html": :test,
-        "coveralls.travis": :test
+        "cachex.test": :test,
+        "cachex.coveralls": :test,
+        "cachex.coveralls.detail": :test,
+        "cachex.coveralls.html": :test,
+        "cachex.coveralls.travis": :test
       ]
     ]
   end
