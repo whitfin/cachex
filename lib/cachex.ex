@@ -376,7 +376,7 @@ defmodule Cachex do
   @spec abort(cache, any, options) :: Exception
   defwrap abort(cache, reason, options \\ []) when is_list(options) do
     do_action(cache, fn(_) ->
-      :mnesia.is_transaction && :mnesia.abort(reason)
+      { :ok, :mnesia.is_transaction && :mnesia.abort(reason) }
     end)
   end
 
