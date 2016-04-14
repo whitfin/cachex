@@ -61,12 +61,12 @@ defmodule CachexTest do
   test "joining an existing remote cluster", state do
     cache_args = [name: state.name, nodes: [ node(), @testhost ] ]
 
-    { rpc_status, rpc_result } = :rpc.block_call(@testhost, Cachex, :start_link, [cache_args,[]])
+    { rpc_status, rpc_result } = :rpc.block_call(@testhost, Cachex, :start_link, [cache_args])
 
     assert(rpc_status == :ok)
     assert(is_pid(rpc_result))
 
-    set_result = :rpc.block_call(@testhost, Cachex, :set, [state.name, "remote_key_test", "remote_value"])
+    set_result = :rpc.call(@testhost, Cachex, :set, [state.name, "remote_key_test", "remote_value"])
 
     assert(set_result == { :ok, true })
 

@@ -23,9 +23,8 @@ defmodule Mix.Cachex do
     :net_kernel.start([ :cachex_base_node, :shortnames ])
 
     Enum.each(@nodenames, fn(node) ->
-      stop_node(node)
+      stop_node(node) && start_node(node)
 
-      :ct_slave.start(node)
       :net_adm.ping(node)
 
       :rpc.call(node, :mnesia, :start, [])
@@ -52,17 +51,18 @@ defmodule Mix.Cachex do
     stop()
   end
 
-  # Stops a local node - shorthand binding because we stop nodes both before and
-  # after tasks are run. We have to do some fun stuff to split up the host because
-  # otherwise we end up with @host@host as a suffix.
-  defp stop_node(node) do
+  # Starts a local node using the :slave module.
+  defp start_node(node) do
     [ name, host ] =
       node
       |> Kernel.to_string
       |> String.split("@", parts: 2)
       |> Enum.map(&String.to_atom/1)
 
-    :ct_slave.stop(host, name)
+    :slave.start_link(host, name)
   end
+
+  # Stops a local node using the :slave module.
+  defdelegate stop_node(node), to: :slave, as: :stop
 
 end
