@@ -12,10 +12,7 @@ defmodule Mix.Tasks.Cachex.Test do
   ensured that all slave nodes are started using `Mix.Cachex.run_task/2`.
   """
   @spec run(OptionParser.argv) :: no_return
-  def run(args) do
-    Mix.Cachex.run_task(fn ->
-      Mix.Task.run("test", args)
-    end)
-  end
+  def run(args),
+  do: Mix.Cachex.run_in_context("test", args)
 
 end

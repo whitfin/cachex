@@ -36,9 +36,7 @@ defmodule Mix.Cachex do
   Small handler to stop the slave nodes, simply iterating the names of the nodes
   and terminating them.
   """
-  def stop do
-    Enum.each(@nodenames, &stop_node/1)
-  end
+  def stop, do: Enum.each(@nodenames, &stop_node/1)
 
   @doc """
   Convenience handler for executing a given function without having to start/stop
@@ -50,6 +48,13 @@ defmodule Mix.Cachex do
     task.()
     stop()
   end
+
+  @doc """
+  Runs a task in a node context. Opens up a node context and runs the given task
+  name with the given task args. This is just shorthand for convenience.
+  """
+  def run_in_context(task, args) when is_binary(task),
+  do: run_task(fn -> Mix.Task.run(task, args) end)
 
   # Starts a local node using the :slave module.
   defp start_node(node) do

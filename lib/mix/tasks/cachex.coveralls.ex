@@ -11,11 +11,8 @@ defmodule Mix.Tasks.Cachex.Coveralls do
   Binds all slave nodes and starts off the `coveralls` task.
   """
   @spec run(OptionParser.argv) :: no_return
-  def run(args) do
-    Mix.Cachex.run_task(fn ->
-      Mix.Task.run("coveralls", args)
-    end)
-  end
+  def run(args),
+  do: Mix.Cachex.run_in_context("coveralls", args)
 
   # Detail binding
   defmodule Detail do
@@ -30,11 +27,8 @@ defmodule Mix.Tasks.Cachex.Coveralls do
     Binds all slave nodes and starts off the `coveralls.detail` task.
     """
     @spec run(OptionParser.argv) :: no_return
-    def run(args) do
-      Mix.Cachex.run_task(fn ->
-        Mix.Task.run("coveralls.detail", args)
-      end)
-    end
+    def run(args),
+    do: Mix.Cachex.run_in_context("coveralls.detail", args)
 
   end
 
@@ -50,11 +44,8 @@ defmodule Mix.Tasks.Cachex.Coveralls do
     Binds all slave nodes and starts off the `coveralls.html` task.
     """
     @spec run(OptionParser.argv) :: no_return
-    def run(args) do
-      Mix.Cachex.run_task(fn ->
-        Mix.Task.run("coveralls.html", args)
-      end)
-    end
+    def run(args),
+    do: Mix.Cachex.run_in_context("coveralls.html", args)
 
   end
 
@@ -70,11 +61,8 @@ defmodule Mix.Tasks.Cachex.Coveralls do
     Binds all slave nodes and starts off the `coveralls.travis` task.
     """
     @spec run(OptionParser.argv) :: no_return
-    def run(args) do
-      Mix.Cachex.run_task(fn ->
-        Mix.Task.run("coveralls.travis", args)
-      end)
-    end
+    def run(args),
+    do: Mix.Cachex.run_in_context("coveralls.travis", args)
 
   end
 
