@@ -11,14 +11,15 @@
     "^\\s+use\\s+"
   ],
   "custom_stop_words": [
-    "defwrap.+(.+\\\\.+),?"
+    "defwrap.+"
   ],
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true
   },
   "skip_files": [
     "lib/cachex/macros.ex",
-    "lib/cachex/macros/boilerplate.ex",
-    "lib/cachex/macros/gen_server.ex"
+    "lib/cachex/macros/*",
+    "lib/mix/cachex.ex",
+    "lib/mix/tasks/*",
   ]
 }

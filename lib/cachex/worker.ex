@@ -30,6 +30,13 @@ defmodule Cachex.Worker do
   with.
   """
   def start_link(options \\ %Cachex.Options { }, gen_options \\ []) do
+    GenServer.start_link(__MODULE__, options, gen_options)
+  end
+
+  @doc """
+  Same as `start_link/2` however this function does not link to the calling process.
+  """
+  def start(options \\ %Cachex.Options { }, gen_options \\ []) do
     GenServer.start(__MODULE__, options, gen_options)
   end
 
@@ -343,7 +350,31 @@ defmodule Cachex.Worker do
   @doc """
   Very tiny wrapper to retrieve the current state of a cache
   """
-  defcall state, do: state
+  def handle_call({ :state }, _ctx, state),
+  do: { :reply, state, state }
+
+  @doc """
+  Handler for adding a node to the worker, to ensure that we use the correct
+  actions.
+  """
+  def handle_call({ :add_node, node }, _ctx, state) do
+    new_options = %Options{ state.options |
+      remote: true,
+      nodes: if Enum.member?(state.options.nodes, node) do
+        state.options.nodes
+      else
+        [node|state.options.nodes]
+      end
+    }
+
+    new_state = if state.options.transactional do
+      %__MODULE__{ state | options: new_options }
+    else
+      %__MODULE__{ state | actions: __MODULE__.Remote, options: new_options }
+    end
+
+    { :reply, new_state, new_state }
+  end
 
   ###
   # Functions designed to only be used internally (i.e. those not forwarded to

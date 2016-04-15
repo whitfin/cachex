@@ -10,7 +10,13 @@ defmodule TestHelper do
 
     Cachex.start_link(args ++ [name: table])
 
-    table
+    table_name = args[:name] || table
+
+    ExUnit.Callbacks.on_exit("delete #{table_name}", fn ->
+      :mnesia.delete_table(table_name)
+    end)
+
+    table_name
   end
 
   def gen_random_string_of_length(num) when is_number(num) do
@@ -40,6 +46,12 @@ defmodule TestHelper do
     |> List.flatten
     |> Enum.reverse
   end
+
+  def remote_call(node, func, args),
+  do: :rpc.call(node, Cachex, func, args)
+
+  def start_remote_cache(node, args),
+  do: remote_call(node, :start, args)
 
 end
 

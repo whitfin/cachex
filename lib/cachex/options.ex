@@ -12,6 +12,7 @@ defmodule Cachex.Options do
             default_fallback: nil,  # the default fallback implementation
             default_ttl: nil,       # any default ttl values to use
             fallback_args: nil,     # arguments to pass to a cache loader
+            janitor: nil,           # the name of the janitor attached (if any)
             pre_hooks: nil,         # any pre hooks to attach
             post_hooks: nil,        # any post hooks to attach
             nodes: nil,             # a list of nodes to connect to
@@ -49,7 +50,11 @@ defmodule Cachex.Options do
         nil
     end
 
-    remote_node_list = Util.get_opt_list(options, :nodes, [node()])
+    janitor = if ttl_interval do
+      Util.janitor_for_cache(cache)
+    end
+
+    remote_node_list = Enum.uniq([ node | Util.get_opt_list(options, :nodes, [])])
     default_fallback = Util.get_opt_function(options, :default_fallback)
 
     fallback_args =
@@ -69,7 +74,7 @@ defmodule Cachex.Options do
           type: :post,
           results: true,
           server_args: [
-            name: Cachex.Util.stats_for_cache(cache)
+            name: Util.stats_for_cache(cache)
           ]
         })
       false ->
@@ -91,6 +96,7 @@ defmodule Cachex.Options do
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
+      "janitor": janitor,
       "nodes": remote_node_list,
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
