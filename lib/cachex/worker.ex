@@ -30,6 +30,13 @@ defmodule Cachex.Worker do
   with.
   """
   def start_link(options \\ %Cachex.Options { }, gen_options \\ []) do
+    GenServer.start_link(__MODULE__, options, gen_options)
+  end
+
+  @doc """
+  Same as `start_link/2` however this function does not link to the calling process.
+  """
+  def start(options \\ %Cachex.Options { }, gen_options \\ []) do
     GenServer.start(__MODULE__, options, gen_options)
   end
 

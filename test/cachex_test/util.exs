@@ -213,6 +213,10 @@ defmodule CachexTest.Util do
     refute(Util.has_arity?(&(&1), [3,2]))
   end
 
+  test "util.janitor_for_cache/1 converts a cache name to a janitor name" do
+    assert(Util.janitor_for_cache(:cache) == :cache_janitor)
+  end
+
   test "util.last_of_tuple/1 returns the last value in a tuple" do
     assert(Util.last_of_tuple({ :one, :two, :three }) == :three)
     assert(Util.last_of_tuple({}) == nil)

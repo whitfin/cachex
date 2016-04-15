@@ -8,6 +8,7 @@ defmodule Cachex do
 
   # add some aliases
   alias Cachex.Inspector
+  alias Cachex.Janitor
   alias Cachex.Options
   alias Cachex.Util
   alias Cachex.Worker
@@ -46,7 +47,8 @@ defmodule Cachex do
   @type status :: :ok | :error | :missing
 
   @doc """
-  Initialize the Mnesia table and supervision tree for this cache.
+  Initialize the Mnesia table and supervision tree for this cache, linking the
+  cache to the current process.
 
   We also allow the user to define their own options for the cache. We start a
   Supervisor to look after all internal workers backing the cache, in order to
@@ -156,11 +158,25 @@ defmodule Cachex do
   """
   @spec start_link(options, options) :: { atom, pid }
   def start_link(options \\ [], supervisor_options \\ []) do
-    with { :ok, true } <- ensure_not_started(options[:name]),
-         { :ok, opts } <- parse_options(options),
-         { :ok, true } <- ensure_connection(opts),
-         { :ok, true } <- start_table(opts),
-     do: Supervisor.start_link(__MODULE__, opts, supervisor_options)
+    with { :ok, opts } <- setup_env(options) do
+      Supervisor.start_link(__MODULE__, opts, supervisor_options)
+    end
+  end
+
+  @doc """
+  Initialize the Mnesia table and supervision tree for this cache, without linking
+  the cache to the current process.
+
+  Supports all the same options as `start_link/2`. This is mainly used for testing
+  in order to keep caches around when processes may be torn down.
+  """
+  @spec start(options) :: { atom, pid }
+  def start(options \\ []) do
+    with { :ok, opts } <- setup_env(options) do
+      Janitor.start(opts, [ name: opts.janitor ])
+      Worker.start(opts, [ name: opts.cache ])
+      { :ok, self }
+    end
   end
 
   @doc false
@@ -172,11 +188,11 @@ defmodule Cachex do
   def init(%Options{ } = options) do
     ttl_workers = case options.ttl_interval do
       nil -> []
-      _other -> [worker(Cachex.Janitor, [options])]
+      _other -> [worker(Janitor, [options, [ name: options.janitor ]])]
     end
 
     children = ttl_workers ++ [
-      worker(Cachex.Worker, [options, [name: options.cache]])
+      worker(Worker, [options, [ name: options.cache ]])
     ]
 
     supervise(children, strategy: :one_for_one)
@@ -1132,6 +1148,18 @@ defmodule Cachex do
   # it in tuple just to avoid compiler warnings when using it with the `with` block.
   defp parse_options(options) when is_list(options),
   do: { :ok, Options.parse(options) }
+
+  # Runs through the initial setup for a cache, parsing a list of options into
+  # a set of Cachex options, before adding the node to any remote nodes and then
+  # setting up the local table. This is separated out as it's required in both
+  # `start_link/2` and `start/1`.
+  defp setup_env(options) when is_list(options) do
+    with { :ok, true } <- ensure_not_started(options[:name]),
+         { :ok, opts } <- parse_options(options),
+         { :ok, true } <- ensure_connection(opts),
+         { :ok, true } <- start_table(opts),
+     do: { :ok, opts }
+  end
 
   # Starts up an Mnesia table based on the provided options. If an error occurs
   # when setting up the table, we return an error tuple to represent the issue.

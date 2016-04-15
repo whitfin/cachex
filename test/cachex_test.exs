@@ -58,15 +58,29 @@ defmodule CachexTest do
     end)
   end
 
+  test "starting a cache using spawn with start_link/2 dies immediately", state do
+    spawn(fn -> Cachex.start_link([name: state.name, default_ttl: :timer.seconds(3)]) end)
+    :timer.sleep(2)
+    get_result = Cachex.get(state.name, "key")
+    assert(get_result == { :error, "Invalid cache provided, got: #{inspect(state.name)}" })
+  end
+
+  test "starting a cache using spawn with start/1 does not die immediately", state do
+    spawn(fn -> Cachex.start([name: state.name, default_ttl: :timer.seconds(3)]) end)
+    :timer.sleep(2)
+    get_result = Cachex.get(state.name, "key")
+    assert(get_result == { :missing, nil })
+  end
+
   test "joining an existing remote cluster", state do
     cache_args = [name: state.name, nodes: [ node(), @testhost ] ]
 
-    { rpc_status, rpc_result } = :rpc.block_call(@testhost, Cachex, :start_link, [cache_args])
+    { rpc_status, rpc_result } = TestHelper.start_remote_cache(@testhost, [cache_args])
 
     assert(rpc_status == :ok)
     assert(is_pid(rpc_result))
 
-    set_result = :rpc.call(@testhost, Cachex, :set, [state.name, "remote_key_test", "remote_value"])
+    set_result = TestHelper.remote_call(@testhost, :set, [state.name, "remote_key_test", "remote_value"])
 
     assert(set_result == { :ok, true })
 

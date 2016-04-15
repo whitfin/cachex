@@ -30,6 +30,12 @@ defmodule Cachex.Util do
   def reply(value, state), do: { :reply, value, state }
 
   @doc """
+  Appends a string to an atom and returns as an atom.
+  """
+  def atom_append(atom, suffix),
+  do: String.to_atom(to_string(atom) <> suffix)
+
+  @doc """
   Converts a number of memory bytes to a binary representation.
   """
   def bytes_to_readable(size),
@@ -229,6 +235,13 @@ defmodule Cachex.Util do
   end
 
   @doc """
+  Very small handler for appending "_janitor" to the name of a cache in order to
+  create the name of a Janitor automatically.
+  """
+  def janitor_for_cache(cache) when is_atom(cache),
+  do: atom_append(cache, "_janitor")
+
+  @doc """
   Retrieves the last item in a Tuple. This is just shorthand around sizeof and
   pulling the last element.
   """
@@ -280,7 +293,7 @@ defmodule Cachex.Util do
   create the name of a stats hook automatically.
   """
   def stats_for_cache(cache) when is_atom(cache),
-  do: String.to_atom(to_string(cache) <> "_stats")
+  do: atom_append(cache, "_stats")
 
   @doc """
   Very small unwrapper for an Mnesia start result. We accept already started tables

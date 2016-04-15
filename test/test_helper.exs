@@ -47,6 +47,12 @@ defmodule TestHelper do
     |> Enum.reverse
   end
 
+  def remote_call(node, func, args),
+  do: :rpc.call(node, Cachex, func, args)
+
+  def start_remote_cache(node, args),
+  do: remote_call(node, :start, args)
+
 end
 
 root =
