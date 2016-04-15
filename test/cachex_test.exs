@@ -59,34 +59,59 @@ defmodule CachexTest do
   end
 
   test "starting a cache using spawn with start_link/2 dies immediately", state do
-    spawn(fn -> Cachex.start_link([name: state.name, default_ttl: :timer.seconds(3)]) end)
-    :timer.sleep(2)
-    get_result = Cachex.get(state.name, "key")
-    assert(get_result == { :error, "Invalid cache provided, got: #{inspect(state.name)}" })
+    this_proc = self()
+
+    proc_pid = spawn(fn ->
+      Cachex.start_link([name: state.name, default_ttl: :timer.seconds(3)])
+      :erlang.send_after(1, this_proc, { self, :started })
+    end)
+
+    receive do
+      { ^proc_pid, :started } ->
+        get_result = Cachex.get(state.name, "key")
+        assert(get_result == { :error, "Invalid cache provided, got: #{inspect(state.name)}" })
+    after
+      50 -> flunk("Expected cache to be started!")
+    end
   end
 
   test "starting a cache using spawn with start/1 does not die immediately", state do
-    spawn(fn -> Cachex.start([name: state.name, default_ttl: :timer.seconds(3)]) end)
-    :timer.sleep(2)
-    get_result = Cachex.get(state.name, "key")
-    assert(get_result == { :missing, nil })
+    this_proc = self()
+
+    proc_pid = spawn(fn ->
+      Cachex.start([name: state.name, default_ttl: :timer.seconds(3)])
+      :erlang.send_after(1, this_proc, { self, :started })
+    end)
+
+    receive do
+      { ^proc_pid, :started } ->
+        get_result = Cachex.get(state.name, "key")
+        assert(get_result == { :missing, nil })
+    after
+      50 -> flunk("Expected cache to be started!")
+    end
   end
 
   test "joining an existing remote cluster", state do
     cache_args = [name: state.name, nodes: [ node(), @testhost ] ]
 
-    { rpc_status, rpc_result } = TestHelper.start_remote_cache(@testhost, [cache_args])
+    { rpc_status, rpc_result } =
+      @testhost
+      |> TestHelper.start_remote_cache([cache_args])
 
     assert(rpc_status == :ok)
     assert(is_pid(rpc_result))
 
-    set_result = TestHelper.remote_call(@testhost, :set, [state.name, "remote_key_test", "remote_value"])
+    set_result =
+      @testhost
+      |> TestHelper.remote_call(:set, [state.name, "remote_key_test", "remote_value"])
 
     assert(set_result == { :ok, true })
 
-    cache = TestHelper.create_cache(cache_args ++ [name: state.name])
-
-    get_result = Cachex.get(cache, "remote_key_test")
+    get_result =
+      cache_args
+      |> TestHelper.create_cache
+      |> Cachex.get("remote_key_test")
 
     assert(get_result == { :ok, "remote_value" })
   end
