@@ -4,32 +4,6 @@ defmodule Cachex.Util do
   # to do with response formatting and generally just common functions.
 
   @doc """
-  Consistency wrapper around current time in millis.
-  """
-  def now, do: :os.system_time(1000)
-
-  @doc """
-  Lazy wrapper for creating an :error tuple.
-  """
-  def error(value), do: { :error, value }
-
-  @doc """
-  Lazy wrapper for creating an :ok tuple.
-  """
-  def ok(value), do: { :ok, value }
-
-  @doc """
-  Lazy wrapper for creating a :noreply tuple.
-  """
-  def noreply(state), do: { :noreply, state }
-  def noreply(_value, state), do: { :noreply, state }
-
-  @doc """
-  Lazy wrapper for creating a :reply tuple.
-  """
-  def reply(value, state), do: { :reply, value, state }
-
-  @doc """
   Appends a string to an atom and returns as an atom.
   """
   def atom_append(atom, suffix),
@@ -82,6 +56,11 @@ defmodule Cachex.Util do
   def create_truthy_result(result) do
     if result, do: ok(true), else: error(false)
   end
+
+  @doc """
+  Lazy wrapper for creating an :error tuple.
+  """
+  def error(value), do: { :error, value }
 
   @doc """
   Retrieves a fallback value for a given key, using either the provided function
@@ -190,14 +169,16 @@ defmodule Cachex.Util do
         |> handle_transaction
     end
   end
-  def handle_transaction({ :atomic, { :error, _ } = err}), do: err
-  def handle_transaction({ :atomic, { :ok, _ } = res}), do: res
-  def handle_transaction({ :atomic, { :loaded, _ } = res}), do: res
-  def handle_transaction({ :atomic, { :missing, _ } = res}), do: res
+  def handle_transaction({ :atomic, { :error, _ } = err }), do: err
+  def handle_transaction({ :atomic, { :ok, _ } = res }), do: res
+  def handle_transaction({ :atomic, { :loaded, _ } = res }), do: res
+  def handle_transaction({ :atomic, { :missing, _ } = res }), do: res
   def handle_transaction({ :atomic, value }), do: ok(value)
   def handle_transaction({ :aborted, reason }), do: error(reason)
   def handle_transaction({ :atomic, _value }, value), do: ok(value)
   def handle_transaction({ :aborted, reason }, _value), do: error(reason)
+  def handle_transaction(fun, pos) when is_function(fun) and is_number(pos),
+  do: fun |> handle_transaction |> elem(pos)
 
   @doc """
   Small utility to figure out if a document has expired based on the last touched
@@ -267,6 +248,27 @@ defmodule Cachex.Util do
     |> elem(1)
     |> to_string
   end
+
+  @doc """
+  Lazy wrapper for creating a :noreply tuple.
+  """
+  def noreply(state), do: { :noreply, state }
+  def noreply(_value, state), do: { :noreply, state }
+
+  @doc """
+  Consistency wrapper around current time in millis.
+  """
+  def now, do: :os.system_time(1000)
+
+  @doc """
+  Lazy wrapper for creating an :ok tuple.
+  """
+  def ok(value), do: { :ok, value }
+
+  @doc """
+  Lazy wrapper for creating a :reply tuple.
+  """
+  def reply(value, state), do: { :reply, value, state }
 
   @doc """
   Returns a selection to return the designated value for all rows. Enables things

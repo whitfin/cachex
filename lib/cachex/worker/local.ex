@@ -15,67 +15,39 @@ defmodule Cachex.Worker.Local do
   alias Cachex.Worker
 
   @doc """
-  Simply do an ETS lookup on the given key. If the key does not exist we check
-  to see if there's a fallback function. If there is we call it and then set the
-  value into the cache, before returning it to the user. Otherwise we
-  simply return a nil value in an ok tuple.
+  Writes a record into the cache, and returns a result signifying whether the
+  write was successful or not.
   """
-  def get(state, key, options) do
-    fb_fun =
-      options
-      |> Util.get_opt_function(:fallback)
-
-    val = case :ets.lookup(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired?(touched, ttl) do
-          true  -> Worker.del(state, key); :missing;
-          false -> value
-        end
-      _unrecognised_val -> :missing
-    end
-
-    case val do
-      :missing ->
-        case Util.get_fallback(state, key, fb_fun) do
-          { :ok, new_value } ->
-            { :missing, new_value }
-          { :loaded, new_value } = result ->
-            Worker.set(state, key, new_value)
-            result
-        end
-      val ->
-        { :ok, val }
-    end
-  end
-
-  @doc """
-  Inserts a value directly into the ETS table, not caring if we overwrite a value
-  or not. We use the parent implementation of creating a record for consistency,
-  which provides us our TTL implementation. We transform the result of the insert
-  into an ok/error tuple.
-  """
-  def set(state, key, value, options) do
-    ttl =
-      options
-      |> Util.get_opt_number(:ttl)
-
-    new_record =
-      state
-      |> Util.create_record(key, value, ttl)
-
+  def write(state, record) do
     state.cache
-    |> :ets.insert(new_record)
+    |> :ets.insert(record)
     |> (&(Util.create_truthy_result/1)).()
   end
 
   @doc """
-  Updates a value directly in the cache. We directly update the value, without
-  retrieving the value beforehand. Any TTL is left as-is as well as the touch
-  time. We transform the result of the insert into an ok/error tuple.
+  Read back the key from ETS, by doing a raw lookup on the key for performance.
+  If the key does not exist we return a `nil` value. If the key has expired, we
+  delete it from the cache using the `:purge` action as a notification.
   """
-  def update(state, key, value, _options) do
+  def read(state, key) do
+    case :ets.lookup(state.cache, key) do
+      [{ _cache, ^key, touched, ttl, _value } = record] ->
+        case Util.has_expired?(touched, ttl) do
+          true  -> Worker.del(state, key, via: :purge) && nil
+          false -> record
+        end
+      _unrecognised_val ->
+        nil
+    end
+  end
+
+  @doc """
+  Updates a number of fields in a record inside the cache, by key. We do this all
+  in one sweep using the internal ETS update mechanisms.
+  """
+  def update(state, key, changes) do
     state.cache
-    |> :ets.update_element(key, { 5, value })
+    |> :ets.update_element(key, List.wrap(changes))
     |> (&(Util.create_truthy_result/1)).()
   end
 
@@ -84,7 +56,7 @@ defmodule Cachex.Worker.Local do
   the key exists or not, we return a truthy value (to signify the record is not
   in the cache any longer).
   """
-  def del(state, key, _options) do
+  def delete(state, key) do
     state.cache
     |> :ets.delete(key)
     |> Util.ok
@@ -104,19 +76,6 @@ defmodule Cachex.Worker.Local do
     state.cache
     |> :ets.delete_all_objects
     |> (&(&1 && Util.ok(eviction_count) || Util.error(0))).()
-  end
-
-  @doc """
-  Sets the expiration time on a given key based on the value passed in. We do this
-  by dropping to the ETS layer and calling `:ets.update_element/4`. We provide
-  the touch time as of now, as well as the new expiration. This will ensure that
-  the key does not expire until `now() + expiration`. If the key is not found in
-  the cache we short-circuit to avoid accidentally creating a record.
-  """
-  def expire(state, key, expiration, _options) do
-    state.cache
-    |> :ets.update_element(key, [{ 3, Util.now() }, { 4, expiration }])
-    |> (&(Util.create_truthy_result/1)).()
   end
 
   @doc """
@@ -167,17 +126,6 @@ defmodule Cachex.Worker.Local do
   end
 
   @doc """
-  Refreshes the internal timestamp on the record to ensure that the TTL only takes
-  place from this point forward. This is useful for epheremal caches. We return an
-  error if the key does not exist in the cache.
-  """
-  def refresh(state, key, _options) do
-    state.cache
-    |> :ets.update_element(key, { 3, Util.now() })
-    |> (&(Util.create_truthy_result/1)).()
-  end
-
-  @doc """
   This is like `del/2` but it returns the last known value of the key as it
   existed in the cache upon deletion.
   """
@@ -186,35 +134,9 @@ defmodule Cachex.Worker.Local do
       [{ _cache, ^key, touched, ttl, value }] ->
         case Util.has_expired?(touched, ttl) do
           true  ->
-            Worker.del(state, key)
             { :missing, nil }
           false ->
             { :ok, value }
-        end
-      _unrecognised_val ->
-        { :missing, nil }
-    end
-  end
-
-  @doc """
-  Checks the remaining TTL on a provided key. We do this by retrieving the local
-  record and pulling out the touched and ttl fields. In order to calculate the
-  remaining time, we simply subtract the sum of these numbers from the current
-  time in milliseconds. We return the remaining time to live in an ok tuple. If
-  the key does not exist in the cache, we return an error tuple with a warning.
-  """
-  def ttl(state, key, _options) do
-    case :ets.lookup(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, _value }] ->
-        case Util.has_expired?(touched, ttl) do
-          true  ->
-            Worker.del(state, key)
-            { :missing, nil }
-          false ->
-            case ttl do
-              nil -> { :ok, nil }
-              val -> { :ok, touched + val - Util.now() }
-            end
         end
       _unrecognised_val ->
         { :missing, nil }

@@ -23,6 +23,9 @@ defmodule Cachex.Worker do
             cache: nil,                 # the cache name
             options: %Options{ }        # the options of this cache
 
+  # define some types
+  @type record ::  { atom, any, number, number | nil, any }
+
   @doc """
   Simple initialization for use in the main owner process in order to start an
   instance of a worker. All options are passed throught to the initialization
@@ -69,7 +72,22 @@ defmodule Cachex.Worker do
   """
   def get(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :get, key, options }, fn ->
-      state.actions.get(state, key, options)
+      case state.actions.read(state, key) do
+        { _cache, ^key, _touched, _ttl, value } ->
+          { :ok, value }
+        _unrecognised_value ->
+          fb_fun =
+            options
+            |> Util.get_opt_function(:fallback)
+
+          case Util.get_fallback(state, key, fb_fun) do
+            { :ok, new_value } ->
+              { :missing, new_value }
+            { :loaded, new_value } = result ->
+              set(state, key, new_value)
+              result
+          end
+      end
     end)
   end
 
@@ -117,7 +135,15 @@ defmodule Cachex.Worker do
   """
   def set(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
     do_action(state, { :set, key, value, options }, fn ->
-      state.actions.set(state, key, value, options)
+      ttl =
+        options
+        |> Util.get_opt_number(:ttl)
+
+      record =
+        state
+        |> Util.create_record(key, value, ttl)
+
+      state.actions.write(state, record)
     end)
   end
 
@@ -127,7 +153,7 @@ defmodule Cachex.Worker do
   def update(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
     do_action(state, { :update, key, value, options }, fn ->
       with { :ok, true } <- check_exists(state, key) do
-        state.actions.update(state, key, value, options)
+        state.actions.update(state, key, [{ 5, value }])
       end
     end)
   end
@@ -137,7 +163,7 @@ defmodule Cachex.Worker do
   """
   def del(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :del, key, options }, fn ->
-      state.actions.del(state, key, options)
+      state.actions.delete(state, key)
     end)
   end
 
@@ -176,12 +202,10 @@ defmodule Cachex.Worker do
   """
   def exists?(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :exists?, key, options }, fn ->
-      case :ets.lookup(state.cache, key) do
-        [{ _cache, ^key, touched, ttl, _value }] ->
-          expired = Util.has_expired?(touched, ttl)
-          expired && del(state, key)
-          { :ok, !expired }
-        _unrecognised_val ->
+      case state.actions.read(state, key) do
+        { _cache, ^key, _touched, _ttl, _value } ->
+          { :ok, true }
+        _unrecognised_value ->
           { :ok, false }
       end
     end)
@@ -193,11 +217,10 @@ defmodule Cachex.Worker do
   def expire(%__MODULE__{ } = state, key, expiration, options \\ []) when is_list(options) do
     do_action(state, { :expire, key, expiration, options }, fn ->
       with { :ok, true } <- check_exists(state, key) do
-        case expiration do
-          val when val == nil or val > 0 ->
-            state.actions.expire(state, key, expiration, options)
-          _expired_already ->
-            del(state, key)
+        if expiration == nil or expiration > 0 do
+          state.actions.update(state, key, [{ 3, Util.now() }, { 4, expiration }])
+        else
+          del(state, key, via: :purge)
         end
       end
     end)
@@ -236,7 +259,7 @@ defmodule Cachex.Worker do
   def refresh(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :refresh, key, options }, fn ->
       with { :ok, true } <- check_exists(state, key) do
-        state.actions.refresh(state, key, options)
+        state.actions.update(state, key, [{ 3, Util.now() }])
       end
     end)
   end
@@ -293,7 +316,14 @@ defmodule Cachex.Worker do
   """
   def ttl(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :ttl, key, options }, fn ->
-      state.actions.ttl(state, key, options)
+      case state.actions.read(state, key) do
+        { _cache, ^key, _touched, nil, _value } ->
+          { :ok, nil }
+        { _cache, ^key, touched, ttl, _value } ->
+          { :ok, touched + ttl - Util.now() }
+        _unrecognised_value ->
+          { :missing, nil }
+      end
     end)
   end
 
@@ -301,23 +331,17 @@ defmodule Cachex.Worker do
   # Behaviours to enforce on all types of workers.
   ###
 
-  @doc """
-  Invoked when retrieving a key from the cache. This callback should be implemented
-  such that either a key is returned, or a nil value is returned. A status should
-  also be provided which is any of `:ok`, `:missing`, or `:loaded` to represent
-  how the key was retrieved.
-  """
-  @callback get(__MODULE__, any, list) :: { :ok | :loaded | :missing, any }
-  @callback set(__MODULE__, any, any, list) :: { :ok, true | false }
-  @callback update(__MODULE__, any, any, list) :: { :ok, true | false }
-  @callback del(__MODULE__, any, list) :: { :ok, true | false }
+  # CRUD
+  @callback write(__MODULE__, record) :: { :ok, true | false }
+  @callback read(__MODULE__, any) :: record | nil
+  @callback update(__MODULE__, any, [ { number, any } ]) :: { :ok, true | false }
+  @callback delete(__MODULE__, any) :: { :ok, true | false }
+
+  # Bonus
   @callback clear(__MODULE__, list) :: { :ok, number }
-  @callback expire(__MODULE__, any, number, list) :: { :ok, true | false }
   @callback keys(__MODULE__, list) :: { :ok, list }
   @callback incr(__MODULE__, any, list) :: { :ok, number }
-  @callback refresh(__MODULE__, any, list) :: { :ok, true | false }
   @callback take(__MODULE__, any, list) :: { :ok | :missing, any }
-  @callback ttl(__MODULE__, any, list) :: { :ok | :missing, any }
 
   ###
   # GenServer delegate functions for call/cast.
