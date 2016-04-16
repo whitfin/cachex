@@ -34,7 +34,7 @@ defmodule Cachex.Worker.Transactional do
     Util.handle_transaction(fn ->
       case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, _value } = record] ->
-          case Util.has_expired?(touched, ttl) do
+          case Util.has_expired?(state, touched, ttl) do
             true  -> Worker.del(state, key, @purge_override) && nil
             false -> record
           end

@@ -62,7 +62,7 @@ defmodule Cachex do
 
       The name of the cache you're creating, typically an atom.
 
-          Cachex.start_link([ name: :my_cache ])
+          iex> Cachex.start_link([ name: :my_cache ])
 
   ### Optional
 
@@ -70,7 +70,7 @@ defmodule Cachex do
 
       A list of options to pass to the ETS table initialization.
 
-          Cachex.start_link([ name: :my_cache, ets_opts: [ { :write_concurrency, false } ] ])
+          iex> Cachex.start_link([ name: :my_cache, ets_opts: [ { :write_concurrency, false } ] ])
 
     - **default_fallback**
 
@@ -78,16 +78,24 @@ defmodule Cachex do
       This function is called with a key which has no value, in order to allow loading
       from a different location.
 
-          Cachex.start_link([ name: :my_cache, default_fallback: fn(key) ->
-            generate_value(key)
-          end])
+          iex> Cachex.start_link([ name: :my_cache, default_fallback: fn(key) ->
+          ...>   generate_value(key)
+          ...> end])
 
     - **default_ttl**
 
       A default expiration time to place on any keys inside the cache (this can be
       overridden when a key is set). This value is in **milliseconds**.
 
-          Cachex.start_link([ name: :my_cache, default_ttl: :timer.seconds(1) ])
+          iex> Cachex.start_link([ name: :my_cache, default_ttl: :timer.seconds(1) ])
+
+    - **disable_ode**
+
+      If true, on-demand expiration will be disabled. Keys will only be removed
+      by Janitor processes, or by calling `purge/2` directly. Useful in case you
+      have a Janitor running and don't want potential deletes to impact your reads.
+
+          iex> Cachex.start_link([ name: :my_cache, disable_ode: true ])
 
     - **fallback_args**
 
@@ -96,10 +104,10 @@ defmodule Cachex do
       your args appropriately. This can be used to pass through things such as clients and
       connections.
 
-          Cachex.start_link([ name: :my_cache, fallback_args: [redis_client] ])
-          Cachex.get(:my_cache, "key", fallback: fn(key, redis_client) ->
-            redis_client.get(key)
-          end)
+          iex> Cachex.start_link([ name: :my_cache, fallback_args: [redis_client] ])
+          iex> Cachex.get(:my_cache, "key", fallback: fn(key, redis_client) ->
+          ...>   redis_client.get(key)
+          ...> end)
 
     - **hooks**
 
@@ -107,15 +115,15 @@ defmodule Cachex do
       taken place. These hooks should be instances of Cachex.Hook and implement the hook
       behaviour. An example hook can be found in `Cachex.Stats`.
 
-        hook = %Cachex.Hook{ module: MyHook, type: :post }
-        Cachex.start_link([ name: :my_cache, hooks: [hook] ])
+          iex> hook = %Cachex.Hook{ module: MyHook, type: :post }
+          iex> Cachex.start_link([ name: :my_cache, hooks: [hook] ])
 
     - **nodes**
 
       A list of nodes that the store should replicate to. Using this does not automatically
       enable transactions; they need to be enabled separately.
 
-          Cachex.start_link([ name: :my_cache, nodes: [node()] ])
+          iex> Cachex.start_link([ name: :my_cache, nodes: [node()] ])
 
     - **record_stats**
 
@@ -123,7 +131,7 @@ defmodule Cachex do
       overhead due to being implemented as an asynchronous hook (roughly 1µ/op). Stats
       can be retrieve from a running cache by using `stats/1`.
 
-          Cachex.start_link([ name: :my_cache, record_stats: true ])
+          iex> Cachex.start_link([ name: :my_cache, record_stats: true ])
 
     - **remote**
 
@@ -132,7 +140,7 @@ defmodule Cachex do
       automatically set to true if you have set `:nodes` to a list of nodes other than
       just `[node()]`.
 
-          Cachex.start_link([ name: :my_cache, remote: true ])
+          iex> Cachex.start_link([ name: :my_cache, remote: true ])
 
     - **transactional**
 
@@ -142,7 +150,7 @@ defmodule Cachex do
       and you have a lot of writes going to the same keys. Note that this is at least 10x
       slower than when set to false.
 
-          Cachex.start_link([ name: :my_cache, transactional: true ])
+          iex> Cachex.start_link([ name: :my_cache, transactional: true ])
 
     - **ttl_interval**
 
@@ -153,7 +161,7 @@ defmodule Cachex do
       application, but it may make sense to lower the frequency if you don't have many keys
       expiring at one time. This value is set in **milliseconds**.
 
-          Cachex.start_link([ name: :my_cache, ttl_interval: :timer.seconds(5) ])
+          iex> Cachex.start_link([ name: :my_cache, ttl_interval: :timer.seconds(5) ])
 
   """
   @spec start_link(options, options) :: { atom, pid }

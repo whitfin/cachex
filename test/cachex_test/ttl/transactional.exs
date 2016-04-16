@@ -37,10 +37,23 @@ defmodule CachexTest.Ttl.Transactional do
     set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
     assert(set_result == { :ok, true })
 
-    :timer.sleep(10)
+    :timer.sleep(6)
 
     ttl_result = Cachex.ttl(state.cache, "my_key")
     assert(ttl_result == { :missing, nil })
+  end
+
+  test "ttl with expired key and disable_ode does not remove the key", _state do
+    cache = TestHelper.create_cache([ disable_ode: true, transactional: true ])
+
+    set_result = Cachex.set(cache, "my_key", "my_value", ttl: 5)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(6)
+
+    { ttl_status, ttl_result } = Cachex.ttl(cache, "my_key")
+    assert(ttl_status == :ok)
+    assert(ttl_result < 0)
   end
 
 end

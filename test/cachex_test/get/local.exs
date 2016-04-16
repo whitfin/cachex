@@ -89,10 +89,22 @@ defmodule CachexTest.Get.Local do
     set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
     assert(set_result == { :ok, true })
 
-    :timer.sleep(10)
+    :timer.sleep(6)
 
     get_result = Cachex.get(state.cache, "my_key")
     assert(get_result == { :missing, nil })
+  end
+
+  test "key get with expired key and disable_ode", _state do
+    cache = TestHelper.create_cache([ disable_ode: true ])
+
+    set_result = Cachex.set(cache, "my_key", "my_value", ttl: 5)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(6)
+
+    get_result = Cachex.get(cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
   end
 
 end

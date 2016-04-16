@@ -204,6 +204,24 @@ defmodule CachexTest.Util do
     refute(Util.has_expired?(nil, nil))
   end
 
+  test "util.has_expired?/3 with disable_ode determines if a date and ttl has passed" do
+    state = %Cachex.Worker{ options: %Cachex.Options { disable_ode: true } }
+    refute(Util.has_expired?(state, Util.now(), -5000))
+    refute(Util.has_expired?(state, Util.now(), 5000))
+    refute(Util.has_expired?(state, nil, 5000))
+    refute(Util.has_expired?(state, 5000, nil))
+    refute(Util.has_expired?(state, nil, nil))
+  end
+
+  test "util.has_expired?/3 without disable_ode determines if a date and ttl has passed" do
+    state = %Cachex.Worker{ options: %Cachex.Options { disable_ode: false } }
+    assert(Util.has_expired?(state, Util.now(), -5000))
+    refute(Util.has_expired?(state, Util.now(), 5000))
+    refute(Util.has_expired?(state, nil, 5000))
+    refute(Util.has_expired?(state, 5000, nil))
+    refute(Util.has_expired?(state, nil, nil))
+  end
+
   test "util.has_arity?/2 determines if a function has a given arity" do
     assert(Util.has_arity?(&(&1), 1))
     refute(Util.has_arity?(&(&1), 2))
