@@ -14,60 +14,41 @@ defmodule Cachex.Worker.Remote do
   alias Cachex.Util
   alias Cachex.Worker
 
-  @doc """
-  Simply do an Mnesia dirty read on the given key. If the key does not exist we
-  check to see if there's a fallback function. If there is we call it and then
-  set the value into the cache before returning it to the user. Otherwise we
-  simply return a nil value in an ok tuple.
-  """
-  def get(state, key, options) do
-    fb_fun =
-      options
-      |> Util.get_opt_function(:fallback)
-
-    val = case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired?(touched, ttl) do
-          true  -> Worker.del(state, key); :missing;
-          false -> value
-        end
-      _unrecognised_val -> :missing
-    end
-
-    case val do
-      :missing ->
-        case Util.get_fallback(state, key, fb_fun) do
-          { :ok, new_value } ->
-            { :missing, new_value }
-          { :loaded, new_value } = result ->
-            Worker.set(state, key, new_value)
-            result
-        end
-      val ->
-        { :ok, val }
-    end
-  end
+  # define purge constants
+  @purge_override [{ :via, { :purge } }, { :hook_result, { :ok, 1 } }]
 
   @doc """
-  Inserts a value into the Mnesia tables, without caring about overwrites. We
-  transform the result into an ok/error tuple to keep consistency in the API.
+  Writes a record into the cache, and returns a result signifying whether the
+  write was successful or not.
   """
-  def set(state, key, value, options) do
-    ttl =
-      options
-      |> Util.get_opt_number(:ttl)
-
-    state
-    |> Util.create_record(key, value, ttl)
-    |> :mnesia.dirty_write
+  def write(state, record) do
+    state.cache
+    |> :mnesia.dirty_write(record)
     |> (&(Util.create_truthy_result(&1 == :ok))).()
   end
 
   @doc """
-  We delegate to the Transactional actions as this function requires both a
-  get/set, and as such it's only safe to do via a transaction.
+  Read back the key from Mnesia, using a dirty read for performance/replication.
+  If the key does not exist we return a `nil` value. If the key has expired, we
+  delete it from the cache using the `:purge` action as a notification.
   """
-  defdelegate update(state, key, value, options),
+  def read(state, key) do
+    case :mnesia.dirty_read(state.cache, key) do
+      [{ _cache, ^key, touched, ttl, _value } = record] ->
+        case Util.has_expired?(touched, ttl) do
+          true  -> Worker.del(state, key, @purge_override) && nil
+          false -> record
+        end
+      _unrecognised_val ->
+        nil
+    end
+  end
+
+  @doc """
+  Updates a number of fields in a record inside the cache, by key. We delegate to
+  the implementation in the Transactional Worker to avoid duplication.
+  """
+  defdelegate update(state, key, changes),
   to: Cachex.Worker.Transactional
 
   @doc """
@@ -75,7 +56,7 @@ defmodule Cachex.Worker.Remote do
   the key exists or not, we return a truthy value (to signify the record is not
   in the cache).
   """
-  def del(state, key, _options) do
+  def delete(state, key) do
     state.cache
     |> :mnesia.dirty_delete(key)
     |> (&(Util.create_truthy_result(&1 == :ok))).()
@@ -86,13 +67,6 @@ defmodule Cachex.Worker.Remote do
   as the behaviour matches between implementations.
   """
   defdelegate clear(state, options),
-  to: Cachex.Worker.Transactional
-
-  @doc """
-  Sets the expiration time on a given key based on the value passed in. We pass
-  this through to the Transactional actions as we require a get/set combination.
-  """
-  defdelegate expire(state, key, expiration, options),
   to: Cachex.Worker.Transactional
 
   @doc """
@@ -114,44 +88,11 @@ defmodule Cachex.Worker.Remote do
   to: Cachex.Worker.Transactional
 
   @doc """
-  Refreshes the internal timestamp on the record to ensure that the TTL only takes
-  place from this point forward. We pass this through to the Transactional actions
-  as we require a get/set combination.
-  """
-  defdelegate refresh(state, key, options),
-  to: Cachex.Worker.Transactional
-
-  @doc """
   This is like `del/2` but it returns the last known value of the key as it
   existed in the cache upon deletion. We delegate to the Transactional actions
   as this requires a potential get/del combination.
   """
   defdelegate take(state, key, options),
   to: Cachex.Worker.Transactional
-
-  @doc """
-  Checks the remaining TTL on a provided key. We do this by retrieving the local
-  record and pulling out the touched and ttl fields. In order to calculate the
-  remaining time, we simply subtract the sum of these numbers from the current
-  time in milliseconds. We return the remaining time to live in an ok tuple. If
-  the key does not exist in the cache, we return an error tuple with a warning.
-  """
-  def ttl(state, key, _options) do
-    case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, _value }] ->
-        case Util.has_expired?(touched, ttl) do
-          true  ->
-            Worker.del(state, key)
-            { :missing, nil }
-          false ->
-            case ttl do
-              nil -> { :ok, nil }
-              val -> { :ok, touched + val - Util.now() }
-            end
-        end
-      _unrecognised_val ->
-        { :missing, nil }
-    end
-  end
 
 end

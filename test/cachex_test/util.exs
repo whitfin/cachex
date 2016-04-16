@@ -186,6 +186,7 @@ defmodule CachexTest.Util do
     assert(Util.handle_transaction({ :atomic, { :error, :test } }) == { :error, :test })
     assert(Util.handle_transaction({ :atomic, { :ok, :test } }) == { :ok, :test })
     assert(Util.handle_transaction({ :atomic, { :loaded, :test } }) == { :loaded, :test })
+    assert(Util.handle_transaction({ :atomic, { :missing, :test } }) == { :missing, :test })
     assert(Util.handle_transaction({ :atomic, :test }) == { :ok, :test })
     assert(Util.handle_transaction({ :aborted, :test }) == { :error, :test })
   end

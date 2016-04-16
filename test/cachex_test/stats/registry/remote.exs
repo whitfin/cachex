@@ -130,13 +130,21 @@ defmodule CachexTest.Stats.Registry.Remote do
     get_result = Cachex.get(state.cache, "missing_key", fallback: &(&1))
     assert(get_result == { :loaded, "missing_key" })
 
+    set_result = Cachex.set(state.cache, "key", "value", ttl: 1)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(2)
+
+    get_result = Cachex.get(state.cache, "key")
+    assert(get_result == { :missing, nil })
+
     { status, stats } = Cachex.stats(state.cache, for: :raw)
 
     assert(status == :ok)
-    assert(stats[:get] == %{ ok: 1, missing: 1, loaded: 1 })
+    assert(stats[:get] == %{ ok: 1, missing: 2, loaded: 1 })
     # setCount is 2 fallbacks also do a set into the cache
     # missCount is 2 because loading a key also is a miss
-    assert(stats[:global] == %{ opCount: 5, setCount: 2, hitCount: 1, missCount: 2, loadCount: 1 })
+    assert(stats[:global] == %{ opCount: 8, expiredCount: 1, setCount: 3, hitCount: 1, missCount: 3, loadCount: 1 })
   end
 
   test "stats with a get_and_update action", state do
