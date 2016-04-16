@@ -83,6 +83,7 @@ Caches can accept a list of options during initialization, which determine vario
 |     ets_opts     |   list of options  |               A list of options to give to the ETS table.               |
 | default_fallback |       function     |   A function accepting a key which is used for multi-layered caching.   |
 |    default_ttl   |     milliseconds   | A default expiration time for a key when being placed inside the cache. |
+|    disable_ode   |  `true` or `false` | Whether or not to disable on-demand expirations when reading back keys. |
 |   fallback_args  |  list of arguments |  A list of arguments to pass alongside the key to a fallback function.  |
 |       hooks      |    list of Hooks   |    A list of execution hooks (see below) to listen on cache actions.    |
 |       nodes      |    list of nodes   |       A list of remote nodes to connect to and replicate against.       |
@@ -265,7 +266,7 @@ This means that at any point, if you have the TTL worker disabled, you can reali
 Of course, if you have the TTL worker disabled you need to be careful of a growing cache size due to keys being added and then never being accessed again. This is fine if you have a very restrictive keyset, but for
 arbitrary keys this is probably not what you want.
 
-This type of expiration is always enabled and cannot be disabled. Due to the extremely minimal overhead, it doesn't really make sense to make this optional.
+Although the overhead of on-demand expiration is minimal, as of v0.10.0 it can be disabled using the `disable_ode` option inside `start/1` or `start_link/2`. This is useful if you have a Janitor running and don't mind keys existing a little beyond their expiration (for example if  TTL is being used purely as a means to control memory usage). The main advantage of disabling ODE is that the execution time of any given read operation is more predictable due to avoiding the case where some reads also evict the key.
 
 #### Janitors
 
