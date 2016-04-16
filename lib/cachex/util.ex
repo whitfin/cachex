@@ -309,4 +309,10 @@ defmodule Cachex.Util do
   def successfully_started?({ :aborted, { :already_exists, _table } }), do: true
   def successfully_started?(_), do: false
 
+  @doc """
+  Determines if a value is truthy or not. This just adds a little bit of extra
+  readability where needed.
+  """
+  def truthy?(value), do: !!value
+
 end

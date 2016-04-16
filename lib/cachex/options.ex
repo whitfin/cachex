@@ -67,7 +67,7 @@ defmodule Cachex.Options do
       mod -> Hook.initialize_hooks(mod)
     end
 
-    stats_hook = case !!options[:record_stats] do
+    stats_hook = case Util.truthy?(options[:record_stats]) do
       true ->
         Hook.initialize_hooks(%Hook{
           args: [ ],
@@ -87,13 +87,12 @@ defmodule Cachex.Options do
 
     is_remote = cond do
       remote_node_list != nil && remote_node_list != [node()] -> true
-      !!options[:remote] -> true
-      true -> false
+      true -> Util.truthy?(options[:remote])
     end
 
     %__MODULE__{
       "cache": cache,
-      "disable_ode": !!options[:disable_ode],
+      "disable_ode": Util.truthy?(options[:disable_ode]),
       "ets_opts": ets_opts,
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
@@ -103,7 +102,7 @@ defmodule Cachex.Options do
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
       "remote": is_remote,
-      "transactional": !!options[:transactional],
+      "transactional": Util.truthy?(options[:transactional]),
       "ttl_interval": ttl_interval
     }
   end
