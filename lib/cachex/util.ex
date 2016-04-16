@@ -184,6 +184,10 @@ defmodule Cachex.Util do
   Small utility to figure out if a document has expired based on the last touched
   time and the TTL of the document.
   """
+  def has_expired?(state, touched, ttl) when is_number(touched) and is_number(ttl) do
+    if state.options.disable_ode, do: false, else: touched + ttl < now
+  end
+  def has_expired?(_state, _touched, _ttl), do: false
   def has_expired?(touched, ttl) when is_number(touched) and is_number(ttl) do
     touched + ttl < now
   end
