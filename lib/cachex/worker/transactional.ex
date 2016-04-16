@@ -12,6 +12,9 @@ defmodule Cachex.Worker.Transactional do
   alias Cachex.Util
   alias Cachex.Worker
 
+  # define purge constants
+  @purge_override [{ :via, { :purge } }, { :hook_result, { :ok, 1 } }]
+
   @doc """
   Writes a record into the cache, and returns a result signifying whether the
   write was successful or not.
@@ -32,7 +35,7 @@ defmodule Cachex.Worker.Transactional do
       case :mnesia.read(state.cache, key) do
         [{ _cache, ^key, touched, ttl, _value } = record] ->
           case Util.has_expired?(touched, ttl) do
-            true  -> Worker.del(state, key, via: :purge) && nil
+            true  -> Worker.del(state, key, @purge_override) && nil
             false -> record
           end
         _unrecognised_val ->

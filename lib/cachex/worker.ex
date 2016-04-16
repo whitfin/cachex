@@ -422,6 +422,7 @@ defmodule Cachex.Worker do
 
     message = case options[:via] do
       nil -> message
+      val when is_tuple(val) -> val
       val -> put_elem(message, 0, val)
     end
 
@@ -437,7 +438,7 @@ defmodule Cachex.Worker do
     if notify do
       case state.options.post_hooks do
         [] -> nil;
-        li -> Notifier.notify(li, message, result)
+        li -> Notifier.notify(li, message, options[:hook_result] || result)
       end
     end
 
