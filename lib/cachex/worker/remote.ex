@@ -35,9 +35,11 @@ defmodule Cachex.Worker.Remote do
   def read(state, key) do
     case :mnesia.dirty_read(state.cache, key) do
       [{ _cache, ^key, touched, ttl, _value } = record] ->
-        case Util.has_expired?(touched, ttl) do
-          true  -> Worker.del(state, key, @purge_override) && nil
-          false -> record
+        cond do
+          state.options.disable_ode or not Util.has_expired?(touched, ttl) ->
+            record
+          true ->
+            Worker.del(state, key, @purge_override) && nil
         end
       _unrecognised_val ->
         nil

@@ -29,10 +29,22 @@ defmodule CachexTest.Exists do
     set_result = Cachex.set(state.cache, "my_key", 5, ttl: 5)
     assert(set_result == { :ok, true })
 
-    :timer.sleep(10)
+    :timer.sleep(6)
 
     exists_result = Cachex.exists?(state.cache, "my_key")
     assert(exists_result == { :ok, false })
+  end
+
+  test "exists? with an expired key and disable_ode", _state do
+    cache = TestHelper.create_cache([ disable_ode: true ])
+
+    set_result = Cachex.set(cache, "my_key", 5, ttl: 5)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(6)
+
+    exists_result = Cachex.exists?(cache, "my_key")
+    assert(exists_result == { :ok, true })
   end
 
   test "exists? with a missing key", state do

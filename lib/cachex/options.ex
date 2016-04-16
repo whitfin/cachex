@@ -8,6 +8,7 @@ defmodule Cachex.Options do
   alias Cachex.Util
 
   defstruct cache: nil,             # the name of the cache
+            disable_ode: false,     # whether we disable on-demand expiration
             ets_opts: nil,          # any options to give to ETS
             default_fallback: nil,  # the default fallback implementation
             default_ttl: nil,       # any default ttl values to use
@@ -92,6 +93,7 @@ defmodule Cachex.Options do
 
     %__MODULE__{
       "cache": cache,
+      "disable_ode": !!options[:disable_ode],
       "ets_opts": ets_opts,
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
