@@ -50,7 +50,7 @@ defmodule Cachex.Worker.Local do
   """
   def update(state, key, changes) do
     state.cache
-    |> :ets.update_element(key, List.wrap(changes))
+    |> :ets.update_element(key, changes)
     |> (&(Util.create_truthy_result/1)).()
   end
 
