@@ -30,6 +30,35 @@ defmodule Cachex.Inspector do
   end
 
   @doc """
+  Returns information about the expired keys currently inside the cache (i.e. keys
+  which  will be purged in the next Janitor run).
+  """
+  def inspect(cache, :expired) do
+    __MODULE__.inspect(cache, { :expired, :count })
+  end
+  def inspect(cache, { :expired, :count }) do
+    query =
+      true
+      |> Util.retrieve_expired_rows
+
+    cache
+    |> :ets.select_count(query)
+    |> Util.ok
+  end
+  def inspect(cache, { :expired, :keys }) do
+    query =
+      :"$1"
+      |> Util.retrieve_expired_rows
+
+    cache
+    |> :ets.select(query)
+    |> Util.ok
+  end
+  def inspect(_cache, { :expired, _unknown }) do
+    { :error, "Invalid expiration inspection type provided" }
+  end
+
+  @doc """
   Requests the memory information from a cache, and converts it using the word
   size of the system, in order to return a number of bytes or as a binary.
   """

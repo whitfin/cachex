@@ -822,6 +822,10 @@ defmodule Cachex do
 
   ## Options
 
+    * `{ :expired, :count }` - the number of keys which have expired but have not
+      yet been removed by TTL handlers.
+    * `{ :expired, :keys }` - the list of unordered keys which have expired but
+      have not yet been removed by TTL handlers.
     * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
     * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
     * `:worker` - the internal state of the cache worker. This blocks the cache

@@ -72,25 +72,7 @@ defmodule Cachex.Janitor do
   process as needed. This is needed because we expose purging in the public API.
   """
   def purge_records(cache) when is_atom(cache) do
-    { :ok, :ets.select_delete(cache, create_selection(true)) }
-  end
-
-  # Returns a selection to return the designated values, just an easier way to
-  # define this in one place - not the nicest piece in the world.
-  defp create_selection(return) do
-    [
-      {
-        { :"_", :"$1", :"$2", :"$3", :"_" },        # input (our records)
-        [
-          {
-            :andalso,                               # guards for matching
-            { :"/=", :"$3", nil },                  # where a TTL is set
-            { :"<", { :"+", :"$2", :"$3" }, now }   # and the TTL has passed
-          }
-        ],
-        [ return ]                                  # our output
-      }
-    ]
+    { :ok, :ets.select_delete(cache, retrieve_expired_rows(true)) }
   end
 
   # Schedules a check to occur after the designated interval. Once scheduled,
