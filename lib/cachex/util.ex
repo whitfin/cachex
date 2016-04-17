@@ -23,6 +23,15 @@ defmodule Cachex.Util do
   end
 
   @doc """
+  Creates a match spec for the cache using the provided rules, and returning the
+  provided return values. This is just shorthand for writing the same boilerplate
+  spec over and over again.
+  """
+  def create_match(return, where) do
+    [ { { :"_", :"$1", :"$2", :"$3", :"$4" }, List.wrap(where), List.wrap(return) } ]
+  end
+
+  @doc """
   Creates a long machine name from a provided binary name. If a hostname is given,
   it will be used - otherwise we default to using the local node's hostname.
   """
@@ -279,19 +288,26 @@ defmodule Cachex.Util do
   like finding all stored keys and all stored values.
   """
   def retrieve_all_rows(return) do
-    [
+    create_match(return, [
       {
-        { :"_", :"$1", :"$2", :"$3", :"$4" },       # input (our records)
-        [
-          {
-            :orelse,                                # guards for matching
-            { :"==", :"$3", nil },                  # where a TTL is set
-            { :">", { :"+", :"$2", :"$3" }, now }   # and the TTL has not passed
-          }
-        ],
-        [ return ]                                  # our output
+        :orelse,                                # guards for matching
+        { :"==", :"$3", nil },                  # where a TTL is not set
+        { :">", { :"+", :"$2", :"$3" }, now }   # or the TTL has not passed
       }
-    ]
+    ])
+  end
+
+  @doc """
+  Returns a selection to return the designated value for all expired rows.
+  """
+  def retrieve_expired_rows(return) do
+    create_match(return, [
+      {
+        :andalso,                               # guards for matching
+        { :"/=", :"$3", nil },                  # where a TTL is set
+        { :"<", { :"+", :"$2", :"$3" }, now }   # and the TTL has passed
+      }
+    ])
   end
 
   @doc """

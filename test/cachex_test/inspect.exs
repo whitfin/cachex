@@ -69,6 +69,25 @@ defmodule CachexTest.Inspect do
     assert(state_result == worker_result)
   end
 
+  test "inspect can return a count of expired keys", state do
+    inspect_result = Cachex.inspect(state.cache, :expired)
+    assert(inspect_result == { :ok, 0 })
+
+    set_result = Cachex.set(state.cache, "key", "value", ttl: 1)
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(2)
+
+    inspect_result = Cachex.inspect(state.cache, { :expired, :count })
+    assert(inspect_result == { :ok, 1 })
+
+    inspect_result = Cachex.inspect(state.cache, { :expired, :keys })
+    assert(inspect_result == { :ok, [ "key" ] })
+
+    inspect_result = Cachex.inspect(state.cache, { :expired, :missing })
+    assert(inspect_result == { :error, "Invalid expiration inspection type provided" })
+  end
+
   test "inspect fails safely on invalid options", state do
     inspect_result = Cachex.inspect(state.cache, :missing_option)
 
