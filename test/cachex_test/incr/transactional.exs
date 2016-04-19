@@ -37,6 +37,17 @@ defmodule CachexTest.Incr.Transactional do
     assert(incr_result == { :missing, 6 })
   end
 
+  test "incr with non-numeric value", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
+
+    incr_result = Cachex.incr(state.cache, "my_key")
+    assert(incr_result == { :error, "Unable to operate on non-numeric value" })
+  end
+
   test "incr with async is faster than non-async", state do
     { async_time, _res } = :timer.tc(fn ->
       Cachex.incr(state.cache, "my_key1", async: true)

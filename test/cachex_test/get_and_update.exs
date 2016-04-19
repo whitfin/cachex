@@ -145,4 +145,11 @@ defmodule CachexTest.GetAndUpdate do
     assert(get_result == { :missing, nil })
   end
 
+  test "get and update with abort and unrecognised message", state do
+    gau_result = Cachex.get_and_update(state.cache, "my_key", fn(_value) ->
+      Cachex.abort(state.cache, :unrecognised_error)
+    end)
+    assert(gau_result == { :error, :unrecognised_error })
+  end
+
 end

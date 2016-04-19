@@ -116,15 +116,19 @@ defmodule Cachex.Worker.Local do
       state
       |> Worker.exists?(key, notify: false)
 
-    new_value =
-      state.cache
-      |> :ets.update_counter(key, { 5, amount }, new_record)
+    try do
+      new_value =
+        state.cache
+        |> :ets.update_counter(key, { 5, amount }, new_record)
 
-    case exists_key do
-      { :ok, true } ->
-        { :ok, new_value }
-      { :ok, false } ->
-        { :missing, new_value }
+      case exists_key do
+        { :ok, true } ->
+          { :ok, new_value }
+        { :ok, false } ->
+          { :missing, new_value }
+      end
+    rescue
+      _e -> { :error, :non_numeric_value }
     end
   end
 
