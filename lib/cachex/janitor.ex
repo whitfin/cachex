@@ -14,8 +14,7 @@ defmodule Cachex.Janitor do
   # we split into a separate GenServer for safety in case it takes a while.
 
   defstruct cache: nil,         # the name of the cache
-            interval: nil,      # the interval to check the ttl
-            stats_ref: nil      # a reference to send stats to
+            interval: nil       # the interval to check the ttl
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -46,8 +45,7 @@ defmodule Cachex.Janitor do
   def init(options \\ %Cachex.Options { }) do
     state = %__MODULE__{
       cache: options.cache,
-      interval: options.ttl_interval,
-      stats_ref: Cachex.Hook.ref_by_module(options.post_hooks, Cachex.Stats)
+      interval: options.ttl_interval
     }
     { :ok, schedule_check(state) }
   end
