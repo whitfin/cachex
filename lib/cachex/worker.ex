@@ -114,7 +114,7 @@ defmodule Cachex.Worker do
           end
       end
 
-      { :ok, result } = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
+      raw_result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
         { cache, key, touched, ttl, case value do
           nil ->
             state
@@ -126,7 +126,12 @@ defmodule Cachex.Worker do
         end }
       end)
 
-      { status, elem(result, 4) }
+      case raw_result do
+        { :ok, { _cache, ^key, _touched, _ttl, value } } ->
+          { status, value }
+        err ->
+          err
+      end
     end)
   end
 
@@ -240,7 +245,12 @@ defmodule Cachex.Worker do
   """
   def incr(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :incr, key, options }, fn ->
-      state.actions.incr(state, key, options)
+      case state.actions.incr(state, key, options) do
+        { :error, :non_numeric_value } ->
+          { :error, "Unable to operate on non-numeric value" }
+        result ->
+          result
+      end
     end)
   end
 

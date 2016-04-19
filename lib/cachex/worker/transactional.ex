@@ -109,8 +109,12 @@ defmodule Cachex.Worker.Transactional do
       |> Util.get_opt_number(:initial, 0)
 
     Worker.get_and_update(state, key, fn
-      (nil) -> initial + amount
-      (val) -> val + amount
+      (val) when is_number(val) ->
+        val + amount
+      (nil) ->
+        initial + amount
+      (_na) ->
+        Cachex.abort(state, :non_numeric_value)
     end, notify: false)
   end
 
