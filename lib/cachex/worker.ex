@@ -410,6 +410,15 @@ defmodule Cachex.Worker do
     { :reply, new_state, new_state }
   end
 
+  @doc """
+  Handler for broadcasting a set of actions and results to all registered hooks.
+  This is fired by out-of-proc calls (i.e. Janitors) which need to notify hooks.
+  """
+  def handle_cast({ :broadcast, { action, result } }, state) do
+    do_action(state, action, fn -> result end)
+    { :noreply, state }
+  end
+
   ###
   # Functions designed to only be used internally (i.e. those not forwarded to
   # the main Cachex interfaces).
