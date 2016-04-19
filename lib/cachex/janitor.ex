@@ -78,9 +78,7 @@ defmodule Cachex.Janitor do
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
   defp update_evictions({ :ok, evictions } = result, state) when evictions > 0 do
-    if state.stats_ref != nil do
-      GenEvent.notify(state.stats_ref, { :async, { { :purge, [] }, result } })
-    end
+    GenServer.cast(state.cache, { :broadcast, { { :purge, [] }, result } })
     state
   end
   defp update_evictions(_other, state), do: state
