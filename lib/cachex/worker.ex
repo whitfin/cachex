@@ -427,6 +427,13 @@ defmodule Cachex.Worker do
   ###
 
   @doc """
+  Shorthand for joining up the hook list rather than storing it as two separate
+  lists. Used when iterating all hooks.
+  """
+  def combine_hooks(%__MODULE__{ options: options }),
+  do: Enum.concat(options.pre_hooks, options.post_hooks)
+
+  @doc """
   Forwards a call to the correct actions set, currently only the local actions.
   The idea is that in future this will delegate to distributed implementations,
   so it has been built out in advance to provide a clear migration path.
@@ -511,9 +518,9 @@ defmodule Cachex.Worker do
   # A binding for the update of hooks requiring anything of this cache. As it
   # stands this is just the worker, but we call from multiple places to it makes
   # sense to break out into a function.
-  defp modify_hooks(%__MODULE__{ options: options } = state) do
-    options.pre_hooks
-    |> Enum.concat(options.post_hooks)
+  defp modify_hooks(%__MODULE__{ } = state) do
+    state
+    |> combine_hooks
     |> Enum.filter(&(&1.provide |> List.wrap |> Enum.member?(:worker)))
     |> Enum.each(&(Hook.provision(&1, { :worker, state })))
     state
