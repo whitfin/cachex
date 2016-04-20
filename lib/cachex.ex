@@ -826,6 +826,8 @@ defmodule Cachex do
       yet been removed by TTL handlers.
     * `{ :expired, :keys }` - the list of unordered keys which have expired but
       have not yet been removed by TTL handlers.
+    * `{ :janitor, :last }` - returns various information about the last run of
+      a Janitor process.
     * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
     * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
     * `:worker` - the internal state of the cache worker. This blocks the cache

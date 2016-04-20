@@ -1,6 +1,5 @@
 defmodule Cachex.Janitor do
-  # use Macros and GenServer
-  use Cachex.Macros.GenServer
+  # use GenServer
   use GenServer
 
   # import utils for convenience
@@ -14,7 +13,8 @@ defmodule Cachex.Janitor do
   # we split into a separate GenServer for safety in case it takes a while.
 
   defstruct cache: nil,         # the name of the cache
-            interval: nil       # the interval to check the ttl
+            interval: nil,      # the interval to check the ttl
+            last: %{}           # information stored about the last run
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -51,17 +51,30 @@ defmodule Cachex.Janitor do
   end
 
   @doc """
+  Simply plucks and returns the last metadata for this Janitor.
+  """
+  def handle_call(:last, _ctx, state) do
+    { :reply, state.last, state }
+  end
+
+  @doc """
   The only code which currently runs within this process, the ttl check. This
   function is black magic and potentially needs to be improved, but it's super
   fast (the best perf I've seen). We basically drop to the ETS level and provide
   a select which only matches docs to be removed, and then ETS deletes them as it
   goes.
   """
-  definfo ttl_check do
-    state.cache
-    |> purge_records
+  def handle_info(:ttl_check, state) do
+    start_time = now()
+
+    { duration, result } = :timer.tc(fn ->
+      purge_records(state.cache)
+    end)
+
+    result
     |> update_evictions(state)
     |> schedule_check
+    |> update_meta(start_time, duration, result)
     |> noreply
   end
 
@@ -86,6 +99,17 @@ defmodule Cachex.Janitor do
   defp schedule_check(state) do
     :erlang.send_after(state.interval, self, :ttl_check)
     state
+  end
+
+  # Updates the metadata of this cache, keeping track of various things about the
+  # last run sequence.
+  defp update_meta(state, start, duration, { :ok, count }) do
+    new_last = %{
+      count: count,
+      duration: duration,
+      started: start
+    }
+    %__MODULE__{ state | last: new_last }
   end
 
 end
