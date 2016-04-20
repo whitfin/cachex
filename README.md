@@ -22,6 +22,7 @@ All of these features are optional and are off by default so you can pick and ch
 - [Execution Hooks](#execution-hooks)
     - [Definition](#definition)
     - [Registration](#registration)
+    - [Provisions](#provisions)
     - [Performance](#performance)
 - [TTL Implementation](#ttl-implementation)
     - [On Demand Expiration](#on-demand-expiration)
@@ -192,7 +193,7 @@ defmodule MyProject.MyHook do
 end
 ```
 
-You can override any of the typical callback functions *except* for the `handle_event/2` callback inside `GenEvent` which is used by Cachex. This is because Cachex hijacks `handle_event/2` and adds some bindings based around synchronous execution, so for safety it's easier to keep this away from the user. Cachex exposes the `handle_notify/2` and `handle_notify/3` callbacks in order to replace this behaviour by operating in the same way as `handle_event/2`.
+You can override any of the typical callback functions *except* for the `handle_event/2` callback which is used by Cachex. This is because Cachex hijacks `handle_event/2` and adds some bindings based around synchronous execution, so for safety it's easier to keep this away from the user. Cachex exposes the `handle_notify/2` and `handle_notify/3` callbacks in order to replace this behaviour by operating in the same way as `handle_event/2`.
 
 #### Registration
 
@@ -224,6 +225,7 @@ A hook is an instance of the `%Cachex.Hook{}` struct. These structs store variou
   max_timeout: 5,
   module: nil,
   results: false,
+  provide: [],
   server_args: [],
   type: :pre
 }
@@ -237,6 +239,7 @@ These fields translate to the following:
 |   async   | `true` or `false`  |     Whether or not this hook should execute asynchronously.    |
 |max_timeout| no. of milliseconds| A maximum time to wait for your synchronous hook to complete.  |
 |   module  | a module definition| A module containing your which implements the Hook interface.  |
+|  provide  |    list of atoms   |      A list of post-startup values to provide to your hook.    |
 |  results  | `true` or `false`  |     Whether the results should be included in notifications.   |
 |server_args|        any         |           Arguments to pass to the GenEvent server.            |
 |   type    | `:pre` or `:post`  |   Whether this hook should execute before or after the action. |
@@ -246,6 +249,47 @@ These fields translate to the following:
 - `max_timeout` has no effect if the hook is not being executed in a synchronous form.
 - `module` is the only required argument, as there's no logical default to set if not provided.
 - `results` has no effect on `:pre` hooks (as naturally results can only be forwarded after the action has taken place. Do not forget that this option has an effect on which callback is called (either `/2` or `/3`).
+
+#### Provisions
+
+There are some things which cannot be given to your hook on startup. For example if you wanted access to a cache worker in your hook, you would hit a dead end because all hooks are started before any worker processes. For this reason `v1.0.0` added a `:provide` option which takes a list of atoms which specify things to be provided to your hook.
+
+For example, if you wish to call the cache safely from inside a hook, you're going to need a cache worker provisioned (much in the same way that [action blocks](#action-blocks) function). In order to retrieve this safely, your hook definition would implement a `handle_info/2` callback which looks something like this:
+
+```elixir
+defmodule MyProject.MyHook do
+  use Cachex.Hook
+
+  @doc """
+  Initialize with a simple map to store values inside your hook.
+  """
+  def init([]) do
+    { :ok, %{ } }
+  end
+
+  @doc """
+  Handle the modification event, and store the cache worker as needed inside your
+  state. This worker can be passed to the main Cachex interface in order to call
+  the cache from inside your hooks.
+  """
+  def handle_info({ :provision, { :worker, worker } }, state) do
+    { :ok, Map.put(state, :worker, worker) }
+  end
+end
+```
+
+To then set up this hook, you need to make sure you tell the hook to be provisioned with a worker:
+
+```elixir
+hook = %Cachex.Hook{
+  module: MyModule.WorkerHook,
+  type: :post,
+  provide: [ :worker ]
+}
+Cachex.start_link([ name: :my_cache, hooks: hook ])
+```
+
+The message you receive in `handle_info/2` will always be `{ :provision, { provide_option, value } }` where `provide_option` is equal to the atom you've asked for (in this case `:worker`). Be aware that this modification event may be fired multiple times if the internal worker structure has changed for any reason (for example when extra nodes are added to the cluster).
 
 #### Performance
 

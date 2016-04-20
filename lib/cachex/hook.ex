@@ -15,6 +15,7 @@ defmodule Cachex.Hook do
             max_timeout: 5,
             module: nil,
             ref: nil,
+            provide: [],
             results: false,
             server_args: [],
             type: :pre
@@ -111,6 +112,25 @@ defmodule Cachex.Hook do
        end)
   end
 
+  @doc """
+  Calls a hook instance with the specified message and timeout.
+  """
+  def call(%__MODULE__{ module: mod, ref: ref }, msg, timeout \\ 5000),
+  do: GenEvent.call(ref, mod, msg, timeout)
+
+  @doc """
+  Provides a single point to call to provision all hooks. We forward the message
+  on to the hook ref.
+  """
+  def provision(%__MODULE__{ } = hook, msg),
+  do: __MODULE__.send(hook, { :provision, msg })
+
+  @doc """
+  Delivers a message to the specified hook.
+  """
+  def send(%__MODULE__{ ref: ref }, msg),
+  do: Kernel.send(ref, msg)
+
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
@@ -149,7 +169,11 @@ defmodule Cachex.Hook do
 
       @doc false
       def handle_call(msg, state) do
-        {:ok, state}
+        reason = { :bad_call, msg }
+        case :erlang.phash2(1, 1) do
+          0 -> exit(reason)
+          1 -> { :remove_handler, reason }
+        end
       end
 
       @doc false

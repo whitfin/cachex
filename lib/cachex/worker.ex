@@ -60,7 +60,7 @@ defmodule Cachex.Worker do
       cache: options.cache,
       options: options
     }
-    { :ok, state }
+    { :ok, modify_hooks(state) }
   end
 
   ###
@@ -407,6 +407,8 @@ defmodule Cachex.Worker do
       %__MODULE__{ state | actions: __MODULE__.Remote, options: new_options }
     end
 
+    modify_hooks(new_state)
+
     { :reply, new_state, new_state }
   end
 
@@ -504,6 +506,17 @@ defmodule Cachex.Worker do
       other_results ->
         other_results
     end
+  end
+
+  # A binding for the update of hooks requiring anything of this cache. As it
+  # stands this is just the worker, but we call from multiple places to it makes
+  # sense to break out into a function.
+  defp modify_hooks(%__MODULE__{ options: options } = state) do
+    options.pre_hooks
+    |> Enum.concat(options.post_hooks)
+    |> Enum.filter(&(&1.provide |> List.wrap |> Enum.member?(:worker)))
+    |> Enum.each(&(Hook.provision(&1, { :worker, state })))
+    state
   end
 
 end
