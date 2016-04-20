@@ -29,12 +29,9 @@ defmodule CachexTest.Inspect do
   end
 
   test "inspect can track memory usage", state do
-    { status1, default_result } = Cachex.inspect(state.cache, :memory)
-    { status2, result } = Cachex.inspect(state.cache, { :memory, :bytes })
+    { status, result } = Cachex.inspect(state.cache, { :memory, :bytes })
 
-    assert(status1 == :ok)
-    assert(status2 == :ok)
-    assert(default_result == result)
+    assert(status == :ok)
     assert_in_delta(result, 10600, 100)
 
     set_result = Cachex.set(state.cache, "key", "value")
@@ -45,6 +42,26 @@ defmodule CachexTest.Inspect do
 
     assert(status == :ok)
     assert_in_delta(result, 10800, 100)
+  end
+
+  test "inspect can track the last run of a Janitor", state do
+    cache = TestHelper.create_cache(default_ttl: 1, ttl_interval: 100)
+    start = Cachex.Util.now()
+
+    set_result = Cachex.set(cache, "key", "value")
+    assert(set_result == { :ok, true })
+
+    :timer.sleep(101)
+
+    { status, inspection } = Cachex.inspect(cache, { :janitor, :last })
+
+    assert(status == :ok)
+    assert(inspection.count == 1)
+    assert(inspection.duration < 75)
+    assert_in_delta(inspection.started, start + 100, 10)
+
+    inspect_result = Cachex.inspect(state.cache, { :janitor, :last })
+    assert(inspect_result == { :error, "Janitor not running for cache #{inspect(state.cache)}" })
   end
 
   test "inspect can track memory usage as a string", state do
@@ -70,7 +87,7 @@ defmodule CachexTest.Inspect do
   end
 
   test "inspect can return a count of expired keys", state do
-    inspect_result = Cachex.inspect(state.cache, :expired)
+    inspect_result = Cachex.inspect(state.cache, { :expired, :count })
     assert(inspect_result == { :ok, 0 })
 
     set_result = Cachex.set(state.cache, "key", "value", ttl: 1)

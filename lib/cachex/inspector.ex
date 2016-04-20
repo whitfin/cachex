@@ -33,9 +33,6 @@ defmodule Cachex.Inspector do
   Returns information about the expired keys currently inside the cache (i.e. keys
   which  will be purged in the next Janitor run).
   """
-  def inspect(cache, :expired) do
-    __MODULE__.inspect(cache, { :expired, :count })
-  end
   def inspect(cache, { :expired, :count }) do
     query =
       true
@@ -59,12 +56,26 @@ defmodule Cachex.Inspector do
   end
 
   @doc """
+  Returns information about the last run of the Janitor process (if there is one).
+  """
+  def inspect(cache, { :janitor, :last }) do
+    ref =
+      cache
+      |> Util.janitor_for_cache
+
+    if :erlang.whereis(ref) != :undefined do
+      ref
+      |> GenServer.call(:last)
+      |> Util.ok
+    else
+      { :error, "Janitor not running for cache #{inspect(cache)}" }
+    end
+  end
+
+  @doc """
   Requests the memory information from a cache, and converts it using the word
   size of the system, in order to return a number of bytes or as a binary.
   """
-  def inspect(cache, :memory) do
-    __MODULE__.inspect(cache, { :memory, :bytes })
-  end
   def inspect(cache, { :memory, type }) do
     mem_words = :erlang.system_info(:wordsize)
     mem_cache = :mnesia.table_info(cache, :memory)
