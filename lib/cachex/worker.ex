@@ -300,6 +300,40 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Returns a Stream reprensenting a view of the cache at the current time. There
+  are no guarantees that new writes/deletes will be represented in the Stream.
+  We're safe to drop to ETS for this as it's purely a read operation.
+  """
+  def stream(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    do_action(state, { :stream, options }, fn ->
+      stream = Stream.resource(
+        fn ->
+          match_spec = Util.retrieve_all_rows(case options[:only] do
+            :keys ->
+              :"$1"
+            :values ->
+              :"$4"
+            _others ->
+              {{ :"$1", :"$4" }}
+          end)
+
+          state.cache
+          |> :ets.table([ { :traverse, { :select, match_spec } }])
+          |> :qlc.cursor
+        end,
+        fn(cursor) ->
+          case :qlc.next_answers(cursor) do
+            [] -> { :halt, cursor }
+            li -> { li, cursor }
+          end
+        end,
+        &:qlc.delete_cursor/1
+      )
+      { :ok, stream }
+    end)
+  end
+
+  @doc """
   Removes a key from the cache, returning the last known value for the key.
   """
   def take(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
@@ -373,6 +407,7 @@ defmodule Cachex.Worker do
   gen_delegate refresh(state, key, options), type: [ :call, :cast ]
   gen_delegate size(state, options), type: :call
   gen_delegate stats(state, options), type: :call
+  gen_delegate stream(state, options), type: :call
   gen_delegate take(state, key, options), type: :call
   gen_delegate transaction(state, operations, options), type: [ :call, :cast ]
   gen_delegate ttl(state, key, options), type: :call
