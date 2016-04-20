@@ -3,6 +3,8 @@ defmodule CachexTest.Hook do
 
   import ExUnit.CaptureLog
 
+  @testhost Cachex.Util.create_node_name("cachex_test")
+
   setup do
     { :ok, name: String.to_atom(TestHelper.gen_random_string_of_length(16)) }
   end
@@ -125,6 +127,38 @@ defmodule CachexTest.Hook do
     wait_for("key_with_results")
   end
 
+  test "hooks can be provisioned with a worker", state do
+    hook_mod = CachexTest.Hook.ModifyTestHook
+
+    hooks = %Cachex.Hook{
+      args: %{},
+      module: hook_mod,
+      provide: :worker,
+      type: :pre
+    }
+
+    Cachex.start_link([ name: state.name, hooks: hooks ])
+
+    worker_state = Cachex.inspect!(state.name, :worker)
+
+    hook = Cachex.Hook.hook_by_module(worker_state.options.pre_hooks, hook_mod)
+    hook_state = Cachex.Hook.call(hook, :state)
+
+    assert(worker_state == hook_state.worker)
+    assert(worker_state.actions == Cachex.Worker.Local)
+
+    add_result = Cachex.add_node(state.name, @testhost)
+    assert(add_result == { :ok, true })
+
+    worker_state = Cachex.inspect!(state.name, :worker)
+
+    hook = Cachex.Hook.hook_by_module(worker_state.options.pre_hooks, hook_mod)
+    hook_state = Cachex.Hook.call(hook, :state)
+
+    assert(worker_state == hook_state.worker)
+    assert(worker_state.actions == Cachex.Worker.Remote)
+  end
+
   test "hooks with multiple hooks per server", state do
     hooks = [
       %Cachex.Hook{
@@ -245,6 +279,19 @@ defmodule CachexTest.Hook.SecondTestHook do
   def handle_notify(_missing, state) do
     IO.inspect("TEST #{__MODULE__}")
     { :ok, state }
+  end
+
+end
+
+defmodule CachexTest.Hook.ModifyTestHook do
+  use Cachex.Hook
+
+  def handle_info({ :provision, { :worker, worker } }, state) do
+    { :ok, Map.put(state, :worker, worker) }
+  end
+
+  def handle_call(:state, state) do
+    { :ok, state, state }
   end
 
 end
