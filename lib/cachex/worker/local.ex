@@ -88,7 +88,7 @@ defmodule Cachex.Worker.Local do
   """
   def keys(state, _options) do
     state.cache
-    |> :ets.select(Util.retrieve_all_rows(:"$1"))
+    |> :ets.select(Util.retrieve_all_rows(:key))
     |> Util.ok
   end
 

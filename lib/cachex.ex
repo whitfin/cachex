@@ -1018,6 +1018,50 @@ defmodule Cachex do
   end
 
   @doc """
+  Returns a Stream which can be used to iterate through a cache.
+
+  This operates entirely on an ETS level in order to provide a moving view of the
+  cache. As such, if you wish to operate on any keys as a result of this Stream,
+  please buffer them up and execute using `transaction/3`.
+
+  ## Options
+
+    * `:of` - allows you to return a stream of a custom format, however usually
+      only `:key` or `:value` will be needed. This can be an atom or a tuple and
+      defaults to using `{ :key, :value }` if unset.
+    * `:timeout` - the timeout for any calls to the worker.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "a", 1)
+      iex> Cachex.set(:my_cache, "b", 2)
+      iex> Cachex.set(:my_cache, "c", 3)
+      {:ok, true}
+
+      iex> :my_cache |> Cachex.stream! |> Enum.to_list
+      [{"b", 2}, {"c", 3}, {"a", 1}]
+
+      iex> :my_cache |> Cachex.stream!(of: :key) |> Enum.to_list
+      ["b", "c", "a"]
+
+      iex> :my_cache |> Cachex.stream!(of: :value) |> Enum.to_list
+      [2, 3, 1]
+
+      iex> :my_cache |> Cachex.stream!(of: { :key, :ttl }) |> Enum.to_list
+      [{"b", nil}, {"c", nil}, {"a", nil}]
+
+  """
+  @spec stream(cache, options) :: { status, Enumerable.t }
+  defwrap stream(cache, options \\ []) when is_list(options) do
+    do_action(cache, fn
+      (cache) when is_atom(cache) ->
+        GenServer.call(cache, { :stream, options }, timeout(options))
+      (cache) ->
+        Worker.stream(cache, options)
+    end)
+  end
+
+  @doc """
   Takes a key from the cache.
 
   This is equivalent to running `get/3` followed by `del/3` in a single action.

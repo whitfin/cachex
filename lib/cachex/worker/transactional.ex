@@ -89,7 +89,7 @@ defmodule Cachex.Worker.Transactional do
   """
   def keys(state, _options) do
     Util.handle_transaction(fn ->
-      :mnesia.select(state.cache, Util.retrieve_all_rows(:"$1"))
+      :mnesia.select(state.cache, Util.retrieve_all_rows(:key))
     end)
   end
 

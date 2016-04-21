@@ -28,7 +28,12 @@ defmodule Cachex.Util do
   spec over and over again.
   """
   def create_match(return, where) do
-    [ { { :"_", :"$1", :"$2", :"$3", :"$4" }, List.wrap(where), List.wrap(return) } ]
+    normalized =
+      return
+      |> field_index
+      |> List.wrap
+
+    [ { { :"_", :"$1", :"$2", :"$3", :"$4" }, List.wrap(where), normalized } ]
   end
 
   @doc """
@@ -70,6 +75,23 @@ defmodule Cachex.Util do
   Lazy wrapper for creating an :error tuple.
   """
   def error(value), do: { :error, value }
+
+  @doc """
+  Used to normalize some quick select syntax to valid Erlang handles. Used when
+  creating match specifications instead of having `$` atoms everywhere.
+  """
+  def field_index(fields) when is_tuple(fields) do
+    fields
+    |> Tuple.to_list
+    |> Enum.map(&field_index/1)
+    |> List.to_tuple
+    |> (&({ &1 })).()
+  end
+  def field_index(:key), do: :"$1"
+  def field_index(:value), do: :"$4"
+  def field_index(:touched), do: :"$2"
+  def field_index(:ttl), do: :"$3"
+  def field_index(field), do: field
 
   @doc """
   Retrieves a fallback value for a given key, using either the provided function
@@ -245,13 +267,6 @@ defmodule Cachex.Util do
       n -> elem(tuple, n - 1)
     end
   end
-
-  @doc """
-  Converts a List into a Tuple using Enum.reduce. Until I know of a better way
-  this will have to suffice.
-  """
-  def list_to_tuple(list) when is_list(list),
-  do: Enum.reduce(list, {}, &(Tuple.append(&2, &1)))
 
   @doc """
   Retrieves the local hostname of this node.
