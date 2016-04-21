@@ -1027,8 +1027,8 @@ defmodule Cachex do
   ## Options
 
     * `:of` - allows you to return a stream of a custom format, however usually
-      only `:key` or `:value` will be needed. If unset, you will receive a tuple
-      of `{ :key, :value }`.
+      only `:key` or `:value` will be needed. This can be an atom or a tuple and
+      defaults to using `{ :key, :value }` if unset.
     * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
