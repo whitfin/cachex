@@ -308,14 +308,10 @@ defmodule Cachex.Worker do
     do_action(state, { :stream, options }, fn ->
       stream = Stream.resource(
         fn ->
-          match_spec = Util.retrieve_all_rows(case options[:only] do
-            :keys ->
-              :"$1"
-            :values ->
-              :"$4"
-            _others ->
-              {{ :"$1", :"$4" }}
-          end)
+          match_spec =
+            options
+            |> Keyword.get(:of, { :key, :value })
+            |> Util.retrieve_all_rows
 
           state.cache
           |> :ets.table([ { :traverse, { :select, match_spec } }])

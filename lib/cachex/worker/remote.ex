@@ -76,7 +76,7 @@ defmodule Cachex.Worker.Remote do
   """
   def keys(state, _options) do
     state.cache
-    |> :mnesia.dirty_select(Util.retrieve_all_rows(:"$1"))
+    |> :mnesia.dirty_select(Util.retrieve_all_rows(:key))
     |> Util.ok
   end
 

@@ -42,7 +42,7 @@ defmodule CachexTest.Stream do
       assert(set_result == { :ok, true })
     end)
 
-    { status, stream } = Cachex.stream(state.cache, only: :keys)
+    { status, stream } = Cachex.stream(state.cache, of: :key)
 
     assert(status == :ok)
 
@@ -60,7 +60,7 @@ defmodule CachexTest.Stream do
       assert(set_result == { :ok, true })
     end)
 
-    { status, stream } = Cachex.stream(state.cache, only: :values)
+    { status, stream } = Cachex.stream(state.cache, of: :value)
 
     assert(status == :ok)
 
@@ -96,6 +96,28 @@ defmodule CachexTest.Stream do
       {"key3", "value3"},
       {"key4", "value4"}
     ])
+  end
+
+  test "stream returns a stream of custom types", state do
+    Enum.each(1..3, fn(x) ->
+      set_result = Cachex.set(state.cache, "key#{x}", "value#{x}")
+      assert(set_result == { :ok, true })
+    end)
+
+    { status, stream } = Cachex.stream(state.cache, of: { :value, :key, :ttl })
+
+    assert(status == :ok)
+
+    sorted_stream =
+      stream
+      |> Enum.sort
+      |> Enum.to_list
+
+      assert(sorted_stream == [
+        {"value1", "key1", nil},
+        {"value2", "key2", nil},
+        {"value3", "key3", nil}
+      ])
   end
 
 end

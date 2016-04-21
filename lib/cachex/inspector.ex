@@ -44,7 +44,7 @@ defmodule Cachex.Inspector do
   end
   def inspect(cache, { :expired, :keys }) do
     query =
-      :"$1"
+      :key
       |> Util.retrieve_expired_rows
 
     cache

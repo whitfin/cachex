@@ -241,11 +241,6 @@ defmodule CachexTest.Util do
     assert(Util.last_of_tuple({}) == nil)
   end
 
-  test "util.list_to_tuple/1 converts a list to a tuple" do
-    assert(Util.list_to_tuple([ :one, :two, :three ]) == { :one, :two, :three })
-    assert(Util.list_to_tuple([]) == {})
-  end
-
   test "util.retrieve_all_rows/1 returns a select on all rows" do
     [ { variables, condition, result } ] =
       true

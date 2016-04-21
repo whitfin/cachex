@@ -1026,8 +1026,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:only` - either `:keys` or `:values`, to return only the specified field.
-      If unset, you will receive a tuple of `{ key, value }`.
+    * `:of` - allows you to return a stream of a custom format, however usually
+      only `:key` or `:value` will be needed. If unset, you will receive a tuple
+      of `{ :key, :value }`.
     * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
@@ -1040,11 +1041,14 @@ defmodule Cachex do
       iex> :my_cache |> Cachex.stream! |> Enum.to_list
       [{"b", 2}, {"c", 3}, {"a", 1}]
 
-      iex> :my_cache |> Cachex.stream!(only: :keys) |> Enum.to_list
+      iex> :my_cache |> Cachex.stream!(of: :key) |> Enum.to_list
       ["b", "c", "a"]
 
-      iex> :my_cache |> Cachex.stream!(only: :values) |> Enum.to_list
+      iex> :my_cache |> Cachex.stream!(of: :value) |> Enum.to_list
       [2, 3, 1]
+
+      iex> :my_cache |> Cachex.stream!(of: { :key, :ttl }) |> Enum.to_list
+      [{"b", nil}, {"c", nil}, {"a", nil}]
 
   """
   @spec stream(cache, options) :: { status, Enumerable.t }
