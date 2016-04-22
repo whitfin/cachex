@@ -99,12 +99,6 @@ defmodule CachexTest.Options do
     assert(parsed_opts.remote == true)
   end
 
-  test "options sets transactional to true if provided", state do
-    parsed_opts = Options.parse(name: state.name, transactional: true)
-
-    assert(parsed_opts.transactional == true)
-  end
-
   test "options accepts a default fallback function", state do
     default_function = &(&1)
 
