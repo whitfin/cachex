@@ -18,7 +18,6 @@ defmodule Cachex.Options do
             post_hooks: nil,        # any post hooks to attach
             nodes: nil,             # a list of nodes to connect to
             remote: nil,            # are we using a remote implementation
-            transactional: nil,     # use a transactional implementation
             ttl_interval: nil       # the ttl check interval
 
   @doc """
@@ -102,7 +101,6 @@ defmodule Cachex.Options do
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
       "remote": is_remote,
-      "transactional": Util.truthy?(options[:transactional]),
       "ttl_interval": ttl_interval
     }
   end

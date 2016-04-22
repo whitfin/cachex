@@ -90,7 +90,6 @@ Caches can accept a list of options during initialization, which determine vario
 |       nodes      |    list of nodes   |       A list of remote nodes to connect to and replicate against.       |
 |   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
 |      remote      |  `true` or `false` |              Whether to use replication with writes or not.             |
-|   transactional  |  `true` or `false` |       Whether to enclose all cache actions in transactions or not.      |
 |   ttl_interval   |     milliseconds   |          The frequency the Janitor process runs at (see below).         |
 
 For more information and examples, please see the official documentation on [Hex](https://hexdocs.pm/cachex/).

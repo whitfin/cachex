@@ -120,8 +120,8 @@ defmodule Cachex do
 
     - **nodes**
 
-      A list of nodes that the store should replicate to. Using this does not automatically
-      enable transactions; they need to be enabled separately.
+      A list of nodes that the store should replicate to. The node starting this
+      cache is automatically included.
 
           iex> Cachex.start_link([ name: :my_cache, nodes: [node()] ])
 
@@ -141,16 +141,6 @@ defmodule Cachex do
       just `[node()]`.
 
           iex> Cachex.start_link([ name: :my_cache, remote: true ])
-
-    - **transactional**
-
-      Whether to implement actions using a transactional interface. Transactions ensure
-      row locks on all operations and are naturally a lot slower than when not in use.
-      This implementation is likely not needed unless it's mission-critical to distribute
-      and you have a lot of writes going to the same keys. Note that this is at least 10x
-      slower than when set to false.
-
-          iex> Cachex.start_link([ name: :my_cache, transactional: true ])
 
     - **ttl_interval**
 

@@ -191,9 +191,22 @@ defmodule CachexTest.Util do
     assert(Util.handle_transaction({ :aborted, :test }) == { :error, :test })
   end
 
+  test "util.handle_transaction/1 can detect nested transactions" do
+    res = Util.handle_transaction(fn ->
+      Util.handle_transaction(fn ->
+        { :ok, :test }
+      end)
+    end)
+    assert(res == { :ok, :test })
+  end
+
   test "util.handle_transaction/2 formats transaction results into tuples" do
     assert(Util.handle_transaction({ :atomic, { :ok, :test } }, :test) == { :ok, :test })
     assert(Util.handle_transaction({ :aborted, :test }, :arg) == { :error, :test })
+  end
+
+  test "util.handle_transaction/2 can return an element from a transaction result" do
+    assert(Util.handle_transaction(fn -> { :ok, :test } end, 1) == :test)
   end
 
   test "util.has_expired?/2 determines if a date and ttl has passed" do

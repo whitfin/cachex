@@ -73,12 +73,12 @@ defmodule Cachex.Worker.Local do
   def clear(state, _options) do
     eviction_count = case Worker.size(state, notify: false) do
       { :ok, size } -> size
-      _other_value_ -> nil
+      _other_value_ -> 0
     end
 
     state.cache
     |> :ets.delete_all_objects
-    |> (&(&1 && Util.ok(eviction_count) || Util.error(0))).()
+    |> (&(&1 && Util.ok(eviction_count))).()
   end
 
   @doc """

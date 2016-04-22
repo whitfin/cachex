@@ -49,14 +49,7 @@ defmodule Cachex.Worker do
   """
   def init(options \\ %Cachex.Options { }) do
     state = %__MODULE__{
-      actions: cond do
-        options.remote ->
-          __MODULE__.Remote
-        options.transactional ->
-          __MODULE__.Transactional
-        true ->
-          __MODULE__.Local
-      end,
+      actions: options.remote && __MODULE__.Remote || __MODULE__.Local,
       cache: options.cache,
       options: options
     }
@@ -323,7 +316,7 @@ defmodule Cachex.Worker do
             li -> { li, cursor }
           end
         end,
-        &:qlc.delete_cursor/1
+        &(:qlc.delete_cursor/1)
       )
       { :ok, stream }
     end)
@@ -344,7 +337,7 @@ defmodule Cachex.Worker do
   def transaction(%__MODULE__{ } = state, operation, options \\ [])
   when is_function(operation, 1) and is_list(options) do
     Util.handle_transaction(fn ->
-      %__MODULE__{ state | actions: __MODULE__.Transactional }
+      %__MODULE__{ state | actions: __MODULE__.Remote }
       |> operation.()
       |> Util.ok
     end)
@@ -432,7 +425,7 @@ defmodule Cachex.Worker do
       end
     }
 
-    new_state = if state.options.transactional do
+    new_state = if state.options.remote do
       %__MODULE__{ state | options: new_options }
     else
       %__MODULE__{ state | actions: __MODULE__.Remote, options: new_options }

@@ -22,9 +22,11 @@ defmodule Cachex.Worker.Remote do
   write was successful or not.
   """
   def write(state, record) do
-    state.cache
-    |> :mnesia.dirty_write(record)
-    |> (&(Util.create_truthy_result(&1 == :ok))).()
+    :mnesia.async_dirty(fn ->
+      state.cache
+      |> :mnesia.write(record, :write)
+      |> (&(Util.create_truthy_result(&1 == :ok))).()
+    end)
   end
 
   @doc """
@@ -33,23 +35,32 @@ defmodule Cachex.Worker.Remote do
   delete it from the cache using the `:purge` action as a notification.
   """
   def read(state, key) do
-    case :mnesia.dirty_read(state.cache, key) do
-      [{ _cache, ^key, touched, ttl, _value } = record] ->
-        case Util.has_expired?(state, touched, ttl) do
-          true  -> Worker.del(state, key, @purge_override) && nil
-          false -> record
-        end
-      _unrecognised_val ->
-        nil
-    end
+    :mnesia.async_dirty(fn ->
+      case :mnesia.read(state.cache, key) do
+        [{ _cache, ^key, touched, ttl, _value } = record] ->
+          case Util.has_expired?(state, touched, ttl) do
+            true  -> Worker.del(state, key, @purge_override) && nil
+            false -> record
+          end
+        _unrecognised_val ->
+          nil
+      end
+    end)
   end
 
   @doc """
-  Updates a number of fields in a record inside the cache, by key. We delegate to
-  the implementation in the Transactional Worker to avoid duplication.
+  Updates a number of fields in a record inside the cache, by key. We do this all
+  in one sweep using a reduction on the found record. Note that the position has
+  to be offset -1 to line up with the ETS insertion (which is index 1 based).
   """
-  defdelegate update(state, key, changes),
-  to: Cachex.Worker.Transactional
+  def update(state, key, changes) do
+    Worker.get_and_update_raw(state, key, fn(record) ->
+      changes |> List.wrap |> Enum.reduce(record, fn({ position, value }, record) ->
+        put_elem(record, position - 1, value)
+      end)
+    end)
+    { :ok, true }
+  end
 
   @doc """
   Removes a record from the cache using the provided key. Regardless of whether
@@ -57,17 +68,27 @@ defmodule Cachex.Worker.Remote do
   in the cache).
   """
   def delete(state, key) do
-    state.cache
-    |> :mnesia.dirty_delete(key)
-    |> (&(Util.create_truthy_result(&1 == :ok))).()
+    :mnesia.async_dirty(fn ->
+      state.cache
+      |> :mnesia.delete(key, :write)
+      |> (&(Util.create_truthy_result(&1 == :ok))).()
+    end)
   end
 
   @doc """
-  Empties the cache entirely of keys. We delegate to the Transactional actions
-  as the behaviour matches between implementations.
+  Empties the cache entirely. We check the size of the cache beforehand using
+  `size/1` in order to return the number of records which were removed.
   """
-  defdelegate clear(state, options),
-  to: Cachex.Worker.Transactional
+  def clear(state, _options) do
+    eviction_count = case Worker.size(state, notify: false) do
+      { :ok, size } -> size
+      _other_value_ -> 0
+    end
+
+    state.cache
+    |> :mnesia.clear_table
+    |> Util.handle_transaction(eviction_count)
+  end
 
   @doc """
   Uses a select internally to fetch all the keys in the underlying Mnesia table.
@@ -75,24 +96,58 @@ defmodule Cachex.Worker.Remote do
   already expired.
   """
   def keys(state, _options) do
-    state.cache
-    |> :mnesia.dirty_select(Util.retrieve_all_rows(:key))
-    |> Util.ok
+    :mnesia.async_dirty(fn ->
+      state.cache
+      |> :mnesia.select(Util.retrieve_all_rows(:key))
+      |> Util.ok
+    end)
   end
 
   @doc """
-  We delegate to the Transactional actions as this function requires both a
-  get/set, and as such it's only safe to do via a transaction.
+  Increments a given key by a given amount. We do this by reusing the update
+  semantics defined for all Worker. If the record is missing, we insert a new
+  one based on the passed values (but it has no TTL). We return the value after
+  it has been incremented.
   """
-  defdelegate incr(state, key, options),
-  to: Cachex.Worker.Transactional
+  def incr(state, key, options) do
+    amount =
+      options
+      |> Util.get_opt_number(:amount, 1)
+
+    initial =
+      options
+      |> Util.get_opt_number(:initial, 0)
+
+    Worker.get_and_update(state, key, fn
+      (val) when is_number(val) ->
+        val + amount
+      (nil) ->
+        initial + amount
+      (_na) ->
+        Cachex.abort(state, :non_numeric_value)
+    end, notify: false)
+  end
 
   @doc """
   This is like `del/2` but it returns the last known value of the key as it
-  existed in the cache upon deletion. We delegate to the Transactional actions
-  as this requires a potential get/del combination.
+  existed in the cache upon deletion. We have to do a read/write combination
+  when distributed, because there's no "take" equivalent in Mnesia, only ETS.
   """
-  defdelegate take(state, key, options),
-  to: Cachex.Worker.Transactional
+  def take(state, key, _options) do
+    Util.handle_transaction(fn ->
+      value = case read(state, key) do
+        { _cache, ^key, _touched, _ttl, value } ->
+          { :ok, value }
+        _unrecognised_val ->
+          { :missing, nil }
+      end
+
+      if elem(value, 1) != nil do
+        Worker.del(state, key, notify: false)
+      end
+
+      value
+    end)
+  end
 
 end

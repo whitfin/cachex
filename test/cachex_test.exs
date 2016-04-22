@@ -152,24 +152,6 @@ defmodule CachexTest do
     assert(worker.options.nodes == [@testhost, node])
   end
 
-  test "adding a node to a transactional cache", _state do
-    cache = TestHelper.create_cache([ transactional: true ])
-
-    worker = Cachex.inspect!(cache, :state)
-
-    assert(worker.actions == Cachex.Worker.Transactional)
-    assert(worker.options.nodes == [node])
-
-    add_result = Cachex.add_node(cache, @testhost)
-
-    assert(add_result == { :ok, true })
-
-    worker = Cachex.inspect!(cache, :state)
-
-    assert(worker.actions == Cachex.Worker.Transactional)
-    assert(worker.options.nodes == [@testhost, node])
-  end
-
   test "adding a node to an existing cache with a worker", state do
     worker = Cachex.inspect!(state.cache, :state)
 

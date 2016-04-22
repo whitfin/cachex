@@ -23,7 +23,6 @@ defmodule CachexTest.Worker do
       post_hooks: [],
       pre_hooks: [],
       remote: false,
-      transactional: false,
       ttl_interval: nil
     })
   end

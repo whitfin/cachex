@@ -29,12 +29,12 @@ defmodule Cachex.Hook do
   def initialize_hooks(mod) when not is_list(mod), do: initialize_hooks([mod])
   def initialize_hooks(mods) when is_list(mods) do
     mods
-    |> Stream.map(fn
+    |> Enum.map(fn
         (%__MODULE__{ } = hook) -> hook
         (_) -> nil
        end)
-    |> Stream.map(&(start_hook/1))
-    |> Stream.filter(&(&1 != nil))
+    |> Enum.map(&(start_hook/1))
+    |> Enum.filter(&(&1 != nil))
     |> Enum.to_list
   end
 

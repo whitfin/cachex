@@ -9,6 +9,7 @@ defmodule Cachex.Macros.Boilerplate do
   # alias the parent module
   alias Cachex.ExecutionError
   alias Cachex.Macros
+  alias Cachex.Util
 
   @doc """
   Defines both a safe and unsafe version of an interface function, the unsafe
@@ -51,7 +52,7 @@ defmodule Cachex.Macros.Boilerplate do
   end
   defp gen_unsafe(head) do
     { name, _, _ } = head
-    scary_name = to_string(name) <> "!" |> String.to_atom
+    scary_name = Util.atom_append(name, "!")
     put_elem(head, 0, scary_name)
   end
 
