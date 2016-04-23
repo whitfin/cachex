@@ -17,7 +17,8 @@ All of these features are optional and are off by default so you can pick and ch
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [Cache Options](#cache-options)
+    - [Startup](#startup)
+    - [Interface](#interface)
 - [Multi-Layered Caches](#multi-layered-caches)
 - [Execution Hooks](#execution-hooks)
     - [Definition](#definition)
@@ -32,7 +33,6 @@ All of these features are optional and are off by default so you can pick and ch
     - [Execution Blocks](#execution-blocks)
     - [Transaction Blocks](#transaction-blocks)
     - [Things To Remember](#things-to-remember)
-- [Interface](#interface)
 - [Contributions](#contributions)
 
 ## Installation
@@ -43,7 +43,7 @@ As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the
 
     ```elixir
     def deps do
-      [{:cachex, "~> 0.9.1"}]
+      [{:cachex, "~> 1.0.0"}]
     end
     ```
 
@@ -56,6 +56,8 @@ As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the
     ```
 
 ## Usage
+
+#### Startup
 
 The typical use of Cachex is to set up using a Supervisor, so that it can be handled automatically:
 
@@ -74,6 +76,40 @@ Cachex.start_link([ name: :my_cache ], [])
 ```
 
 Although this is possible and is functionally the same internally, it's probably better to set up the supervision tree for fault-tolerance. As shown in the above examples, the only **required** option is the `name` option. This is the name of your cache and is how you will typically refer to the cache in the `Cachex` module.
+
+#### Interface
+
+The Cachex interface should/will be maintained such that it follows this pattern:
+
+```elixir
+Cachex.action(:cache_ref, _required_args, _options \\ [])
+```
+
+Every action has a certain number of required arguments (can be `0`), and accepts a keyword list of options. As an example, here's how a `set` action could look:
+
+```elixir
+Cachex.set(:my_cache, "my_key", "my_value", [ ttl: :timer.seconds(5) ])
+```
+
+All actions should return a result in the format of `{ status, result }` where `status` is *usually* `:ok` or `:error`, however this is not required (for example, `Cachex.get/3` sometimes returns `{ :loaded, result }`). The second item in the tuple can be of any type and structure, and depends on the action being carried out.
+
+All Cachex actions have an automatically generated unsafe equivalent, which unwraps these result tuples. This unwrapping assumes that `:error` status means that the result should be thrown, and that any other status should have the result returned alone.
+
+Below is an example of this:
+
+```elixir
+iex(1)> Cachex.get(:my_cache, "key")
+{:ok, nil}
+iex(2)> Cachex.get!(:my_cache, "key")
+nil
+iex(3)> Cachex.get(:missing_cache, "key")
+{:error, "Invalid cache name provided, got: :missing_cache"}
+iex(4)> Cachex.get!(:missing_cache, "key")
+** (Cachex.ExecutionError) Invalid cache provided, got: :missing_cache
+    (cachex) lib/cachex.ex:204: Cachex.get!/3
+```
+
+I'd typically recommend checking the values and using the safe version which gives you a tuple, but sometimes it's easier to use the unsafe version (for example in unit tests or when you're calling something which can't fail).
 
 ## Cache Options
 
@@ -399,40 +435,6 @@ Of course it should be noted (and obvious) that transactions have quite a bit of
 Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. This is because your blocks are executed inside the cache process.
 
 Calling with a cache name means that your actions will be sent to the worker process. Sadly, because you're waiting on the result of an action which executes after your block, your actions will just time out. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
-
-## Interface
-
-The Cachex interface should/will be maintained such that it follows this pattern:
-
-```elixir
-Cachex.action(:cache_ref, _required_args, _options \\ [])
-```
-
-Every action has a certain number of required arguments (can be `0`), and accepts a keyword list of options. As an example, here's how a `set` action could look:
-
-```elixir
-Cachex.set(:my_cache, "my_key", "my_value", [ ttl: :timer.seconds(5) ])
-```
-
-All actions should return a result in the format of `{ status, result }` where `status` is *usually* `:ok` or `:error`, however this is not required (for example, `Cachex.get/3` sometimes returns `{ :loaded, result }`). The second item in the tuple can be of any type and structure, and depends on the action being carried out.
-
-All Cachex actions have an automatically generated unsafe equivalent, which unwraps these result tuples. This unwrapping assumes that `:error` status means that the result should be thrown, and that any other status should have the result returned alone.
-
-Below is an example of this:
-
-```elixir
-iex(1)> Cachex.get(:my_cache, "key")
-{:ok, nil}
-iex(2)> Cachex.get!(:my_cache, "key")
-nil
-iex(3)> Cachex.get(:missing_cache, "key")
-{:error, "Invalid cache name provided, got: :missing_cache"}
-iex(4)> Cachex.get!(:missing_cache, "key")
-** (Cachex.ExecutionError) Invalid cache provided, got: :missing_cache
-    (cachex) lib/cachex.ex:204: Cachex.get!/3
-```
-
-I'd typically recommend checking the values and using the safe version which gives you a tuple, but sometimes it's easier to use the unsafe version (for example in unit tests).
 
 ## Contributions
 
