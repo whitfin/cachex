@@ -395,7 +395,8 @@ defmodule Cachex do
   end
 
   @doc """
-  Adds a remote node to this cache. This should typically only be called internally.
+  Adds a remote node to this cache. This is designed to be used internally so
+  proceeed with caution.
 
   Calling `add_node/2` will add the provided node to Mnesia and then create a new
   replica on the node. We update the worker with knowledge of the node change to
@@ -411,9 +412,6 @@ defmodule Cachex do
   defwrap add_node(cache, node) when is_atom(node) do
     case :net_adm.ping(node) do
       :pong ->
-        :mnesia.change_config(:extra_db_nodes, [node])
-        :mnesia.add_table_copy(cache, node, :ram_copies)
-
         server = case cache do
           val when is_atom(val) ->
             val
@@ -421,9 +419,17 @@ defmodule Cachex do
             val.cache
         end
 
-        GenServer.call(server, { :add_node, node })
+        case :mnesia.change_config(:extra_db_nodes, [node]) do
+          { :error, { name, _msg } } ->
+            { :error, name }
+          { :ok, _nodes } ->
+            :mnesia.add_table_copy(cache, node, :ram_copies)
 
-        { :ok, true }
+            :rpc.call(node, GenServer, :call, [server, { :add_node, node() }])
+            :rpc.call(node(), GenServer, :call, [server, { :add_node, node }])
+
+            { :ok, true }
+        end
       :pang ->
         { :error, "Unable to reach remote node!" }
     end

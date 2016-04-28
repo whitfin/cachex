@@ -433,7 +433,7 @@ defmodule Cachex.Worker do
 
     modify_hooks(new_state)
 
-    { :reply, new_state, new_state }
+    { :reply, { :ok, true }, new_state }
   end
 
   @doc """
