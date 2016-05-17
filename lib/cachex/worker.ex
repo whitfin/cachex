@@ -1,6 +1,6 @@
 defmodule Cachex.Worker do
-  # use Macros and GenServer
-  use Cachex.Macros.GenServer
+  # use GenDelegate and GenServer
+  use GenDelegate
   use GenServer
 
   @moduledoc false
