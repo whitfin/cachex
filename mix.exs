@@ -62,6 +62,7 @@ defmodule Cachex.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
+      { :gen_delegate, "~> 1.0.0" },
       # documentation
       { :earmark, "~> 0.2.1",  optional: true, only: :docs },
       { :ex_doc,  "~> 0.11.4", optional: true, only: :docs },
