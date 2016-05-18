@@ -59,7 +59,9 @@ defmodule CachexTest.Inspect do
     assert(inspection.count == 1)
     assert(inspection.duration < 75)
     assert_in_delta(inspection.started, start + 100, 10)
+  end
 
+  test "inspect receives an error when calling a non-running Janitor", state do
     inspect_result = Cachex.inspect(state.cache, { :janitor, :last })
     assert(inspect_result == { :error, "Janitor not running for cache #{inspect(state.cache)}" })
   end

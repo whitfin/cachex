@@ -35,69 +35,26 @@ defmodule Cachex.Options do
       val -> val
     end
 
+    onde_dis = Util.truthy?(options[:disable_ode])
     ets_opts = Keyword.get(options, :ets_opts, [
       { :read_concurrency, true },
       { :write_concurrency, true }
     ])
 
-    default_ttl = Util.get_opt_positive(options, :default_ttl)
-    ttl_interval = case Keyword.get(options, :ttl_interval) do
-      val when val == true or (val == nil and default_ttl != nil) ->
-        :timer.seconds(3)
-      val when is_number(val) and val > 0 ->
-        val
-      _na ->
-        nil
-    end
-
-    janitor = if ttl_interval do
-      Util.janitor_for_cache(cache)
-    end
-
-    remote_node_list = Enum.uniq([ node | Util.get_opt_list(options, :nodes, [])])
-    default_fallback = Util.get_opt_function(options, :default_fallback)
-
-    fallback_args =
-      options
-      |> Util.get_opt_list(:fallback_args, [])
-
-    hooks = case options[:hooks] do
-      nil -> []
-      mod -> Hook.initialize_hooks(mod)
-    end
-
-    stats_hook = case Util.truthy?(options[:record_stats]) do
-      true ->
-        Hook.initialize_hooks(%Hook{
-          args: [ ],
-          module: Cachex.Stats,
-          type: :post,
-          results: true,
-          server_args: [
-            name: Util.stats_for_cache(cache)
-          ]
-        })
-      false ->
-        []
-    end
-
-    pre_hooks = Hook.hooks_by_type(hooks, :pre)
-    post_hooks = stats_hook ++ Hook.hooks_by_type(hooks, :post)
-
-    is_remote = cond do
-      remote_node_list != nil && remote_node_list != [node()] -> true
-      true -> Util.truthy?(options[:remote])
-    end
+    { pre_hooks, post_hooks } = setup_hooks(cache, options)
+    { is_remote, remote_nodes } = setup_remote_nodes(cache, options)
+    { default_fallback, fallback_args } = setup_fallbacks(cache, options)
+    { default_ttl, ttl_interval, janitor } = setup_ttl_components(cache, options)
 
     %__MODULE__{
       "cache": cache,
-      "disable_ode": Util.truthy?(options[:disable_ode]),
+      "disable_ode": onde_dis,
       "ets_opts": ets_opts,
       "default_fallback": default_fallback,
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
       "janitor": janitor,
-      "nodes": remote_node_list,
+      "nodes": remote_nodes,
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
       "remote": is_remote,
@@ -105,5 +62,66 @@ defmodule Cachex.Options do
     }
   end
   def parse(_options), do: parse([])
+
+  # Sets up and fallback behaviour options. Currently this just retrieves the
+  # two flags from the options list and returns them inside a tuple for storage.
+  defp setup_fallbacks(_cache, options), do: {
+    Util.get_opt_function(options, :default_fallback),
+    Util.get_opt_list(options, :fallback_args, [])
+  }
+
+  # Sets up any hooks to be enabled for this cache. Also parses out whether a
+  # Stats hook has been requested or not. The returned value is a tuple of pre
+  # and post hooks as they're stored separately.
+  defp setup_hooks(cache, options) do
+    stats_hook = options[:record_stats] && %Hook{
+      args: [ ],
+      module: Cachex.Stats,
+      type: :post,
+      results: true,
+      server_args: [
+        name: Util.stats_for_cache(cache)
+      ]
+    }
+
+    hooks =
+      [stats_hook]
+      |> Enum.concat(List.wrap(options[:hooks] || []))
+      |> Hook.initialize_hooks
+
+    {
+      Hook.hooks_by_type(hooks, :pre),
+      Hook.hooks_by_type(hooks, :post)
+    }
+  end
+
+  # Sets up and parses any options related to remote behaviour. Currently check
+  # to see if a list of remote nodes are defined, or the remote flag is enabled.
+  defp setup_remote_nodes(_cache, options) do
+    this_node = node()
+
+    case Enum.uniq([ node | Util.get_opt_list(options, :nodes, [])]) do
+      [^this_node] ->
+        { Util.truthy?(options[:remote]), [this_node] }
+      nodes ->
+        { true, nodes }
+    end
+  end
+
+  # Sets up and parses any options related to TTL behaviours. Currently this deals
+  # with janitor naming, TTL defaults, and purge intervals.
+  defp setup_ttl_components(cache, options) do
+    janitor_name = Util.janitor_for_cache(cache)
+    default_ttl  = Util.get_opt_positive(options, :default_ttl)
+
+    case Keyword.get(options, :ttl_interval) do
+      val when val == true or (val == nil and default_ttl != nil) ->
+        { default_ttl, :timer.seconds(3), janitor_name }
+      val when is_number(val) and val > 0 ->
+        { default_ttl, val, janitor_name }
+      _na ->
+        { default_ttl, nil, nil }
+    end
+  end
 
 end

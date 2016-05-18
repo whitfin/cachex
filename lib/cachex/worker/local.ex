@@ -35,9 +35,10 @@ defmodule Cachex.Worker.Local do
   def read(state, key) do
     case :ets.lookup(state.cache, key) do
       [{ _cache, ^key, touched, ttl, _value } = record] ->
-        case Util.has_expired?(state, touched, ttl) do
-          true  -> Worker.del(state, key, @purge_override) && nil
-          false -> record
+        if Util.has_expired?(state, touched, ttl) do
+          Worker.del(state, key, @purge_override) && nil
+        else
+          record
         end
       _unrecognised_val ->
         nil
@@ -139,11 +140,10 @@ defmodule Cachex.Worker.Local do
   def take(state, key, _options) do
     case :ets.take(state.cache, key) do
       [{ _cache, ^key, touched, ttl, value }] ->
-        case Util.has_expired?(touched, ttl) do
-          true  ->
-            { :missing, nil }
-          false ->
-            { :ok, value }
+        if Util.has_expired?(touched, ttl) do
+          { :missing, nil }
+        else
+          { :ok, value }
         end
       _unrecognised_val ->
         { :missing, nil }

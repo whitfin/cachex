@@ -103,11 +103,11 @@ defmodule Cachex.Janitor do
 
   # Updates the metadata of this cache, keeping track of various things about the
   # last run sequence.
-  defp update_meta(state, start, duration, { :ok, count }) do
+  defp update_meta(state, start_time, duration, { :ok, count }) do
     new_last = %{
       count: count,
       duration: duration,
-      started: start
+      started: start_time
     }
     %__MODULE__{ state | last: new_last }
   end

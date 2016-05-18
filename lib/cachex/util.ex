@@ -190,14 +190,13 @@ defmodule Cachex.Util do
   whilst still checking for errors.
   """
   def handle_transaction(fun) when is_function(fun) do
-    case :mnesia.is_transaction do
-      true  ->
-        { :atomic, fun.() }
-        |> handle_transaction
-      false ->
-        fun
-        |> :mnesia.transaction
-        |> handle_transaction
+    if :mnesia.is_transaction do
+      { :atomic, fun.() }
+      |> handle_transaction
+    else
+      fun
+      |> :mnesia.transaction
+      |> handle_transaction
     end
   end
   def handle_transaction({ :atomic, { :error, _ } = err }), do: err
