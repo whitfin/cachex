@@ -17,7 +17,7 @@ defmodule Cachex.Connection do
   def ensure_connection(%Options{ cache: cache, nodes: nodes }) do
     case find_online_nodes(nodes) do
       [] -> { :ok, true }
-      li -> { :ok, reconnect_node(cache, li, node) || true }
+      li -> { :ok, reconnect_node(cache, li) || true }
     end
   end
 
@@ -34,9 +34,9 @@ defmodule Cachex.Connection do
   # Loops through a list of nodes and attempts to reconnect to this node from that
   # node. We do it this way as the other nodes can safely replicate to this node
   # before we create our local tables - ensuring consistency.
-  defp reconnect_node(cache, nodes, node) do
+  defp reconnect_node(cache, nodes) do
     Enum.any?(nodes, fn(remote_node) ->
-      :rpc.call(remote_node, Cachex, :add_node, [cache, node]) == { :ok, true }
+      :rpc.call(remote_node, Cachex, :add_node, [cache, node()]) == { :ok, true }
     end)
   end
 

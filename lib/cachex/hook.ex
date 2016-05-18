@@ -26,9 +26,9 @@ defmodule Cachex.Hook do
   convert them into a parsed hook, and then start all the hooks in processes which
   allows async listening.
   """
-  def initialize_hooks(mod) when not is_list(mod), do: initialize_hooks([mod])
-  def initialize_hooks(mods) when is_list(mods) do
+  def initialize_hooks(mods) do
     mods
+    |> List.wrap
     |> Enum.map(fn
         (%__MODULE__{ } = hook) -> hook
         (_) -> nil

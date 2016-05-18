@@ -444,6 +444,7 @@ If you *do* make changes to the codebase, please make sure you test your changes
 
 ```elixir
 $ mix cachex.test
+$ mix cachex.analyze
 $ mix cachex.coveralls
 $ mix cachex.coveralls.html && open cover/excoveralls.html
 ```

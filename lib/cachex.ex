@@ -1203,11 +1203,10 @@ defmodule Cachex do
   # Private utility functions.
   ###
   defp do_action(cache, action) when is_function(action) do
-    case valid_cache?(cache) do
-      true ->
-        action.(cache)
-      false ->
-        { :error, "Invalid cache provided, got: #{inspect cache}" }
+    if valid_cache?(cache) do
+      action.(cache)
+    else
+      { :error, "Invalid cache provided, got: #{inspect cache}" }
     end
   end
 
@@ -1263,11 +1262,10 @@ defmodule Cachex do
       { :storage_properties, [ { :ets, options.ets_opts } ] }
     ])
 
-    case Util.successfully_started?(table_create) do
-      true ->
-        { :ok, true }
-      false ->
-        { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
+    if Util.successfully_started?(table_create) do
+      { :ok, true }
+    else
+      { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
     end
   end
 
@@ -1285,6 +1283,6 @@ defmodule Cachex do
   defp valid_cache?(_), do: false
 
   # Simply adds a "via" param to the options to allow the use of delegates.
-  defp via(via, options), do: [ { :via, via } | options ]
+  defp via(module, options), do: [ { :via, module } | options ]
 
 end

@@ -96,25 +96,25 @@ defmodule Cachex.Stats do
     |> extract_global(options)
   end
   defp finalize(stats, :global) do
-    hitsCount = Map.get(stats, :hitCount, 0)
-    missCount = Map.get(stats, :missCount, 0) + Map.get(stats, :loadCount, 0)
+    hits_count = Map.get(stats, :hitCount, 0)
+    miss_count = Map.get(stats, :missCount, 0) + Map.get(stats, :loadCount, 0)
 
-    reqRates = case hitsCount + missCount do
+    req_rates = case hits_count + miss_count do
       0 -> %{ }
       v ->
         cond do
-          hitsCount == 0 -> %{ requestCount: v, hitRate: 0, missRate: 100 }
-          missCount == 0 -> %{ requestCount: v, hitRate: 100, missRate: 0 }
+          hits_count == 0 -> %{ requestCount: v, hitRate: 0, missRate: 100 }
+          miss_count == 0 -> %{ requestCount: v, hitRate: 100, missRate: 0 }
           true -> %{
             requestCount: v,
-            hitRate: hitsCount / v,
-            missRate: missCount / v
+            hitRate: hits_count / v,
+            missRate: miss_count / v
           }
         end
     end
 
     stats
-    |> Map.merge(reqRates)
+    |> Map.merge(req_rates)
     |> Enum.sort(&(elem(&1, 0) > elem(&2, 0)))
     |> Enum.into(%{})
   end

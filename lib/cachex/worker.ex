@@ -315,7 +315,7 @@ defmodule Cachex.Worker do
   """
   def stream(%__MODULE__{ } = state, options \\ []) when is_list(options) do
     do_action(state, { :stream, options }, fn ->
-      stream = Stream.resource(
+      resource = Stream.resource(
         fn ->
           match_spec =
             options
@@ -334,7 +334,7 @@ defmodule Cachex.Worker do
         end,
         &(:qlc.delete_cursor/1)
       )
-      { :ok, stream }
+      { :ok, resource }
     end)
   end
 
@@ -432,13 +432,13 @@ defmodule Cachex.Worker do
   Handler for adding a node to the worker, to ensure that we use the correct
   actions.
   """
-  def handle_call({ :add_node, node }, _ctx, state) do
+  def handle_call({ :add_node, new_node }, _ctx, state) do
     new_options = %Options{ state.options |
       remote: true,
-      nodes: if Enum.member?(state.options.nodes, node) do
+      nodes: if Enum.member?(state.options.nodes, new_node) do
         state.options.nodes
       else
-        [node|state.options.nodes]
+        [new_node|state.options.nodes]
       end
     }
 
@@ -524,12 +524,11 @@ defmodule Cachex.Worker do
     Util.handle_transaction(fn ->
       value = case :mnesia.read(state.cache, key) do
         [{ cache, ^key, touched, ttl, value }] ->
-          case Util.has_expired?(touched, ttl) do
-            true ->
-              :mnesia.delete(state.cache, key, :write)
-              { cache, key, Util.now(), nil, nil }
-            false ->
-              { cache, key, touched, ttl, value }
+          if Util.has_expired?(touched, ttl) do
+            :mnesia.delete(state.cache, key, :write)
+            { cache, key, Util.now(), nil, nil }
+          else
+            { cache, key, touched, ttl, value }
           end
         _unrecognised_val ->
           { state.cache, key, Util.now(), nil, nil }

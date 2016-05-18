@@ -22,13 +22,13 @@ defmodule Mix.Cachex do
   def start do
     :net_kernel.start([ :cachex_base_node, :shortnames ])
 
-    Enum.each(@nodenames, fn(node) ->
-      stop_node(node) && start_node(node)
+    Enum.each(@nodenames, fn(name) ->
+      stop_node(name) && start_node(name)
 
-      :net_adm.ping(node)
+      :net_adm.ping(name)
 
-      :rpc.call(node, :mnesia, :start, [])
-      :rpc.call(node, :code, :add_paths, [:code.get_path])
+      :rpc.call(name, :mnesia, :start, [])
+      :rpc.call(name, :code, :add_paths, [:code.get_path])
     end)
   end
 
@@ -57,9 +57,9 @@ defmodule Mix.Cachex do
   do: run_task(fn -> Mix.Task.run(task, args) end)
 
   # Starts a local node using the :slave module.
-  defp start_node(node) do
+  defp start_node(node_name) do
     [ name, host ] =
-      node
+      node_name
       |> Kernel.to_string
       |> String.split("@", parts: 2)
       |> Enum.map(&String.to_atom/1)
@@ -68,6 +68,6 @@ defmodule Mix.Cachex do
   end
 
   # Stops a local node using the :slave module.
-  defdelegate stop_node(node), to: :slave, as: :stop
+  defdelegate stop_node(node_name), to: :slave, as: :stop
 
 end
