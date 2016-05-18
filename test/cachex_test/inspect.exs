@@ -44,7 +44,7 @@ defmodule CachexTest.Inspect do
     assert_in_delta(result, 10800, 100)
   end
 
-  test "inspect can track the last run of a Janitor", state do
+  test "inspect can track the last run of a Janitor", _state do
     cache = TestHelper.create_cache(default_ttl: 1, ttl_interval: 100)
     start = Cachex.Util.now()
 
