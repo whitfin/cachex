@@ -268,6 +268,22 @@ defmodule Cachex.Worker do
   end
 
   @doc """
+  Resets a cache and associated hooks.
+  """
+  def reset(%__MODULE__{ } = state, options \\ []) when is_list(options) do
+    only =
+      options
+      |> Keyword.get(:only, [ :cache, :hooks ])
+      |> List.wrap
+
+    state
+    |> reset_cache(only, options)
+    |> reset_hooks(only, options)
+
+    { :ok, true }
+  end
+
+  @doc """
   Determines the current size of the cache.
   """
   def size(%__MODULE__{ } = state, options \\ []) when is_list(options) do
@@ -394,6 +410,7 @@ defmodule Cachex.Worker do
   gen_delegate incr(state, key, options), type: [ :call, :cast ]
   gen_delegate purge(state, options), type: [ :call, :cast ]
   gen_delegate refresh(state, key, options), type: [ :call, :cast ]
+  gen_delegate reset(state, options), type: [ :call, :cast ]
   gen_delegate size(state, options), type: :call
   gen_delegate stats(state, options), type: :call
   gen_delegate stream(state, options), type: :call
@@ -531,11 +548,8 @@ defmodule Cachex.Worker do
   # Shorthand for doing an internal exists check - normalizing to a missing tuple
   # of { :missing, false } to allow `with` sugar.
   defp check_exists(state, key) do
-    case exists?(state, key, notify: false) do
-      { :ok, false } ->
-        { :missing, false }
-      other_results ->
-        other_results
+    with { :ok, false } <- exists?(state, key, notify: false) do
+      { :missing, false }
     end
   end
 
@@ -547,6 +561,38 @@ defmodule Cachex.Worker do
     |> combine_hooks
     |> Enum.filter(&(&1.provide |> List.wrap |> Enum.member?(:worker)))
     |> Enum.each(&(Hook.provision(&1, { :worker, state })))
+    state
+  end
+
+  # A small helper for resetting a cache only when defined in the list of items
+  # to reset. If the key `:cache` lives inside the list of things to reset, we
+  # simply call the internal `clear/2` function with notifications turned off.
+  # Otherwise we simply return the state without clearing the cache.
+  defp reset_cache(state, only, _opts) do
+    if Enum.member?(only, :cache) do
+      clear(state, notify: false)
+    end
+    state
+  end
+
+  # Similar to `reset_cache/3`, this helper will reset any required hooks. If
+  # the only set determines that we should reset hooks, we check for a list of
+  # whitelisted hooks to clear and clear them. If no hook list is provided, we
+  # reset all of them. Resetting simply persists of forwarding a reset event to
+  # the hook alongside the arguments used to initialize it.
+  defp reset_hooks(state, only, opts) do
+    if Enum.member?(only, :hooks) do
+      state_hooks = combine_hooks(state)
+
+      hooks_list = case Keyword.get(opts, :hooks) do
+        nil -> Enum.map(state_hooks, &(&1.module))
+        val -> val |> List.wrap
+      end
+
+      state_hooks
+      |> Enum.filter(&(&1.module in hooks_list))
+      |> Enum.each(&(send(&1.ref, { :notify, { :async, { :reset, &1.args } } })))
+    end
     state
   end
 

@@ -96,7 +96,6 @@ defmodule CachexTest.Hook do
     assert(sync_time > 5000 && sync_time < 7500)
   end
 
-
   test "hooks with results attached in a pre-hook", state do
     hooks = %Cachex.Hook{
       args: self(),

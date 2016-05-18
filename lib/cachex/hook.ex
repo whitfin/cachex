@@ -196,6 +196,8 @@ defmodule Cachex.Hook do
       # argument, rather than passing through a tuple of message and results.
       defp delegate_notify(event, state) do
         case event do
+          { :reset, args } ->
+            apply(__MODULE__, :init, args)
           { msg, result } when is_tuple(msg) and is_tuple(result) ->
             handle_notify(msg, result, state)
           other ->

@@ -945,6 +945,45 @@ defmodule Cachex do
   end
 
   @doc """
+  Resets a cache by clearing the keyspace and restarting any hooks.
+
+  ## Options
+
+    * `:async` - whether to wait on a response from the server, or to execute in
+      the background.
+    * `:hooks` - a whitelist of hooks to reset. Defaults to all hooks.
+    * `:only` - a whitelist of components to clear. Currently this can only be
+      either of `:cache` or `:hooks`. Defaults to `[ :cache, :hooks ]`.
+    * `:timeout` - the timeout for any calls to the worker.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "my_key", "my_value")
+      iex> Cachex.reset(:my_cache)
+      iex> Cachex.size(:my_cache)
+      { :ok, 0 }
+
+      iex> Cachex.reset(:my_cache, [ only: :hooks ])
+      { :ok, true }
+
+      iex> Cachex.reset(:my_cache, [ only: :hooks, hooks: [ MyHook ] ])
+      { :ok, true }
+
+      iex> Cachex.reset(:my_cache, [ only: :cache ])
+      { :ok, true }
+
+  """
+  @spec reset(cache, options) :: { status, true }
+  defwrap reset(cache, options \\ []) when is_list(options) do
+    do_action(cache, fn
+      (cache) when is_atom(cache) ->
+        handle_async(cache, { :reset, options }, options)
+      (cache) ->
+        Worker.reset(cache, options)
+    end)
+  end
+
+  @doc """
   Determines the total size of the cache.
 
   This includes any expired but unevicted keys. For a more representation which
