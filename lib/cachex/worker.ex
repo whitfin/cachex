@@ -590,7 +590,7 @@ defmodule Cachex.Worker do
 
       state_hooks
       |> Enum.filter(&(&1.module in hooks_list))
-      |> Enum.each(&(send(&1.ref, { :notify, { :async, { :reset, &1.args } } })))
+      |> Enum.each(&(send(&1.ref, { :notify, { :async, { :reset_hook, &1.args } } })))
     end
     state
   end

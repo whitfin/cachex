@@ -57,9 +57,9 @@ defmodule Mix.Cachex do
   do: run_task(fn -> Mix.Task.run(task, args) end)
 
   # Starts a local node using the :slave module.
-  defp start_node(node_name) do
+  defp start_node(longname) do
     [ name, host ] =
-      node_name
+      longname
       |> Kernel.to_string
       |> String.split("@", parts: 2)
       |> Enum.map(&String.to_atom/1)
@@ -68,6 +68,6 @@ defmodule Mix.Cachex do
   end
 
   # Stops a local node using the :slave module.
-  defdelegate stop_node(node_name), to: :slave, as: :stop
+  defdelegate stop_node(name), to: :slave, as: :stop
 
 end
