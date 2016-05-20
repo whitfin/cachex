@@ -2,10 +2,9 @@ defmodule Mix.Tasks.Cachex.Analyze do
   # inherit mix tasks
   use Mix.Task
 
-  @moduledoc """
-  A small binding module to run static-code analysis on the application using a
-  shorthand to invoke Credo with all issues in single line format.
-  """
+  @moduledoc false
+  # A small binding module to run static-code analysis on the application using a
+  # shorthand to invoke Credo with all issues in single line format.
 
   @doc """
   Quite simply spawns off a Mix Task to run the Credo task with the specified
