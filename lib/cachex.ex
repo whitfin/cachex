@@ -7,6 +7,7 @@ defmodule Cachex do
   import Cachex.Connection
 
   # add some aliases
+  alias Cachex.Hook
   alias Cachex.Inspector
   alias Cachex.Janitor
   alias Cachex.Options
@@ -155,25 +156,37 @@ defmodule Cachex do
 
   """
   @spec start_link(options, options) :: { atom, pid }
-  def start_link(options \\ [], supervisor_options \\ []) do
-    with { :ok, opts } <- setup_env(options) do
-      Supervisor.start_link(__MODULE__, opts, supervisor_options)
-    end
+  def start_link(options \\ [], server_opts \\ []) do
+    with { :ok, opts } <- setup_env(options),
+         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, server_opts)
+      do
+        link_all = fn(worker) ->
+          pid
+          |> Supervisor.which_children
+          |> Hook.link(opts |> Hook.combine)
+          |> Hook.update(worker)
+        end
+
+        GenServer.cast(opts.cache, { :modify, link_all })
+
+        { :ok, pid }
+      end
   end
 
   @doc """
   Initialize the Mnesia table and supervision tree for this cache, without linking
-  the cache to the current process.
+  the cache to the current process. We hack this by starting a linked Supervisor
+  and then just unlinking afterwards.
 
   Supports all the same options as `start_link/2`. This is mainly used for testing
-  in order to keep caches around when processes may be torn down.
+  in order to keep caches around when processes may be torn down. You should try
+  to avoid using this in production applications and instead opt for a natural
+  Supervision tree.
   """
   @spec start(options) :: { atom, pid }
   def start(options \\ []) do
-    with { :ok, opts } <- setup_env(options) do
-      Janitor.start(opts, [ name: opts.janitor ])
-      Worker.start(opts, [ name: opts.cache ])
-      { :ok, self }
+    with { :ok, pid } <- start_link(options) do
+      :erlang.unlink(pid) && { :ok, pid }
     end
   end
 
@@ -189,7 +202,7 @@ defmodule Cachex do
       _other -> [worker(Janitor, [options, [ name: options.janitor ]])]
     end
 
-    children = ttl_workers ++ [
+    children = ttl_workers ++ Hook.spec(options) ++ [
       worker(Worker, [options, [ name: options.cache ]])
     ]
 

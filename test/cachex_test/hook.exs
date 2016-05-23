@@ -158,39 +158,6 @@ defmodule CachexTest.Hook do
     assert(worker_state.actions == Cachex.Worker.Remote)
   end
 
-  test "hooks with multiple hooks per server", state do
-    hooks = [
-      %Cachex.Hook{
-        args: self(),
-        async: false,
-        module: CachexTest.Hook.TestHook,
-        results: true,
-        server_args: [
-          name: :test_multiple_hooks
-        ],
-        type: :post
-      },
-      %Cachex.Hook{
-        args: self(),
-        async: false,
-        module: CachexTest.Hook.SecondTestHook,
-        results: true,
-        server_args: [
-          name: :test_multiple_hooks
-        ],
-        type: :post
-      }
-    ]
-
-    io_output = capture_log(fn ->
-      Cachex.start_link([ name: state.name, hooks: hooks ])
-    end)
-
-    expected_pattern = ~r/Unable to assign hook \(server already assigned\): Elixir\.CachexTest\.Hook\.SecondTestHook/
-
-    assert(String.match?(io_output, expected_pattern))
-  end
-
   test "hooks with invalid module provided", state do
     hooks = [
       %Cachex.Hook{
@@ -221,7 +188,7 @@ defmodule CachexTest.Hook do
     expected_pattern = ~r/    CachexTest\.Hook\.FakeHook\.__info__\(:module\)/
     assert(String.match?(line, expected_pattern))
 
-    expected_pattern = ~r/    \(cachex\) lib\/cachex\/hook\.ex:\d+: Cachex.Hook.start_hook\/1/
+    expected_pattern = ~r/    \(cachex\) lib\/cachex\/hook\.ex:\d+: Cachex.Hook.verify_hook\/1/
     assert(String.match?(context, expected_pattern))
   end
 
