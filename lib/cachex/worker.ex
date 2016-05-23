@@ -32,28 +32,21 @@ defmodule Cachex.Worker do
   function, and the GenServer options are passed straight to GenServer to deal
   with.
   """
-  def start_link(options \\ %Cachex.Options { }, gen_options \\ []) do
+  def start_link(options \\ %Options { }, gen_options \\ []) do
     GenServer.start_link(__MODULE__, options, gen_options)
-  end
-
-  @doc """
-  Same as `start_link/2` however this function does not link to the calling process.
-  """
-  def start(options \\ %Cachex.Options { }, gen_options \\ []) do
-    GenServer.start(__MODULE__, options, gen_options)
   end
 
   @doc """
   Main initialization phase of a worker, plucking out the options we care about
   and storing them internally for later use by this worker.
   """
-  def init(options \\ %Cachex.Options { }) do
+  def init(options \\ %Options { }) do
     state = %__MODULE__{
       actions: options.remote && __MODULE__.Remote || __MODULE__.Local,
       cache: options.cache,
       options: options
     }
-    { :ok, modify_hooks(state) }
+    { :ok, state }
   end
 
   ###
@@ -462,57 +455,19 @@ defmodule Cachex.Worker do
     { :noreply, state }
   end
 
+  @doc """
+  Provides a way to update the internal state from an external process. The state
+  as it currently exists is fed into the function for modification. This is used
+  for hook modification and should not be used externally.
+  """
+  def handle_cast({ :modify, func }, state) when is_function(func) do
+    { :noreply, state |> func.() |> modify_hooks }
+  end
+
   ###
   # Functions designed to only be used internally (i.e. those not forwarded to
   # the main Cachex interfaces).
   ###
-
-  @doc """
-  Shorthand for joining up the hook list rather than storing it as two separate
-  lists. Used when iterating all hooks.
-  """
-  def combine_hooks(%__MODULE__{ options: options }),
-  do: Enum.concat(options.pre_hooks, options.post_hooks)
-
-  @doc """
-  Forwards a call to the correct actions set, currently only the local actions.
-  The idea is that in future this will delegate to distributed implementations,
-  so it has been built out in advance to provide a clear migration path.
-  """
-  def do_action(%__MODULE__{ } = state, message, fun)
-  when is_tuple(message) and is_function(fun) do
-    options =
-      message
-      |> Util.last_of_tuple
-
-    notify =
-      options
-      |> Keyword.get(:notify, true)
-
-    message = case options[:via] do
-      nil -> message
-      val when is_tuple(val) -> val
-      val -> put_elem(message, 0, val)
-    end
-
-    if notify do
-      case state.options.pre_hooks do
-        [] -> nil;
-        li -> Notifier.notify(li, message)
-      end
-    end
-
-    result = fun.()
-
-    if notify do
-      case state.options.post_hooks do
-        [] -> nil;
-        li -> Notifier.notify(li, message, options[:hook_result] || result)
-      end
-    end
-
-    result
-  end
 
   @doc """
   Retrieves and updates a raw record in the database. This is used in several
@@ -550,6 +505,48 @@ defmodule Cachex.Worker do
     with { :ok, false } <- exists?(state, key, notify: false) do
       { :missing, false }
     end
+  end
+
+  # Shorthand for joining up the hook list rather than storing it as two separate
+  # lists. Used when iterating all hooks.
+  defp combine_hooks(%__MODULE__{ options: options }), do: Hook.combine(options)
+
+  # Forwards a call to the correct actions set, currently only the local actions.
+  # The idea is that in future this will delegate to distributed implementations,
+  # so it has been built out in advance to provide a clear migration path.
+  defp do_action(%__MODULE__{ } = state, message, fun)
+  when is_tuple(message) and is_function(fun) do
+    options =
+      message
+      |> Util.last_of_tuple
+
+    notify =
+      options
+      |> Keyword.get(:notify, true)
+
+    message = case options[:via] do
+      nil -> message
+      val when is_tuple(val) -> val
+      val -> put_elem(message, 0, val)
+    end
+
+    if notify do
+      case state.options.pre_hooks do
+        [] -> nil;
+        li -> Notifier.notify(li, message)
+      end
+    end
+
+    result = fun.()
+
+    if notify do
+      case state.options.post_hooks do
+        [] -> nil;
+        li -> Notifier.notify(li, message, options[:hook_result] || result)
+      end
+    end
+
+    result
   end
 
   # A binding for the update of hooks requiring anything of this cache. As it
@@ -590,7 +587,7 @@ defmodule Cachex.Worker do
 
       state_hooks
       |> Enum.filter(&(&1.module in hooks_list))
-      |> Enum.each(&(send(&1.ref, { :notify, { :async, { :reset_hook, &1.args } } })))
+      |> Enum.each(&(send(&1.ref, { :notify, { :reset, &1.args } })))
     end
     state
   end

@@ -29,15 +29,6 @@ defmodule Cachex.Janitor do
   end
 
   @doc """
-  Same as `start_link/2` however this function does not link to the calling process.
-  """
-  def start(options \\ %Cachex.Options { }, gen_options \\ []) do
-    if options.ttl_interval do
-      GenServer.start(__MODULE__, options, gen_options)
-    end
-  end
-
-  @doc """
   Main initialization phase of a janitor, creating a stats struct as required and
   creating the initial state for this janitor. The state is then passed through
   for use in the future.
