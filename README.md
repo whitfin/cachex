@@ -144,7 +144,8 @@ Let's look at an example; assume you need to read information from a database to
 { :ok, pid } = Cachex.start_link([ name: :info_cache, default_ttl: :timer.minutes(5), fallback_args: [db] ])
 
 # request our information on our "packages" API
-{ :ok, information } = Cachex.get(:info_cache, "/api/v1/packages", fallback: fn(key, db) ->
+# status will equal :loaded if the database was hit, otherwise :ok when successful
+{ status, information } = Cachex.get(:info_cache, "/api/v1/packages", fallback: fn(key, db) ->
   Database.query_all_packages(db)
 end)
 ```
