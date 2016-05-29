@@ -1,5 +1,5 @@
 # Cachex
-[![Build Status](https://img.shields.io/travis/zackehh/cachex.svg)](https://travis-ci.org/zackehh/cachex) [![Coverage Status](https://img.shields.io/coveralls/zackehh/cachex.svg)](https://coveralls.io/github/zackehh/cachex) [![Hex.pm Version](https://img.shields.io/hexpm/v/cachex.svg)](https://hex.pm/packages/cachex) [![Deps Status](https://beta.hexfaktor.org/badge/all/github/zackehh/cachex.svg)](https://beta.hexfaktor.org/github/zackehh/cachex) [![Documentation](https://img.shields.io/badge/docs-latest-yellowgreen.svg)](https://hexdocs.pm/cachex/)
+[![Build Status](https://img.shields.io/travis/zackehh/cachex.svg)](https://travis-ci.org/zackehh/cachex) [![Coverage Status](https://img.shields.io/coveralls/zackehh/cachex.svg)](https://coveralls.io/github/zackehh/cachex) [![Dependency Status](https://beta.hexfaktor.org/badge/all/github/zackehh/cachex.svg)](https://beta.hexfaktor.org/github/zackehh/cachex) [![Hex.pm Version](https://img.shields.io/hexpm/v/cachex.svg)](https://hex.pm/packages/cachex) [![Documentation](https://img.shields.io/badge/docs-latest-yellowgreen.svg)](https://hexdocs.pm/cachex/)
 
 Cachex is an extremely fast in-memory key/value store with support for many useful features:
 
