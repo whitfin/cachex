@@ -35,12 +35,7 @@ defmodule Cachex.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
-        "cachex.test": :test,
-        "cachex.analyze": :test,
-        "cachex.coveralls": :test,
-        "cachex.coveralls.detail": :test,
-        "cachex.coveralls.html": :test,
-        "cachex.coveralls.travis": :test
+        "cachex.test": :test
       ]
     ]
   end
@@ -63,17 +58,17 @@ defmodule Cachex.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
+      # Production dependencies
       { :gen_delegate, "~> 1.0.0" },
-      # documentation
-      { :earmark, "~> 0.2.1",  optional: true, only: :docs },
-      { :ex_doc,  "~> 0.11.5", optional: true, only: :docs },
-      # testing
-      { :benchfella,   "~> 0.3.2",  optional: true, only: :test },
-      { :benchwarmer,  "~> 0.0.2",  optional: true, only: :test },
-      { :credo,        "~> 0.3.13", optional: true, only: :test },
-      { :excoveralls,  "~> 0.5.4",  optional: true, only: :test },
-      { :exprof,       "~> 0.2.0",  optional: true, only: :test },
-      { :power_assert, "~> 0.0.8",  optional: true, only: :test }
+      # Local dependencies
+      { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
+      { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },
+      { :credo,        "~> 0.4.2",  optional: true, only: [ :dev, :test ] },
+      { :earmark,      "~> 0.2.1",  optional: true, only: [ :dev, :test ] },
+      { :ex_doc,       "~> 0.11.5", optional: true, only: [ :dev, :test ] },
+      { :excoveralls,  "~> 0.5.4",  optional: true, only: [ :dev, :test ] },
+      { :exprof,       "~> 0.2.0",  optional: true, only: [ :dev, :test ] },
+      { :power_assert, "~> 0.0.8",  optional: true, only: [ :dev, :test ] }
     ]
   end
 end
