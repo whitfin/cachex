@@ -449,3 +449,9 @@ $ mix cachex.analyze
 $ mix cachex.coveralls
 $ mix cachex.coveralls.html && open cover/excoveralls.html
 ```
+
+You can replicate the CI build using the task below; this is what's running on Travis CI:
+
+```elixir
+$ mix cachex.ci
+```

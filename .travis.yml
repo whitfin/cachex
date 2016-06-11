@@ -9,8 +9,7 @@ otp_release:
 before_script:
   - epmd -daemon
 script:
-  - mix cachex.analyze
-  - mix cachex.coveralls.travis --trace
+  - mix cachex.ci
 branches:
   only:
     - master
