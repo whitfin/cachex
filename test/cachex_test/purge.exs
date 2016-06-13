@@ -78,16 +78,4 @@ defmodule CachexTest.Purge do
     assert(purge_result == { :ok, 10 })
   end
 
-  test "purge with async is faster than non-async", state do
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.purge(state.cache, async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.purge(state.cache, async: false)
-    end)
-
-    assert(async_time < sync_time / 2)
-  end
-
 end

@@ -48,16 +48,4 @@ defmodule CachexTest.Decr.Local do
     assert(decr_result == { :error, "Unable to operate on non-numeric value" })
   end
 
-  test "decr with async is faster than non-async", state do
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.decr(state.cache, "my_key1", async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.decr(state.cache, "my_key2", async: false)
-    end)
-
-    assert(async_time < sync_time / 2)
-  end
-
 end

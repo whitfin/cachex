@@ -25,16 +25,4 @@ defmodule CachexTest.Clear.Remote do
     assert(clear_result == { :ok, 20 })
   end
 
-  test "clear with async is faster than non-async", state do
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.clear(state.cache, async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.clear(state.cache, async: false)
-    end)
-
-    assert(async_time < sync_time / 2)
-  end
-
 end

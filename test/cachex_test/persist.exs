@@ -51,22 +51,4 @@ defmodule CachexTest.Persist do
     assert(persist_result == { :missing, false })
   end
 
-  test "persist with async is faster than non-async", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
-
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.persist(state.cache, "my_key", async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.persist(state.cache, "my_key", async: false)
-    end)
-
-    assert(async_time < sync_time / 2)
-  end
-
 end

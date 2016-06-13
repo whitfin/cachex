@@ -61,22 +61,4 @@ defmodule CachexTest.Transaction do
     assert(get_result == { :missing, nil })
   end
 
-  test "transaction with async is faster than non-async", state do
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.transaction(state.cache, fn(worker) ->
-        Cachex.set(worker, "my_key1", "my_value1")
-      end, async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.transaction(state.cache, fn(worker) ->
-        Cachex.set(worker, "my_key2", "my_value2")
-      end, async: false)
-    end)
-
-    get_result = Cachex.get(state.cache, "my_key1")
-    assert(get_result == { :ok, "my_value1" })
-    assert(async_time < sync_time / 2)
-  end
-
 end

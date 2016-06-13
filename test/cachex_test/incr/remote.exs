@@ -48,16 +48,4 @@ defmodule CachexTest.Incr.Remote do
     assert(incr_result == { :error, "Unable to operate on non-numeric value" })
   end
 
-  test "incr with async is faster than non-async", state do
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.incr(state.cache, "my_key1", async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.incr(state.cache, "my_key2", async: false)
-    end)
-
-    assert(async_time < sync_time / 2)
-  end
-
 end

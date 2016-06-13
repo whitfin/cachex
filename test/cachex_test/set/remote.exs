@@ -58,18 +58,4 @@ defmodule CachexTest.Set.Remote do
     assert_in_delta(ttl, 10000, 5)
   end
 
-  test "key set with async is faster than non-async", state do
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.set(state.cache, "my_key1", "my_value1", async: true)
-    end)
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.set(state.cache, "my_key2", "my_value2", async: false)
-    end)
-
-    get_result = Cachex.get(state.cache, "my_key1")
-    assert(get_result == { :ok, "my_value1" })
-    assert(async_time < sync_time / 2)
-  end
-
 end
