@@ -1,5 +1,5 @@
 defmodule Cachex.InspectTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   setup do
     { :ok, cache: TestHelper.create_cache() }
@@ -7,7 +7,7 @@ defmodule Cachex.InspectTest do
 
   test "inspect requires an existing cache name", _state do
     assert(Cachex.inspect("test", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
-    assert(Cachex.Inspector.inspect("test", "test") == { :error, "Invalid cache reference provided" })
+    assert(Cachex.Inspector.inspect("test", "test") == { :error, "Invalid inspect option provided" })
   end
 
   test "inspect with a worker instance", state do
@@ -57,7 +57,7 @@ defmodule Cachex.InspectTest do
 
     assert(status == :ok)
     assert(inspection.count == 1)
-    assert(inspection.duration < 75)
+    assert(is_number(inspection.duration))
     assert_in_delta(inspection.started, start + 100, 10)
   end
 

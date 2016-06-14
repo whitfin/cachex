@@ -74,7 +74,7 @@ defmodule Cachex.UtilTest do
 
     assert(cache == :test)
     assert(key == "key")
-    assert_in_delta(date, Util.now(), 2)
+    assert_in_delta(date, Util.now(), 5)
     assert(value == "value")
     assert(ttl == 5000)
   end
@@ -84,7 +84,7 @@ defmodule Cachex.UtilTest do
 
     assert(cache == :test)
     assert(key == "key")
-    assert_in_delta(date, Util.now(), 2)
+    assert_in_delta(date, Util.now(), 5)
     assert(value == "value")
     assert(ttl == 5000)
   end

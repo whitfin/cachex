@@ -14,20 +14,15 @@ defmodule Cachex.Inspector do
   alias Cachex.Util
   alias Cachex.Worker
 
+  # state based inspections
+  @state_based [ :state, :worker ]
+
   @doc """
   We don't care about having a worker instance, only the name of the internal table,
   so we pass through only the cache name as needed.
   """
-  def inspect(%Worker{ cache: cache }, option) do
+  def inspect(%Worker{ cache: cache }, option) when not option in @state_based do
     __MODULE__.inspect(cache, option)
-  end
-
-  @doc """
-  We require the cache name to be an atom, so if you get here without an atom we
-  just have to kick you out for having an invalid cache reference.
-  """
-  def inspect(cache, _option) when not is_atom(cache) do
-    { :error, "Invalid cache reference provided" }
   end
 
   @doc """
@@ -35,19 +30,13 @@ defmodule Cachex.Inspector do
   which  will be purged in the next Janitor run).
   """
   def inspect(cache, { :expired, :count }) do
-    query =
-      true
-      |> Util.retrieve_expired_rows
-
+    query = Util.retrieve_expired_rows(true)
     cache
     |> :ets.select_count(query)
     |> Util.ok
   end
   def inspect(cache, { :expired, :keys }) do
-    query =
-      :key
-      |> Util.retrieve_expired_rows
-
+    query = Util.retrieve_expired_rows(:key)
     cache
     |> :ets.select(query)
     |> Util.ok
@@ -99,7 +88,7 @@ defmodule Cachex.Inspector do
   to block the worker process.
   """
   def inspect(cache, option) when option in [ :state, :worker ] do
-    { :ok, State.get(cache) }
+    { :ok, cache }
   end
 
   @doc """
