@@ -44,7 +44,10 @@ defmodule Cachex.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :mnesia]]
+    [
+      applications: [:logger, :mnesia],
+      mod: {Cachex.Application, []}
+    ]
   end
 
   # Dependencies can be Hex packages:

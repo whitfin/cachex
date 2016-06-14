@@ -23,6 +23,9 @@ defmodule Cachex.Worker do
             cache: nil,                 # the cache name
             options: %Options{ }        # the options of this cache
 
+  # define the worker state type
+  @opaque t :: %__MODULE__{ }
+
   # define some types
   @type record ::  { atom, any, number, number | nil, any }
 

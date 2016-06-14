@@ -5,12 +5,13 @@ defmodule Mix.Cachex do
   # `run_task/1` interface which will run the provided function in the scope of
   # bound nodes.
 
-  # import utils
-  import Cachex.Util
+  # alias internals
+  alias Cachex.State
+  alias Cachex.Util
 
   # our list of nodes to create, based on tests
   @nodenames [
-    create_node_name("cachex_test")
+    Util.create_node_name("cachex_test")
   ]
 
   @doc """
@@ -29,6 +30,7 @@ defmodule Mix.Cachex do
 
       :rpc.call(name, :mnesia, :start, [])
       :rpc.call(name, :code, :add_paths, [:code.get_path])
+      :rpc.call(name, State, :init, [])
     end)
   end
 

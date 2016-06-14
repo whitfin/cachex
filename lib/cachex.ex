@@ -11,6 +11,7 @@ defmodule Cachex do
   alias Cachex.Inspector
   alias Cachex.Janitor
   alias Cachex.Options
+  alias Cachex.State
   alias Cachex.Util
   alias Cachex.Worker
 
@@ -39,7 +40,7 @@ defmodule Cachex do
   """
 
   # the cache type
-  @type cache :: atom | Cachex.Worker
+  @type cache :: atom | Worker.t
 
   # custom options type
   @type options :: [ { atom, any } ]
@@ -157,7 +158,8 @@ defmodule Cachex do
   """
   @spec start_link(options, options) :: { atom, pid }
   def start_link(options \\ [], server_opts \\ []) do
-    with { :ok, opts } <- setup_env(options),
+    with { :ok, true } <- ensure_started,
+         { :ok, opts } <- setup_env(options),
          { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, server_opts)
       do
         link_all = fn(worker) ->
@@ -1223,12 +1225,22 @@ defmodule Cachex do
     end
   end
 
+  # Determines whether the Cachex application state has been started or not. If
+  # not, we return an error to tell the user to start it appropriately.
+  defp ensure_started do
+    if State.setup? do
+      { :ok, true }
+    else
+      { :error, "Cachex tables not initialized, did you start the Cachex application?" }
+    end
+  end
+
   # Determines whether a process has started or not. If the process has started,
   # an error message is returned - otherwise `true` is returned to represent not
   # being started.
-  defp ensure_not_started(name) when not is_atom(name),
+  defp ensure_unused(name) when not is_atom(name),
   do: { :error, "Cache name must be a valid atom" }
-  defp ensure_not_started(name) do
+  defp ensure_unused(name) do
     case Process.whereis(name) do
       nil ->
         { :ok, true }
@@ -1259,7 +1271,7 @@ defmodule Cachex do
   # setting up the local table. This is separated out as it's required in both
   # `start_link/2` and `start/1`.
   defp setup_env(options) when is_list(options) do
-    with { :ok, true } <- ensure_not_started(options[:name]),
+    with { :ok, true } <- ensure_unused(options[:name]),
          { :ok, opts } <- parse_options(options),
          { :ok, true } <- ensure_connection(opts),
          { :ok, true } <- start_table(opts),
@@ -1292,7 +1304,7 @@ defmodule Cachex do
   defp valid_cache?(cache) when is_atom(cache) do
     :erlang.whereis(cache) != :undefined
   end
-  defp valid_cache?(%Cachex.Worker{ }), do: true
+  defp valid_cache?(%Worker{ }), do: true
   defp valid_cache?(_), do: false
 
   # Simply adds a "via" param to the options to allow the use of delegates.
