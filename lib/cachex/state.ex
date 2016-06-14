@@ -13,23 +13,29 @@ defmodule Cachex.State do
   alias Cachex.Hook
   alias Cachex.Worker
 
+  # ets holder
+  @ets_agent :cachex_ets_agent
+
   # name of internal table
   @state_table :cachex_state_table
 
   # transaction manager
-  @transaction_manager :cachex_state_tm
+  @transaction_manager :cachex_state_tmanager
 
   @doc false
   def start_link do
-    setup = fn ->
+    # Start ETS manager
+    Agent.start(fn ->
       :ets.new(@state_table, [
         :named_table,
         :public,
         { :read_concurrency, true },
         { :write_concurrency, true }
       ])
-    end
-    Agent.start_link(setup, [ name: @transaction_manager ])
+    end, [ name: @ets_agent ])
+
+    # Start transaction manager
+    Agent.start_link(fn -> :ok end, [ name: @transaction_manager ])
   end
 
   @doc false

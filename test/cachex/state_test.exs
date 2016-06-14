@@ -39,17 +39,11 @@ defmodule Cachex.StateTest do
   end
 
   test "starting from a spawn will live using start" do
-    Agent.stop(:cachex_state_tm)
+    Agent.stop(:cachex_state_tmanager)
 
-    assert(Process.whereis(:cachex_state_tm) == nil)
+    spawn(&State.start/0)
 
-    spawn(fn ->
-      State.start()
-    end)
-
-    :timer.sleep(1)
-
-    assert(Process.whereis(:cachex_state_tm) != nil)
+    assert(Process.whereis(:cachex_state_tmanager) != nil)
   end
 
   defp init_worker(opts \\ []) do
