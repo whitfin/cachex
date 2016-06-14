@@ -1,10 +1,7 @@
 defmodule Cachex.Worker do
   @moduledoc false
-  # The main worker for Cachex, providing access to the backing tables using a
-  # GenServer implementation. This is separated into a new process as we store a
-  # state containing various options (fallbacks, ttls, etc). It also avoids us
-  # blocking the main process for long-running actions (e.g. we can always provide
-  # cast functions).
+  # The main Worker interface for Cachex, providing access to the backing tables
+  # using delegates to implementations for both local and remote caches.
 
   # add some aliases
   alias Cachex.Hook

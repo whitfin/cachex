@@ -215,7 +215,6 @@ defmodule Cachex do
     * `:fallback` - a fallback function for multi-layered caches, overriding any
       default fallback functions. The value returned by this fallback is placed
       in the cache against the provided key, before being returned to the user.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -248,7 +247,6 @@ defmodule Cachex do
     * `:fallback` - a fallback function for multi-layered caches, overriding any
       default fallback functions. The value returned by this fallback is passed
       into the update function.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -276,9 +274,6 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
     * `:ttl` - a time-to-live for the provided key/value pair, overriding any
       default ttl. This value should be in milliseconds.
 
@@ -307,12 +302,6 @@ defmodule Cachex do
 
   This operation is an internal mutation, and as such any set TTL persists - i.e.
   it is not refreshed on this operation.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -344,12 +333,6 @@ defmodule Cachex do
 
   This will return `{ :ok, true }` regardless of whether a key has been removed
   or not. The `true` value can be thought of as "is value is no longer present?".
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -432,12 +415,6 @@ defmodule Cachex do
   This function returns a tuple containing the total number of keys removed from
   the internal cache. This is equivalent to running `size/2` before running `clear/2`.
 
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -463,10 +440,6 @@ defmodule Cachex do
   potentially expired keys into account, it is far more expensive than simply
   calling `size/2` and should only be used when completely necessary.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -491,12 +464,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
     * `:amount` - an amount to decrement by. This will default to 1.
     * `:initial` - if the key does not exist, it will be initialized to this amount.
       Defaults to 0.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -530,10 +500,6 @@ defmodule Cachex do
   have expired previously or not. Internally this is just sugar for checking if
   `size/2` returns 0.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -565,18 +531,8 @@ defmodule Cachex do
   it's simply to avoid the overhead of jumping between processes. For a transactional
   implementation, see `transaction/3`.
 
-  It should be noted that this provides a blocking execution inside the worker,
-  and therefore when you're working with a local cache, you can be sure that the
-  cache will be consistent across actions. This is **only** the case with local
-  caches. For distributed caches, please use the transactional interface.
-
   You **must** use the worker instance passed to the provided function when calling
-  the cache, otherwise your request will time out. This is due to the blocking
-  nature of the execution, and can not be avoided (at this time).
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
+  the cache, otherwise this function will provide no benefits.
 
   ## Examples
 
@@ -605,10 +561,6 @@ defmodule Cachex do
   this determines existence within the bounds of TTLs; this means that if a key
   doesn't "exist", it may still be occupying memory in the cache.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
@@ -635,12 +587,6 @@ defmodule Cachex do
     this.
   - If the value provided is `nil`, the TTL is removed.
   - If the value is less than `0`, the key is immediately evicted.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -673,12 +619,6 @@ defmodule Cachex do
   this. If the expiration date is in the past, the key will be immediately evicted
   when this function is called.
 
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
@@ -703,10 +643,6 @@ defmodule Cachex do
 
   @doc """
   Retrieves all keys from the cache, and returns them as an (unordered) list.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -736,12 +672,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
     * `:amount` - an amount to increment by. This will default to 1.
     * `:initial` - if the key does not exist, it will be initialized to this amount
       before being modified. Defaults to 0.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -796,8 +729,7 @@ defmodule Cachex do
       a Janitor process.
     * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
     * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
-    * `:worker` - the internal state of the cache worker. This blocks the cache
-      worker process, so please use cautiously and sparingly.
+    * `:worker` - the internal state of the cache worker.
 
   ## Examples
 
@@ -820,12 +752,6 @@ defmodule Cachex do
 
   @doc """
   Removes a TTL on a given document.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -851,12 +777,6 @@ defmodule Cachex do
   the internal policy. Be careful though, calling `purge/2` manually will result
   in the purge firing inside the main process rather than inside the TTL worker.
 
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.purge(:my_cache)
@@ -876,12 +796,6 @@ defmodule Cachex do
   @doc """
   Refreshes the TTL for the provided key. This will reset the TTL to begin from
   the current time.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -913,12 +827,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
     * `:hooks` - a whitelist of hooks to reset. Defaults to all hooks.
     * `:only` - a whitelist of components to clear. Currently this can only be
       either of `:cache` or `:hooks`. Defaults to `[ :cache, :hooks ]`.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -950,10 +861,6 @@ defmodule Cachex do
   This includes any expired but unevicted keys. For a more representation which
   doesn't include expired keys, use `count/2`.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -978,7 +885,6 @@ defmodule Cachex do
   ## Options
 
     * `:for` - a specific set of actions to retrieve statistics for.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1019,7 +925,6 @@ defmodule Cachex do
     * `:of` - allows you to return a stream of a custom format, however usually
       only `:key` or `:value` will be needed. This can be an atom or a tuple and
       defaults to using `{ :key, :value }` if unset.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1053,10 +958,6 @@ defmodule Cachex do
 
   This is equivalent to running `get/3` followed by `del/3` in a single action.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
@@ -1085,10 +986,6 @@ defmodule Cachex do
   You **must** use the worker instance passed to the provided function when calling
   the cache, otherwise your request will time out. This is due to the blocking
   nature of the execution, and can not be avoided (at this time).
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1121,10 +1018,6 @@ defmodule Cachex do
 
   @doc """
   Returns the TTL for a cache entry in milliseconds.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 

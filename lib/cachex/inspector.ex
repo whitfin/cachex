@@ -1,16 +1,14 @@
 defmodule Cachex.Inspector do
   @moduledoc false
-  # An out of proc inspector for a cache and cache worker. Due to being out of proc,
-  # anything we do in here is isolated from the cache (although it runs in main proc
-  # so be careful). Unfortunately, this means we have extra limitations on exactly
-  # what we can provide.
+  # An in-proc inspector for a cache and cache state. Anything done in here is
+  # isolated from the cache and so any slow running inspections will only impact
+  # the calling process, rather than the cache itself.
   #
   # Any table interactions in here should go via `:mnesia` and the dirty operations
   # inside, rather than via ETS. This is a couple of microseconds slower for operations
   # but at least we can be sure we're getting an accurate view.
 
   # alias some modules
-  alias Cachex.State
   alias Cachex.Util
   alias Cachex.Worker
 
@@ -83,9 +81,7 @@ defmodule Cachex.Inspector do
   end
 
   @doc """
-  Requests the internal state of a cache worker. This touches the cache and waits
-  up to 5 seconds. This should only be used when testing as it has the potential
-  to block the worker process.
+  Requests the internal state of a cache worker.
   """
   def inspect(cache, option) when option in [ :state, :worker ] do
     { :ok, cache }
