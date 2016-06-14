@@ -160,16 +160,14 @@ defmodule Cachex do
   def start_link(options \\ [], server_opts \\ []) do
     with { :ok, true } <- ensure_started,
          { :ok, opts } <- setup_env(options),
-         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, server_opts)
+         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, [ name: opts.cache ] ++ server_opts)
       do
-        link_all = fn(worker) ->
+        hooks =
           pid
           |> Supervisor.which_children
           |> Hook.link(opts |> Hook.combine)
-          |> Hook.update(worker)
-        end
 
-        GenServer.cast(opts.cache, { :modify, link_all })
+        State.update(opts.cache, &(Hook.update(hooks, &1)))
 
         { :ok, pid }
       end
@@ -199,14 +197,12 @@ defmodule Cachex do
   # to setup the internal workers. Workers are then given to `supervise/2`.
   @spec init(Options) :: { status, any }
   def init(%Options{ } = options) do
-    ttl_workers = case options.ttl_interval do
+    children = Hook.spec(options) ++ case options.ttl_interval do
       nil -> []
       _other -> [worker(Janitor, [options, [ name: options.janitor ]])]
     end
 
-    children = ttl_workers ++ Hook.spec(options) ++ [
-      worker(Worker, [options, [ name: options.cache ]])
-    ]
+    State.set(options.cache, Worker.init(options))
 
     supervise(children, strategy: :one_for_one)
   end
@@ -236,11 +232,8 @@ defmodule Cachex do
   """
   @spec get(cache, any, options) :: { status | :loaded, any }
   defwrap get(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :get, key, options }, timeout(options))
-      (cache) ->
-        Worker.get(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.get(cache, key, options)
     end)
   end
 
@@ -270,11 +263,8 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defwrap get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :get_and_update, key, update_function, options }, timeout(options))
-      (cache) ->
-        Worker.get_and_update(cache, key, update_function, options)
+    do_action(cache, fn(cache) ->
+      Worker.get_and_update(cache, key, update_function, options)
     end)
   end
 
@@ -306,11 +296,8 @@ defmodule Cachex do
   """
   @spec set(cache, any, any, options) :: { status, true | false }
   defwrap set(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :set, key, value, options }, options)
-      (cache) ->
-        Worker.set(cache, key, value, options)
+    do_action(cache, fn(cache) ->
+      Worker.set(cache, key, value, options)
     end)
   end
 
@@ -347,11 +334,8 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, options) :: { status, any }
   defwrap update(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :update, key, value, options }, options)
-      (cache) ->
-        Worker.update(cache, key, value, options)
+    do_action(cache, fn(cache) ->
+      Worker.update(cache, key, value, options)
     end)
   end
 
@@ -378,11 +362,8 @@ defmodule Cachex do
   """
   @spec del(cache, any, options) :: { status, true | false }
   defwrap del(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :del, key, options }, options)
-      (cache) ->
-        Worker.del(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.del(cache, key, options)
     end)
   end
 
@@ -425,29 +406,24 @@ defmodule Cachex do
   """
   @spec add_node(cache, atom) :: { status, true | false | binary }
   defwrap add_node(cache, node) when is_atom(node) do
-    case :net_adm.ping(node) do
-      :pong ->
-        server = case cache do
-          val when is_atom(val) ->
-            val
-          val ->
-            val.cache
-        end
+    do_action(cache, fn(%Worker{ cache: cache }) ->
+      case :net_adm.ping(node) do
+        :pong ->
+          case :mnesia.change_config(:extra_db_nodes, [node]) do
+            { :error, { name, _msg } } ->
+              { :error, name }
+            { :ok, _nodes } ->
+              :mnesia.add_table_copy(cache, node, :ram_copies)
 
-        case :mnesia.change_config(:extra_db_nodes, [node]) do
-          { :error, { name, _msg } } ->
-            { :error, name }
-          { :ok, _nodes } ->
-            :mnesia.add_table_copy(cache, node, :ram_copies)
+              :rpc.call(node, Worker, :add_node, [cache, node()])
+              :rpc.call(node(), Worker, :add_node, [cache, node])
 
-            :rpc.call(node, GenServer, :call, [server, { :add_node, node() }])
-            :rpc.call(node(), GenServer, :call, [server, { :add_node, node }])
-
-            { :ok, true }
-        end
-      :pang ->
-        { :error, "Unable to reach remote node!" }
-    end
+              { :ok, true }
+          end
+        :pang ->
+          { :error, "Unable to reach remote node!" }
+      end
+    end)
   end
 
   @doc """
@@ -475,11 +451,8 @@ defmodule Cachex do
   """
   @spec clear(cache, options) :: { status, true | false }
   defwrap clear(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :clear, options }, options)
-      (cache) ->
-        Worker.clear(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.clear(cache, options)
     end)
   end
 
@@ -505,11 +478,8 @@ defmodule Cachex do
   """
   @spec count(cache, options) :: { status, number }
   defwrap count(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :count, options }, timeout(options))
-      (cache) ->
-        Worker.count(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.count(cache, options)
     end)
   end
 
@@ -623,11 +593,8 @@ defmodule Cachex do
   @spec execute(cache, function, options) :: { status, any }
   defwrap execute(cache, operation, options \\ [])
   when is_function(operation) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :execute, operation, options }, options)
-      (cache) ->
-        Worker.execute(cache, operation, options)
+    do_action(cache, fn(cache) ->
+      Worker.execute(cache, operation, options)
     end)
   end
 
@@ -654,11 +621,8 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, options) :: { status, true | false }
   defwrap exists?(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :exists?, key, options }, timeout(options))
-      (cache) ->
-        Worker.exists?(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.exists?(cache, key, options)
     end)
   end
 
@@ -697,11 +661,8 @@ defmodule Cachex do
   @spec expire(cache, any, number, options) :: { status, true | false }
   defwrap expire(cache, key, expiration, options \\ [])
   when (expiration == nil or is_number(expiration)) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :expire, key, expiration, options }, options)
-      (cache) ->
-        Worker.expire(cache, key, expiration, options)
+    do_action(cache, fn(cache) ->
+      Worker.expire(cache, key, expiration, options)
     end)
   end
 
@@ -762,11 +723,8 @@ defmodule Cachex do
   """
   @spec keys(cache, options) :: [ any ]
   defwrap keys(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :keys, options }, timeout(options))
-      (cache) ->
-        Worker.keys(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.keys(cache, options)
     end)
   end
 
@@ -804,11 +762,8 @@ defmodule Cachex do
   """
   @spec incr(cache, any, options) :: { status, number }
   defwrap incr(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :incr, key, options }, options)
-      (cache) ->
-        Worker.incr(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.incr(cache, key, options)
     end)
   end
 
@@ -913,11 +868,8 @@ defmodule Cachex do
   """
   @spec purge(cache, options) :: { status, number }
   defwrap purge(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :purge, options }, options)
-      (cache) ->
-        Worker.purge(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.purge(cache, options)
     end)
   end
 
@@ -951,11 +903,8 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, options) :: { status, true | false }
   defwrap refresh(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :refresh, key, options }, options)
-      (cache) ->
-        Worker.refresh(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.refresh(cache, key, options)
     end)
   end
 
@@ -990,11 +939,8 @@ defmodule Cachex do
   """
   @spec reset(cache, options) :: { status, true }
   defwrap reset(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :reset, options }, options)
-      (cache) ->
-        Worker.reset(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.reset(cache, options)
     end)
   end
 
@@ -1019,11 +965,8 @@ defmodule Cachex do
   """
   @spec size(cache, options) :: { status, number }
   defwrap size(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :size, options }, timeout(options))
-      (cache) ->
-        Worker.size(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.size(cache, options)
     end)
   end
 
@@ -1059,11 +1002,8 @@ defmodule Cachex do
   """
   @spec stats(cache, options) :: { status, %{ } }
   defwrap stats(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :stats, options }, timeout(options))
-      (cache) ->
-        Worker.stats(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.stats(cache, options)
     end)
   end
 
@@ -1103,11 +1043,8 @@ defmodule Cachex do
   """
   @spec stream(cache, options) :: { status, Enumerable.t }
   defwrap stream(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :stream, options }, timeout(options))
-      (cache) ->
-        Worker.stream(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.stream(cache, options)
     end)
   end
 
@@ -1135,11 +1072,8 @@ defmodule Cachex do
   """
   @spec take(cache, any, options) :: { status, any }
   defwrap take(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :take, key, options }, timeout(options))
-      (cache) ->
-        Worker.take(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.take(cache, key, options)
     end)
   end
 
@@ -1180,11 +1114,8 @@ defmodule Cachex do
   @spec transaction(cache, function, options) :: { status, any }
   defwrap transaction(cache, operation, options \\ [])
   when is_function(operation) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :transaction, operation, options }, options)
-      (cache) ->
-        Worker.transaction(cache, operation, options)
+    do_action(cache, fn(cache) ->
+      Worker.transaction(cache, operation, options)
     end)
   end
 
@@ -1206,23 +1137,29 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, options) :: { status, number }
   defwrap ttl(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :ttl, key, options }, timeout(options))
-      (cache) ->
-        Worker.ttl(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.ttl(cache, key, options)
     end)
   end
 
   ###
   # Private utility functions.
   ###
-  defp do_action(cache, action) when is_function(action) do
-    if valid_cache?(cache) do
-      action.(cache)
+  defp do_action(cache, action) when is_atom(cache) do
+    state = State.get(cache)
+    where = :erlang.whereis(cache)
+
+    if where != :undefined and state != nil do
+      action.(state)
     else
-      { :error, "Invalid cache provided, got: #{inspect cache}" }
+      invalid_cache(cache)
     end
+  end
+  defp do_action(%Worker{ } = cache, action) do
+    action.(cache)
+  end
+  defp do_action(cache, _action) do
+    invalid_cache(cache)
   end
 
   # Determines whether the Cachex application state has been started or not. If
@@ -1241,24 +1178,16 @@ defmodule Cachex do
   defp ensure_unused(name) when not is_atom(name),
   do: { :error, "Cache name must be a valid atom" }
   defp ensure_unused(name) do
-    case Process.whereis(name) do
-      nil ->
-        { :ok, true }
-      pid ->
-        { :error, "Cache name already in use for #{inspect(pid)}" }
+    if State.member?(name) do
+      { :error, "Cache name already in use!" }
+    else
+      { :ok, true }
     end
   end
 
-  # Internal function to handle async delegation. This is just a wrapper around
-  # the call/cast functions inside the GenServer module.
-  defp handle_async(cache, args, options) do
-    if options[:async] do
-      cache
-      |> GenServer.cast(args)
-      |> (&(Util.create_truthy_result/1)).()
-    else
-      GenServer.call(cache, args, timeout(options))
-    end
+  # Format an error message related to having an invalid cache provided.
+  defp invalid_cache(cache) do
+    { :error, "Invalid cache provided, got: #{inspect cache}" }
   end
 
   # Parses a keyword list of options into a Cachex Options structure. We return
@@ -1293,19 +1222,6 @@ defmodule Cachex do
       { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
     end
   end
-
-  # Figure out a timeout for all calls. This is just a minor wrapper around checking
-  # for a `timeout` key in the list of options.
-  defp timeout(options) when is_list(options),
-  do: Keyword.get(options, :timeout, 250)
-
-  # Determine if we have a valid cache passed in or not. Deal with atom caches
-  # first to ensure we deal with the more common use case.
-  defp valid_cache?(cache) when is_atom(cache) do
-    :erlang.whereis(cache) != :undefined
-  end
-  defp valid_cache?(%Worker{ }), do: true
-  defp valid_cache?(_), do: false
 
   # Simply adds a "via" param to the options to allow the use of delegates.
   defp via(module, options), do: [ { :via, module } | options ]

@@ -20,18 +20,8 @@ defmodule CachexTest do
     assert(status == :ok)
     assert(is_pid(pid))
 
-    fake_pid =
-      pid
-      |> Kernel.inspect
-      |> String.slice(5..10)
-      |> String.split(".")
-      |> Enum.at(1)
-      |> Integer.parse
-      |> Kernel.elem(0)
-      |> (&(:c.pid(0, &1 + 1, 0))).()
-
     start_result = Cachex.start_link([name: state.name])
-    assert(start_result == { :error, "Cache name already in use for #{inspect(fake_pid)}" })
+    assert(start_result == { :error, "Cache name already in use!" })
   end
 
   test "starting a cache over an invalid mnesia table", state do
@@ -61,7 +51,7 @@ defmodule CachexTest do
 
     proc_pid = spawn(fn ->
       Cachex.start_link([name: state.name, default_ttl: :timer.seconds(3)])
-      :erlang.send_after(1, this_proc, { self, :started })
+      :erlang.send_after(5, this_proc, { self, :started })
     end)
 
     receive do
@@ -78,7 +68,7 @@ defmodule CachexTest do
 
     proc_pid = spawn(fn ->
       Cachex.start([name: state.name, default_ttl: :timer.seconds(3)])
-      :erlang.send_after(1, this_proc, { self, :started })
+      :erlang.send_after(5, this_proc, { self, :started })
     end)
 
     receive do
@@ -88,6 +78,14 @@ defmodule CachexTest do
     after
       50 -> flunk("Expected cache to be started!")
     end
+  end
+
+  test "command execution requires a supervisor and a state", state do
+    Cachex.State.del(state.name)
+
+    get_result = Cachex.get(state.name, "key")
+
+    assert(get_result == { :error, "Invalid cache provided, got: #{inspect(state.name)}" })
   end
 
 end

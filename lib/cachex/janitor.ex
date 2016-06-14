@@ -5,6 +5,9 @@ defmodule Cachex.Janitor do
   # import utils for convenience
   import Cachex.Util
 
+  # add a worker alias
+  alias Cachex.Worker
+
   @moduledoc false
   # The main TTL cleanup for Cachex, providing a very basic task scheduler to
   # repeatedly cleanup the cache table for all records which have expired. This
@@ -80,7 +83,7 @@ defmodule Cachex.Janitor do
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
   defp update_evictions({ :ok, evictions } = result, state) when evictions > 0 do
-    GenServer.cast(state.cache, { :broadcast, { { :purge, [] }, result } })
+    Worker.broadcast(state.cache, { :purge, [] }, result)
     state
   end
   defp update_evictions(_other, state), do: state

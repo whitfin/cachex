@@ -10,6 +10,7 @@ defmodule Cachex.Inspector do
   # but at least we can be sure we're getting an accurate view.
 
   # alias some modules
+  alias Cachex.State
   alias Cachex.Util
   alias Cachex.Worker
 
@@ -98,7 +99,7 @@ defmodule Cachex.Inspector do
   to block the worker process.
   """
   def inspect(cache, option) when option in [ :state, :worker ] do
-    { :ok, GenServer.call(cache, { :state }) }
+    { :ok, State.get(cache) }
   end
 
   @doc """

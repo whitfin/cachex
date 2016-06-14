@@ -61,8 +61,6 @@ defmodule Cachex.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      # Production dependencies
-      { :gen_delegate, "~> 1.0.0" },
       # Local dependencies
       { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
       { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },

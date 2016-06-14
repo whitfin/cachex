@@ -17,18 +17,34 @@ defmodule Cachex.State do
   @state_table :cachex_state_table
 
   # transaction manager
-  @transaction_manager :cachex_transaction_manager
+  @transaction_manager :cachex_state_tm
 
   @doc false
-  def init do
+  def start_link do
     setup = fn ->
       :ets.new(@state_table, [
         :named_table,
+        :public,
         { :read_concurrency, true },
         { :write_concurrency, true }
       ])
     end
     Agent.start_link(setup, [ name: @transaction_manager ])
+  end
+
+  @doc false
+  def start do
+    with { :ok, pid } <- start_link do
+      :erlang.unlink(pid) && { :ok, pid }
+    end
+  end
+
+  @doc """
+  Removes a state from the local state table.
+  """
+  @spec del(cache :: atom) :: true
+  def del(cache) when is_atom(cache) do
+    :ets.delete(@state_table, cache)
   end
 
   @doc """
@@ -37,7 +53,7 @@ defmodule Cachex.State do
   @spec get(cache :: atom) :: state :: Worker.t | nil
   def get(cache) when is_atom(cache) do
     case :ets.lookup(@state_table, cache) do
-      [{ @state_table, ^cache, state }] ->
+      [{ ^cache, state }] ->
         state
       _other ->
         nil
@@ -57,7 +73,7 @@ defmodule Cachex.State do
   """
   @spec set(cache :: atom, state :: Worker.t) :: true
   def set(cache, %Worker{ } = state) when is_atom(cache) do
-    :ets.insert(@state_table, { @state_table, cache, state })
+    :ets.insert(@state_table, { cache, state })
   end
 
   @doc """
@@ -77,14 +93,24 @@ defmodule Cachex.State do
   end
 
   @doc """
+  Carries out a blocking set of actions against the state table.
+  """
+  @spec transaction(cache :: atom, function :: fun) :: any
+  def transaction(cache, fun) when is_atom(cache) and is_function(fun, 0) do
+    Agent.get(@transaction_manager, fn(_) ->
+      fun.()
+    end)
+  end
+
+  @doc """
   Updates a state inside the local state table.
 
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
   @spec update(cache :: atom, function :: (Worker.t -> Worker.t)) :: state :: Worker.t
-  def update(cache, fun) when is_atom(cache) and is_function(fun) do
-    Agent.get(@transaction_manager, fn(_) ->
+  def update(cache, fun) when is_atom(cache) and is_function(fun, 1) do
+    transaction(cache, fn ->
       cstate = get(cache)
       nstate = fun.(cstate)
 

@@ -31,22 +31,6 @@ defmodule TestHelper do
     |> List.to_string
   end
 
-  def read_files_r(root) do
-    root
-    |> File.ls!
-    |> Enum.map(&(Path.join(root, &1)))
-    |> Enum.reduce([], fn(path, paths) ->
-        if File.dir?(path) do
-          [read_files_r(path)|paths]
-        else
-          [path|paths]
-        end
-       end)
-    |> Enum.to_list
-    |> List.flatten
-    |> Enum.reverse
-  end
-
   def remote_call(node, func, args),
   do: :rpc.call(node, Cachex, func, args)
 
@@ -54,12 +38,3 @@ defmodule TestHelper do
   do: remote_call(node, :start, args)
 
 end
-
-root =
-  __ENV__.file
-  |> Path.dirname
-  |> Path.join("cachex_test")
-
-root
-|> TestHelper.read_files_r
-|> Enum.each(&(Code.require_file/1))

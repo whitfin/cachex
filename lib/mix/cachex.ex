@@ -30,7 +30,7 @@ defmodule Mix.Cachex do
 
       :rpc.call(name, :mnesia, :start, [])
       :rpc.call(name, :code, :add_paths, [:code.get_path])
-      :rpc.call(name, State, :init, [])
+      :rpc.call(name, State, :start, [])
     end)
   end
 
