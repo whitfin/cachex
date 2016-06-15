@@ -13,9 +13,6 @@ defmodule Cachex.State do
   alias Cachex.Hook
   alias Cachex.Worker
 
-  # ets holder
-  @ets_agent :cachex_ets_agent
-
   # name of internal table
   @state_table :cachex_state_table
 
@@ -25,14 +22,14 @@ defmodule Cachex.State do
   @doc false
   def start_link do
     # Start ETS manager
-    Agent.start(fn ->
-      :ets.new(@state_table, [
+    if Eternal.owner(@state_table) == :undefined do
+      Eternal.new(@state_table, [
         :named_table,
         :public,
         { :read_concurrency, true },
         { :write_concurrency, true }
-      ])
-    end, [ name: @ets_agent ])
+      ], [ quiet: true ])
+    end
 
     # Start transaction manager
     Agent.start_link(fn -> :ok end, [ name: @transaction_manager ])
@@ -40,9 +37,14 @@ defmodule Cachex.State do
 
   @doc false
   def start do
-    with { :ok, pid } <- start_link do
-      :erlang.unlink(pid) && { :ok, pid }
+    pid = case start_link do
+      { :ok, pid } -> pid
+      { :error, { :already_started, pid } } -> pid
     end
+
+    :erlang.unlink(pid)
+
+    { :ok, pid }
   end
 
   @doc """

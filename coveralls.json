@@ -11,7 +11,8 @@
     "^\\s+use\\s+"
   ],
   "custom_stop_words": [
-    "defwrap.+"
+    "defwrap.+",
+    ":erlang.unlink"
   ],
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true

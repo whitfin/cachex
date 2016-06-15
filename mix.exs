@@ -46,7 +46,7 @@ defmodule Cachex.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:logger, :mnesia],
+      applications: [:logger, :mnesia, :eternal],
       mod: {Cachex.Application, []}
     ]
   end
@@ -62,6 +62,8 @@ defmodule Cachex.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
+      # Production dependencies
+      { :eternal, "~> 1.0.0" },
       # Local dependencies
       { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
       { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },
