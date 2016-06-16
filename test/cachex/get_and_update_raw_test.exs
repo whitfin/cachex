@@ -1,5 +1,5 @@
 defmodule Cachex.GetAndUpdateRawTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   setup do
     cache = TestHelper.create_cache()

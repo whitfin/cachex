@@ -1,5 +1,5 @@
 defmodule Cachex.ResetTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   alias Cachex.Hook
 

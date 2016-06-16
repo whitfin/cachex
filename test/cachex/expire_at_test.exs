@@ -1,5 +1,5 @@
 defmodule CachexTest.ExpireAt do
-  use PowerAssert
+  use PowerAssert, async: false
 
   alias Cachex.Util
 

@@ -1,5 +1,5 @@
 defmodule Cachex.OptionsTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   alias Cachex.Options
 

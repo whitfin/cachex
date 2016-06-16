@@ -1,5 +1,5 @@
 defmodule CachexTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   setup do
     name =

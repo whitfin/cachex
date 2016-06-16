@@ -1,5 +1,5 @@
 defmodule Cachex.HookTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   import ExUnit.CaptureLog
 

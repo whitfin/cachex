@@ -1,5 +1,5 @@
 defmodule Cachex.Stats.Registry.LocalTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   setup do
     { :ok, cache: TestHelper.create_cache([record_stats: true]) }

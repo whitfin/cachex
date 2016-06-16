@@ -1,5 +1,5 @@
 defmodule Cachex.ReplicationTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   @testhost Cachex.Util.create_node_name("cachex_test")
 

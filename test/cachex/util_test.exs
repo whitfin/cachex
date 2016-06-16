@@ -1,5 +1,5 @@
 defmodule Cachex.UtilTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   alias Cachex.Util
 

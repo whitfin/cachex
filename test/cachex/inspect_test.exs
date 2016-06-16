@@ -1,5 +1,5 @@
 defmodule Cachex.InspectTest do
-  use PowerAssert, async: false
+  use PowerAssert, async: false, async: false
 
   setup do
     { :ok, cache: TestHelper.create_cache() }

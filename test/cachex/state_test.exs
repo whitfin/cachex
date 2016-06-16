@@ -1,5 +1,5 @@
 defmodule Cachex.StateTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   alias Cachex.Options
   alias Cachex.State
@@ -36,14 +36,6 @@ defmodule Cachex.StateTest do
 
     assert(new_state == nworker)
     assert(State.get(__MODULE__) == nworker)
-  end
-
-  test "starting from a spawn will live using start" do
-    Agent.stop(:cachex_state_tmanager)
-
-    spawn(&State.start/0)
-
-    assert(Process.whereis(:cachex_state_tmanager) != nil)
   end
 
   defp init_worker(opts \\ []) do

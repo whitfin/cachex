@@ -1,5 +1,5 @@
 defmodule Cachex.AbortTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   test "abort does nothing when not in a transaction" do
     assert(Cachex.abort(%Cachex.Worker{}, :exit) == { :ok, false })

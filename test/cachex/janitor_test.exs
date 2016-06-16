@@ -1,5 +1,5 @@
 defmodule Cachex.JanitorTest do
-  use PowerAssert
+  use PowerAssert, async: false
 
   test "janitor purges expired keys every 3 seconds by default" do
     cache = TestHelper.create_cache([default_ttl: :timer.seconds(1)])
