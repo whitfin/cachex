@@ -63,7 +63,7 @@ defmodule Cachex.Mixfile do
   defp deps do
     [
       # Production dependencies
-      { :eternal, "~> 1.0.2" },
+      { :eternal, "~> 1.0.3" },
       # Local dependencies
       { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
       { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },
