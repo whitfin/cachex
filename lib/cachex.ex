@@ -1,6 +1,6 @@
 defmodule Cachex do
   # use Macros and Supervisor
-  use Cachex.Macros.Boilerplate
+  use Cachex.Macros
   use Supervisor
 
   # import Connection
