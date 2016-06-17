@@ -4,13 +4,11 @@ elixir:
 otp_release:
   - 18.3
   - 18.2
-  - 18.1
-  - 18.0
 before_script:
   - epmd -daemon
 script:
-  - mix cachex.analyze
-  - mix cachex.coveralls.travis --trace
+  - mix cachex credo --all --format=oneline
+  - mix cachex coveralls.travis --trace
 branches:
   only:
     - master

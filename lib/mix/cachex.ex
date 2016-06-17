@@ -5,19 +5,40 @@ defmodule Mix.Cachex do
   # `run_task/1` interface which will run the provided function in the scope of
   # bound nodes.
 
-  # alias internals
-  alias Cachex.Util
+  # import utilities
+  import Cachex.Util
 
   # our list of nodes to create, based on tests
   @nodenames [
-    Util.create_node_name("cachex_test")
+    create_node_name("cachex_test")
   ]
 
   @doc """
-  A small handler to bind any slave nodes to this Mix setup. We first name this
-  node as Mix doesn't set itself up with a node name. Then we iterate through all
-  node names and start a `ct_slave`. From that point we ensure that Mnesia is
-  started on each slave node, and that the Cachex module is available to the node.
+  Runs a task in a node context.
+
+  Internally this just delegates to using `run_task/1` for convenience.
+  """
+  def run_in_context(task, args \\ []) when is_binary(task),
+  do: run_task(fn -> Mix.Task.run(task, args) end)
+
+  @doc """
+  Runs a task with automatic starting/stopping of any required nodes.
+
+  Simply starts all nodes, executes the function, and then closes all nodes.
+  """
+  def run_task(task) when is_function(task) do
+    start()
+    task.()
+    stop()
+  end
+
+  @doc """
+  Starts a number of slaves nodes against this Mix instance.
+
+  We first name this node as Mix doesn't set itself up with a node name. Then we
+  iterate through all node names and start a `ct_slave`. From that point we ensure
+  that Mnesia is started on each slave node, and that the Cachex module is available
+  to the node.
   """
   def start do
     :net_kernel.start([ :cachex_base_node, :shortnames ])
@@ -34,28 +55,9 @@ defmodule Mix.Cachex do
   end
 
   @doc """
-  Small handler to stop the slave nodes, simply iterating the names of the nodes
-  and terminating them.
+  Stops any slave nodes by iterating the names of the nodes and terminating them.
   """
   def stop, do: Enum.each(@nodenames, &stop_node/1)
-
-  @doc """
-  Convenience handler for executing a given function without having to start/stop
-  any required nodes. Simply starts all nodes, executes the function, and then
-  closes all nodes.
-  """
-  def run_task(task) when is_function(task) do
-    start()
-    task.()
-    stop()
-  end
-
-  @doc """
-  Runs a task in a node context. Opens up a node context and runs the given task
-  name with the given task args. This is just shorthand for convenience.
-  """
-  def run_in_context(task, args) when is_binary(task),
-  do: run_task(fn -> Mix.Task.run(task, args) end)
 
   # Starts a local node using the :slave module.
   defp start_node(longname) do
