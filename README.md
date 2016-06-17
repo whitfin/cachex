@@ -377,7 +377,7 @@ As of `v0.9.0` support for execution blocks has been incorporated in Cachex. The
 
 #### Execution Blocks
 
-Execution Blocks were introduced to simply avoid the cost of passing messages back and forth when it could be done in one step. For example, rather than:
+Execution Blocks were introduced to simply avoid the cost of passing state back and forth when it could be done in one step. For example, rather than:
 
 ```elixir
 val1 = Cachex.get!(:my_cache, "key1")
@@ -394,11 +394,9 @@ You can do something like this:
 end)
 ```
 
-Although this looks more complicated, it saves you a round trip of message passing, which actually trims off ~50% of the time it takes to retrieve both of your values (in theory).
+Although this looks more complicated it saves you a read of the internal Cachex state, which actually trims off a large amount of the overhead of a Cachex request.
 
-It should be noted that the consistency of these actions depends on which type of cache you're working with. In a local cache, all actions go via a single `GenServer`. This has the nice effect of ensuring that an execution block is consistent and nothing can interrupt your actions - for example, a `set` followed by a `get` is guaranteed to return the value just written.
-
-This is **not** the case when working with remote nodes, because other nodes might carry out actions. This is very important to keep in mind, and if this poses an issue, you might wish to move to [Transaction Blocks](#transaction-blocks) instead.
+It should be noted that the consistency of these actions should not be relied upon. Even though you execute in a single block, you may still have cache actions occur between your calls inside the block. This is very important to keep in mind, and if this poses an issue, you might wish to move to [Transaction Blocks](#transaction-blocks) instead.
 
 In addition, all actions taken inside an execution block are committed immediately. This means that there is no way to abort your block. Again, if this is a requirement please take a look at [Transaction Blocks](#transaction-blocks).
 
@@ -433,9 +431,7 @@ Of course it should be noted (and obvious) that transactions have quite a bit of
 
 #### Things To Remember
 
-Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. This is because your blocks are executed inside the cache process.
-
-Calling with a cache name means that your actions will be sent to the worker process. Sadly, because you're waiting on the result of an action which executes after your block, your actions will just time out. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
+Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. If you use the cache name inside your block, you lose all benefits of the block execution. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
 
 ## Contributions
 
