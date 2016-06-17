@@ -8,9 +8,9 @@ defmodule TestHelper do
       |> TestHelper.gen_random_string_of_length
       |> String.to_atom
 
-    Cachex.start_link(args ++ [name: table])
-
     table_name = args[:name] || table
+
+    Cachex.start_link(table_name, args)
 
     ExUnit.Callbacks.on_exit("delete #{table_name}", fn ->
       :mnesia.delete_table(table_name)

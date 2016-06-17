@@ -10,6 +10,46 @@ defmodule CachexTest do
     { :ok, cache: TestHelper.create_cache(), name: name }
   end
 
+  test "starting a cache with link using a name arg", state do
+    on_exit("delete #{state.name}", fn ->
+      :mnesia.delete_table(state.name)
+    end)
+
+    { status, pid } = Cachex.start_link(state.name)
+    assert(status == :ok)
+    assert(is_pid(pid))
+  end
+
+  test "starting a cache with link using options", state do
+    on_exit("delete #{state.name}", fn ->
+      :mnesia.delete_table(state.name)
+    end)
+
+    { status, pid } = Cachex.start_link([ name: state.name ])
+    assert(status == :ok)
+    assert(is_pid(pid))
+  end
+
+  test "starting a cache with no link using a name arg", state do
+    on_exit("delete #{state.name}", fn ->
+      :mnesia.delete_table(state.name)
+    end)
+
+    { status, pid } = Cachex.start(state.name)
+    assert(status == :ok)
+    assert(is_pid(pid))
+  end
+
+  test "starting a cache with no link using options", state do
+    on_exit("delete #{state.name}", fn ->
+      :mnesia.delete_table(state.name)
+    end)
+
+    { status, pid } = Cachex.start([ name: state.name ])
+    assert(status == :ok)
+    assert(is_pid(pid))
+  end
+
   test "starting a cache with an invalid name", _state do
     start_result = Cachex.start_link([name: "test"])
     assert(start_result == { :error, "Cache name must be a valid atom" })

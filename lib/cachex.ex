@@ -35,7 +35,7 @@ defmodule Cachex do
   - Asynchronous write operations
 
   All features are optional to allow you to tune based on the throughput needed.
-  See `start_link/2` for further details about how to configure these options and
+  See `start_link/3` for further details about how to configure these options and
   example usage.
   """
 
@@ -56,23 +56,15 @@ defmodule Cachex do
   Supervisor to look after all internal workers backing the cache, in order to
   make sure everything is fault-tolerant.
 
+  The first argument should be the name (as an atom) of the cache.
+
   ## Options
-
-  ### Required
-
-    - **name**
-
-      The name of the cache you're creating, typically an atom.
-
-          iex> Cachex.start_link([ name: :my_cache ])
-
-  ### Optional
 
     - **ets_opts**
 
       A list of options to pass to the ETS table initialization.
 
-          iex> Cachex.start_link([ name: :my_cache, ets_opts: [ { :write_concurrency, false } ] ])
+          iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
 
     - **default_fallback**
 
@@ -80,7 +72,7 @@ defmodule Cachex do
       This function is called with a key which has no value, in order to allow loading
       from a different location.
 
-          iex> Cachex.start_link([ name: :my_cache, default_fallback: fn(key) ->
+          iex> Cachex.start_link(:my_cache, [ default_fallback: fn(key) ->
           ...>   generate_value(key)
           ...> end])
 
@@ -89,7 +81,7 @@ defmodule Cachex do
       A default expiration time to place on any keys inside the cache (this can be
       overridden when a key is set). This value is in **milliseconds**.
 
-          iex> Cachex.start_link([ name: :my_cache, default_ttl: :timer.seconds(1) ])
+          iex> Cachex.start_link(:my_cache, [ default_ttl: :timer.seconds(1) ])
 
     - **disable_ode**
 
@@ -97,7 +89,7 @@ defmodule Cachex do
       by Janitor processes, or by calling `purge/2` directly. Useful in case you
       have a Janitor running and don't want potential deletes to impact your reads.
 
-          iex> Cachex.start_link([ name: :my_cache, disable_ode: true ])
+          iex> Cachex.start_link(:my_cache, [ disable_ode: true ])
 
     - **fallback_args**
 
@@ -106,7 +98,7 @@ defmodule Cachex do
       your args appropriately. This can be used to pass through things such as clients and
       connections.
 
-          iex> Cachex.start_link([ name: :my_cache, fallback_args: [redis_client] ])
+          iex> Cachex.start_link(:my_cache, [ fallback_args: [redis_client] ])
           iex> Cachex.get(:my_cache, "key", fallback: fn(key, redis_client) ->
           ...>   redis_client.get(key)
           ...> end)
@@ -118,14 +110,14 @@ defmodule Cachex do
       behaviour. An example hook can be found in `Cachex.Stats`.
 
           iex> hook = %Cachex.Hook{ module: MyHook, type: :post }
-          iex> Cachex.start_link([ name: :my_cache, hooks: [hook] ])
+          iex> Cachex.start_link(:my_cache, [ hooks: [hook] ])
 
     - **nodes**
 
       A list of nodes that the store should replicate to. The node starting this
       cache is automatically included.
 
-          iex> Cachex.start_link([ name: :my_cache, nodes: [node()] ])
+          iex> Cachex.start_link(:my_cache, [ nodes: [node()] ])
 
     - **record_stats**
 
@@ -133,7 +125,7 @@ defmodule Cachex do
       overhead due to being implemented as an asynchronous hook (roughly 1µ/op). Stats
       can be retrieve from a running cache by using `stats/1`.
 
-          iex> Cachex.start_link([ name: :my_cache, record_stats: true ])
+          iex> Cachex.start_link(:my_cache, [ record_stats: true ])
 
     - **remote**
 
@@ -142,7 +134,7 @@ defmodule Cachex do
       automatically set to true if you have set `:nodes` to a list of nodes other than
       just `[node()]`.
 
-          iex> Cachex.start_link([ name: :my_cache, remote: true ])
+          iex> Cachex.start_link(:my_cache, [ remote: true ])
 
     - **ttl_interval**
 
@@ -153,11 +145,15 @@ defmodule Cachex do
       application, but it may make sense to lower the frequency if you don't have many keys
       expiring at one time. This value is set in **milliseconds**.
 
-          iex> Cachex.start_link([ name: :my_cache, ttl_interval: :timer.seconds(5) ])
+          iex> Cachex.start_link(:my_cache, [ ttl_interval: :timer.seconds(5) ])
 
   """
   @spec start_link(options, options) :: { atom, pid }
-  def start_link(options \\ [], server_opts \\ []) do
+  def start_link(name, options \\ [], server_opts \\ [])
+  def start_link(name, options, server_opts) when is_atom(name) do
+    start_link([ { :name, name } | options ], server_opts)
+  end
+  def start_link(options, server_opts, _opts) do
     with { :ok, true } <- ensure_started,
          { :ok, opts } <- setup_env(options),
          { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, [ name: opts.cache ] ++ server_opts)
@@ -178,14 +174,18 @@ defmodule Cachex do
   the cache to the current process. We hack this by starting a linked Supervisor
   and then just unlinking afterwards.
 
-  Supports all the same options as `start_link/2`. This is mainly used for testing
+  Supports all the same options as `start_link/3`. This is mainly used for testing
   in order to keep caches around when processes may be torn down. You should try
   to avoid using this in production applications and instead opt for a natural
   Supervision tree.
   """
   @spec start(options) :: { atom, pid }
-  def start(options \\ []) do
-    with { :ok, pid } <- start_link(options) do
+  def start(name, options \\ [], server_opts \\ [])
+  def start(name, options, server_opts) when is_atom(name) do
+    start([ { :name, name } | options ], server_opts)
+  end
+  def start(options, server_opts, _opts) do
+    with { :ok, pid } <- start_link(options, server_opts) do
       :erlang.unlink(pid) && { :ok, pid }
     end
   end
@@ -1071,7 +1071,7 @@ defmodule Cachex do
   # Determines whether a process has started or not. If the process has started,
   # an error message is returned - otherwise `true` is returned to represent not
   # being started.
-  defp ensure_unused(name) when not is_atom(name),
+  defp ensure_unused(name) when not is_atom(name) and name != nil,
   do: { :error, "Cache name must be a valid atom" }
   defp ensure_unused(name) do
     if State.member?(name) do
@@ -1094,7 +1094,7 @@ defmodule Cachex do
   # Runs through the initial setup for a cache, parsing a list of options into
   # a set of Cachex options, before adding the node to any remote nodes and then
   # setting up the local table. This is separated out as it's required in both
-  # `start_link/2` and `start/1`.
+  # `start_link/3` and `start/3`.
   defp setup_env(options) when is_list(options) do
     with { :ok, true } <- ensure_unused(options[:name]),
          { :ok, opts } <- parse_options(options),
