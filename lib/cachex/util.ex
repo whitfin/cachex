@@ -146,21 +146,21 @@ defmodule Cachex.Util do
   nil unless a default value has been provided, in which case we return that.
   """
   def get_opt_function(options, key, default \\ nil),
-  do: get_opt(options, key, default, &(is_function/1))
+  do: get_opt(options, key, default, &is_function/1)
 
   @doc """
   Pulls a list from a set of options. If the value is not a list, we return
   nil unless a default value has been provided, in which case we return that.
   """
   def get_opt_list(options, key, default \\ nil),
-  do: get_opt(options, key, default, &(is_list/1))
+  do: get_opt(options, key, default, &is_list/1)
 
   @doc """
   Pulls a number from a set of options. If the value is not a number, we return
   nil unless a default value has been provided, in which case we return that.
   """
   def get_opt_number(options, key, default \\ nil),
-  do: get_opt(options, key, default, &(is_number/1))
+  do: get_opt(options, key, default, &is_number/1)
 
   @doc """
   Pulls a positive number from a set of options. If the value is not positive, we

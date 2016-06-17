@@ -311,7 +311,7 @@ defmodule Cachex.Worker do
             li -> { li, cursor }
           end
         end,
-        &(:qlc.delete_cursor/1)
+        &:qlc.delete_cursor/1
       )
       { :ok, resource }
     end)
@@ -519,7 +519,7 @@ defmodule Cachex.Worker do
 
       state_hooks
       |> Enum.filter(&(&1.module in hooks_list))
-      |> Enum.each(&(send(&1.ref, { :notify, { :reset, &1.args } })))
+      |> Enum.each(&send(&1.ref, { :notify, { :reset, &1.args } }))
     end
     state
   end

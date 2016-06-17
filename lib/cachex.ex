@@ -163,7 +163,7 @@ defmodule Cachex do
           |> Supervisor.which_children
           |> Hook.link(opts |> Hook.combine)
 
-        State.update(opts.cache, &(Hook.update(hooks, &1)))
+        State.update(opts.cache, &Hook.update(hooks, &1))
 
         { :ok, pid }
       end
@@ -231,9 +231,7 @@ defmodule Cachex do
   """
   @spec get(cache, any, options) :: { status | :loaded, any }
   defwrap get(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.get(cache, key, options)
-    end)
+    do_action(cache, &Worker.get(&1, key, options))
   end
 
   @doc """
@@ -261,9 +259,7 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defwrap get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.get_and_update(cache, key, update_function, options)
-    end)
+    do_action(cache, &Worker.get_and_update(&1, key, update_function, options))
   end
 
   @doc """
@@ -291,9 +287,7 @@ defmodule Cachex do
   """
   @spec set(cache, any, any, options) :: { status, true | false }
   defwrap set(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.set(cache, key, value, options)
-    end)
+    do_action(cache, &Worker.set(&1, key, value, options))
   end
 
   @doc """
@@ -323,9 +317,7 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, options) :: { status, any }
   defwrap update(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.update(cache, key, value, options)
-    end)
+    do_action(cache, &Worker.update(&1, key, value, options))
   end
 
   @doc """
@@ -345,9 +337,7 @@ defmodule Cachex do
   """
   @spec del(cache, any, options) :: { status, true | false }
   defwrap del(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.del(cache, key, options)
-    end)
+    do_action(cache, &Worker.del(&1, key, options))
   end
 
   @doc """
@@ -428,9 +418,7 @@ defmodule Cachex do
   """
   @spec clear(cache, options) :: { status, true | false }
   defwrap clear(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.clear(cache, options)
-    end)
+    do_action(cache, &Worker.clear(&1, options))
   end
 
   @doc """
@@ -451,9 +439,7 @@ defmodule Cachex do
   """
   @spec count(cache, options) :: { status, number }
   defwrap count(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.count(cache, options)
-    end)
+    do_action(cache, &Worker.count(&1, options))
   end
 
   @doc """
@@ -549,9 +535,7 @@ defmodule Cachex do
   @spec execute(cache, function, options) :: { status, any }
   defwrap execute(cache, operation, options \\ [])
   when is_function(operation) and is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.execute(cache, operation, options)
-    end)
+    do_action(cache, &Worker.execute(&1, operation, options))
   end
 
   @doc """
@@ -573,9 +557,7 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, options) :: { status, true | false }
   defwrap exists?(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.exists?(cache, key, options)
-    end)
+    do_action(cache, &Worker.exists?(&1, key, options))
   end
 
   @doc """
@@ -607,9 +589,7 @@ defmodule Cachex do
   @spec expire(cache, any, number, options) :: { status, true | false }
   defwrap expire(cache, key, expiration, options \\ [])
   when (expiration == nil or is_number(expiration)) and is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.expire(cache, key, expiration, options)
-    end)
+    do_action(cache, &Worker.expire(&1, key, expiration, options))
   end
 
   @doc """
@@ -659,9 +639,7 @@ defmodule Cachex do
   """
   @spec keys(cache, options) :: [ any ]
   defwrap keys(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.keys(cache, options)
-    end)
+    do_action(cache, &Worker.keys(&1, options))
   end
 
   @doc """
@@ -695,9 +673,7 @@ defmodule Cachex do
   """
   @spec incr(cache, any, options) :: { status, number }
   defwrap incr(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.incr(cache, key, options)
-    end)
+    do_action(cache, &Worker.incr(&1, key, options))
   end
 
   @doc """
@@ -748,7 +724,7 @@ defmodule Cachex do
   """
   @spec inspect(cache, atom | tuple) :: { status, any }
   defwrap inspect(cache, option),
-  do: do_action(cache, &(Inspector.inspect(&1, option)))
+  do: do_action(cache, &Inspector.inspect(&1, option))
 
   @doc """
   Removes a TTL on a given document.
@@ -788,9 +764,7 @@ defmodule Cachex do
   """
   @spec purge(cache, options) :: { status, number }
   defwrap purge(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.purge(cache, options)
-    end)
+    do_action(cache, &Worker.purge(&1, options))
   end
 
   @doc """
@@ -817,9 +791,7 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, options) :: { status, true | false }
   defwrap refresh(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.refresh(cache, key, options)
-    end)
+    do_action(cache, &Worker.refresh(&1, key, options))
   end
 
   @doc """
@@ -850,9 +822,7 @@ defmodule Cachex do
   """
   @spec reset(cache, options) :: { status, true }
   defwrap reset(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.reset(cache, options)
-    end)
+    do_action(cache, &Worker.reset(&1, options))
   end
 
   @doc """
@@ -872,9 +842,7 @@ defmodule Cachex do
   """
   @spec size(cache, options) :: { status, number }
   defwrap size(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.size(cache, options)
-    end)
+    do_action(cache, &Worker.size(&1, options))
   end
 
   @doc """
@@ -908,9 +876,7 @@ defmodule Cachex do
   """
   @spec stats(cache, options) :: { status, %{ } }
   defwrap stats(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.stats(cache, options)
-    end)
+    do_action(cache, &Worker.stats(&1, options))
   end
 
   @doc """
@@ -948,9 +914,7 @@ defmodule Cachex do
   """
   @spec stream(cache, options) :: { status, Enumerable.t }
   defwrap stream(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.stream(cache, options)
-    end)
+    do_action(cache, &Worker.stream(&1, options))
   end
 
   @doc """
@@ -973,9 +937,7 @@ defmodule Cachex do
   """
   @spec take(cache, any, options) :: { status, any }
   defwrap take(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.take(cache, key, options)
-    end)
+    do_action(cache, &Worker.take(&1, key, options))
   end
 
   @doc """
@@ -1011,9 +973,7 @@ defmodule Cachex do
   @spec transaction(cache, function, options) :: { status, any }
   defwrap transaction(cache, operation, options \\ [])
   when is_function(operation) and is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.transaction(cache, operation, options)
-    end)
+    do_action(cache, &Worker.transaction(&1, operation, options))
   end
 
   @doc """
@@ -1030,9 +990,7 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, options) :: { status, number }
   defwrap ttl(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      Worker.ttl(cache, key, options)
-    end)
+    do_action(cache, &Worker.ttl(&1, key, options))
   end
 
   ###
