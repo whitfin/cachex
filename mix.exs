@@ -35,8 +35,7 @@ defmodule Cachex.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
-        "cachex.ci": :test,
-        "cachex.test": :test
+        "cachex": :test
       ]
     ]
   end
