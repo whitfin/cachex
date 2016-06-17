@@ -64,7 +64,7 @@ The typical use of Cachex is to set up using a Supervisor, so that it can be han
 ```elixir
 Supervisor.start_link(
   [
-    worker(Cachex, [[ name: :my_cache ], []])
+    worker(Cachex, [:my_cache, []])
   ]
 )
 ```
@@ -72,7 +72,7 @@ Supervisor.start_link(
 If you wish to start it manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
 
 ```elixir
-Cachex.start_link([ name: :my_cache ], [])
+Cachex.start_link(:my_cache, [])
 ```
 
 Although this is possible and is functionally the same internally, it's probably better to set up the supervision tree for fault-tolerance. As shown in the above examples, the only **required** option is the `name` option. This is the name of your cache and is how you will typically refer to the cache in the `Cachex` module.
@@ -141,7 +141,7 @@ Let's look at an example; assume you need to read information from a database to
 { :ok, db } = initialize_database_client()
 
 # initialize the cache instance
-{ :ok, pid } = Cachex.start_link([ name: :info_cache, default_ttl: :timer.minutes(5), fallback_args: [db] ])
+{ :ok, pid } = Cachex.start_link(:info_cache, [ default_ttl: :timer.minutes(5), fallback_args: [db] ])
 
 # request our information on our "packages" API
 # status will equal :loaded if the database was hit, otherwise :ok when successful
@@ -233,7 +233,7 @@ You can override any of the typical callback functions *except* for the `handle_
 
 #### Registration
 
-To register hooks with Cachex, they must be passed in when setting up a cache in the call to `Cachex.start_link/2` (or in your Supervisor). This looks something like the following:
+To register hooks with Cachex, they must be passed in when setting up a cache in the call to `Cachex.start_link/3` (or in your Supervisor). This looks something like the following:
 
 ```elixir
 defmodule MyModule do
@@ -245,7 +245,7 @@ defmodule MyModule do
       module: MyProject.MyHook,
       server_args: [ name: :my_project_hook ]
     }]
-    { :ok, pid } = Cachex.start_link([ name: :my_cache, hooks: my_hooks ])
+    { :ok, pid } = Cachex.start_link(:my_cache, [ hooks: my_hooks ])
     :ok
   end
 
@@ -322,7 +322,7 @@ hook = %Cachex.Hook{
   type: :post,
   provide: [ :worker ]
 }
-Cachex.start_link([ name: :my_cache, hooks: hook ])
+Cachex.start_link(:my_cache, [ hooks: hook ])
 ```
 
 The message you receive in `handle_info/2` will always be `{ :provision, { provide_option, value } }` where `provide_option` is equal to the atom you've asked for (in this case `:worker`). Be aware that this modification event may be fired multiple times if the internal worker structure has changed for any reason (for example when extra nodes are added to the cluster).
