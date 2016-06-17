@@ -14,8 +14,9 @@ defmodule Mix.Tasks.Cachex.Ci do
  """
   @spec run(OptionParser.argv) :: no_return
   def run(_args) do
+    Mix.Task.run("compile", [ "--force" ])
     Mix.Task.run("cachex.analyze", [])
-    Mix.Task.run("cachex.coveralls", [ "--trace" ])
+    Mix.Task.run("cachex.coveralls.html", [ "--trace" ])
   end
 
 end

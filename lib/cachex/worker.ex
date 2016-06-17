@@ -1,20 +1,14 @@
 defmodule Cachex.Worker do
-  # use GenDelegate and GenServer
-  use GenDelegate
-  use GenServer
-
   @moduledoc false
-  # The main worker for Cachex, providing access to the backing tables using a
-  # GenServer implementation. This is separated into a new process as we store a
-  # state containing various options (fallbacks, ttls, etc). It also avoids us
-  # blocking the main process for long-running actions (e.g. we can always provide
-  # cast functions).
+  # The main Worker interface for Cachex, providing access to the backing tables
+  # using delegates to implementations for both local and remote caches.
 
   # add some aliases
   alias Cachex.Hook
   alias Cachex.Janitor
   alias Cachex.Notifier
   alias Cachex.Options
+  alias Cachex.State
   alias Cachex.Stats
   alias Cachex.Util
 
@@ -23,30 +17,22 @@ defmodule Cachex.Worker do
             cache: nil,                 # the cache name
             options: %Options{ }        # the options of this cache
 
+  # define the worker state type
+  @opaque t :: %__MODULE__{ }
+
   # define some types
   @type record ::  { atom, any, number, number | nil, any }
-
-  @doc """
-  Simple initialization for use in the main owner process in order to start an
-  instance of a worker. All options are passed throught to the initialization
-  function, and the GenServer options are passed straight to GenServer to deal
-  with.
-  """
-  def start_link(options \\ %Options { }, gen_options \\ []) do
-    GenServer.start_link(__MODULE__, options, gen_options)
-  end
 
   @doc """
   Main initialization phase of a worker, plucking out the options we care about
   and storing them internally for later use by this worker.
   """
   def init(options \\ %Options { }) do
-    state = %__MODULE__{
+    %__MODULE__{
       actions: options.remote && __MODULE__.Remote || __MODULE__.Local,
       cache: options.cache,
       options: options
     }
-    { :ok, state }
   end
 
   ###
@@ -386,88 +372,45 @@ defmodule Cachex.Worker do
   @callback take(__MODULE__, any, list) :: { :ok | :missing, any }
 
   ###
-  # GenServer delegate functions for call/cast.
+  # Functions designed to only be used internally (i.e. those not forwarded to
+  # the main Cachex interfaces).
   ###
-
-  gen_delegate get(state, key, options), type: :call
-  gen_delegate get_and_update(state, key, update_fun, options), type: :call
-  gen_delegate set(state, key, value, options), type: [ :call, :cast ]
-  gen_delegate update(state, key, value, options), type: [ :call, :cast ]
-  gen_delegate del(state, key, options), type: [ :call, :cast ]
-  gen_delegate clear(state, options), type: [ :call, :cast ]
-  gen_delegate count(state, options), type: :call
-  gen_delegate execute(state, operations, options), type: [ :call, :cast ]
-  gen_delegate exists?(state, key, options), type: :call
-  gen_delegate expire(state, key, expiration, options), type: [ :call, :cast ]
-  gen_delegate keys(state, options), type: :call
-  gen_delegate incr(state, key, options), type: [ :call, :cast ]
-  gen_delegate purge(state, options), type: [ :call, :cast ]
-  gen_delegate refresh(state, key, options), type: [ :call, :cast ]
-  gen_delegate reset(state, options), type: [ :call, :cast ]
-  gen_delegate size(state, options), type: :call
-  gen_delegate stats(state, options), type: :call
-  gen_delegate stream(state, options), type: :call
-  gen_delegate take(state, key, options), type: :call
-  gen_delegate transaction(state, operations, options), type: [ :call, :cast ]
-  gen_delegate ttl(state, key, options), type: :call
-
-  ###
-  # GenServer manual handlers for call/cast.
-  ###
-
-  @doc """
-  Very tiny wrapper to retrieve the current state of a cache
-  """
-  def handle_call({ :state }, _ctx, state),
-  do: { :reply, state, state }
 
   @doc """
   Handler for adding a node to the worker, to ensure that we use the correct
   actions.
   """
-  def handle_call({ :add_node, new_node }, _ctx, state) do
-    new_options = %Options{ state.options |
-      remote: true,
-      nodes: if Enum.member?(state.options.nodes, new_node) do
-        state.options.nodes
-      else
-        [new_node|state.options.nodes]
-      end
-    }
+  def add_node(cache, new_node) when is_atom(cache) and is_atom(new_node) do
+    if State.member?(cache) do
+      State.update(cache, fn(state) ->
+        new_options = %Options{ state.options |
+          remote: true,
+          nodes: if Enum.member?(state.options.nodes, new_node) do
+            state.options.nodes
+          else
+            [new_node|state.options.nodes]
+          end
+        }
 
-    new_state = if state.options.remote do
-      %__MODULE__{ state | options: new_options }
-    else
-      %__MODULE__{ state | actions: __MODULE__.Remote, options: new_options }
+        if state.options.remote do
+          %__MODULE__{ state | options: new_options }
+        else
+          %__MODULE__{ state | actions: __MODULE__.Remote, options: new_options }
+        end
+      end)
     end
-
-    modify_hooks(new_state)
-
-    { :reply, { :ok, true }, new_state }
   end
 
   @doc """
   Handler for broadcasting a set of actions and results to all registered hooks.
   This is fired by out-of-proc calls (i.e. Janitors) which need to notify hooks.
   """
-  def handle_cast({ :broadcast, { action, result } }, state) do
-    do_action(state, action, fn -> result end)
-    { :noreply, state }
+  def broadcast(cache, action, result) when is_atom(cache) do
+    case State.get(cache) do
+      nil -> false
+      val -> do_action(val, action, fn -> result end)
+    end
   end
-
-  @doc """
-  Provides a way to update the internal state from an external process. The state
-  as it currently exists is fed into the function for modification. This is used
-  for hook modification and should not be used externally.
-  """
-  def handle_cast({ :modify, func }, state) when is_function(func) do
-    { :noreply, state |> func.() |> modify_hooks }
-  end
-
-  ###
-  # Functions designed to only be used internally (i.e. those not forwarded to
-  # the main Cachex interfaces).
-  ###
 
   @doc """
   Retrieves and updates a raw record in the database. This is used in several
@@ -547,17 +490,6 @@ defmodule Cachex.Worker do
     end
 
     result
-  end
-
-  # A binding for the update of hooks requiring anything of this cache. As it
-  # stands this is just the worker, but we call from multiple places to it makes
-  # sense to break out into a function.
-  defp modify_hooks(%__MODULE__{ } = state) do
-    state
-    |> combine_hooks
-    |> Enum.filter(&(&1.provide |> List.wrap |> Enum.member?(:worker)))
-    |> Enum.each(&(Hook.provision(&1, { :worker, state })))
-    state
   end
 
   # A small helper for resetting a cache only when defined in the list of items

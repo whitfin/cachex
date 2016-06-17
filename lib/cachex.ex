@@ -1,6 +1,6 @@
 defmodule Cachex do
   # use Macros and Supervisor
-  use Cachex.Macros.Boilerplate
+  use Cachex.Macros
   use Supervisor
 
   # import Connection
@@ -11,6 +11,7 @@ defmodule Cachex do
   alias Cachex.Inspector
   alias Cachex.Janitor
   alias Cachex.Options
+  alias Cachex.State
   alias Cachex.Util
   alias Cachex.Worker
 
@@ -39,7 +40,7 @@ defmodule Cachex do
   """
 
   # the cache type
-  @type cache :: atom | Cachex.Worker
+  @type cache :: atom | Worker.t
 
   # custom options type
   @type options :: [ { atom, any } ]
@@ -157,17 +158,16 @@ defmodule Cachex do
   """
   @spec start_link(options, options) :: { atom, pid }
   def start_link(options \\ [], server_opts \\ []) do
-    with { :ok, opts } <- setup_env(options),
-         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, server_opts)
+    with { :ok, true } <- ensure_started,
+         { :ok, opts } <- setup_env(options),
+         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, [ name: opts.cache ] ++ server_opts)
       do
-        link_all = fn(worker) ->
+        hooks =
           pid
           |> Supervisor.which_children
           |> Hook.link(opts |> Hook.combine)
-          |> Hook.update(worker)
-        end
 
-        GenServer.cast(opts.cache, { :modify, link_all })
+        State.update(opts.cache, &(Hook.update(hooks, &1)))
 
         { :ok, pid }
       end
@@ -197,14 +197,12 @@ defmodule Cachex do
   # to setup the internal workers. Workers are then given to `supervise/2`.
   @spec init(Options) :: { status, any }
   def init(%Options{ } = options) do
-    ttl_workers = case options.ttl_interval do
+    children = Hook.spec(options) ++ case options.ttl_interval do
       nil -> []
       _other -> [worker(Janitor, [options, [ name: options.janitor ]])]
     end
 
-    children = ttl_workers ++ Hook.spec(options) ++ [
-      worker(Worker, [options, [ name: options.cache ]])
-    ]
+    State.set(options.cache, Worker.init(options))
 
     supervise(children, strategy: :one_for_one)
   end
@@ -217,7 +215,6 @@ defmodule Cachex do
     * `:fallback` - a fallback function for multi-layered caches, overriding any
       default fallback functions. The value returned by this fallback is placed
       in the cache against the provided key, before being returned to the user.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -234,11 +231,8 @@ defmodule Cachex do
   """
   @spec get(cache, any, options) :: { status | :loaded, any }
   defwrap get(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :get, key, options }, timeout(options))
-      (cache) ->
-        Worker.get(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.get(cache, key, options)
     end)
   end
 
@@ -253,7 +247,6 @@ defmodule Cachex do
     * `:fallback` - a fallback function for multi-layered caches, overriding any
       default fallback functions. The value returned by this fallback is passed
       into the update function.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -268,11 +261,8 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defwrap get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :get_and_update, key, update_function, options }, timeout(options))
-      (cache) ->
-        Worker.get_and_update(cache, key, update_function, options)
+    do_action(cache, fn(cache) ->
+      Worker.get_and_update(cache, key, update_function, options)
     end)
   end
 
@@ -284,9 +274,6 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
     * `:ttl` - a time-to-live for the provided key/value pair, overriding any
       default ttl. This value should be in milliseconds.
 
@@ -304,11 +291,8 @@ defmodule Cachex do
   """
   @spec set(cache, any, any, options) :: { status, true | false }
   defwrap set(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :set, key, value, options }, options)
-      (cache) ->
-        Worker.set(cache, key, value, options)
+    do_action(cache, fn(cache) ->
+      Worker.set(cache, key, value, options)
     end)
   end
 
@@ -318,12 +302,6 @@ defmodule Cachex do
 
   This operation is an internal mutation, and as such any set TTL persists - i.e.
   it is not refreshed on this operation.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -345,11 +323,8 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, options) :: { status, any }
   defwrap update(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :update, key, value, options }, options)
-      (cache) ->
-        Worker.update(cache, key, value, options)
+    do_action(cache, fn(cache) ->
+      Worker.update(cache, key, value, options)
     end)
   end
 
@@ -358,12 +333,6 @@ defmodule Cachex do
 
   This will return `{ :ok, true }` regardless of whether a key has been removed
   or not. The `true` value can be thought of as "is value is no longer present?".
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -376,11 +345,8 @@ defmodule Cachex do
   """
   @spec del(cache, any, options) :: { status, true | false }
   defwrap del(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :del, key, options }, options)
-      (cache) ->
-        Worker.del(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.del(cache, key, options)
     end)
   end
 
@@ -423,29 +389,24 @@ defmodule Cachex do
   """
   @spec add_node(cache, atom) :: { status, true | false | binary }
   defwrap add_node(cache, node) when is_atom(node) do
-    case :net_adm.ping(node) do
-      :pong ->
-        server = case cache do
-          val when is_atom(val) ->
-            val
-          val ->
-            val.cache
-        end
+    do_action(cache, fn(%Worker{ cache: cache }) ->
+      case :net_adm.ping(node) do
+        :pong ->
+          case :mnesia.change_config(:extra_db_nodes, [node]) do
+            { :error, { name, _msg } } ->
+              { :error, name }
+            { :ok, _nodes } ->
+              :mnesia.add_table_copy(cache, node, :ram_copies)
 
-        case :mnesia.change_config(:extra_db_nodes, [node]) do
-          { :error, { name, _msg } } ->
-            { :error, name }
-          { :ok, _nodes } ->
-            :mnesia.add_table_copy(cache, node, :ram_copies)
+              :rpc.call(node, Worker, :add_node, [cache, node()])
+              :rpc.call(node(), Worker, :add_node, [cache, node])
 
-            :rpc.call(node, GenServer, :call, [server, { :add_node, node() }])
-            :rpc.call(node(), GenServer, :call, [server, { :add_node, node }])
-
-            { :ok, true }
-        end
-      :pang ->
-        { :error, "Unable to reach remote node!" }
-    end
+              { :ok, true }
+          end
+        :pang ->
+          { :error, "Unable to reach remote node!" }
+      end
+    end)
   end
 
   @doc """
@@ -453,12 +414,6 @@ defmodule Cachex do
 
   This function returns a tuple containing the total number of keys removed from
   the internal cache. This is equivalent to running `size/2` before running `clear/2`.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -473,11 +428,8 @@ defmodule Cachex do
   """
   @spec clear(cache, options) :: { status, true | false }
   defwrap clear(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :clear, options }, options)
-      (cache) ->
-        Worker.clear(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.clear(cache, options)
     end)
   end
 
@@ -487,10 +439,6 @@ defmodule Cachex do
   Unlike `size/2`, this ignores keys which should have expired. Due to this taking
   potentially expired keys into account, it is far more expensive than simply
   calling `size/2` and should only be used when completely necessary.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -503,11 +451,8 @@ defmodule Cachex do
   """
   @spec count(cache, options) :: { status, number }
   defwrap count(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :count, options }, timeout(options))
-      (cache) ->
-        Worker.count(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.count(cache, options)
     end)
   end
 
@@ -519,12 +464,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
     * `:amount` - an amount to decrement by. This will default to 1.
     * `:initial` - if the key does not exist, it will be initialized to this amount.
       Defaults to 0.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -558,10 +500,6 @@ defmodule Cachex do
   have expired previously or not. Internally this is just sugar for checking if
   `size/2` returns 0.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -593,18 +531,8 @@ defmodule Cachex do
   it's simply to avoid the overhead of jumping between processes. For a transactional
   implementation, see `transaction/3`.
 
-  It should be noted that this provides a blocking execution inside the worker,
-  and therefore when you're working with a local cache, you can be sure that the
-  cache will be consistent across actions. This is **only** the case with local
-  caches. For distributed caches, please use the transactional interface.
-
   You **must** use the worker instance passed to the provided function when calling
-  the cache, otherwise your request will time out. This is due to the blocking
-  nature of the execution, and can not be avoided (at this time).
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
+  the cache, otherwise this function will provide no benefits.
 
   ## Examples
 
@@ -621,11 +549,8 @@ defmodule Cachex do
   @spec execute(cache, function, options) :: { status, any }
   defwrap execute(cache, operation, options \\ [])
   when is_function(operation) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :execute, operation, options }, options)
-      (cache) ->
-        Worker.execute(cache, operation, options)
+    do_action(cache, fn(cache) ->
+      Worker.execute(cache, operation, options)
     end)
   end
 
@@ -635,10 +560,6 @@ defmodule Cachex do
   This only determines if the key lives in the keyspace of the cache. Note that
   this determines existence within the bounds of TTLs; this means that if a key
   doesn't "exist", it may still be occupying memory in the cache.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -652,11 +573,8 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, options) :: { status, true | false }
   defwrap exists?(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :exists?, key, options }, timeout(options))
-      (cache) ->
-        Worker.exists?(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.exists?(cache, key, options)
     end)
   end
 
@@ -669,12 +587,6 @@ defmodule Cachex do
     this.
   - If the value provided is `nil`, the TTL is removed.
   - If the value is less than `0`, the key is immediately evicted.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -695,11 +607,8 @@ defmodule Cachex do
   @spec expire(cache, any, number, options) :: { status, true | false }
   defwrap expire(cache, key, expiration, options \\ [])
   when (expiration == nil or is_number(expiration)) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :expire, key, expiration, options }, options)
-      (cache) ->
-        Worker.expire(cache, key, expiration, options)
+    do_action(cache, fn(cache) ->
+      Worker.expire(cache, key, expiration, options)
     end)
   end
 
@@ -709,12 +618,6 @@ defmodule Cachex do
   If the key does not exist in the cache, you will receive a result indicating
   this. If the expiration date is in the past, the key will be immediately evicted
   when this function is called.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -741,10 +644,6 @@ defmodule Cachex do
   @doc """
   Retrieves all keys from the cache, and returns them as an (unordered) list.
 
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key1", "value1")
@@ -760,11 +659,8 @@ defmodule Cachex do
   """
   @spec keys(cache, options) :: [ any ]
   defwrap keys(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :keys, options }, timeout(options))
-      (cache) ->
-        Worker.keys(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.keys(cache, options)
     end)
   end
 
@@ -776,12 +672,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
     * `:amount` - an amount to increment by. This will default to 1.
     * `:initial` - if the key does not exist, it will be initialized to this amount
       before being modified. Defaults to 0.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -802,11 +695,8 @@ defmodule Cachex do
   """
   @spec incr(cache, any, options) :: { status, number }
   defwrap incr(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :incr, key, options }, options)
-      (cache) ->
-        Worker.incr(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.incr(cache, key, options)
     end)
   end
 
@@ -839,8 +729,7 @@ defmodule Cachex do
       a Janitor process.
     * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
     * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
-    * `:worker` - the internal state of the cache worker. This blocks the cache
-      worker process, so please use cautiously and sparingly.
+    * `:worker` - the internal state of the cache worker.
 
   ## Examples
 
@@ -863,12 +752,6 @@ defmodule Cachex do
 
   @doc """
   Removes a TTL on a given document.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -894,12 +777,6 @@ defmodule Cachex do
   the internal policy. Be careful though, calling `purge/2` manually will result
   in the purge firing inside the main process rather than inside the TTL worker.
 
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
-
   ## Examples
 
       iex> Cachex.purge(:my_cache)
@@ -911,23 +788,14 @@ defmodule Cachex do
   """
   @spec purge(cache, options) :: { status, number }
   defwrap purge(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :purge, options }, options)
-      (cache) ->
-        Worker.purge(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.purge(cache, options)
     end)
   end
 
   @doc """
   Refreshes the TTL for the provided key. This will reset the TTL to begin from
   the current time.
-
-  ## Options
-
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -949,11 +817,8 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, options) :: { status, true | false }
   defwrap refresh(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :refresh, key, options }, options)
-      (cache) ->
-        Worker.refresh(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.refresh(cache, key, options)
     end)
   end
 
@@ -962,12 +827,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:async` - whether to wait on a response from the server, or to execute in
-      the background.
     * `:hooks` - a whitelist of hooks to reset. Defaults to all hooks.
     * `:only` - a whitelist of components to clear. Currently this can only be
       either of `:cache` or `:hooks`. Defaults to `[ :cache, :hooks ]`.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -988,11 +850,8 @@ defmodule Cachex do
   """
   @spec reset(cache, options) :: { status, true }
   defwrap reset(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :reset, options }, options)
-      (cache) ->
-        Worker.reset(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.reset(cache, options)
     end)
   end
 
@@ -1001,10 +860,6 @@ defmodule Cachex do
 
   This includes any expired but unevicted keys. For a more representation which
   doesn't include expired keys, use `count/2`.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1017,11 +872,8 @@ defmodule Cachex do
   """
   @spec size(cache, options) :: { status, number }
   defwrap size(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :size, options }, timeout(options))
-      (cache) ->
-        Worker.size(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.size(cache, options)
     end)
   end
 
@@ -1033,7 +885,6 @@ defmodule Cachex do
   ## Options
 
     * `:for` - a specific set of actions to retrieve statistics for.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1057,11 +908,8 @@ defmodule Cachex do
   """
   @spec stats(cache, options) :: { status, %{ } }
   defwrap stats(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :stats, options }, timeout(options))
-      (cache) ->
-        Worker.stats(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.stats(cache, options)
     end)
   end
 
@@ -1077,7 +925,6 @@ defmodule Cachex do
     * `:of` - allows you to return a stream of a custom format, however usually
       only `:key` or `:value` will be needed. This can be an atom or a tuple and
       defaults to using `{ :key, :value }` if unset.
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1101,11 +948,8 @@ defmodule Cachex do
   """
   @spec stream(cache, options) :: { status, Enumerable.t }
   defwrap stream(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :stream, options }, timeout(options))
-      (cache) ->
-        Worker.stream(cache, options)
+    do_action(cache, fn(cache) ->
+      Worker.stream(cache, options)
     end)
   end
 
@@ -1113,10 +957,6 @@ defmodule Cachex do
   Takes a key from the cache.
 
   This is equivalent to running `get/3` followed by `del/3` in a single action.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1133,11 +973,8 @@ defmodule Cachex do
   """
   @spec take(cache, any, options) :: { status, any }
   defwrap take(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :take, key, options }, timeout(options))
-      (cache) ->
-        Worker.take(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.take(cache, key, options)
     end)
   end
 
@@ -1149,10 +986,6 @@ defmodule Cachex do
   You **must** use the worker instance passed to the provided function when calling
   the cache, otherwise your request will time out. This is due to the blocking
   nature of the execution, and can not be avoided (at this time).
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1178,20 +1011,13 @@ defmodule Cachex do
   @spec transaction(cache, function, options) :: { status, any }
   defwrap transaction(cache, operation, options \\ [])
   when is_function(operation) and is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        handle_async(cache, { :transaction, operation, options }, options)
-      (cache) ->
-        Worker.transaction(cache, operation, options)
+    do_action(cache, fn(cache) ->
+      Worker.transaction(cache, operation, options)
     end)
   end
 
   @doc """
   Returns the TTL for a cache entry in milliseconds.
-
-  ## Options
-
-    * `:timeout` - the timeout for any calls to the worker.
 
   ## Examples
 
@@ -1204,49 +1030,60 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, options) :: { status, number }
   defwrap ttl(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, fn
-      (cache) when is_atom(cache) ->
-        GenServer.call(cache, { :ttl, key, options }, timeout(options))
-      (cache) ->
-        Worker.ttl(cache, key, options)
+    do_action(cache, fn(cache) ->
+      Worker.ttl(cache, key, options)
     end)
   end
 
   ###
   # Private utility functions.
   ###
-  defp do_action(cache, action) when is_function(action) do
-    if valid_cache?(cache) do
-      action.(cache)
+
+  # Executes an action against the given cache. If the cache does not exist, we
+  # return an error otherwise we execute the passed in action.
+  defp do_action(cache, action) when is_atom(cache) do
+    state = State.get(cache)
+    where = :erlang.whereis(cache)
+
+    if where != :undefined and state != nil do
+      action.(state)
     else
-      { :error, "Invalid cache provided, got: #{inspect cache}" }
+      invalid_cache(cache)
+    end
+  end
+  defp do_action(%Worker{ } = cache, action) do
+    action.(cache)
+  end
+  defp do_action(cache, _action) do
+    invalid_cache(cache)
+  end
+
+  # Determines whether the Cachex application state has been started or not. If
+  # not, we return an error to tell the user to start it appropriately.
+  defp ensure_started do
+    if State.setup? do
+      { :ok, true }
+    else
+      { :error, "Cachex tables not initialized, did you start the Cachex application?" }
     end
   end
 
   # Determines whether a process has started or not. If the process has started,
   # an error message is returned - otherwise `true` is returned to represent not
   # being started.
-  defp ensure_not_started(name) when not is_atom(name),
+  defp ensure_unused(name) when not is_atom(name),
   do: { :error, "Cache name must be a valid atom" }
-  defp ensure_not_started(name) do
-    case Process.whereis(name) do
-      nil ->
-        { :ok, true }
-      pid ->
-        { :error, "Cache name already in use for #{inspect(pid)}" }
+  defp ensure_unused(name) do
+    if State.member?(name) do
+      { :error, "Cache name already in use!" }
+    else
+      { :ok, true }
     end
   end
 
-  # Internal function to handle async delegation. This is just a wrapper around
-  # the call/cast functions inside the GenServer module.
-  defp handle_async(cache, args, options) do
-    if options[:async] do
-      cache
-      |> GenServer.cast(args)
-      |> (&(Util.create_truthy_result/1)).()
-    else
-      GenServer.call(cache, args, timeout(options))
-    end
+  # Format an error message related to having an invalid cache provided.
+  defp invalid_cache(cache) do
+    { :error, "Invalid cache provided, got: #{inspect cache}" }
   end
 
   # Parses a keyword list of options into a Cachex Options structure. We return
@@ -1259,7 +1096,7 @@ defmodule Cachex do
   # setting up the local table. This is separated out as it's required in both
   # `start_link/2` and `start/1`.
   defp setup_env(options) when is_list(options) do
-    with { :ok, true } <- ensure_not_started(options[:name]),
+    with { :ok, true } <- ensure_unused(options[:name]),
          { :ok, opts } <- parse_options(options),
          { :ok, true } <- ensure_connection(opts),
          { :ok, true } <- start_table(opts),
@@ -1281,19 +1118,6 @@ defmodule Cachex do
       { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
     end
   end
-
-  # Figure out a timeout for all calls. This is just a minor wrapper around checking
-  # for a `timeout` key in the list of options.
-  defp timeout(options) when is_list(options),
-  do: Keyword.get(options, :timeout, 250)
-
-  # Determine if we have a valid cache passed in or not. Deal with atom caches
-  # first to ensure we deal with the more common use case.
-  defp valid_cache?(cache) when is_atom(cache) do
-    :erlang.whereis(cache) != :undefined
-  end
-  defp valid_cache?(%Cachex.Worker{ }), do: true
-  defp valid_cache?(_), do: false
 
   # Simply adds a "via" param to the options to allow the use of delegates.
   defp via(module, options), do: [ { :via, module } | options ]

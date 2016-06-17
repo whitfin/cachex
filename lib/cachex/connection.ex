@@ -4,7 +4,7 @@ defmodule Cachex.Connection do
   # replication and synchronicity between the nodes. Currently this module is
   # rather small, but has been separated out in anticipation of further work.
 
-  # alias options
+  # alias internals
   alias Cachex.Options
 
   @doc """

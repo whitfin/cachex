@@ -35,6 +35,7 @@ defmodule Cachex.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
+        "cachex.ci": :test,
         "cachex.test": :test
       ]
     ]
@@ -44,7 +45,10 @@ defmodule Cachex.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :mnesia]]
+    [
+      applications: [:logger, :mnesia, :eternal],
+      mod: {Cachex.Application, []}
+    ]
   end
 
   # Dependencies can be Hex packages:
@@ -59,7 +63,7 @@ defmodule Cachex.Mixfile do
   defp deps do
     [
       # Production dependencies
-      { :gen_delegate, "~> 1.0.0" },
+      { :eternal, "~> 1.0.3" },
       # Local dependencies
       { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
       { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },

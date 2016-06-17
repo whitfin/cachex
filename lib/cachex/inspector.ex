@@ -1,9 +1,8 @@
 defmodule Cachex.Inspector do
   @moduledoc false
-  # An out of proc inspector for a cache and cache worker. Due to being out of proc,
-  # anything we do in here is isolated from the cache (although it runs in main proc
-  # so be careful). Unfortunately, this means we have extra limitations on exactly
-  # what we can provide.
+  # An in-proc inspector for a cache and cache state. Anything done in here is
+  # isolated from the cache and so any slow running inspections will only impact
+  # the calling process, rather than the cache itself.
   #
   # Any table interactions in here should go via `:mnesia` and the dirty operations
   # inside, rather than via ETS. This is a couple of microseconds slower for operations
@@ -13,20 +12,15 @@ defmodule Cachex.Inspector do
   alias Cachex.Util
   alias Cachex.Worker
 
+  # state based inspections
+  @state_based [ :state, :worker ]
+
   @doc """
   We don't care about having a worker instance, only the name of the internal table,
   so we pass through only the cache name as needed.
   """
-  def inspect(%Worker{ cache: cache }, option) do
+  def inspect(%Worker{ cache: cache }, option) when not option in @state_based do
     __MODULE__.inspect(cache, option)
-  end
-
-  @doc """
-  We require the cache name to be an atom, so if you get here without an atom we
-  just have to kick you out for having an invalid cache reference.
-  """
-  def inspect(cache, _option) when not is_atom(cache) do
-    { :error, "Invalid cache reference provided" }
   end
 
   @doc """
@@ -34,19 +28,13 @@ defmodule Cachex.Inspector do
   which  will be purged in the next Janitor run).
   """
   def inspect(cache, { :expired, :count }) do
-    query =
-      true
-      |> Util.retrieve_expired_rows
-
+    query = Util.retrieve_expired_rows(true)
     cache
     |> :ets.select_count(query)
     |> Util.ok
   end
   def inspect(cache, { :expired, :keys }) do
-    query =
-      :key
-      |> Util.retrieve_expired_rows
-
+    query = Util.retrieve_expired_rows(:key)
     cache
     |> :ets.select(query)
     |> Util.ok
@@ -93,12 +81,10 @@ defmodule Cachex.Inspector do
   end
 
   @doc """
-  Requests the internal state of a cache worker. This touches the cache and waits
-  up to 5 seconds. This should only be used when testing as it has the potential
-  to block the worker process.
+  Requests the internal state of a cache worker.
   """
   def inspect(cache, option) when option in [ :state, :worker ] do
-    { :ok, GenServer.call(cache, { :state }) }
+    { :ok, cache }
   end
 
   @doc """

@@ -3,6 +3,7 @@
 /bench
 /cover
 /deps
+/diff
 /doc
 erl_crash.dump
 *.ez
