@@ -43,7 +43,7 @@ As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the
 
     ```elixir
     def deps do
-      [{:cachex, "~> 1.1.1"}]
+      [{:cachex, "~> 1.2.0"}]
     end
     ```
 
