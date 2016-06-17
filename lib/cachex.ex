@@ -1038,6 +1038,9 @@ defmodule Cachex do
   ###
   # Private utility functions.
   ###
+
+  # Executes an action against the given cache. If the cache does not exist, we
+  # return an error otherwise we execute the passed in action.
   defp do_action(cache, action) when is_atom(cache) do
     state = State.get(cache)
     where = :erlang.whereis(cache)

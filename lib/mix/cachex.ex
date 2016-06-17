@@ -6,7 +6,6 @@ defmodule Mix.Cachex do
   # bound nodes.
 
   # alias internals
-  alias Cachex.State
   alias Cachex.Util
 
   # our list of nodes to create, based on tests
@@ -30,7 +29,7 @@ defmodule Mix.Cachex do
 
       :rpc.call(name, :mnesia, :start, [])
       :rpc.call(name, :code, :add_paths, [:code.get_path])
-      :rpc.call(name, State, :start, [])
+      :rpc.call(name, :application, :ensure_all_started, [:cachex])
     end)
   end
 

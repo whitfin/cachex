@@ -18,11 +18,10 @@ defmodule Cachex.Macros do
   Fetches the name and arguments from a function head and returns them inside a
   tuple.
   """
-  def name_and_args(head) do
-    head
-    |> short_head
-    |> Macro.decompose_call
-  end
+  def name_and_args({ :when, _, [head | _] }),
+  do: Macro.decompose_call(head)
+  def name_and_args(head),
+  do: Macro.decompose_call(head)
 
   @doc """
   Trim all defaults from a set of arguments.
@@ -86,9 +85,5 @@ defmodule Cachex.Macros do
     scary_name = Util.atom_append(name, "!")
     put_elem(head, 0, scary_name)
   end
-
-  # We use this to normalize functions with/without guards
-  defp short_head({ :when, _, [head | _] }), do: head
-  defp short_head(head), do: head
 
 end
