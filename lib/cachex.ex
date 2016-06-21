@@ -1055,8 +1055,8 @@ defmodule Cachex do
   # `start_link/3` and `start/3`.
   defp setup_env(options) when is_list(options) do
     with { :ok, true } <- ensure_unused(options[:name]),
-         { :ok, opts } <- parse_options(options),
-         { :ok, true } <- ensure_connection(opts),
+         { :ok, opts }  = parse_options(options),
+         { :ok, true }  = ensure_connection(opts),
          { :ok, true } <- start_table(opts),
      do: { :ok, opts }
   end

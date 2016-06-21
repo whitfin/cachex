@@ -142,12 +142,11 @@ defmodule Cachex.Hook do
   of hooks have changed and need to be blended into the Options.
   """
   def update(hooks, %Worker{ options: options } = worker) do
-    with %{ pre: pre, post: post } <- hooks_by_type(hooks) do
-      %Worker {
-        worker |
-        options: %Options { options | pre_hooks: pre, post_hooks: post }
-      }
-    end
+    %{ pre: pre, post: post } = hooks_by_type(hooks)
+
+    new_opts = %Options { options | pre_hooks: pre, post_hooks: post }
+
+    %Worker { worker | options: new_opts }
   end
 
   @doc false
