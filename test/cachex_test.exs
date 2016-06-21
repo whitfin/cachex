@@ -2,12 +2,22 @@ defmodule CachexTest do
   use PowerAssert, async: false
 
   setup do
+    Application.ensure_all_started(:cachex)
+
     name =
       16
       |> TestHelper.gen_random_string_of_length
       |> String.to_atom
 
     { :ok, cache: TestHelper.create_cache(), name: name }
+  end
+
+  test "starting a cache when not started", state do
+    ExUnit.CaptureLog.capture_log(fn ->
+      Application.stop(:cachex)
+    end)
+
+    assert(Cachex.start(state.name) == {:error, "Cachex tables not initialized, did you start the Cachex application?"})
   end
 
   test "starting a cache with link using a name arg", state do

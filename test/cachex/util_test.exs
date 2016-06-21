@@ -10,7 +10,7 @@ defmodule Cachex.UtilTest do
     now =
       :calendar.universal_time()
       |> :calendar.datetime_to_gregorian_seconds
-      |> -(calendar)
+      |> Kernel.-(calendar)
 
     assert(div(Util.now(), 1000) == now)
   end

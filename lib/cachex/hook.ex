@@ -59,10 +59,14 @@ defmodule Cachex.Hook do
   execution (it saves a microsecond or so).
   """
   def hooks_by_type(hooks) do
-    hooks |> List.wrap |> Enum.group_by(%{ pre: [], post: [] }, fn
-      (%__MODULE__{ "type": type }) -> type
-      (_) -> nil
-    end)
+    hooks
+    |> List.wrap
+    |> Enum.group_by(fn
+        (%__MODULE__{ "type": type }) -> type
+        (_) -> nil
+       end)
+    |> Map.put_new(:pre, [])
+    |> Map.put_new(:post, [])
   end
   def hooks_by_type(hooks, type) when type in [ :pre, :post ],
   do: hooks_by_type(hooks)[type] || []
@@ -138,12 +142,11 @@ defmodule Cachex.Hook do
   of hooks have changed and need to be blended into the Options.
   """
   def update(hooks, %Worker{ options: options } = worker) do
-    with %{ pre: pre, post: post } <- hooks_by_type(hooks) do
-      %Worker {
-        worker |
-        options: %Options { options | pre_hooks: pre, post_hooks: post }
-      }
-    end
+    %{ pre: pre, post: post } = hooks_by_type(hooks)
+
+    new_opts = %Options { options | pre_hooks: pre, post_hooks: post }
+
+    %Worker { worker | options: new_opts }
   end
 
   @doc false
