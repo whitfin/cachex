@@ -59,10 +59,14 @@ defmodule Cachex.Hook do
   execution (it saves a microsecond or so).
   """
   def hooks_by_type(hooks) do
-    hooks |> List.wrap |> Enum.group_by(%{ pre: [], post: [] }, fn
-      (%__MODULE__{ "type": type }) -> type
-      (_) -> nil
-    end)
+    hooks
+    |> List.wrap
+    |> Enum.group_by(fn
+        (%__MODULE__{ "type": type }) -> type
+        (_) -> nil
+       end)
+    |> Map.put_new(:pre, [])
+    |> Map.put_new(:post, [])
   end
   def hooks_by_type(hooks, type) when type in [ :pre, :post ],
   do: hooks_by_type(hooks)[type] || []
