@@ -43,7 +43,7 @@ defmodule Cachex.Notifier do
     send(ref, { :notify, { :async, payload } })
   end
   defp emit(%Hook{ "async": false } = hook, payload) do
-    msg = :random.uniform(1000) - 1
+    msg = :rand.uniform(1000) - 1
     send(hook.ref, { :notify, { :sync, { self, msg }, payload } })
     wait(hook, msg)
   end

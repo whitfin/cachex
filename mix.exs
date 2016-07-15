@@ -67,7 +67,6 @@ defmodule Cachex.Mixfile do
       { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
       { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },
       { :credo,        "~> 0.4.5",  optional: true, only: [ :dev, :test ] },
-      { :earmark,      "~> 0.2.1",  optional: true, only: [ :dev, :test ] },
       { :ex_doc,       "~> 0.12.0", optional: true, only: [ :dev, :test ] },
       { :excoveralls,  "~> 0.5.5",  optional: true, only: [ :dev, :test ] },
       { :exprof,       "~> 0.2.0",  optional: true, only: [ :dev, :test ] },

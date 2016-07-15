@@ -20,8 +20,6 @@ defmodule TestHelper do
   end
 
   def gen_random_string_of_length(num) when is_number(num) do
-    :random.seed(:erlang.system_time)
-
     letters =
       ?a..?z
       |> Enum.to_list
