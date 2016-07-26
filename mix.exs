@@ -62,15 +62,15 @@ defmodule Cachex.Mixfile do
   defp deps do
     [
       # Production dependencies
-      { :eternal, "~> 1.0.3" },
+      { :eternal, "~> 1.0" },
       # Local dependencies
-      { :benchfella,   "~> 0.3.2",  optional: true, only: [ :dev, :test ] },
-      { :benchwarmer,  "~> 0.0.2",  optional: true, only: [ :dev, :test ] },
-      { :credo,        "~> 0.4.5",  optional: true, only: [ :dev, :test ] },
-      { :ex_doc,       "~> 0.12.0", optional: true, only: [ :dev, :test ] },
-      { :excoveralls,  "~> 0.5.5",  optional: true, only: [ :dev, :test ] },
-      { :exprof,       "~> 0.2.0",  optional: true, only: [ :dev, :test ] },
-      { :power_assert, "~> 0.0.8",  optional: true, only: [ :dev, :test ] }
+      { :benchfella,   "~> 0.3",  optional: true, only: [ :dev, :test ] },
+      { :benchwarmer,  "~> 0.0",  optional: true, only: [ :dev, :test ] },
+      { :credo,        "~> 0.4",  optional: true, only: [ :dev, :test ] },
+      { :ex_doc,       "~> 0.13", optional: true, only: [ :dev, :test ] },
+      { :excoveralls,  "~> 0.5",  optional: true, only: [ :dev, :test ] },
+      { :exprof,       "~> 0.2",  optional: true, only: [ :dev, :test ] },
+      { :power_assert, "~> 0.0",  optional: true, only: [ :dev, :test ] }
     ]
   end
 end
