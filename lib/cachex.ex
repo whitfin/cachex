@@ -3,9 +3,6 @@ defmodule Cachex do
   use Cachex.Macros
   use Supervisor
 
-  # import Connection
-  import Cachex.Connection
-
   # add some aliases
   alias Cachex.Hook
   alias Cachex.Inspector
@@ -112,13 +109,6 @@ defmodule Cachex do
           iex> hook = %Cachex.Hook{ module: MyHook, type: :post }
           iex> Cachex.start_link(:my_cache, [ hooks: [hook] ])
 
-    - **nodes**
-
-      A list of nodes that the store should replicate to. The node starting this
-      cache is automatically included.
-
-          iex> Cachex.start_link(:my_cache, [ nodes: [node()] ])
-
     - **record_stats**
 
       Whether you wish this cache to record usage statistics or not. This has only minor
@@ -126,15 +116,6 @@ defmodule Cachex do
       can be retrieve from a running cache by using `stats/1`.
 
           iex> Cachex.start_link(:my_cache, [ record_stats: true ])
-
-    - **remote**
-
-      Whether to use `remote` behaviours or not. This means that all writes go through
-      Mnesia rather than straight to ETS (and as such there is a slowdown). This is
-      automatically set to true if you have set `:nodes` to a list of nodes other than
-      just `[node()]`.
-
-          iex> Cachex.start_link(:my_cache, [ remote: true ])
 
     - **ttl_interval**
 
@@ -360,42 +341,6 @@ defmodule Cachex do
   defwrap abort(cache, reason, options \\ []) when is_list(options) do
     do_action(cache, fn(_) ->
       { :ok, :mnesia.is_transaction && :mnesia.abort(reason) }
-    end)
-  end
-
-  @doc """
-  Adds a remote node to this cache. This is designed to be used internally so
-  proceeed with caution.
-
-  Calling `add_node/2` will add the provided node to Mnesia and then create a new
-  replica on the node. We update the worker with knowledge of the node change to
-  ensure consistency.
-
-  ## Examples
-
-      iex> Cachex.add_node(:my_cache, :node@remotehost)
-      { :ok, :true }
-
-  """
-  @spec add_node(cache, atom) :: { status, true | false | binary }
-  defwrap add_node(cache, node) when is_atom(node) do
-    do_action(cache, fn(%Worker{ cache: cache }) ->
-      case :net_adm.ping(node) do
-        :pong ->
-          case :mnesia.change_config(:extra_db_nodes, [node]) do
-            { :error, { name, _msg } } ->
-              { :error, name }
-            { :ok, _nodes } ->
-              :mnesia.add_table_copy(cache, node, :ram_copies)
-
-              :rpc.call(node, Worker, :add_node, [cache, node()])
-              :rpc.call(node(), Worker, :add_node, [cache, node])
-
-              { :ok, true }
-          end
-        :pang ->
-          { :error, "Unable to reach remote node!" }
-      end
     end)
   end
 
@@ -1056,7 +1001,6 @@ defmodule Cachex do
   defp setup_env(options) when is_list(options) do
     with { :ok, true } <- ensure_unused(options[:name]),
          { :ok, opts }  = parse_options(options),
-         { :ok, true }  = ensure_connection(opts),
          { :ok, true } <- start_table(opts),
      do: { :ok, opts }
   end

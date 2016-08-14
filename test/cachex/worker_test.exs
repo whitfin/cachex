@@ -8,7 +8,6 @@ defmodule Cachex.WorkerTest do
   test "worker is able to return internal state", state do
     worker = Cachex.inspect!(state.cache, :state)
 
-    assert(worker.actions == Cachex.Worker.Local)
     assert(worker.cache == state.cache)
     assert(worker.options == %Cachex.Options{
       cache: state.cache,
@@ -19,10 +18,8 @@ defmodule Cachex.WorkerTest do
         write_concurrency: true
       ],
       fallback_args: [],
-      nodes: [node()],
       post_hooks: [],
       pre_hooks: [],
-      remote: false,
       ttl_interval: nil
     })
   end

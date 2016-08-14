@@ -77,28 +77,6 @@ defmodule Cachex.OptionsTest do
     assert(parsed_opts.ttl_interval == nil)
   end
 
-  test "options accepts a list of remote nodes", state do
-    nodes = [node(),:"anode@ahost"]
-
-    parsed_opts = Options.parse(name: state.name, nodes: nodes)
-
-    assert(parsed_opts.nodes == nodes)
-    assert(parsed_opts.remote == true)
-  end
-
-  test "options does not set remote to true if only this node is added", state do
-    parsed_opts = Options.parse(name: state.name, nodes: [node()])
-
-    assert(parsed_opts.nodes == [node()])
-    assert(parsed_opts.remote == false)
-  end
-
-  test "options sets remote to true if overridden", state do
-    parsed_opts = Options.parse(name: state.name, remote: true)
-
-    assert(parsed_opts.remote == true)
-  end
-
   test "options accepts a default fallback function", state do
     default_function = &(&1)
 

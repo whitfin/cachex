@@ -26,6 +26,167 @@ defmodule Cachex.TransactionTest do
     end)
   end
 
+  test "transaction can write", state do
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.set(worker, "my_key", "my_value")
+    end)
+
+    assert(result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
+  end
+
+  test "transaction can have writes aborted", state do
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.set(worker, "my_key", "my_value")
+      Cachex.abort(worker, :dont_wanna)
+    end)
+
+    assert(result == { :error, :dont_wanna })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :missing, nil })
+  end
+
+  test "transaction can update", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.update(worker, "my_key", "my_new_value")
+    end)
+
+    assert(result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_new_value" })
+  end
+
+  test "transaction can have updates aborted", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.update(worker, "my_key", "my_new_value")
+      Cachex.abort(worker, :dont_wanna)
+    end)
+
+    assert(result == { :error, :dont_wanna })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
+  end
+
+  test "transaction can delete", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.del(worker, "my_key")
+    end)
+
+    assert(result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :missing, nil })
+  end
+
+  test "transaction can have deletes aborted", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.del(worker, "my_key")
+      Cachex.abort(worker, :dont_wanna)
+    end)
+
+    assert(result == { :error, :dont_wanna })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
+  end
+
+  test "transaction can incr", state do
+    set_result = Cachex.set(state.cache, "my_key", 1)
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.incr(worker, "my_key")
+    end)
+
+    assert(result == { :ok, 2 })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, 2 })
+  end
+
+  test "transaction can incr with missing", state do
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.incr(worker, "my_key")
+    end)
+
+    assert(result == { :missing, 1 })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, 1 })
+  end
+
+  test "transaction can incr with error", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.incr(worker, "my_key")
+    end)
+
+    assert(result == { :error, :non_numeric_value })
+  end
+
+  test "transaction can have incrs aborted", state do
+    set_result = Cachex.set(state.cache, "my_key", 1)
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.incr(worker, "my_key")
+      Cachex.abort(worker, :dont_wanna)
+    end)
+
+    assert(result == { :error, :dont_wanna })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, 1 })
+  end
+
+  test "transaction can take", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.take(worker, "my_key")
+    end)
+
+    assert(result == { :ok, "my_value" })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :missing, nil })
+  end
+
+  test "transaction can have takes aborted", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.take(worker, "my_key")
+      Cachex.abort(worker, :dont_wanna)
+    end)
+
+    assert(result == { :error, :dont_wanna })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
+  end
+
   test "transaction carries out many actions", state do
     result = Cachex.transaction(state.cache, fn(worker) ->
       Cachex.set(worker, "my_key1", "my_value1")
@@ -33,7 +194,7 @@ defmodule Cachex.TransactionTest do
       Cachex.set(worker, "my_key3", "my_value3")
     end)
 
-    assert(result == { :ok, { :ok, true } })
+    assert(result == { :ok, true })
 
     size_result = Cachex.size(state.cache)
 
@@ -45,20 +206,18 @@ defmodule Cachex.TransactionTest do
       Cachex.get(worker, "my_key")
     end)
 
-    assert(transaction_result == { :ok, { :missing, nil } })
+    assert(transaction_result == { :missing, nil })
   end
 
-  test "transaction can exit if `abort/3` is called", state do
-    transaction_result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.set(worker, "my_key", "my_value")
-      Cachex.abort(worker, :exit_early)
+  test "transaction clears return an error", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    result = Cachex.transaction(state.cache, fn(worker) ->
+      Cachex.clear(worker)
     end)
 
-    assert(transaction_result == { :error, :exit_early })
-
-    get_result = Cachex.get(state.cache, "my_key")
-
-    assert(get_result == { :missing, nil })
+    assert(result == { :error, :nested_transaction })
   end
 
 end
