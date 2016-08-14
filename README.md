@@ -7,7 +7,6 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 - Pre/post execution hooks
 - Statistics gathering
 - Multi-layered caching/key fallbacks
-- Distribution to remote nodes
 - Transactions and row locking
 - Asynchronous write operations
 
@@ -28,11 +27,11 @@ All of these features are optional and are off by default so you can pick and ch
 - [TTL Implementation](#ttl-implementation)
     - [On Demand Expiration](#on-demand-expiration)
     - [Janitors](#janitors)
-    - [TTL Distribution](#ttl-distribution)
 - [Action Blocks](#action-blocks)
     - [Execution Blocks](#execution-blocks)
     - [Transaction Blocks](#transaction-blocks)
     - [Things To Remember](#things-to-remember)
+- [Migrating To v2](#migrating-to-v2)
 - [Contributions](#contributions)
 
 ## Installation
@@ -123,9 +122,7 @@ Caches can accept a list of options during initialization, which determine vario
 |    disable_ode   |  `true` or `false` | Whether or not to disable on-demand expirations when reading back keys. |
 |   fallback_args  |  list of arguments |  A list of arguments to pass alongside the key to a fallback function.  |
 |       hooks      |    list of Hooks   |    A list of execution hooks (see below) to listen on cache actions.    |
-|       nodes      |    list of nodes   |       A list of remote nodes to connect to and replicate against.       |
 |   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
-|      remote      |  `true` or `false` |              Whether to use replication with writes or not.             |
 |   ttl_interval   |     milliseconds   |          The frequency the Janitor process runs at (see below).         |
 
 For more information and examples, please see the official documentation on [Hex](https://hexdocs.pm/cachex/).
@@ -343,8 +340,7 @@ Keys have an internal touch time and TTL associated with them, and these values 
 
 This means that at any point, if you have the TTL worker disabled, you can realistically never retrieve an expired key. This provides the ability to run the TTL worker less frequently, instead of having to have a tight loop in order to make sure that values can't be stale.
 
-Of course, if you have the TTL worker disabled you need to be careful of a growing cache size due to keys being added and then never being accessed again. This is fine if you have a very restrictive keyset, but for
-arbitrary keys this is probably not what you want.
+Of course, if you have the TTL worker disabled you need to be careful of a growing cache size due to keys being added and then never being accessed again. This is fine if you have a very restrictive keyset, but for arbitrary keys this is probably not what you want.
 
 Although the overhead of on-demand expiration is minimal, as of v0.10.0 it can be disabled using the `disable_ode` option inside `start/1` or `start_link/2`. This is useful if you have a Janitor running and don't mind keys existing a little beyond their expiration (for example if  TTL is being used purely as a means to control memory usage). The main advantage of disabling ODE is that the execution time of any given read operation is more predictable due to avoiding the case where some reads also evict the key.
 
@@ -362,14 +358,6 @@ There are several rules to be aware of when setting up the interval:
 - If you set `ttl_interval` to any numeric value above `0`, it will run on this schedule (this value is in milliseconds).
 
 It should be noted that this is a rolling value which is set **on completion** of a run. This means that if you schedule the Janitor to run every 1ms, it will be 1ms after a successful run, rather than starting every 1ms. This may become configurable in the future if there's demand for it, but for now rolling seems to make the most sense.
-
-#### TTL Distribution
-
-The combination of Janitors and ODE means that distributed TTL becomes way easier because you *don't* have to replicate the purges to the other servers. The Janitors only ever run against the local machine, because Janitors naturally live on all machines.
-
-This has the benefit of all machines cleaning up their local environment (assuming they all use the same schedules, which will always be the case in practice). Even though these schedules can get out of sync, if you access a key which should have expired, it'll then be removed due to ODE. This means that it's not possible to retrieve a key which has expired on one node and not another. This is a small example of eventual consistency and in theory (and practice) should be safe enough.
-
-During tests, the replication of a TTL purge during a transaction took an *extremely* long time. The same purge mentioned above (of 500,000 keys) took at least 6 seconds when done in a potentially unsafe way. When carried out in a totally transactional way it took upwards of 20 seconds. Clearly, this is definitely not good enough for potentially high throughput systems, and as such opting for each node cleaning only itself up was decided on.
 
 ## Action Blocks
 
@@ -429,9 +417,19 @@ Cool, right?
 
 Of course it should be noted (and obvious) that transactions have quite a bit of overhead to them, so only use them when you have to.
 
+In addition, please note that calls to `Cachex.clear/2` from inside a transaction will fail. This is due to the call creating a transaction internally and causing nested transaction issues. Sadly, this is a Mnesia issue and cannot be resolved inside Cachex, and so we just return an error against the call.
+
 #### Things To Remember
 
 Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. If you use the cache name inside your block, you lose all benefits of the block execution. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
+
+## Migrating To v2
+
+In the v1.x line of Cachex, there was a notion of remote Cachex instances which have been removed in v2.x onwards. This is a design decision due to the limitations of supporting remote instances and the complexities involved, specifically with regards to discovery and eviction policies.
+
+As an alternative to remote Cachex instances, you should now use a remote datastore such as Redis as your master copy and use fallback functions inside Cachex to replicate this data locally. This should support almost all cases for which people required the distributed nature of Cachex. To migrate the behaviour of deletion on remote nodes, simply set a TTL on your data which pulls from Redis and it'll periodically sync automatically. This has the advantage of removing a lot of complexity from Cachex whilst still solving many common use cases.
+
+If there are cases this doesn't solve, please file issues with a description of what you're trying to do and we can work together to design how to efficiently implement it inside Cachex. I'm not against reintroducing the idea of remote caches if there is an audience for them, as long as they're implemented in such a way that it doesn't limit local caches. There are several ideas in flux around how to make this happen but each needs a lot of thought and review, and so will only be revisited as needed.
 
 ## Contributions
 

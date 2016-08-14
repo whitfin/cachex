@@ -3,12 +3,12 @@ defmodule Cachex.Worker.Actions do
   @behaviour Cachex.Worker
 
   @moduledoc false
-  # This module defines the Local actions a worker can take. Functions in this
-  # module are focused around the sole use of ETS (although it can make use of
-  # Mnesia as needed). This allows us to provid the fastest possible throughput
-  # for a simple local, in-memory cache. Please note that when calling functions
-  # from inside this module (internal functions), you should go through the
-  # Worker parent module to avoid creating potentially messy internal dependency.
+  # This module defines the backing actions a worker can take. Functions in this
+  # module use Mnesia when inside a trnasaction context, otherwise they use ETS.
+  # This allows us to provid the fastest possible throughput for a simple local,
+  # in-memory cache. Please note that when calling functions from inside this
+  # module (internal functions), you should go through the Worker parent module
+  # to avoid creating potentially messy internal dependency.
 
   # add some aliases
   alias Cachex.Util
@@ -35,7 +35,8 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
-  Read back the key from ETS, by doing a raw lookup on the key for performance.
+  Reads back a key from the cache.
+
   If the key does not exist we return a `nil` value. If the key has expired, we
   delete it from the cache using the `:purge` action as a notification.
   """
@@ -59,8 +60,11 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
-  Updates a number of fields in a record inside the cache, by key. We do this all
-  in one sweep using the internal ETS update mechanisms.
+  Updates a number of fields in a record inside the cache, by key.
+
+  For ETS, we do this entirely in a single sweep. For Mnesia, we need to use a
+  two-step get/update from the Worker interface to accomplish the same. We then
+  use a reduction to modify the Tuple.
   """
   def update(state, key, changes) do
     detect_transaction(
@@ -83,9 +87,10 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
-  Removes a record from the cache using the provided key. Regardless of whether
-  the key exists or not, we return a truthy value (to signify the record is not
-  in the cache any longer).
+  Removes a record from the cache using the provided key.
+
+  Regardless of whether the key exists or not, we return a truthy value (to signify
+  the record is not in the cache any longer).
   """
   def delete(%{ cache: cache }, key) do
     detect_transaction(
@@ -102,9 +107,12 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
-  Empties the cache entirely, by calling `:ets.delete_all_objects/1`. We check
-  the size of the cache beforehand using `size/1` in order to return the number
-  of records which were removed.
+  Empties the cache entirely.
+
+  When outside of a transaction context, we empty the table and return the number
+  of deleted records. Inside a transaction we have to return an error, as Mnesia
+  cannot handle a clear operation when already inside a transaction. This is noted
+  inside the README.
   """
   def clear(%{ cache: cache } = state, _options) do
     eviction_count = case Worker.size(state, notify: false) do
@@ -122,11 +130,13 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
-  Increments a given key by a given amount. We do this using the internal ETS
-  `update_counter/4` function. We allow for touching the record or keeping it
-  persistent (for use cases such as rate limiting). If the record is missing, we
-  insert a new one based on the passed values (but it has no TTL). We return the
-  value after it has been incremented.
+  Increments a given key by a given amount.
+
+  For ETS, we do this using the internal `update_counter/4` function. For Mnesia
+  we use `Cachex.Worker.get_and_update/4` to achieve the same.
+
+  If the record is missing, we insert a new one based on the passed values (but
+  it has no TTL). We return the value after it has been incremented.
   """
   def incr(state, key, options) do
     amount =

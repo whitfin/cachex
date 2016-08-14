@@ -27,7 +27,6 @@ defmodule Cachex do
   - Pre/post execution hooks
   - Statistics gathering
   - Multi-layered caching/key fallbacks
-  - Distribution to remote nodes
   - Transactions and row locking
   - Asynchronous write operations
 
@@ -629,10 +628,6 @@ defmodule Cachex do
   worker. This means that these operations are safe for use with hot caches, but
   come with a stricter set of limitations.
 
-  All operations look at the immediate (local) node regardless of whether the cache
-  is distributed or not. Inspection functions rely on the assumption that the entire
-  store is already consistent.
-
   Accepted options are only provided for convenience and should not be relied upon.
   They are not part of the public interface (despite being documented) and as such
   may be removed at any time (however this does not mean that they will be).
@@ -886,8 +881,7 @@ defmodule Cachex do
   end
 
   @doc """
-  Transactional equivalent of `execute/3`. This provides a safe execution of
-  operation across distributed nodes. You can also rollback the transaction at
+  Transactional equivalent of `execute/3`. You can rollback the transaction at
   any time using `abort/1`.
 
   You **must** use the worker instance passed to the provided function when calling
