@@ -23,8 +23,8 @@ defmodule Cachex.InspectTest do
     { :ok, state_result } = Cachex.inspect(state.cache, :state)
     { :ok, worker_result } = Cachex.inspect(state_result, :worker)
 
-    assert(state_result.__struct__ == Cachex.Worker)
-    assert(worker_result.__struct__ == Cachex.Worker)
+    assert(state_result.__struct__ == Cachex.State)
+    assert(worker_result.__struct__ == Cachex.State)
     assert(state_result == worker_result)
   end
 
@@ -83,8 +83,8 @@ defmodule Cachex.InspectTest do
     { :ok, state_result  } = Cachex.inspect(state.cache, :state)
     { :ok, worker_result } = Cachex.inspect(state.cache, :worker)
 
-    assert(state_result.__struct__ == Cachex.Worker)
-    assert(worker_result.__struct__ == Cachex.Worker)
+    assert(state_result.__struct__ == Cachex.State)
+    assert(worker_result.__struct__ == Cachex.State)
     assert(state_result == worker_result)
   end
 

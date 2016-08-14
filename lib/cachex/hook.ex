@@ -1,7 +1,4 @@
 defmodule Cachex.Hook do
-  # require the Logger
-  require Logger
-
   @moduledoc false
   # This module defines the hook implementations for Cachex, allowing the user to
   # add hooks into the command execution. This means that users can build plugin
@@ -10,10 +7,15 @@ defmodule Cachex.Hook do
   # needed. You can also define that the results of the command are provided to
   # post-hooks, in case you wish to use the results in things such as log messages.
 
+  # define our opaque type
+  @opaque t :: %__MODULE__{ }
+
   # add aliases
-  alias Cachex.Options
-  alias Cachex.Worker
+  alias Cachex.State
   alias Supervisor.Spec
+
+  # require the Logger
+  require Logger
 
   # define our struct
   defstruct args: [],
@@ -27,11 +29,13 @@ defmodule Cachex.Hook do
             type: :pre
 
   @doc """
-  Starts any required listeners. We allow either a list of listeners, or a single
-  listener (a user can attach N listeners as plugins). We take all listeners and
-  convert them into a parsed hook, and then start all the hooks in processes which
-  allows async listening.
+  Starts any required listeners.
+
+  We allow either a list of listeners, or a single listener (a user can attach N
+  listeners as plugins). We take all listeners and convert them into a parsed hook,
+  and then start all the hooks in processes which allows async listening.
   """
+  @spec initialize_hooks(mods :: [ Hook.t ]) :: [ Hook.t ]
   def initialize_hooks(mods) do
     mods
     |> List.wrap
@@ -41,9 +45,11 @@ defmodule Cachex.Hook do
   end
 
   @doc """
-  Allows for finding a hook by the name of the module. This is only for convenience
-  when trying to locate a potential Cachex.Stats hook.
+  Allows for finding a hook by the name of the module.
+
+  This is only for convenience when trying to locate a potential Cachex.Stats hook.
   """
+  @spec hook_by_module(hooks :: [ Hook.t ], module :: atom) :: Hook.t | nil
   def hook_by_module(hooks, module) do
     hooks
     |> List.wrap
@@ -54,10 +60,12 @@ defmodule Cachex.Hook do
   end
 
   @doc """
-  Groups hooks by their execution type (pre/post). We use this to separate the
-  execution phases in order to achieve a smaller iteration at later stages of
-  execution (it saves a microsecond or so).
+  Groups hooks by their execution type (pre/post).
+
+  We use this to separate the execution phases in order to achieve a smaller
+  iteration at later stages of execution (it saves a microsecond or so).
   """
+  @spec hooks_by_type(hooks :: [ Hook.t ]) :: %{ pre: [Hook.t], post: [Hook.t] }
   def hooks_by_type(hooks) do
     hooks
     |> List.wrap
@@ -72,9 +80,11 @@ defmodule Cachex.Hook do
   do: hooks_by_type(hooks)[type] || []
 
   @doc """
-  Simple shorthanding for pulling the ref of a hook which is found by module. This
-  is again just for convenience when finding the Cachex.Stats hooks.
+  Simple shorthanding for pulling the ref of a hook which is found by module.
+
+  This is again just for convenience when finding the Cachex.Stats hooks.
   """
+  @spec ref_by_module(hooks :: [ Hook.t ], module :: atom) :: pid | nil
   def ref_by_module(hooks, module) do
     case hook_by_module(hooks, module) do
       nil -> nil
@@ -85,20 +95,25 @@ defmodule Cachex.Hook do
   @doc """
   Calls a hook instance with the specified message and timeout.
   """
+  @spec call(hook :: Hook.t, msg :: any, timeout :: number) :: any
   def call(%__MODULE__{ module: mod, ref: ref }, msg, timeout \\ 5000),
   do: GenEvent.call(ref, mod, msg, timeout)
 
   @doc """
-  Concatenates the pre and post Hooks of an Options struct.
+  Concatenates the pre and post Hooks of a State struct.
   """
-  def combine(%Options{ pre_hooks: pre, post_hooks: post }),
+  @spec combine(state :: State.t) :: [ Hook.t ]
+  def combine(%State{ pre_hooks: pre, post_hooks: post }),
   do: Enum.concat(pre, post)
 
   @doc """
   Iterates a child spec of a Supervisor and maps the process module names to a
-  list of Hook structs. Wherever there is a match, the PID of the child is added
-  to the Hook so that a Hook struct can track where it lives.
+  list of Hook structs.
+
+  Wherever there is a match, the PID of the child is added to the Hook so that a
+  Hook struct can track where it lives.
   """
+  @spec link(children :: [ ], hooks :: [ Hook.t ]) :: [ Hook.t ]
   def link(children, hooks) when is_list(children) and is_list(hooks) do
     Enum.map(hooks, fn(%__MODULE__{ "args": args, "module": mod } = hook) ->
       pid = Enum.find_value(children, fn
@@ -115,15 +130,16 @@ defmodule Cachex.Hook do
   end
 
   @doc """
-  Provides a single point to call to provision all hooks. We forward the message
-  on to the hook ref.
+  Provides a single point to call to provision all hooks.
   """
+  @spec provision(hook :: Hook.t, msg :: any) :: msg :: any
   def provision(%__MODULE__{ } = hook, msg),
   do: __MODULE__.send(hook, { :provision, msg })
 
   @doc """
   Delivers a message to the specified hook.
   """
+  @spec send(hook :: Hook.t, msg :: any) :: msg :: any
   def send(%__MODULE__{ ref: ref }, msg),
   do: Kernel.send(ref, msg)
 
@@ -131,22 +147,23 @@ defmodule Cachex.Hook do
   Creates a Supervisor spec of workers for enough GenEvent managers to host all
   of the provided hooks.
   """
-  def spec(%Options{ } = options) do
-    options
+  @spec spec(state :: State.t) :: [ spec :: { } ]
+  def spec(%State{ } = state) do
+    state
     |> combine
     |> Enum.map(&(Spec.worker(GenEvent, [&1.server_args], id: &1.module)))
   end
 
   @doc """
-  Updates the provided hooks inside an Options struct. This is used when the PID
-  of hooks have changed and need to be blended into the Options.
+  Updates the provided hooks inside an Options struct.
+
+  This is used when the PID of hooks have changed and need to be blended into the
+  Options.
   """
-  def update(hooks, %Worker{ options: options } = worker) do
+  @spec update(hooks :: [ Hook.t ], state :: State.t) :: State.t
+  def update(hooks, %State{ } = state) do
     %{ pre: pre, post: post } = hooks_by_type(hooks)
-
-    new_opts = %Options { options | pre_hooks: pre, post_hooks: post }
-
-    %Worker { worker | options: new_opts }
+    %State { state | pre_hooks: pre, post_hooks: post }
   end
 
   @doc false

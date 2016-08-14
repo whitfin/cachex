@@ -25,7 +25,6 @@ defmodule Cachex.ResetTest do
     hook =
       cache
       |> Cachex.inspect!(:worker)
-      |> Map.get(:options)
       |> Map.get(:pre_hooks)
       |> Hook.hook_by_module(__MODULE__.LastActionHook)
 
@@ -63,7 +62,6 @@ defmodule Cachex.ResetTest do
     hook =
       cache
       |> Cachex.inspect!(:worker)
-      |> Map.get(:options)
       |> Map.get(:pre_hooks)
       |> Hook.hook_by_module(__MODULE__.LastActionHook)
 
@@ -98,7 +96,6 @@ defmodule Cachex.ResetTest do
     hook =
       cache
       |> Cachex.inspect!(:worker)
-      |> Map.get(:options)
       |> Map.get(:pre_hooks)
       |> Hook.hook_by_module(__MODULE__.LastActionHook)
 
@@ -137,7 +134,6 @@ defmodule Cachex.ResetTest do
     pre_hooks =
       cache
       |> Cachex.inspect!(:worker)
-      |> Map.get(:options)
       |> Map.get(:pre_hooks)
 
     actions_hook  = Hook.hook_by_module(pre_hooks, __MODULE__.LastActionHook)

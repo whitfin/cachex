@@ -3,50 +3,48 @@ defmodule Cachex.Inspector do
   # An in-proc inspector for a cache and cache state. Anything done in here is
   # isolated from the cache and so any slow running inspections will only impact
   # the calling process, rather than the cache itself.
-  #
-  # Any table interactions in here should go via `:mnesia` and the dirty operations
-  # inside, rather than via ETS. This is a couple of microseconds slower for operations
-  # but at least we can be sure we're getting an accurate view.
 
   # alias some modules
+  alias Cachex.State
   alias Cachex.Util
-  alias Cachex.Worker
 
   # state based inspections
   @state_based [ :state, :worker ]
 
   @doc """
-  We don't care about having a worker instance, only the name of the internal table,
-  so we pass through only the cache name as needed.
+  Inspects a cache using the provided options as inspection flags.
+
+  The return type will vary based on the flags provided.
   """
-  def inspect(%Worker{ cache: cache }, option) when not option in @state_based do
-    __MODULE__.inspect(cache, option)
+  @spec inspect(state :: State.t | atom, option :: { } | atom) :: any
+  def inspect(state, option), do: do_inspect(state, option)
+
+  # We don't care about having a state instance, only the name of the internal
+  # table, so we pass through only the cache name as needed.
+  defp do_inspect(%State{ cache: cache }, option) when not option in @state_based do
+    do_inspect(cache, option)
   end
 
-  @doc """
-  Returns information about the expired keys currently inside the cache (i.e. keys
-  which  will be purged in the next Janitor run).
-  """
-  def inspect(cache, { :expired, :count }) do
+  # Returns information about the expired keys currently inside the cache (i.e.
+  # keys which  will be purged in the next Janitor run).
+  defp do_inspect(cache, { :expired, :count }) do
     query = Util.retrieve_expired_rows(true)
     cache
     |> :ets.select_count(query)
     |> Util.ok
   end
-  def inspect(cache, { :expired, :keys }) do
+  defp do_inspect(cache, { :expired, :keys }) do
     query = Util.retrieve_expired_rows(:key)
     cache
     |> :ets.select(query)
     |> Util.ok
   end
-  def inspect(_cache, { :expired, _unknown }) do
+  defp do_inspect(_cache, { :expired, _unknown }) do
     { :error, "Invalid expiration inspection type provided" }
   end
 
-  @doc """
-  Returns information about the last run of the Janitor process (if there is one).
-  """
-  def inspect(cache, { :janitor, :last }) do
+  # Returns information about the last run of the Janitor process (if there is one).
+  defp do_inspect(cache, { :janitor, :last }) do
     ref =
       cache
       |> Util.janitor_for_cache
@@ -60,11 +58,9 @@ defmodule Cachex.Inspector do
     end
   end
 
-  @doc """
-  Requests the memory information from a cache, and converts it using the word
-  size of the system, in order to return a number of bytes or as a binary.
-  """
-  def inspect(cache, { :memory, type }) do
+  # Requests the memory information from a cache, and converts it using the word
+  # size of the system, in order to return a number of bytes or as a binary.
+  defp do_inspect(cache, { :memory, type }) do
     mem_words = :erlang.system_info(:wordsize)
     mem_cache = :mnesia.table_info(cache, :memory)
 
@@ -80,18 +76,14 @@ defmodule Cachex.Inspector do
     end
   end
 
-  @doc """
-  Requests the internal state of a cache worker.
-  """
-  def inspect(cache, option) when option in [ :state, :worker ] do
+  # Requests the internal state of a cache state.
+  defp do_inspect(cache, option) when option in [ :state, :worker ] do
     { :ok, cache }
   end
 
-  @doc """
-  If we hit this point, we're not handling the options explicitly, so we just send
-  back an error to to the caller.
-  """
-  def inspect(_cache, _option) do
+  # If we hit this point, we're not handling the options explicitly, so we just
+  # send back an error to to the caller.
+  defp do_inspect(_cache, _option) do
     { :error, "Invalid inspect option provided" }
   end
 

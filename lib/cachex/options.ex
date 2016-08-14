@@ -7,24 +7,16 @@ defmodule Cachex.Options do
   alias Cachex.Hook
   alias Cachex.Util
 
-  defstruct cache: nil,             # the name of the cache
-            disable_ode: false,     # whether we disable on-demand expiration
-            ets_opts: nil,          # any options to give to ETS
-            default_fallback: nil,  # the default fallback implementation
-            default_ttl: nil,       # any default ttl values to use
-            fallback_args: nil,     # arguments to pass to a cache loader
-            janitor: nil,           # the name of the janitor attached (if any)
-            pre_hooks: nil,         # any pre hooks to attach
-            post_hooks: nil,        # any post hooks to attach
-            ttl_interval: nil       # the ttl check interval
-
   @doc """
   Parses a list of input options to the fields we care about, setting things like
-  defaults and verifying types. The output of this function should be a set of
-  options that we can use blindly in other areas of the library. As such, this
-  function has the potential to become a little messy - but that's okay, since
-  it saves us trying to duplicate this logic all over the codebase.
+  defaults and verifying types.
+
+  The output of this function will be an instance of a Cachex State, that we can
+  use blindly in other areas of the library. As such, this function has the
+  potential to become a little messy - but that's okay, since it saves us trying
+  to duplicate this logic all over the codebase.
   """
+  @spec parse(options :: Keyword.t) :: State.t
   def parse(options \\ [])
   def parse(options) when is_list(options) do
     cache = case options[:name] do
@@ -43,7 +35,7 @@ defmodule Cachex.Options do
     { default_fallback, fallback_args } = setup_fallbacks(cache, options)
     { default_ttl, ttl_interval, janitor } = setup_ttl_components(cache, options)
 
-    %__MODULE__{
+    %Cachex.State{
       "cache": cache,
       "disable_ode": onde_dis,
       "ets_opts": ets_opts,

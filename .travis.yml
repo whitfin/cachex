@@ -11,7 +11,7 @@ before_script:
   - epmd -daemon
 script:
   - mix credo --all --format=oneline
-  - mix coveralls.travis --trace
+  - mix coveralls --trace
 branches:
   only:
     - master

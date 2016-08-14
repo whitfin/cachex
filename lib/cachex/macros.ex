@@ -43,7 +43,7 @@ defmodule Cachex.Macros do
 
   @doc """
   Defines both a safe and unsafe version of an interface function, the unsafe
-  version simply unwrapping (hence `defwrap`) the results of the safe version.
+  version simply unwrapping the results of the safe version.
   """
   defmacro defwrap(head, do: body) do
     { func_name, arguments } = name_and_args(head)

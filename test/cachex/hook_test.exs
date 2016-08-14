@@ -140,7 +140,7 @@ defmodule Cachex.HookTest do
 
     worker_state = Cachex.inspect!(state.name, :worker)
 
-    hook = Cachex.Hook.hook_by_module(worker_state.options.pre_hooks, hook_mod)
+    hook = Cachex.Hook.hook_by_module(worker_state.pre_hooks, hook_mod)
     hook_state = Cachex.Hook.call(hook, :state)
 
     assert(worker_state == hook_state.worker)

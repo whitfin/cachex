@@ -1,28 +1,30 @@
 defmodule Cachex.Notifier do
-  # require the Logger
-  require Logger
-
   @moduledoc false
   # A very small notification module to send data to a listening payload. This
   # data should be in the form of a tuple, and the data should be arguments which
   # were sent alongside a function call in the worker.
 
+  # require the Logger
+  require Logger
+
   # add some aliases
   alias Cachex.Hook
 
   @doc """
-  Notifies a listener of the passed in data. If the data is a list, we convert it
-  to a tuple in order to make it easier to pattern match against. We accept a list
-  of listeners in order to allow for multiple (plugin style) listeners. Initially
-  had the empty clause at the top but this way is better (at the very worst it's
-  the same performance).
+  Notifies a listener of the passed in data.
+
+  If the data is a list, we convert it to a tuple in order to make it easier to
+  pattern match against. We accept a list of listeners in order to allow for
+  multiple (plugin style) listeners. Initially had the empty clause at the top
+  but this way is better (at the very worst it's the same performance).
   """
+  @spec notify(hooks :: [ Hook.t ], action :: { }, results :: { } | nil) :: true
   def notify(_hooks, _action, _results \\ nil)
   def notify([hook|tail], action, results) do
     emit(hook, action, results)
     notify(tail, action, results)
   end
-  def notify([], _action, _results), do: nil
+  def notify([], _action, _results), do: true
 
   # Internal emission, used to define whether we send using an async request or
   # not. We also determine whether to pass the results back at this point or not.

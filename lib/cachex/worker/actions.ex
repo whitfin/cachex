@@ -1,10 +1,7 @@
 defmodule Cachex.Worker.Actions do
-  # ensure we use the actions interface
-  @behaviour Cachex.Worker
-
   @moduledoc false
   # This module defines the backing actions a worker can take. Functions in this
-  # module use Mnesia when inside a trnasaction context, otherwise they use ETS.
+  # module use Mnesia when inside a transaction context, otherwise they use ETS.
   # This allows us to provid the fastest possible throughput for a simple local,
   # in-memory cache. Please note that when calling functions from inside this
   # module (internal functions), you should go through the Worker parent module
@@ -14,6 +11,9 @@ defmodule Cachex.Worker.Actions do
   alias Cachex.Util
   alias Cachex.Worker
 
+  # ensure we use the actions interface
+  @behaviour Cachex.Worker
+
   # define purge constants
   @purge_override [{ :via, { :purge } }, { :hook_result, { :ok, 1 } }]
 
@@ -21,6 +21,7 @@ defmodule Cachex.Worker.Actions do
   Writes a record into the cache, and returns a result signifying whether the
   write was successful or not.
   """
+  @spec write(state :: State.t, record :: Record.t) :: { :ok, true | false }
   def write(%{ cache: cache }, record) do
     detect_transaction(
       fn ->
@@ -40,6 +41,7 @@ defmodule Cachex.Worker.Actions do
   If the key does not exist we return a `nil` value. If the key has expired, we
   delete it from the cache using the `:purge` action as a notification.
   """
+  @spec read(state :: State.t, key :: any) :: Record.t | nil
   def read(%{ cache: cache } = state, key) do
     read_result = detect_transaction(
       fn -> :ets.lookup(cache, key) end,
@@ -66,6 +68,7 @@ defmodule Cachex.Worker.Actions do
   two-step get/update from the Worker interface to accomplish the same. We then
   use a reduction to modify the Tuple.
   """
+  @spec update(state :: State.t, key :: any, changes :: [{}]) :: { :ok, true | false }
   def update(state, key, changes) do
     detect_transaction(
       fn ->
@@ -92,6 +95,7 @@ defmodule Cachex.Worker.Actions do
   Regardless of whether the key exists or not, we return a truthy value (to signify
   the record is not in the cache any longer).
   """
+  @spec delete(state :: State.t, key :: any) :: { :ok, true | false }
   def delete(%{ cache: cache }, key) do
     detect_transaction(
       fn ->
@@ -114,6 +118,9 @@ defmodule Cachex.Worker.Actions do
   cannot handle a clear operation when already inside a transaction. This is noted
   inside the README.
   """
+  @spec clear(state :: State.t, options :: Keyword.t) ::
+    { :ok, count :: number } |
+    { :error, :nested_transaction }
   def clear(%{ cache: cache } = state, _options) do
     eviction_count = case Worker.size(state, notify: false) do
       { :ok, size } -> size
@@ -138,6 +145,10 @@ defmodule Cachex.Worker.Actions do
   If the record is missing, we insert a new one based on the passed values (but
   it has no TTL). We return the value after it has been incremented.
   """
+  @spec incr(state :: State.t, key :: any, options :: Keyword.t) ::
+    { :ok, value :: any } |
+    { :missing, value :: any } |
+    { :error, :non_numeric_value }
   def incr(state, key, options) do
     amount =
       options
@@ -181,9 +192,12 @@ defmodule Cachex.Worker.Actions do
   end
 
   @doc """
-  This is like `del/2` but it returns the last known value of the key as it
-  existed in the cache upon deletion.
+  Like `del/2` but it returns the last known value of the key as it existed in
+  the cache upon deletion.
   """
+  @spec take(state :: State.t, key :: any, options :: Keyword.t) ::
+    { :ok, value :: any } |
+    { :missing, nil }
   def take(state, key, _options) do
     detect_transaction(
       fn ->

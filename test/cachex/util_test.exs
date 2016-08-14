@@ -55,7 +55,7 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.create_record/3 generates records with no expiration" do
-    { cache, key, date, ttl, value } = Util.create_record(%Cachex.Worker{ "cache": :test }, "key", "value")
+    { cache, key, date, ttl, value } = Util.create_record(%Cachex.State{ "cache": :test }, "key", "value")
 
     assert(cache == :test)
     assert(key == "key")
@@ -65,11 +65,9 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.create_record/3 generates records with a default expiration" do
-    { cache, key, date, ttl, value } = Util.create_record(%Cachex.Worker{
+    { cache, key, date, ttl, value } = Util.create_record(%Cachex.State{
       "cache": :test,
-      "options": %{
-        "default_ttl": :timer.seconds(5)
-      }
+      "default_ttl": :timer.seconds(5)
     }, "key", "value")
 
     assert(cache == :test)
@@ -80,7 +78,7 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.create_record/4 generates records with a custom expiration" do
-    { cache, key, date, ttl, value } = Util.create_record(%Cachex.Worker{ "cache": :test }, "key", "value", 5000)
+    { cache, key, date, ttl, value } = Util.create_record(%Cachex.State{ "cache": :test }, "key", "value", 5000)
 
     assert(cache == :test)
     assert(key == "key")
@@ -124,9 +122,7 @@ defmodule Cachex.UtilTest do
 
     state = %{
       "cache": :test,
-      "options": %{
-        "default_fallback": input_fun
-      }
+      "default_fallback": input_fun
     }
 
     fun = Util.get_fallback_function(state)
@@ -136,9 +132,7 @@ defmodule Cachex.UtilTest do
   test "util.get_fallback_function/1 returns nil if no function is available" do
     state = %{
       "cache": :test,
-      "options": %{
-        "default_fallback": 1
-      }
+      "default_fallback": 1
     }
 
     fun = Util.get_fallback_function(state)
@@ -218,7 +212,7 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.has_expired?/3 with disable_ode determines if a date and ttl has passed" do
-    state = %Cachex.Worker{ options: %Cachex.Options { disable_ode: true } }
+    state = %Cachex.State { disable_ode: true }
     refute(Util.has_expired?(state, Util.now(), -5000))
     refute(Util.has_expired?(state, Util.now(), 5000))
     refute(Util.has_expired?(state, nil, 5000))
@@ -227,7 +221,7 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.has_expired?/3 without disable_ode determines if a date and ttl has passed" do
-    state = %Cachex.Worker{ options: %Cachex.Options { disable_ode: false } }
+    state = %Cachex.State { disable_ode: false }
     assert(Util.has_expired?(state, Util.now(), -5000))
     refute(Util.has_expired?(state, Util.now(), 5000))
     refute(Util.has_expired?(state, nil, 5000))

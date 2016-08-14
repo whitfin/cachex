@@ -9,9 +9,24 @@ defmodule Cachex.State do
   # and should only be accessed via this module. The interface is deliberately
   # small in order to reduce potential complexity.
 
+  # internal state struct
+  defstruct cache: nil,             # the name of the cache
+            disable_ode: false,     # whether we disable on-demand expiration
+            ets_opts: nil,          # any options to give to ETS
+            default_fallback: nil,  # the default fallback implementation
+            default_ttl: nil,       # any default ttl values to use
+            fallback_args: nil,     # arguments to pass to a cache loader
+            janitor: nil,           # the name of the janitor attached (if any)
+            pre_hooks: nil,         # any pre hooks to attach
+            post_hooks: nil,        # any post hooks to attach
+            ttl_interval: nil       # the ttl check interval
+
   # add any aliases
   alias Cachex.Hook
   alias Cachex.Worker
+
+  # our opaque type
+  @opaque t :: %__MODULE__{ }
 
   # name of internal table
   @state_table :cachex_state_table
@@ -26,8 +41,8 @@ defmodule Cachex.State do
       Eternal.new(@state_table, [
         :named_table,
         :public,
-        { :read_concurrency, true },
-        { :write_concurrency, true }
+        read_concurrency: true,
+        write_concurrency: true
       ], [ quiet: true ])
     end
 
@@ -80,7 +95,7 @@ defmodule Cachex.State do
   Sets a state in the local state table.
   """
   @spec set(cache :: atom, state :: Worker.t) :: true
-  def set(cache, %Worker{ } = state) when is_atom(cache) do
+  def set(cache, %__MODULE__{ } = state) when is_atom(cache) do
     :ets.insert(@state_table, { cache, state })
   end
 
@@ -116,7 +131,7 @@ defmodule Cachex.State do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(cache :: atom, function :: (Worker.t -> Worker.t)) :: state :: Worker.t
+  @spec update(cache :: atom, function :: (State.t -> State.t)) :: state :: State.t
   def update(cache, fun) when is_atom(cache) and is_function(fun, 1) do
     transaction(cache, fn ->
       cstate = get(cache)
@@ -124,7 +139,7 @@ defmodule Cachex.State do
 
       set(cache, nstate)
 
-      nstate.options
+      nstate
       |> Hook.combine
       |> Enum.filter(&(&1.provide |> List.wrap |> Enum.member?(:worker)))
       |> Enum.each(&(Hook.provision(&1, { :worker, nstate })))

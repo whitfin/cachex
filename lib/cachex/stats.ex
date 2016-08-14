@@ -1,4 +1,10 @@
 defmodule Cachex.Stats do
+  @moduledoc false
+  # A simple statistics container, used to keep track of various operations on
+  # a given cache. This is used as a post hook for a cache and provides an example
+  # of what a hook can look like. This container has no knowledge of the cache
+  # it belongs to, it only keeps track of an internal struct.
+
   # use the hooks
   use Cachex.Hook
 
@@ -6,14 +12,9 @@ defmodule Cachex.Stats do
   alias Cachex.Stats.Registry
   alias Cachex.Util
 
-  @moduledoc false
-  # A simple statistics container, used to keep track of various operations on
-  # a given cache. This is used as a post hook for a cache and provides an example
-  # of what a hook can look like. This container has no knowledge of the cache
-  # it belongs to, it only keeps track of an internal struct.
-
   @doc """
   Initializes a new stats container, setting the creation date to the current time.
+
   This state will be passed into each handler in this server.
   """
   def init(_options \\ []) do
@@ -21,6 +22,8 @@ defmodule Cachex.Stats do
   end
 
   @doc """
+  Forward any successful calls through to the stats container.
+
   We don't keep statistics on requests which errored, to avoid false positives
   about what exactly is going on inside a given cache.
   """
@@ -55,6 +58,7 @@ defmodule Cachex.Stats do
   a request to the stats hook. We provide it to make it more obvious to retrieve
   statistics.
   """
+  @spec retrieve(stats_ref :: pid | atom, options :: Keyword.t) :: %{ }
   def retrieve(stats_ref, options \\ []) do
     GenEvent.call(stats_ref, __MODULE__, { :retrieve_stats, options })
   end

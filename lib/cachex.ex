@@ -36,7 +36,7 @@ defmodule Cachex do
   """
 
   # the cache type
-  @type cache :: atom | Worker.t
+  @type cache :: atom | State.t
 
   # custom options type
   @type options :: [ { atom, any } ]
@@ -175,14 +175,14 @@ defmodule Cachex do
   #
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
-  @spec init(Options) :: { status, any }
-  def init(%Options{ } = options) do
+  @spec init(state :: State.t) :: { status, any }
+  def init(%State{ } = options) do
     children = Hook.spec(options) ++ case options.ttl_interval do
       nil -> []
       _other -> [worker(Janitor, [options, [ name: options.janitor ]])]
     end
 
-    State.set(options.cache, Worker.init(options))
+    State.set(options.cache, options)
 
     supervise(children, strategy: :one_for_one)
   end
@@ -948,7 +948,7 @@ defmodule Cachex do
       invalid_cache(cache)
     end
   end
-  defp do_action(%Worker{ } = cache, action) do
+  defp do_action(%State{ } = cache, action) do
     action.(cache)
   end
   defp do_action(cache, _action) do
@@ -1001,7 +1001,7 @@ defmodule Cachex do
 
   # Starts up an Mnesia table based on the provided options. If an error occurs
   # when setting up the table, we return an error tuple to represent the issue.
-  defp start_table(%Options{ } = options) do
+  defp start_table(%State{ } = options) do
     table_create = :mnesia.create_table(options.cache, [
       { :attributes, [ :key, :touched, :ttl, :value ] },
       { :type, :set },

@@ -3,7 +3,6 @@ defmodule Cachex.StateTest do
 
   alias Cachex.Options
   alias Cachex.State
-  alias Cachex.Worker
 
   setup do
     State.start()
@@ -19,9 +18,7 @@ defmodule Cachex.StateTest do
   end
 
   test "setting a state in the cache" do
-    worker = Worker.init(%Options{ })
-
-    assert(State.set(__MODULE__, worker))
+    assert(State.set(__MODULE__, %State{ }))
   end
 
   test "update a state in the cache" do
@@ -30,7 +27,7 @@ defmodule Cachex.StateTest do
 
     assert(State.set(__MODULE__, cworker))
 
-    new_state = State.update(__MODULE__, fn(%Worker{ }) ->
+    new_state = State.update(__MODULE__, fn(%State{ }) ->
       nworker
     end)
 
@@ -39,7 +36,7 @@ defmodule Cachex.StateTest do
   end
 
   defp init_worker(opts \\ []) do
-    [ { :name, __MODULE__ } | opts ] |> Options.parse |> Worker.init
+    Options.parse([ { :name, __MODULE__ } | opts ])
   end
 
 end

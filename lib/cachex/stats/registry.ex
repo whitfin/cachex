@@ -12,10 +12,11 @@ defmodule Cachex.Stats.Registry do
   and incrementing the global statistics map. Every action will increment the
   global operation count, but all other changes are action-specific.
   """
+  @spec register(action :: { }, result :: { }, stats :: %{ }) :: %{ }
   def register(action, result, stats) do
     action
     |> process_action(result)
-    |> Enum.reduce(stats, &(increment(&1, &2)))
+    |> Enum.reduce(stats, &increment/2)
     |> increment(:global, :opCount)
   end
 

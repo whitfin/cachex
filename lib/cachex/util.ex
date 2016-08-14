@@ -55,9 +55,9 @@ defmodule Cachex.Util do
   passed is nil, then we apply any defaults. Otherwise we add the value
   to the current time (in milliseconds) and return a tuple for the table.
   """
-  def create_record(%Cachex.Worker{ } = state, key, value, expiration \\ nil) do
+  def create_record(%Cachex.State{ } = state, key, value, expiration \\ nil) do
     exp = case expiration do
-      nil -> state.options.default_ttl
+      nil -> state.default_ttl
       val -> val
     end
     { state.cache, key, now(), exp, value }
@@ -104,7 +104,7 @@ defmodule Cachex.Util do
     end
 
     l =
-      state.options.fallback_args
+      state.fallback_args
       |> length
       |> (&(&1 + 1)).()
 
@@ -116,7 +116,7 @@ defmodule Cachex.Util do
           1  ->
             { :loaded, val.(key) }
           ^l ->
-            { :loaded, apply(val, [key|state.options.fallback_args]) }
+            { :loaded, apply(val, [key|state.fallback_args]) }
           _  ->
             { :ok, default_val }
         end
@@ -134,8 +134,8 @@ defmodule Cachex.Util do
     cond do
       is_function(fb_fun) ->
         fb_fun
-      is_function(state.options.default_fallback) ->
-        state.options.default_fallback
+      is_function(state.default_fallback) ->
+        state.default_fallback
       true ->
         nil
     end
@@ -215,7 +215,7 @@ defmodule Cachex.Util do
   time and the TTL of the document.
   """
   def has_expired?(state, touched, ttl) when is_number(touched) and is_number(ttl) do
-    if state.options.disable_ode, do: false, else: touched + ttl < now
+    if state.disable_ode, do: false, else: touched + ttl < now
   end
   def has_expired?(_state, _touched, _ttl), do: false
   def has_expired?(touched, ttl) when is_number(touched) and is_number(ttl) do
