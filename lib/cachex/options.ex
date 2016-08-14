@@ -16,8 +16,6 @@ defmodule Cachex.Options do
             janitor: nil,           # the name of the janitor attached (if any)
             pre_hooks: nil,         # any pre hooks to attach
             post_hooks: nil,        # any post hooks to attach
-            nodes: nil,             # a list of nodes to connect to
-            remote: nil,            # are we using a remote implementation
             ttl_interval: nil       # the ttl check interval
 
   @doc """
@@ -42,7 +40,6 @@ defmodule Cachex.Options do
     ])
 
     { pre_hooks, post_hooks } = setup_hooks(cache, options)
-    { is_remote, remote_nodes } = setup_remote_nodes(cache, options)
     { default_fallback, fallback_args } = setup_fallbacks(cache, options)
     { default_ttl, ttl_interval, janitor } = setup_ttl_components(cache, options)
 
@@ -54,10 +51,8 @@ defmodule Cachex.Options do
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
       "janitor": janitor,
-      "nodes": remote_nodes,
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
-      "remote": is_remote,
       "ttl_interval": ttl_interval
     }
   end
@@ -93,19 +88,6 @@ defmodule Cachex.Options do
       Hook.hooks_by_type(hooks, :pre),
       Hook.hooks_by_type(hooks, :post)
     }
-  end
-
-  # Sets up and parses any options related to remote behaviour. Currently check
-  # to see if a list of remote nodes are defined, or the remote flag is enabled.
-  defp setup_remote_nodes(_cache, options) do
-    this_node = node()
-
-    case Enum.uniq([ node | Util.get_opt_list(options, :nodes, [])]) do
-      [^this_node] ->
-        { Util.truthy?(options[:remote]), [this_node] }
-      nodes ->
-        { true, nodes }
-    end
   end
 
   # Sets up and parses any options related to TTL behaviours. Currently this deals

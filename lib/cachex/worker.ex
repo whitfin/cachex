@@ -12,9 +12,11 @@ defmodule Cachex.Worker do
   alias Cachex.Stats
   alias Cachex.Util
 
+  # add internal aliases
+  alias __MODULE__.Actions
+
   # define internal struct
-  defstruct actions: __MODULE__.Local,  # the actions implementation
-            cache: nil,                 # the cache name
+  defstruct cache: nil,                 # the cache name
             options: %Options{ }        # the options of this cache
 
   # define the worker state type
@@ -29,7 +31,6 @@ defmodule Cachex.Worker do
   """
   def init(options \\ %Options { }) do
     %__MODULE__{
-      actions: options.remote && __MODULE__.Remote || __MODULE__.Local,
       cache: options.cache,
       options: options
     }
@@ -44,7 +45,7 @@ defmodule Cachex.Worker do
   """
   def get(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :get, key, options }, fn ->
-      case state.actions.read(state, key) do
+      case Actions.read(state, key) do
         { _cache, ^key, _touched, _ttl, value } ->
           { :ok, value }
         _unrecognised_value ->
@@ -120,7 +121,7 @@ defmodule Cachex.Worker do
         state
         |> Util.create_record(key, value, ttl)
 
-      state.actions.write(state, record)
+      Actions.write(state, record)
     end)
   end
 
@@ -130,7 +131,7 @@ defmodule Cachex.Worker do
   def update(%__MODULE__{ } = state, key, value, options \\ []) when is_list(options) do
     do_action(state, { :update, key, value, options }, fn ->
       with { :ok, true } <- check_exists(state, key) do
-        state.actions.update(state, key, [{ 5, value }])
+        Actions.update(state, key, [{ 5, value }])
       end
     end)
   end
@@ -140,7 +141,7 @@ defmodule Cachex.Worker do
   """
   def del(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :del, key, options }, fn ->
-      state.actions.delete(state, key)
+      Actions.delete(state, key)
     end)
   end
 
@@ -149,7 +150,7 @@ defmodule Cachex.Worker do
   """
   def clear(%__MODULE__{ } = state, options \\ []) when is_list(options) do
     do_action(state, { :clear, options }, fn ->
-      state.actions.clear(state, options)
+      Actions.clear(state, options)
     end)
   end
 
@@ -179,7 +180,7 @@ defmodule Cachex.Worker do
   """
   def exists?(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :exists?, key, options }, fn ->
-      case state.actions.read(state, key) do
+      case Actions.read(state, key) do
         { _cache, ^key, _touched, _ttl, _value } ->
           { :ok, true }
         _unrecognised_value ->
@@ -195,7 +196,7 @@ defmodule Cachex.Worker do
     do_action(state, { :expire, key, expiration, options }, fn ->
       with { :ok, true } <- check_exists(state, key) do
         if expiration == nil or expiration > 0 do
-          state.actions.update(state, key, [{ 3, Util.now() }, { 4, expiration }])
+          Actions.update(state, key, [{ 3, Util.now() }, { 4, expiration }])
         else
           del(state, key, via: :purge)
         end
@@ -208,7 +209,9 @@ defmodule Cachex.Worker do
   """
   def keys(%__MODULE__{ } = state, options \\ []) when is_list(options) do
     do_action(state, { :keys, options }, fn ->
-      state.actions.keys(state, options)
+      state.cache
+      |> :ets.select(Util.retrieve_all_rows(:key))
+      |> Util.ok
     end)
   end
 
@@ -217,7 +220,7 @@ defmodule Cachex.Worker do
   """
   def incr(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :incr, key, options }, fn ->
-      case state.actions.incr(state, key, options) do
+      case Actions.incr(state, key, options) do
         { :error, :non_numeric_value } ->
           { :error, "Unable to operate on non-numeric value" }
         result ->
@@ -241,7 +244,7 @@ defmodule Cachex.Worker do
   def refresh(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :refresh, key, options }, fn ->
       with { :ok, true } <- check_exists(state, key) do
-        state.actions.update(state, key, [{ 3, Util.now() }])
+        Actions.update(state, key, [{ 3, Util.now() }])
       end
     end)
   end
@@ -322,7 +325,7 @@ defmodule Cachex.Worker do
   """
   def take(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :take, key, options }, fn ->
-      state.actions.take(state, key, options)
+      Actions.take(state, key, options)
     end)
   end
 
@@ -332,9 +335,7 @@ defmodule Cachex.Worker do
   def transaction(%__MODULE__{ } = state, operation, options \\ [])
   when is_function(operation, 1) and is_list(options) do
     Util.handle_transaction(fn ->
-      %__MODULE__{ state | actions: __MODULE__.Remote }
-      |> operation.()
-      |> Util.ok
+      operation.(state)
     end)
   end
 
@@ -344,7 +345,7 @@ defmodule Cachex.Worker do
   """
   def ttl(%__MODULE__{ } = state, key, options \\ []) when is_list(options) do
     do_action(state, { :ttl, key, options }, fn ->
-      case state.actions.read(state, key) do
+      case Actions.read(state, key) do
         { _cache, ^key, _touched, nil, _value } ->
           { :ok, nil }
         { _cache, ^key, touched, ttl, _value } ->
@@ -367,7 +368,6 @@ defmodule Cachex.Worker do
 
   # Bonus
   @callback clear(__MODULE__, list) :: { :ok, number }
-  @callback keys(__MODULE__, list) :: { :ok, list }
   @callback incr(__MODULE__, any, list) :: { :ok, number }
   @callback take(__MODULE__, any, list) :: { :ok | :missing, any }
 
@@ -375,31 +375,6 @@ defmodule Cachex.Worker do
   # Functions designed to only be used internally (i.e. those not forwarded to
   # the main Cachex interfaces).
   ###
-
-  @doc """
-  Handler for adding a node to the worker, to ensure that we use the correct
-  actions.
-  """
-  def add_node(cache, new_node) when is_atom(cache) and is_atom(new_node) do
-    if State.member?(cache) do
-      State.update(cache, fn(state) ->
-        new_options = %Options{ state.options |
-          remote: true,
-          nodes: if Enum.member?(state.options.nodes, new_node) do
-            state.options.nodes
-          else
-            [new_node|state.options.nodes]
-          end
-        }
-
-        if state.options.remote do
-          %__MODULE__{ state | options: new_options }
-        else
-          %__MODULE__{ state | actions: __MODULE__.Remote, options: new_options }
-        end
-      end)
-    end
-  end
 
   @doc """
   Handler for broadcasting a set of actions and results to all registered hooks.
@@ -420,18 +395,7 @@ defmodule Cachex.Worker do
   """
   def get_and_update_raw(%__MODULE__{ } = state, key, update_fun) when is_function(update_fun) do
     Util.handle_transaction(fn ->
-      value = case :mnesia.read(state.cache, key) do
-        [{ cache, ^key, touched, ttl, value }] ->
-          if Util.has_expired?(touched, ttl) do
-            :mnesia.delete(state.cache, key, :write)
-            { cache, key, Util.now(), nil, nil }
-          else
-            { cache, key, touched, ttl, value }
-          end
-        _unrecognised_val ->
-          { state.cache, key, Util.now(), nil, nil }
-      end
-
+      value = Actions.read(state, key) || Util.create_record(state, key, nil)
       new_value = update_fun.(value)
       :mnesia.write(new_value)
       new_value

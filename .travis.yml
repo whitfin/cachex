@@ -10,8 +10,8 @@ before_install:
 before_script:
   - epmd -daemon
 script:
-  - mix cachex credo --all --format=oneline
-  - mix cachex coveralls.travis --trace
+  - mix credo --all --format=oneline
+  - mix coveralls.travis --trace
 branches:
   only:
     - master

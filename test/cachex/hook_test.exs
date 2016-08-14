@@ -144,18 +144,6 @@ defmodule Cachex.HookTest do
     hook_state = Cachex.Hook.call(hook, :state)
 
     assert(worker_state == hook_state.worker)
-    assert(worker_state.actions == Cachex.Worker.Local)
-
-    add_result = Cachex.add_node(state.name, @testhost)
-    assert(add_result == { :ok, true })
-
-    worker_state = Cachex.inspect!(state.name, :worker)
-
-    hook = Cachex.Hook.hook_by_module(worker_state.options.pre_hooks, hook_mod)
-    hook_state = Cachex.Hook.call(hook, :state)
-
-    assert(worker_state == hook_state.worker)
-    assert(worker_state.actions == Cachex.Worker.Remote)
   end
 
   test "hooks with invalid module provided", state do
