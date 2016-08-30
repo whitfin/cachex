@@ -18,7 +18,10 @@ All of these features are optional and are off by default so you can pick and ch
 - [Usage](#usage)
     - [Startup](#startup)
     - [Interface](#interface)
+- [Migrating To v2.x](#migrating-to-v2x)
 - [Multi-Layered Caches](#multi-layered-caches)
+    - [Common Fallbacks](#common-fallbacks)
+    - [Specified Fallbacks](#specified-fallbacks)
 - [Execution Hooks](#execution-hooks)
     - [Definition](#definition)
     - [Registration](#registration)
@@ -31,7 +34,7 @@ All of these features are optional and are off by default so you can pick and ch
     - [Execution Blocks](#execution-blocks)
     - [Transaction Blocks](#transaction-blocks)
     - [Things To Remember](#things-to-remember)
-- [Migrating To v2](#migrating-to-v2)
+- [Benchmarks](#benchmarks)
 - [Contributions](#contributions)
 
 ## Installation
@@ -81,7 +84,7 @@ Although this is possible and is functionally the same internally, it's probably
 The Cachex interface should/will be maintained such that it follows this pattern:
 
 ```elixir
-Cachex.action(:cache_ref, _required_args, _options \\ [])
+Cachex.action(:my_cache, _required_args, _options \\ [])
 ```
 
 Every action has a certain number of required arguments (can be `0`), and accepts a keyword list of options. As an example, here's how a `set` action could look:
@@ -131,7 +134,29 @@ For more information and examples, please see the official documentation on [Hex
 
 A very common use case (and one of the reasons I built Cachex) is the desire to have Multi-Layered Caches. Multi-layering is the idea of a backing cache (i.e. something remote) which populates your local caches on misses. A typical pattern is using [Redis](http://redis.io) as a remote data store and replicating it locally in-memory for faster access.
 
-Let's look at an example; assume you need to read information from a database to service a public API. The issue is that the query is expensive and so you want to cache it locally for 5 minutes to avoid overloading your database. To do this with Cachex, you would simply specify a TTL of 5 minutes on your cache, and use a fallback to read from your database.
+### Common Fallbacks
+
+Let's look at an example;
+
+Assume you have a backing Redis cache with a fairly large amount of keys, and you wish to cache it locally to avoid the network calls (let's say you're doing it thousands of times a second). Cachex can do this easily be providing a **fallback** action to take when a key is missing. This is configured during cache initialization using the `default_fallback` option, as below:
+
+```elixir
+# initialize the cache instance
+{ :ok, pid } = Cachex.start_link(:redis_memory_layer, [ default_ttl: :timer.minutes(5), default_fallback: &RedisClient.get/1 ])
+
+# status will equal :loaded if Redis was hit, otherwise :ok when successful
+{ status, information } = Cachex.get(:redis_memory_layer, "my_key")
+```
+
+The use above will ensure that Cachex jumps to Redis to look for a key, **only if** it doesn't have a copy locally. If one does exist locally, Cachex will use that instead.
+
+An effective approach with fallbacks is to use a TTL to make sure that your data doesn't become stale. In the case above, we can be sure that our data will never be more than 5 minutes out of date, whilst saving the impact of the network calls to Redis. Once a key expires locally after 5 minutes, Cachex will then jump back to Redis the next time the key is asked for. Of course the acceptable level of staleness depends on your use case, but generally this is a very useful behaviour as it allows applications to easily reap performance gains without sacrificing the ability to have a consistent backing store.
+
+### Specified Fallbacks
+
+You may have noticed that the above example assumes that all keys behave in the same way. Naturally this isn't the case, and so all commands which allow for fallbacks also allow overrides in the call itself.
+
+Using another example, let's assume that you need to read information from a database to service a public API. The issue is that the query is expensive and so you want to cache it locally for 5 minutes to avoid overloading your database. To do this with Cachex, you would simply specify a TTL of 5 minutes on your cache, and use a fallback to read from your database.
 
 ```elixir
 # initialize our database client
@@ -140,16 +165,13 @@ Let's look at an example; assume you need to read information from a database to
 # initialize the cache instance
 { :ok, pid } = Cachex.start_link(:info_cache, [ default_ttl: :timer.minutes(5), fallback_args: [db] ])
 
-# request our information on our "packages" API
 # status will equal :loaded if the database was hit, otherwise :ok when successful
 { status, information } = Cachex.get(:info_cache, "/api/v1/packages", fallback: fn(key, db) ->
   Database.query_all_packages(db)
 end)
 ```
 
-That's all there is to it. The above is a multi-layered cache which only hits the database **at most** every 5 minutes, and hits local memory in the meantime (retrieving the exact same data as was returned from your database). This allows you to easily lower the pressure on your backing systems - the value returned by your fallback is set in the cache against the key.
-
-Note that the above use defines the fallback implementation inside the `Cachex.get/3` command itself, but for a more general fallback you can assign it in the Cachex options. This is perhaps more fitting for something like Redis, where you're simply replicating the remote information locally:
+The above is a multi-layered cache which only hits the database **at most** every 5 minutes, and hits local memory in the meantime (retrieving the exact same data as was returned from your database). This allows you to easily lower the pressure on your backing systems as the context of your call requires - for example in the use case above, we can totally ignore the key argument as the function is only ever invoked on that call. Also note that this example demonstrates how you can bind arguments to your fallback functions using the `fallback_args` option.
 
 ## Execution Hooks
 
@@ -423,13 +445,13 @@ In addition, please note that calls to `Cachex.clear/2` from inside a transactio
 
 Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. If you use the cache name inside your block, you lose all benefits of the block execution. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
 
-## Migrating To v2
+## Benchmarks
 
-In the v1.x line of Cachex, there was a notion of remote Cachex instances which have been removed in v2.x onwards. This is a design decision due to the limitations of supporting remote instances and the complexities involved, specifically with regards to discovery and eviction policies.
+There are some very trivial benchmarks available using [Benchee](https://github.com/PragTob/benchee) in the `bench/` directory. Please use the median to gauge performance as the averages shown have wild error bounds (due to operations being so fast and hard to calculate). You can run the benchmarks using the following command:
 
-As an alternative to remote Cachex instances, you should now use a remote datastore such as Redis as your master copy and use fallback functions inside Cachex to replicate this data locally. This should support almost all cases for which people required the distributed nature of Cachex. To migrate the behaviour of deletion on remote nodes, simply set a TTL on your data which pulls from Redis and it'll periodically sync automatically. This has the advantage of removing a lot of complexity from Cachex whilst still solving many common use cases.
-
-If there are cases this doesn't solve, please file issues with a description of what you're trying to do and we can work together to design how to efficiently implement it inside Cachex. I'm not against reintroducing the idea of remote caches if there is an audience for them, as long as they're implemented in such a way that it doesn't limit local caches. There are several ideas in flux around how to make this happen but each needs a lot of thought and review, and so will only be revisited as needed.
+```bash
+$ mix run bench/cachex_bench.exs
+```
 
 ## Contributions
 
