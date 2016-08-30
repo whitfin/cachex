@@ -18,6 +18,7 @@ All of these features are optional and are off by default so you can pick and ch
 - [Usage](#usage)
     - [Startup](#startup)
     - [Interface](#interface)
+    - [Options](#options)
 - [Migrating To v2.x](#migrating-to-v2x)
 - [Multi-Layered Caches](#multi-layered-caches)
     - [Common Fallbacks](#common-fallbacks)
@@ -113,7 +114,7 @@ iex(4)> Cachex.get!(:missing_cache, "key")
 
 I'd typically recommend checking the values and using the safe version which gives you a tuple, but sometimes it's easier to use the unsafe version (for example in unit tests or when you're calling something which can't fail).
 
-## Cache Options
+#### Options
 
 Caches can accept a list of options during initialization, which determine various behaviour inside your cache. These options are defined on a per-cache basis and cannot be changed after being set.
 
@@ -129,6 +130,14 @@ Caches can accept a list of options during initialization, which determine vario
 |   ttl_interval   |     milliseconds   |          The frequency the Janitor process runs at (see below).         |
 
 For more information and examples, please see the official documentation on [Hex](https://hexdocs.pm/cachex/).
+
+## Migrating To v2
+
+In the v1.x line of Cachex, there was a notion of remote Cachex instances which have been removed in v2.x onwards. This is a design decision due to the limitations of supporting remote instances and the complexities involved, specifically with regards to discovery and eviction policies.
+
+As an alternative to remote Cachex instances, you should now use a remote datastore such as Redis as your master copy and use fallback functions inside Cachex to replicate this data locally. This should support almost all cases for which people required the distributed nature of Cachex. To migrate the behaviour of deletion on remote nodes, simply set a TTL on your data which pulls from Redis and it'll periodically sync automatically. This has the advantage of removing a lot of complexity from Cachex whilst still solving many common use cases.
+
+If there are cases this doesn't solve, please file issues with a description of what you're trying to do and we can work together to design how to efficiently implement it inside Cachex. I'm not against reintroducing the idea of remote caches if there is an audience for them, as long as they're implemented in such a way that it doesn't limit local caches. There are several ideas in flux around how to make this happen but each needs a lot of thought and review, and so will only be revisited as needed.
 
 ## Multi-Layered Caches
 
