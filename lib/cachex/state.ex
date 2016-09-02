@@ -17,6 +17,7 @@ defmodule Cachex.State do
             default_ttl: nil,       # any default ttl values to use
             fallback_args: nil,     # arguments to pass to a cache loader
             janitor: nil,           # the name of the janitor attached (if any)
+            limit: nil,             # any limit to apply to the cache
             pre_hooks: nil,         # any pre hooks to attach
             post_hooks: nil,        # any post hooks to attach
             ttl_interval: nil       # the ttl check interval

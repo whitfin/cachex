@@ -1,6 +1,7 @@
 ExUnit.start()
 
 defmodule TestHelper do
+  use PowerAssert
 
   def create_cache(args \\ []) when is_list(args) do
     table =
@@ -29,10 +30,16 @@ defmodule TestHelper do
     |> List.to_string
   end
 
-  def remote_call(node, func, args),
-  do: :rpc.call(node, Cachex, func, args)
-
-  def start_remote_cache(node, args),
-  do: remote_call(node, :start, args)
+  def poll(timeout, expected, generator, start_time \\ Cachex.Util.now()) do
+    try do
+      assert(generator.() == expected)
+    rescue
+      e ->
+        unless start_time + timeout > Cachex.Util.now() do
+          raise e
+        end
+        poll(timeout, expected, generator, start_time)
+    end
+  end
 
 end

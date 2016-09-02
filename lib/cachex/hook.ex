@@ -20,7 +20,7 @@ defmodule Cachex.Hook do
   # define our struct
   defstruct args: [],
             async: true,
-            max_timeout: 5,
+            max_timeout: nil,
             module: nil,
             ref: nil,
             provide: [],
@@ -260,7 +260,13 @@ defmodule Cachex.Hook do
   # we just nil the listener to avoid errors later.
   defp verify_hook(%__MODULE__{ } = hook) do
     try do
-      hook.module.__info__(:module) && hook
+      hook.module.__info__(:module)
+
+      if !hook.async && !hook.max_timeout do
+        %__MODULE__{ hook | max_timeout: 5 }
+      else
+        hook
+      end
     rescue
       e ->
         Logger.warn(fn ->
