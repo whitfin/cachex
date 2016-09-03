@@ -15,7 +15,7 @@ defmodule Cachex.Worker.Actions do
   @behaviour Cachex.Worker
 
   # define purge constants
-  @purge_override [{ :via, { :purge } }, { :hook_result, { :ok, 1 } }]
+  @purge_override [{ :via, { :purge, [[]] } }, { :hook_result, { :ok, 1 } }]
 
   @doc """
   Writes a record into the cache, and returns a result signifying whether the

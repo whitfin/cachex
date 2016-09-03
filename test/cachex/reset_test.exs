@@ -29,7 +29,7 @@ defmodule Cachex.ResetTest do
       |> Hook.hook_by_module(__MODULE__.LastActionHook)
 
     hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [] })
+    assert(hook_state == { :size, [[]] })
 
     reset_result = Cachex.reset(cache)
     assert(reset_result == { :ok, true })
@@ -41,7 +41,7 @@ defmodule Cachex.ResetTest do
     assert(size_result == { :ok, 0 })
 
     hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [] })
+    assert(hook_state == { :size, [[]] })
   end
 
   test "resetting only a cache and no hooks" do
@@ -66,13 +66,13 @@ defmodule Cachex.ResetTest do
       |> Hook.hook_by_module(__MODULE__.LastActionHook)
 
     hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [] })
+    assert(hook_state == { :size, [[]] })
 
     reset_result = Cachex.reset(cache, only: :cache)
     assert(reset_result == { :ok, true })
 
     hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [] })
+    assert(hook_state == { :size, [[]] })
 
     size_result = Cachex.size(cache)
     assert(size_result == { :ok, 0 })
@@ -100,7 +100,7 @@ defmodule Cachex.ResetTest do
       |> Hook.hook_by_module(__MODULE__.LastActionHook)
 
     hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [] })
+    assert(hook_state == { :size, [[]] })
 
     reset_result = Cachex.reset(cache, only: :hooks)
     assert(reset_result == { :ok, true })
@@ -140,7 +140,7 @@ defmodule Cachex.ResetTest do
     function_hook = Hook.hook_by_module(pre_hooks, __MODULE__.LastFunctionHook)
 
     action_hook_state = Hook.call(actions_hook, :state)
-    assert(action_hook_state == { :size, [] })
+    assert(action_hook_state == { :size, [[]] })
 
     function_hook_state = Hook.call(function_hook, :state)
     assert(function_hook_state == :size)
@@ -185,8 +185,8 @@ defmodule Cachex.ResetTest.LastFunctionHook do
     { :ok, base }
   end
 
-  def handle_notify(action, _state) do
-    { :ok, elem(action, 0) }
+  def handle_notify({ action, _opts }, _state) do
+    { :ok, action }
   end
 
   def handle_call(:state, state) do

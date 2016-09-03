@@ -20,6 +20,8 @@ All of these features are optional and are off by default so you can pick and ch
     - [Interface](#interface)
     - [Options](#options)
 - [Migrating To v2.x](#migrating-to-v2x)
+    - [Distribution](#distribution)
+    - [Hook Interface](#hook-interface)
 - [Multi-Layered Caches](#multi-layered-caches)
     - [Common Fallbacks](#common-fallbacks)
     - [Specified Fallbacks](#specified-fallbacks)
@@ -133,11 +135,23 @@ For more information and examples, please see the official documentation on [Hex
 
 ## Migrating To v2
 
+### Distribution
+
 In the v1.x line of Cachex, there was a notion of remote Cachex instances which have been removed in v2.x onwards. This is a design decision due to the limitations of supporting remote instances and the complexities involved, specifically with regards to discovery and eviction policies.
 
 As an alternative to remote Cachex instances, you should now use a remote datastore such as Redis as your master copy and use fallback functions inside Cachex to replicate this data locally. This should support almost all cases for which people required the distributed nature of Cachex. To migrate the behaviour of deletion on remote nodes, simply set a TTL on your data which pulls from Redis and it'll periodically sync automatically. This has the advantage of removing a lot of complexity from Cachex whilst still solving many common use cases.
 
 If there are cases this doesn't solve, please file issues with a description of what you're trying to do and we can work together to design how to efficiently implement it inside Cachex. I'm not against reintroducing the idea of remote caches if there is an audience for them, as long as they're implemented in such a way that it doesn't limit local caches. There are several ideas in flux around how to make this happen but each needs a lot of thought and review, and so will only be revisited as needed.
+
+### Hook Interface
+
+There have been a couple of tweaks to the interface behind hooks to make them more convenient to work with:
+
+Firstly, Hooks will default to being of `type: :post`. This is because post hooks are the more common use case, and it was very easy to become confused when using `results: true` and receiving nothing (because of the default to `:pre`). I feel that defaulting to `:post` going forward is more user-friendly.
+
+Additionally, there has been a change in the message format used to talk to Hooks. Previously this was a Tuple of the action and arguments, e.g. `{ :get, "key", [] }`. Going forward, this will always be a two-element Tuple, with the action and a list of arguments, e.g. `{ :get, [ "key", [] ] }`. This change makes it easier to pattern match only on the action (something very common in hooks) and avoids arbitrarily long Tuples (which is almost always the wrong thing to do).
+
+Both of these changes should be fairly easy to adopt, but please file issues if you feel something is missing. It's also worth noting that going forwards the last element of the arguments list should be options provided to the function - if this is ever not the case, please file a bug.
 
 ## Multi-Layered Caches
 
@@ -186,12 +200,12 @@ The above is a multi-layered cache which only hits the database **at most** ever
 
 Cachex provides an easy way to plug into cache actions, by way of the hook system. This system allows the user to specify pre/post execution hooks which are notified when actions are taken.
 
-These hooks accept messages in the form of tuples which represent the action being taken. These tuples basically represent `[:action|action_args]`, where `:action` represents the name of the function being executed inside Cachex, and `action_args` represent the arguments provided to the function.
+These hooks accept messages in the form of tuples which represent the action being taken. These tuples basically represent `{ :action, action_args }`, where `:action` represents the name of the function being executed inside Cachex, and `action_args` represent the arguments provided to the function.
 
 It's pretty straightforward, but in the interest of completeness, here is a quick example of how a Cachex command translates to the notification format:
 
 ```elixir
-Cachex.get(:my_cache, "key") == { :get, :my_cache, "key" }
+Cachex.get(:my_cache, "key") == { :get, [ :my_cache, "key" ] }
 ```
 
 Cachex uses the typical `GenServer` pattern (it's actually a `GenEvent` implementation under the hood), and as such you get most of the typical interfaces. There are a couple of differences, but they're detailed below.

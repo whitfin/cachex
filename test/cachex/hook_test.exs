@@ -212,23 +212,23 @@ end
 defmodule Cachex.HookTest.TestHook do
   use Cachex.Hook
 
-  def handle_notify({ :get, "async_pre_hook", _options }, state) do
+  def handle_notify({ :get, [ "async_pre_hook", _options ] }, state) do
     :timer.sleep(100)
     { :ok, state }
   end
 
-  def handle_notify({ :get, "sync_pre_hook", _options }, state) do
+  def handle_notify({ :get, [ "sync_pre_hook", _options ] }, state) do
     :timer.sleep(100)
     { :ok, state }
   end
 
-  def handle_notify({ :get, "sync_double_hook", _options }, state) do
+  def handle_notify({ :get, [ "sync_double_hook", _options ] }, state) do
     send(state, { :ack, self, 1111 })
     :timer.sleep(100)
     { :ok, state }
   end
 
-  def handle_notify({ :get, "key_without_results", _options }, state) do
+  def handle_notify({ :get, [ "key_without_results", _options ] }, state) do
     { :ok, send(state, "key_without_results") }
   end
 
@@ -236,7 +236,7 @@ defmodule Cachex.HookTest.TestHook do
     { :ok, state }
   end
 
-  def handle_notify({ :get, "key_with_results", _options }, _results, state) do
+  def handle_notify({ :get, [ "key_with_results", _options ] }, _results, state) do
     { :ok, send(state, "key_with_results") }
   end
 

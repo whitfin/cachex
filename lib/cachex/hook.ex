@@ -26,7 +26,7 @@ defmodule Cachex.Hook do
             provide: [],
             results: false,
             server_args: [],
-            type: :pre
+            type: :post
 
   @doc """
   Starts any required listeners.
