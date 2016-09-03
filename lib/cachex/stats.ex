@@ -27,9 +27,8 @@ defmodule Cachex.Stats do
   We don't keep statistics on requests which errored, to avoid false positives
   about what exactly is going on inside a given cache.
   """
-  def handle_notify(action, { status, _val } = result, stats) when status != :error do
+  def handle_notify({ action, _options }, { status, _val } = result, stats) when status != :error do
     action
-    |> Kernel.elem(0)
     |> Registry.register(result, stats)
     |> Util.ok
   end

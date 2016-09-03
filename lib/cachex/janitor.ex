@@ -89,7 +89,7 @@ defmodule Cachex.Janitor do
   # Broadcasts the number of evictions against this purge in order to notify any
   # hooks that a purge has just occurred.
   defp update_evictions({ :ok, evictions } = result, state) when evictions > 0 do
-    Worker.broadcast(state.cache, { :purge, [] }, result)
+    Worker.broadcast(state.cache, { :purge, [[]] }, result)
     state
   end
   defp update_evictions(_other, state), do: state

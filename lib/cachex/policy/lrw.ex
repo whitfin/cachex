@@ -48,8 +48,8 @@ defmodule Cachex.Policy.LRW do
   an error, and whose actions are listed in the additives constant (as only actions)
   fitting this criteria can have a net gain in cache size.
   """
-  def handle_notify(action, { status, _value }, opts) when status != :error do
-    if MapSet.member?(@additives, elem(action, 0)) do
+  def handle_notify({ action, _options }, { status, _value }, opts) when status != :error do
+    if MapSet.member?(@additives, action) do
       enforce_bounds(opts)
     end
     { :ok, opts }
@@ -176,7 +176,7 @@ defmodule Cachex.Policy.LRW do
   # the pipeline are reported separately and we're only reporting the delta at this
   # point in time.
   defp notify_worker(offset, state) when offset > 0 do
-    Worker.broadcast(state, { :clear, [] }, { :ok, offset })
+    Worker.broadcast(state, { :clear, [[]] }, { :ok, offset })
   end
   defp notify_worker(_offset, _state) do
     { :ok, 0 }

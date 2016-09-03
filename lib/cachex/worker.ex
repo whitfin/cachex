@@ -21,7 +21,7 @@ defmodule Cachex.Worker do
   Retrieves a value from the cache.
   """
   def get(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :get, key, options }, fn ->
+    do_action(state, { :get, [ key, options ] }, fn ->
       case Actions.read(state, key) do
         { _cache, ^key, _touched, _ttl, value } ->
           { :ok, value }
@@ -46,7 +46,7 @@ defmodule Cachex.Worker do
   """
   def get_and_update(%State{ } = state, key, update_fun, options \\ [])
   when is_function(update_fun) and is_list(options) do
-    do_action(state, { :get_and_update, key, update_fun, options }, fn ->
+    do_action(state, { :get_and_update, [ key, update_fun, options ] }, fn ->
       fb_fun =
         options
         |> Util.get_opt_function(:fallback)
@@ -88,7 +88,7 @@ defmodule Cachex.Worker do
   Sets a value in the cache.
   """
   def set(%State{ } = state, key, value, options \\ []) when is_list(options) do
-    do_action(state, { :set, key, value, options }, fn ->
+    do_action(state, { :set, [ key, value, options ] }, fn ->
       ttl =
         options
         |> Util.get_opt_number(:ttl)
@@ -105,7 +105,7 @@ defmodule Cachex.Worker do
   Updates a value in the cache.
   """
   def update(%State{ } = state, key, value, options \\ []) when is_list(options) do
-    do_action(state, { :update, key, value, options }, fn ->
+    do_action(state, { :update, [ key, value, options ] }, fn ->
       with { :ok, true } <- check_exists(state, key) do
         Actions.update(state, key, [{ 5, value }])
       end
@@ -116,7 +116,7 @@ defmodule Cachex.Worker do
   Removes a key from the cache.
   """
   def del(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :del, key, options }, fn ->
+    do_action(state, { :del, [ key, options ] }, fn ->
       Actions.delete(state, key)
     end)
   end
@@ -125,7 +125,7 @@ defmodule Cachex.Worker do
   Removes all keys from the cache.
   """
   def clear(%State{ } = state, options \\ []) when is_list(options) do
-    do_action(state, { :clear, options }, fn ->
+    do_action(state, { :clear, [ options ] }, fn ->
       Actions.clear(state, options)
     end)
   end
@@ -134,7 +134,7 @@ defmodule Cachex.Worker do
   Like size, but more accurate - takes into account expired keys.
   """
   def count(%State{ } = state, options \\ []) when is_list(options) do
-    do_action(state, { :count, options }, fn ->
+    do_action(state, { :count, [ options ] }, fn ->
       state.cache
       |> :ets.select_count(Util.retrieve_all_rows(true))
       |> Util.ok
@@ -155,7 +155,7 @@ defmodule Cachex.Worker do
   Determines whether a key exists in the cache.
   """
   def exists?(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :exists?, key, options }, fn ->
+    do_action(state, { :exists?, [ key, options ] }, fn ->
       case Actions.read(state, key) do
         { _cache, ^key, _touched, _ttl, _value } ->
           { :ok, true }
@@ -169,7 +169,7 @@ defmodule Cachex.Worker do
   Refreshes the expiration on a given key based on the value passed in.
   """
   def expire(%State{ } = state, key, expiration, options \\ []) when is_list(options) do
-    do_action(state, { :expire, key, expiration, options }, fn ->
+    do_action(state, { :expire, [ key, expiration, options ] }, fn ->
       with { :ok, true } <- check_exists(state, key) do
         if expiration == nil or expiration > 0 do
           Actions.update(state, key, [{ 3, Util.now() }, { 4, expiration }])
@@ -184,7 +184,7 @@ defmodule Cachex.Worker do
   Grabs a list of keys for the user (the entire keyspace).
   """
   def keys(%State{ } = state, options \\ []) when is_list(options) do
-    do_action(state, { :keys, options }, fn ->
+    do_action(state, { :keys, [ options ] }, fn ->
       state.cache
       |> :ets.select(Util.retrieve_all_rows(:key))
       |> Util.ok
@@ -195,7 +195,7 @@ defmodule Cachex.Worker do
   Increments a value in the cache.
   """
   def incr(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :incr, key, options }, fn ->
+    do_action(state, { :incr, [ key, options ] }, fn ->
       case Actions.incr(state, key, options) do
         { :error, :non_numeric_value } ->
           { :error, "Unable to operate on non-numeric value" }
@@ -209,7 +209,7 @@ defmodule Cachex.Worker do
   Purges all expired keys.
   """
   def purge(%State{ } = state, options \\ []) when is_list(options) do
-    do_action(state, { :purge, options }, fn ->
+    do_action(state, { :purge, [ options ] }, fn ->
       Janitor.purge_records(state.cache)
     end)
   end
@@ -218,7 +218,7 @@ defmodule Cachex.Worker do
   Refreshes the expiration time on a key.
   """
   def refresh(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :refresh, key, options }, fn ->
+    do_action(state, { :refresh, [ key, options ] }, fn ->
       with { :ok, true } <- check_exists(state, key) do
         Actions.update(state, key, [{ 3, Util.now() }])
       end
@@ -245,7 +245,7 @@ defmodule Cachex.Worker do
   Determines the current size of the cache.
   """
   def size(%State{ } = state, options \\ []) when is_list(options) do
-    do_action(state, { :size, options }, fn ->
+    do_action(state, { :size, [ options ] }, fn ->
       state.cache
       |> :mnesia.table_info(:size)
       |> Util.ok
@@ -272,7 +272,7 @@ defmodule Cachex.Worker do
   We're safe to drop to ETS for this as it's purely a read operation.
   """
   def stream(%State{ } = state, options \\ []) when is_list(options) do
-    do_action(state, { :stream, options }, fn ->
+    do_action(state, { :stream,  [ options ] }, fn ->
       resource = Stream.resource(
         fn ->
           match_spec =
@@ -300,7 +300,7 @@ defmodule Cachex.Worker do
   Removes a key from the cache, returning the last known value for the key.
   """
   def take(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :take, key, options }, fn ->
+    do_action(state, { :take, [ key, options ] }, fn ->
       Actions.take(state, key, options)
     end)
   end
@@ -320,7 +320,7 @@ defmodule Cachex.Worker do
   milliseconds. If the key has no expiration, nil is returned.
   """
   def ttl(%State{ } = state, key, options \\ []) when is_list(options) do
-    do_action(state, { :ttl, key, options }, fn ->
+    do_action(state, { :ttl, [ key, options ] }, fn ->
       case Actions.read(state, key) do
         { _cache, ^key, _touched, nil, _value } ->
           { :ok, nil }
@@ -396,20 +396,14 @@ defmodule Cachex.Worker do
   # Forwards a call to the correct actions set, currently only the local actions.
   # The idea is that in future this will delegate to distributed implementations,
   # so it has been built out in advance to provide a clear migration path.
-  defp do_action(%State{ } = state, message, fun)
-  when is_tuple(message) and is_function(fun) do
-    options =
-      message
-      |> Util.last_of_tuple
-
-    notify =
-      options
-      |> Keyword.get(:notify, true)
+  defp do_action(%State{ } = state, { _act, opts } = msg, fun) when is_function(fun) do
+    options = List.last(opts)
+    notify  = Keyword.get(options, :notify, true)
 
     message = case options[:via] do
-      nil -> message
+      nil -> msg
       val when is_tuple(val) -> val
-      val -> put_elem(message, 0, val)
+      val -> put_elem(msg, 0, val)
     end
 
     if notify do
