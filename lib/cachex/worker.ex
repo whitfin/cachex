@@ -65,15 +65,14 @@ defmodule Cachex.Worker do
       end
 
       raw_result = get_and_update_raw(state, key, fn({ cache, ^key, touched, ttl, value }) ->
-        { cache, key, touched, ttl, case value do
+        tmp = case value do
           nil ->
-            state
-            |> Util.get_fallback(key, fb_fun)
-            |> elem(1)
-            |> update_fun.()
+            { _status, new } = Util.get_fallback(state, key, fb_fun)
+            new
           val ->
-            update_fun.(val)
-        end }
+            val
+        end
+        { cache, key, touched, ttl, update_fun.(tmp) }
       end)
 
       case raw_result do
@@ -357,10 +356,13 @@ defmodule Cachex.Worker do
   Handler for broadcasting a set of actions and results to all registered hooks.
   This is fired by out-of-proc calls (i.e. Janitors) which need to notify hooks.
   """
+  def broadcast(%State{ } = state, action, result) do
+    do_action(state, action, fn -> result end)
+  end
   def broadcast(cache, action, result) when is_atom(cache) do
     case State.get(cache) do
       nil -> false
-      val -> do_action(val, action, fn -> result end)
+      val -> broadcast(val, action, result)
     end
   end
 

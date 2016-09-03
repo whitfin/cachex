@@ -5,6 +5,7 @@ defmodule Cachex.Options do
 
   # add some aliases
   alias Cachex.Hook
+  alias Cachex.Limit
   alias Cachex.Util
 
   @doc """
@@ -25,13 +26,14 @@ defmodule Cachex.Options do
       val -> val
     end
 
+    mx_limit = setup_limit(cache, options)
     onde_dis = Util.truthy?(options[:disable_ode])
     ets_opts = Keyword.get(options, :ets_opts, [
       { :read_concurrency, true },
       { :write_concurrency, true }
     ])
 
-    { pre_hooks, post_hooks } = setup_hooks(cache, options)
+    { pre_hooks, post_hooks } = setup_hooks(cache, options, mx_limit)
     { default_fallback, fallback_args } = setup_fallbacks(cache, options)
     { default_ttl, ttl_interval, janitor } = setup_ttl_components(cache, options)
 
@@ -43,6 +45,7 @@ defmodule Cachex.Options do
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
       "janitor": janitor,
+      "limit": mx_limit,
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
       "ttl_interval": ttl_interval
@@ -60,7 +63,7 @@ defmodule Cachex.Options do
   # Sets up any hooks to be enabled for this cache. Also parses out whether a
   # Stats hook has been requested or not. The returned value is a tuple of pre
   # and post hooks as they're stored separately.
-  defp setup_hooks(cache, options) do
+  defp setup_hooks(cache, options, limit) do
     stats_hook = options[:record_stats] && %Hook{
       args: [ ],
       module: Cachex.Stats,
@@ -72,7 +75,9 @@ defmodule Cachex.Options do
     }
 
     hooks =
-      [stats_hook]
+      limit
+      |> Limit.to_hooks
+      |> List.insert_at(0, stats_hook)
       |> Enum.concat(List.wrap(options[:hooks] || []))
       |> Hook.initialize_hooks
 
@@ -80,6 +85,15 @@ defmodule Cachex.Options do
       Hook.hooks_by_type(hooks, :pre),
       Hook.hooks_by_type(hooks, :post)
     }
+  end
+
+  # Parses out a potential cache size limit to cap the cache at. This will return
+  # a Limit struct based on the provided values. If the cache has no limits, the
+  # `:limit` key in the struct will be nil.
+  defp setup_limit(_cache, options) do
+    options
+    |> Keyword.get(:max_size)
+    |> Limit.parse
   end
 
   # Sets up and parses any options related to TTL behaviours. Currently this deals

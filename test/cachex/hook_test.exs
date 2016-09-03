@@ -3,8 +3,6 @@ defmodule Cachex.HookTest do
 
   import ExUnit.CaptureLog
 
-  @testhost Cachex.Util.create_node_name("cachex_test")
-
   setup do
     { :ok, name: String.to_atom(TestHelper.gen_random_string_of_length(16)) }
   end
@@ -31,7 +29,6 @@ defmodule Cachex.HookTest do
     hooks = %Cachex.Hook{
       args: self(),
       async: true,
-      max_timeout: 250,
       module: Cachex.HookTest.TestHook,
       type: :pre
     }
@@ -60,6 +57,28 @@ defmodule Cachex.HookTest do
     end)
 
     assert(sync_time > 5000 && sync_time < 7500)
+  end
+
+  test "hooks default asynchronous timeouts to nil", _state do
+    [hook] = Cachex.Hook.initialize_hooks(%Cachex.Hook{
+      args: self(),
+      async: true,
+      module: Cachex.HookTest.TestHook,
+      type: :pre
+    })
+
+    assert(hook.max_timeout == nil)
+  end
+
+  test "hooks default synchronous timeouts to 5ms", _state do
+    [hook] = Cachex.Hook.initialize_hooks(%Cachex.Hook{
+      args: self(),
+      async: false,
+      module: Cachex.HookTest.TestHook,
+      type: :pre
+    })
+
+    assert(hook.max_timeout == 5)
   end
 
   test "hooks with synchronous notifications have minimal overhead", state do
