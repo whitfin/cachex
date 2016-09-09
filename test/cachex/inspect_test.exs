@@ -41,7 +41,7 @@ defmodule Cachex.InspectTest do
     { status, result } = Cachex.inspect(state.cache, { :memory, :bytes })
 
     assert(status == :ok)
-    assert_in_delta(result, 10800, 100)
+    assert_in_delta(result, 10700, 100)
   end
 
   test "inspect can track the last run of a Janitor", _state do
