@@ -45,7 +45,7 @@ defmodule Cachex.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:logger, :mnesia, :eternal],
+      applications: [:logger, :eternal],
       mod: {Cachex.Application, []}
     ]
   end
@@ -62,9 +62,10 @@ defmodule Cachex.Mixfile do
   defp deps do
     [
       # Production dependencies
-      { :eternal, "~> 1.0" },
+      { :eternal, "~> 1.1" },
       # Local dependencies
-      { :benchee,      "~> 0.3",  optional: true, only: [ :dev, :test ] },
+      { :benchfella,   "~> 0.3",  optional: true, only: [ :dev, :test ] },
+      { :bmark,        "~> 1.0",  optional: true, only: [ :dev, :test ] },
       { :credo,        "~> 0.4",  optional: true, only: [ :dev, :test ] },
       { :ex_doc,       "~> 0.13", optional: true, only: [ :dev, :test ] },
       { :excoveralls,  "~> 0.5",  optional: true, only: [ :dev, :test ] },

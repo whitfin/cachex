@@ -18,13 +18,15 @@ defmodule Cachex.State do
             fallback_args: nil,     # arguments to pass to a cache loader
             janitor: nil,           # the name of the janitor attached (if any)
             limit: nil,             # any limit to apply to the cache
+            manager: nil,           # the name of the manager attached
             pre_hooks: nil,         # any pre hooks to attach
             post_hooks: nil,        # any post hooks to attach
+            transactions: nil,      # whether to enable transactions
             ttl_interval: nil       # the ttl check interval
 
   # add any aliases
   alias Cachex.Hook
-  alias Cachex.Worker
+  alias Supervisor.Spec
 
   # our opaque type
   @opaque t :: %__MODULE__{ }
@@ -33,34 +35,21 @@ defmodule Cachex.State do
   @state_table :cachex_state_table
 
   # transaction manager
-  @transaction_manager :cachex_state_tmanager
+  @transaction_manager :cachex_state_manager
 
   @doc false
   def start_link do
-    # Start ETS manager
-    if Eternal.owner(@state_table) == :undefined do
-      Eternal.new(@state_table, [
-        :named_table,
-        :public,
-        read_concurrency: true,
-        write_concurrency: true
-      ], [ quiet: true ])
-    end
+    ets_opts = [
+      read_concurrency: true,
+      write_concurrency: true
+    ]
 
-    # Start transaction manager
-    Agent.start_link(fn -> :ok end, [ name: @transaction_manager ])
-  end
+    children = [
+      Spec.supervisor(Eternal, [ @state_table, ets_opts, [ quiet: true ] ]),
+      Spec.worker(Agent, [ fn -> :ok end, [ name: @transaction_manager ] ])
+    ]
 
-  @doc false
-  def start do
-    pid = case start_link do
-      { :ok, pid } -> pid
-      { :error, { :already_started, pid } } -> pid
-    end
-
-    :erlang.unlink(pid)
-
-    { :ok, pid }
+    Supervisor.start_link(children, strategy: :one_for_one, name: :cachex_state)
   end
 
   @doc """
@@ -74,7 +63,7 @@ defmodule Cachex.State do
   @doc """
   Retrieves a state from the local state table, or `nil` if none exists.
   """
-  @spec get(cache :: atom) :: state :: Worker.t | nil
+  @spec get(cache :: atom) :: state :: State.t | nil
   def get(cache) when is_atom(cache) do
     case :ets.lookup(@state_table, cache) do
       [{ ^cache, state }] ->
@@ -95,7 +84,7 @@ defmodule Cachex.State do
   @doc """
   Sets a state in the local state table.
   """
-  @spec set(cache :: atom, state :: Worker.t) :: true
+  @spec set(cache :: atom, state :: State.t) :: true
   def set(cache, %__MODULE__{ } = state) when is_atom(cache) do
     :ets.insert(@state_table, { cache, state })
   end

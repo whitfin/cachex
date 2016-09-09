@@ -84,7 +84,7 @@ defmodule Cachex.Policy.LRWTest do
 
     assert(Cachex.size!(my_cache) == 500)
 
-    :ets.insert(my_cache, { my_cache, 501, Cachex.Util.now(), nil, 501 })
+    :ets.insert(my_cache, { 501, Cachex.Util.now(), nil, 501 })
 
     assert(Cachex.get!(my_cache, 501) == 501)
     assert(Cachex.size!(my_cache) == 501)

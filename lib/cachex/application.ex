@@ -12,7 +12,8 @@ defmodule Cachex.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
-      worker(Cachex.State, [])
+      supervisor(Cachex.State, []),
+      supervisor(Cachex.LockManager.Table, [])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

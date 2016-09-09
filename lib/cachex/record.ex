@@ -4,7 +4,6 @@ defmodule Cachex.Record do
 
   # define the opaque type
   @opaque t :: {
-    cache :: atom,
     key :: any,
     touched :: number,
     ttl :: number | nil,

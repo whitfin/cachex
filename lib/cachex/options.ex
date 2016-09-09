@@ -26,14 +26,16 @@ defmodule Cachex.Options do
       val -> val
     end
 
-    mx_limit = setup_limit(cache, options)
     onde_dis = Util.truthy?(options[:disable_ode])
     ets_opts = Keyword.get(options, :ets_opts, [
-      { :read_concurrency, true },
-      { :write_concurrency, true }
+      read_concurrency: true,
+      write_concurrency: true
     ])
 
-    { pre_hooks, post_hooks } = setup_hooks(cache, options, mx_limit)
+    cache_limits = setup_limit(cache, options)
+
+    { pre_hooks, post_hooks } = setup_hooks(cache, options, cache_limits)
+    { transactional, manager } = setup_transactions(cache, options)
     { default_fallback, fallback_args } = setup_fallbacks(cache, options)
     { default_ttl, ttl_interval, janitor } = setup_ttl_components(cache, options)
 
@@ -45,9 +47,11 @@ defmodule Cachex.Options do
       "default_ttl": default_ttl,
       "fallback_args": fallback_args,
       "janitor": janitor,
-      "limit": mx_limit,
+      "limit": cache_limits,
+      "manager": manager,
       "pre_hooks": pre_hooks,
       "post_hooks": post_hooks,
+      "transactions": transactional,
       "ttl_interval": ttl_interval
     }
   end
@@ -95,6 +99,13 @@ defmodule Cachex.Options do
     |> Keyword.get(:max_size)
     |> Limit.parse
   end
+
+  # Parses out whether the user wishes to utilize transactions or not. They can
+  # either be enabled or disabled, represented by `true` and `false`.
+  defp setup_transactions(cache, options), do: {
+    Util.get_opt_boolean(options, :transactions),
+    Util.manager_for_cache(cache)
+  }
 
   # Sets up and parses any options related to TTL behaviours. Currently this deals
   # with janitor naming, TTL defaults, and purge intervals.

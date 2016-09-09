@@ -5,9 +5,7 @@ defmodule Cachex.StateTest do
   alias Cachex.State
 
   setup do
-    State.start()
-    State.del(__MODULE__)
-    :ok
+    State.del(__MODULE__) && :ok
   end
 
   test "retrieving a state from the cache" do
@@ -19,6 +17,7 @@ defmodule Cachex.StateTest do
 
   test "setting a state in the cache" do
     assert(State.set(__MODULE__, %State{ }))
+    assert(State.member?(__MODULE__))
   end
 
   test "update a state in the cache" do
