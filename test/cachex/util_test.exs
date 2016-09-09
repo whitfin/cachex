@@ -35,29 +35,9 @@ defmodule Cachex.UtilTest do
     assert(Util.reply(:value, :test) == { :reply, :value, :test })
   end
 
-  test "util.create_node_name/1 generates a node name on the local host" do
-    nodename = Util.create_node_name("my_name")
-    hostname = :inet.gethostname |> elem(1) |> to_string
-
-    assert(to_string(nodename) == "my_name@#{hostname}")
-  end
-
-  test "util.create_node_name/1 works with an atom name" do
-    nodename = Util.create_node_name(:my_name)
-    hostname = :inet.gethostname |> elem(1) |> to_string
-
-    assert(to_string(nodename) == "my_name@#{hostname}")
-  end
-
-  test "util.create_node_name/1 generates a node name on a given host" do
-    nodename = Util.create_node_name("my_name", "localhost")
-    assert(to_string(nodename) == "my_name@localhost")
-  end
-
   test "util.create_record/3 generates records with no expiration" do
-    { cache, key, date, ttl, value } = Util.create_record(%Cachex.State{ "cache": :test }, "key", "value")
+    { key, date, ttl, value } = Util.create_record(%Cachex.State{ "cache": :test }, "key", "value")
 
-    assert(cache == :test)
     assert(key == "key")
     assert_in_delta(date, Util.now(), 2)
     assert(value == "value")
@@ -65,12 +45,11 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.create_record/3 generates records with a default expiration" do
-    { cache, key, date, ttl, value } = Util.create_record(%Cachex.State{
+    { key, date, ttl, value } = Util.create_record(%Cachex.State{
       "cache": :test,
       "default_ttl": :timer.seconds(5)
     }, "key", "value")
 
-    assert(cache == :test)
     assert(key == "key")
     assert_in_delta(date, Util.now(), 5)
     assert(value == "value")
@@ -78,9 +57,8 @@ defmodule Cachex.UtilTest do
   end
 
   test "util.create_record/4 generates records with a custom expiration" do
-    { cache, key, date, ttl, value } = Util.create_record(%Cachex.State{ "cache": :test }, "key", "value", 5000)
+    { key, date, ttl, value } = Util.create_record(%Cachex.State{ "cache": :test }, "key", "value", 5000)
 
-    assert(cache == :test)
     assert(key == "key")
     assert_in_delta(date, Util.now(), 5)
     assert(value == "value")
@@ -176,33 +154,6 @@ defmodule Cachex.UtilTest do
     assert(val == 50)
   end
 
-  test "util.handle_transaction/1 formats transaction results into tuples" do
-    assert(Util.handle_transaction({ :atomic, { :error, :test } }) == { :error, :test })
-    assert(Util.handle_transaction({ :atomic, { :ok, :test } }) == { :ok, :test })
-    assert(Util.handle_transaction({ :atomic, { :loaded, :test } }) == { :loaded, :test })
-    assert(Util.handle_transaction({ :atomic, { :missing, :test } }) == { :missing, :test })
-    assert(Util.handle_transaction({ :atomic, :test }) == { :ok, :test })
-    assert(Util.handle_transaction({ :aborted, :test }) == { :error, :test })
-  end
-
-  test "util.handle_transaction/1 can detect nested transactions" do
-    res = Util.handle_transaction(fn ->
-      Util.handle_transaction(fn ->
-        { :ok, :test }
-      end)
-    end)
-    assert(res == { :ok, :test })
-  end
-
-  test "util.handle_transaction/2 formats transaction results into tuples" do
-    assert(Util.handle_transaction({ :atomic, { :ok, :test } }, :test) == { :ok, :test })
-    assert(Util.handle_transaction({ :aborted, :test }, :arg) == { :error, :test })
-  end
-
-  test "util.handle_transaction/2 can return an element from a transaction result" do
-    assert(Util.handle_transaction(fn -> { :ok, :test } end, 1) == :test)
-  end
-
   test "util.has_expired?/2 determines if a date and ttl has passed" do
     assert(Util.has_expired?(Util.now(), -5000))
     refute(Util.has_expired?(Util.now(), 5000))
@@ -229,16 +180,6 @@ defmodule Cachex.UtilTest do
     refute(Util.has_expired?(state, nil, nil))
   end
 
-  test "util.has_arity?/2 determines if a function has a given arity" do
-    assert(Util.has_arity?(&(&1), 1))
-    refute(Util.has_arity?(&(&1), 2))
-  end
-
-  test "util.has_arity?/2 determines if a function has any of the given arities" do
-    assert(Util.has_arity?(&(&1), [3,2,1]))
-    refute(Util.has_arity?(&(&1), [3,2]))
-  end
-
   test "util.janitor_for_cache/1 converts a cache name to a janitor name" do
     assert(Util.janitor_for_cache(:cache) == :cache_janitor)
   end
@@ -248,12 +189,24 @@ defmodule Cachex.UtilTest do
     assert(Util.last_of_tuple({}) == nil)
   end
 
+  test "util.normalize_started/1 accepts ok responses" do
+    assert(Util.normalize_started({ :ok, nil }) == { :ok, true })
+  end
+
+  test "util.normalize_started/1 accepts already started responses" do
+    assert(Util.normalize_started({ :error, { :already_started, nil } }) == { :ok, true })
+  end
+
+  test "util.normalize_started/1 returns unrecognised responses" do
+    assert(Util.normalize_started({ :error, :my_error }) == { :error, :my_error })
+  end
+
   test "util.retrieve_all_rows/1 returns a select on all rows" do
     [ { variables, condition, result } ] =
       true
       |> Util.retrieve_all_rows
 
-    assert(variables == { :"_", :"$1", :"$2", :"$3", :"$4" })
+    assert(variables == { :"$1", :"$2", :"$3", :"$4" })
     assert(result == [ true ])
 
     [ { type, cond1, { sign, sum, date } } ] = condition

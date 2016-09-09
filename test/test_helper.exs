@@ -1,3 +1,5 @@
+Application.ensure_all_started(:cachex)
+
 ExUnit.start()
 
 defmodule TestHelper do
@@ -14,7 +16,7 @@ defmodule TestHelper do
     Cachex.start_link(table_name, args)
 
     ExUnit.Callbacks.on_exit("delete #{table_name}", fn ->
-      :mnesia.delete_table(table_name)
+      Eternal.stop(Cachex.Util.atom_append(table_name, "_eternal"))
     end)
 
     table_name

@@ -10,8 +10,7 @@ before_install:
 before_script:
   - epmd -daemon
 script:
-  - mix credo --all --format=oneline
-  - mix coveralls --trace
+  - mix credo --all --format=oneline && mix coveralls --trace
 branches:
   only:
     - master

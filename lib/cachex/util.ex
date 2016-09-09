@@ -7,7 +7,7 @@ defmodule Cachex.Util do
   Appends a string to an atom and returns as an atom.
   """
   def atom_append(atom, suffix),
-  do: String.to_atom(to_string(atom) <> suffix)
+  do: String.to_atom("#{atom}#{suffix}")
 
   @doc """
   Converts a number of memory bytes to a binary representation.
@@ -33,21 +33,7 @@ defmodule Cachex.Util do
       |> field_index
       |> List.wrap
 
-    [ { { :"_", :"$1", :"$2", :"$3", :"$4" }, List.wrap(where), normalized } ]
-  end
-
-  @doc """
-  Creates a long machine name from a provided binary name. If a hostname is given,
-  it will be used - otherwise we default to using the local node's hostname.
-  """
-  def create_node_name(name, hostname \\ nil)
-  def create_node_name(name, hostname) when is_atom(name),
-  do: name |> to_string |> create_node_name(hostname)
-  def create_node_name(name, hostname) when is_binary(name) do
-    String.to_atom(name <> "@" <> case hostname do
-      nil -> local_hostname()
-      val -> val
-    end)
+    [ { { :"$1", :"$2", :"$3", :"$4" }, List.wrap(where), normalized } ]
   end
 
   @doc """
@@ -60,7 +46,7 @@ defmodule Cachex.Util do
       nil -> state.default_ttl
       val -> val
     end
-    { state.cache, key, now(), exp, value }
+    { key, now(), exp, value }
   end
 
   @doc """
@@ -75,6 +61,13 @@ defmodule Cachex.Util do
   Lazy wrapper for creating an :error tuple.
   """
   def error(value), do: { :error, value }
+
+  @doc """
+  Very small handler for appending "_janitor" to the name of a cache in order to
+  create the name of a Janitor automatically.
+  """
+  def eternal_for_cache(cache) when is_atom(cache),
+  do: atom_append(cache, "_eternal")
 
   @doc """
   Used to normalize some quick select syntax to valid Erlang handles. Used when
@@ -142,6 +135,13 @@ defmodule Cachex.Util do
   end
 
   @doc """
+  Pulls a boolean from a set of options. If the value is not a boolean, we return
+  false unless a default value has been provided, in which case we return that.
+  """
+  def get_opt_boolean(options, key, default \\ false),
+  do: get_opt(options, key, default, &is_boolean/1)
+
+  @doc """
   Pulls a function from a set of options. If the value is not a function, we return
   nil unless a default value has been provided, in which case we return that.
   """
@@ -184,33 +184,6 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Takes a result in the format of a transaction result and returns just either
-  the value or the error as an ok/error tuple. You can provide an overload value
-  if you wish to ignore the transaction result and return a different value, but
-  whilst still checking for errors.
-  """
-  def handle_transaction(fun) when is_function(fun) do
-    if :mnesia.is_transaction do
-      { :atomic, fun.() }
-      |> handle_transaction
-    else
-      fun
-      |> :mnesia.transaction
-      |> handle_transaction
-    end
-  end
-  def handle_transaction({ :atomic, { :error, _ } = err }), do: err
-  def handle_transaction({ :atomic, { :ok, _ } = res }), do: res
-  def handle_transaction({ :atomic, { :loaded, _ } = res }), do: res
-  def handle_transaction({ :atomic, { :missing, _ } = res }), do: res
-  def handle_transaction({ :atomic, value }), do: ok(value)
-  def handle_transaction({ :aborted, reason }), do: error(reason)
-  def handle_transaction({ :atomic, _value }, value), do: ok(value)
-  def handle_transaction({ :aborted, reason }, _value), do: error(reason)
-  def handle_transaction(fun, pos) when is_function(fun) and is_number(pos),
-  do: fun |> handle_transaction |> elem(pos)
-
-  @doc """
   Small utility to figure out if a document has expired based on the last touched
   time and the TTL of the document.
   """
@@ -222,18 +195,6 @@ defmodule Cachex.Util do
     touched + ttl < now
   end
   def has_expired?(_touched, _ttl), do: false
-
-  @doc """
-  Determines whether the provided function has any of the given arities. This is
-  used when checking the arity of a fallback function.
-  """
-  def has_arity?(fun, arities) when is_function(fun) do
-    fun_arity = :erlang.fun_info(fun)[:arity]
-
-    arities
-    |> List.wrap
-    |> Enum.any?(&(&1 == fun_arity))
-  end
 
   @doc """
   Shorthand increments for a map key. If the value is not a number, it is assumed
@@ -268,19 +229,28 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Retrieves the local hostname of this node.
+  Very small handler for appending "_lock_manager" to the name of a cache in order
+  to create the name of a LockManager automatically.
   """
-  def local_hostname do
-    :inet.gethostname
-    |> elem(1)
-    |> to_string
-  end
+  def manager_for_cache(cache),
+  do: atom_append(cache, "_lock_manager")
 
   @doc """
   Lazy wrapper for creating a :noreply tuple.
   """
   def noreply(state), do: { :noreply, state }
   def noreply(_value, state), do: { :noreply, state }
+
+  @doc """
+  Very small unwrapper for an Mnesia start result. We accept already started tables
+  due to re-creation inside tests and setup/teardown scenarios.
+  """
+  def normalize_started({ :ok, _pid }),
+    do: { :ok, true }
+  def normalize_started({ :error, { :already_started, _pid } }),
+    do: { :ok, true }
+  def normalize_started(err),
+    do: err
 
   @doc """
   Consistency wrapper around current time in millis.
@@ -330,14 +300,6 @@ defmodule Cachex.Util do
   """
   def stats_for_cache(cache) when is_atom(cache),
   do: atom_append(cache, "_stats")
-
-  @doc """
-  Very small unwrapper for an Mnesia start result. We accept already started tables
-  due to re-creation inside tests and setup/teardown scenarios.
-  """
-  def successfully_started?({ :atomic, :ok }), do: true
-  def successfully_started?({ :aborted, { :already_exists, _table } }), do: true
-  def successfully_started?(_), do: false
 
   @doc """
   Determines if a value is truthy or not. This just adds a little bit of extra

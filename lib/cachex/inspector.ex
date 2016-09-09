@@ -62,7 +62,7 @@ defmodule Cachex.Inspector do
   # size of the system, in order to return a number of bytes or as a binary.
   defp do_inspect(cache, { :memory, type }) do
     mem_words = :erlang.system_info(:wordsize)
-    mem_cache = :mnesia.table_info(cache, :memory)
+    mem_cache = :ets.info(cache, :memory)
 
     bytes = mem_words * mem_cache
 

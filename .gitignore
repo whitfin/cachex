@@ -1,5 +1,7 @@
 /_build
 /_native
+/bench
+!/bench/cachex_bench.exs
 /cover
 /deps
 /diff

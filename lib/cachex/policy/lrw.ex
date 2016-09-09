@@ -17,8 +17,8 @@ defmodule Cachex.Policy.LRW do
   use Cachex.Hook
 
   # add internal aliases
+  alias Cachex.Actions
   alias Cachex.Util
-  alias Cachex.Worker
 
   # store a list of actions which add items to the cache, as we only need to then
   # operate on these actions - this allows us to optimize and avoid checking size
@@ -176,7 +176,7 @@ defmodule Cachex.Policy.LRW do
   # the pipeline are reported separately and we're only reporting the delta at this
   # point in time.
   defp notify_worker(offset, state) when offset > 0 do
-    Worker.broadcast(state, { :clear, [[]] }, { :ok, offset })
+    Actions.broadcast(state, { :clear, [[]] }, { :ok, offset })
   end
   defp notify_worker(_offset, _state) do
     { :ok, 0 }

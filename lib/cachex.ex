@@ -4,13 +4,14 @@ defmodule Cachex do
   use Supervisor
 
   # add some aliases
+  alias Cachex.Actions
   alias Cachex.Hook
   alias Cachex.Inspector
   alias Cachex.Janitor
+  alias Cachex.LockManager
   alias Cachex.Options
   alias Cachex.State
   alias Cachex.Util
-  alias Cachex.Worker
 
   @moduledoc """
   Cachex provides a straightforward interface for in-memory key/value storage.
@@ -141,7 +142,7 @@ defmodule Cachex do
         hooks =
           pid
           |> Supervisor.which_children
-          |> Hook.link(opts |> Hook.combine)
+          |> Hook.link(Hook.combine(opts))
 
         State.update(opts.cache, &Hook.update(hooks, &1))
 
@@ -177,15 +178,25 @@ defmodule Cachex do
   # to setup the internal workers. Workers are then given to `supervise/2`.
   @spec init(state :: State.t) :: { status, any }
   def init(%State{ } = options) do
-    children = Hook.spec(options) ++ case options.ttl_interval do
-      nil -> []
-      _other -> [worker(Janitor, [options, [ name: options.janitor ]])]
+    ttl_workers = if options.ttl_interval do
+      [ worker(Janitor, [options, [ name: options.janitor ]]) ]
     end
+
+    children = [
+      ttl_workers || [],
+      [
+        worker(LockManager.Server, [ options.cache ])
+      ],
+      Hook.spec(options)
+    ]
 
     State.set(options.cache, options)
 
-    supervise(children, strategy: :one_for_one)
+    children
+    |> Enum.concat
+    |> supervise(strategy: :one_for_one)
   end
+
 
   @doc """
   Retrieves a value from the cache using a given key.
@@ -211,7 +222,7 @@ defmodule Cachex do
   """
   @spec get(cache, any, options) :: { status | :loaded, any }
   defwrap get(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.get(&1, key, options))
+    do_action(cache, &Actions.Get.execute(&1, key, options))
   end
 
   @doc """
@@ -239,7 +250,7 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defwrap get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    do_action(cache, &Worker.get_and_update(&1, key, update_function, options))
+    do_action(cache, &Actions.GetAndUpdate.execute(&1, key, update_function, options))
   end
 
   @doc """
@@ -267,7 +278,7 @@ defmodule Cachex do
   """
   @spec set(cache, any, any, options) :: { status, true | false }
   defwrap set(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.set(&1, key, value, options))
+    do_action(cache, &Actions.Set.execute(&1, key, value, options))
   end
 
   @doc """
@@ -297,7 +308,7 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, options) :: { status, any }
   defwrap update(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.update(&1, key, value, options))
+    do_action(cache, &Actions.Update.execute(&1, key, value, options))
   end
 
   @doc """
@@ -317,30 +328,7 @@ defmodule Cachex do
   """
   @spec del(cache, any, options) :: { status, true | false }
   defwrap del(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.del(&1, key, options))
-  end
-
-  @doc """
-  Aborts a transaction. Does nothing when called outside of a transaction.
-
-  ## Examples
-
-      iex> Cachex.transaction(:my_cache, fn(worker) ->
-      ...>   { status, val } = Cachex.get(worker, "key")
-      ...>   if status == :missing do
-      ...>     Cachex.abort(worker, :missing_key)
-      ...>   else
-      ...>     Cachex.update(worker, "key", val + 1)
-      ...>   end
-      ...> end)
-      { :error, :missing_key }
-
-  """
-  @spec abort(cache, any, options) :: Exception
-  defwrap abort(cache, reason, options \\ []) when is_list(options) do
-    do_action(cache, fn(_) ->
-      { :ok, :mnesia.is_transaction && :mnesia.abort(reason) }
-    end)
+    do_action(cache, &Actions.Del.execute(&1, key, options))
   end
 
   @doc """
@@ -362,7 +350,7 @@ defmodule Cachex do
   """
   @spec clear(cache, options) :: { status, true | false }
   defwrap clear(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.clear(&1, options))
+    do_action(cache, &Actions.Clear.execute(&1, options))
   end
 
   @doc """
@@ -383,7 +371,7 @@ defmodule Cachex do
   """
   @spec count(cache, options) :: { status, number }
   defwrap count(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.count(&1, options))
+    do_action(cache, &Actions.Count.execute(&1, options))
   end
 
   @doc """
@@ -417,9 +405,7 @@ defmodule Cachex do
   """
   @spec decr(cache, any, options) :: { status, number }
   defwrap decr(cache, key, options \\ []) do
-    mod_opts =
-      options
-      |> Keyword.update(:amount, -1, &(&1 * -1))
+    mod_opts = Keyword.update(options, :amount, -1, &(&1 * -1))
     incr(cache, key, via(:decr, mod_opts))
   end
 
@@ -478,8 +464,8 @@ defmodule Cachex do
   """
   @spec execute(cache, function, options) :: { status, any }
   defwrap execute(cache, operation, options \\ [])
-  when is_function(operation) and is_list(options) do
-    do_action(cache, &Worker.execute(&1, operation, options))
+  when is_function(operation, 1) and is_list(options) do
+    do_action(cache, &Actions.Execute.execute(&1, operation, options))
   end
 
   @doc """
@@ -501,7 +487,7 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, options) :: { status, true | false }
   defwrap exists?(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.exists?(&1, key, options))
+    do_action(cache, &Actions.Exists.execute(&1, key, options))
   end
 
   @doc """
@@ -533,7 +519,7 @@ defmodule Cachex do
   @spec expire(cache, any, number, options) :: { status, true | false }
   defwrap expire(cache, key, expiration, options \\ [])
   when (expiration == nil or is_number(expiration)) and is_list(options) do
-    do_action(cache, &Worker.expire(&1, key, expiration, options))
+    do_action(cache, &Actions.Expire.execute(&1, key, expiration, options))
   end
 
   @doc """
@@ -583,7 +569,7 @@ defmodule Cachex do
   """
   @spec keys(cache, options) :: [ any ]
   defwrap keys(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.keys(&1, options))
+    do_action(cache, &Actions.Keys.execute(&1, options))
   end
 
   @doc """
@@ -617,7 +603,7 @@ defmodule Cachex do
   """
   @spec incr(cache, any, options) :: { status, number }
   defwrap incr(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.incr(&1, key, options))
+    do_action(cache, &Actions.Incr.execute(&1, key, options))
   end
 
   @doc """
@@ -704,7 +690,7 @@ defmodule Cachex do
   """
   @spec purge(cache, options) :: { status, number }
   defwrap purge(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.purge(&1, options))
+    do_action(cache, &Actions.Purge.execute(&1, options))
   end
 
   @doc """
@@ -731,7 +717,7 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, options) :: { status, true | false }
   defwrap refresh(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.refresh(&1, key, options))
+    do_action(cache, &Actions.Refresh.execute(&1, key, options))
   end
 
   @doc """
@@ -762,7 +748,7 @@ defmodule Cachex do
   """
   @spec reset(cache, options) :: { status, true }
   defwrap reset(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.reset(&1, options))
+    do_action(cache, &Actions.Reset.execute(&1, options))
   end
 
   @doc """
@@ -782,7 +768,7 @@ defmodule Cachex do
   """
   @spec size(cache, options) :: { status, number }
   defwrap size(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.size(&1, options))
+    do_action(cache, &Actions.Size.execute(&1, options))
   end
 
   @doc """
@@ -816,7 +802,7 @@ defmodule Cachex do
   """
   @spec stats(cache, options) :: { status, %{ } }
   defwrap stats(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.stats(&1, options))
+    do_action(cache, &Actions.Stats.execute(&1, options))
   end
 
   @doc """
@@ -854,7 +840,7 @@ defmodule Cachex do
   """
   @spec stream(cache, options) :: { status, Enumerable.t }
   defwrap stream(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.stream(&1, options))
+    do_action(cache, &Actions.Stream.execute(&1, options))
   end
 
   @doc """
@@ -877,12 +863,11 @@ defmodule Cachex do
   """
   @spec take(cache, any, options) :: { status, any }
   defwrap take(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.take(&1, key, options))
+    do_action(cache, &Actions.Take.execute(&1, key, options))
   end
 
   @doc """
-  Transactional equivalent of `execute/3`. You can rollback the transaction at
-  any time using `abort/1`.
+  Transactional equivalent of `execute/3`.
 
   You **must** use the worker instance passed to the provided function when calling
   the cache, otherwise your request will time out. This is due to the blocking
@@ -911,8 +896,15 @@ defmodule Cachex do
   """
   @spec transaction(cache, function, options) :: { status, any }
   defwrap transaction(cache, operation, options \\ [])
-  when is_function(operation) and is_list(options) do
-    do_action(cache, &Worker.transaction(&1, operation, options))
+  when is_function(operation, 1) and is_list(options) do
+    do_action(cache, fn
+      (%State{ cache: cache, transactions: false }) ->
+        cache
+        |> State.update(&%State{ &1 | transactions: true })
+        |> Actions.Transaction.execute(operation, options)
+      (state) ->
+        Actions.Transaction.execute(state, operation, options)
+    end)
   end
 
   @doc """
@@ -929,7 +921,7 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, options) :: { status, number }
   defwrap ttl(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Worker.ttl(&1, key, options))
+    do_action(cache, &Actions.Ttl.execute(&1, key, options))
   end
 
   ###
@@ -958,7 +950,7 @@ defmodule Cachex do
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
   defp ensure_started do
-    if State.setup? do
+    if State.setup?() do
       { :ok, true }
     else
       { :error, "Cachex tables not initialized, did you start the Cachex application?" }
@@ -968,10 +960,11 @@ defmodule Cachex do
   # Determines whether a process has started or not. If the process has started,
   # an error message is returned - otherwise `true` is returned to represent not
   # being started.
-  defp ensure_unused(name) when not is_atom(name) and name != nil,
-  do: { :error, "Cache name must be a valid atom" }
+  defp ensure_unused(name) when not is_atom(name) do
+    { :error, "Cache name must be a valid atom" }
+  end
   defp ensure_unused(name) do
-    if State.member?(name) do
+    if Process.whereis(name) != nil do
       { :error, "Cache name already in use!" }
     else
       { :ok, true }
@@ -1001,18 +994,12 @@ defmodule Cachex do
 
   # Starts up an Mnesia table based on the provided options. If an error occurs
   # when setting up the table, we return an error tuple to represent the issue.
-  defp start_table(%State{ } = options) do
-    table_create = :mnesia.create_table(options.cache, [
-      { :attributes, [ :key, :touched, :ttl, :value ] },
-      { :type, :set },
-      { :storage_properties, [ { :ets, options.ets_opts } ] }
-    ])
-
-    if Util.successfully_started?(table_create) do
-      { :ok, true }
-    else
-      { :error, "Mnesia table setup failed due to #{inspect(table_create)}" }
-    end
+  defp start_table(%State{ cache: cache, ets_opts: ets_opts }) do
+    cache
+    |> Eternal.start(ets_opts, [ name: Util.eternal_for_cache(cache), quiet: true ])
+    |> Util.normalize_started
+  rescue
+    _ -> { :error, :invalid_opts }
   end
 
   # Simply adds a "via" param to the options to allow the use of delegates.

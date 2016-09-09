@@ -1,0 +1,60 @@
+defmodule Cachex.Actions.IncrTest do
+  use PowerAssert, async: false
+
+  setup do
+    { :ok, cache: TestHelper.create_cache() }
+  end
+
+  test "incr requires an existing cache name", _state do
+    assert(Cachex.incr("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
+  end
+
+  test "incr with a worker instance", state do
+    state_result = Cachex.inspect!(state.cache, :worker)
+    assert(Cachex.incr(state_result, "key") == { :missing, 1 })
+  end
+
+  test "incr with existing key using default amount", state do
+    set_result = Cachex.set(state.cache, "my_key", 5)
+    assert(set_result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, 5 })
+
+    incr_result = Cachex.incr(state.cache, "my_key")
+    assert(incr_result == { :ok, 6 })
+  end
+
+  test "incr with existing key using custom amount", state do
+    set_result = Cachex.set(state.cache, "my_key", 5)
+    assert(set_result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, 5 })
+
+    incr_result = Cachex.incr(state.cache, "my_key", amount: 5)
+    assert(incr_result == { :ok, 10 })
+  end
+
+  test "incr with missing key with no initial value", state do
+    incr_result = Cachex.incr(state.cache, "my_key")
+    assert(incr_result == { :missing, 1 })
+  end
+
+  test "incr with missing key with initial value", state do
+    incr_result = Cachex.incr(state.cache, "my_key", initial: 5)
+    assert(incr_result == { :missing, 6 })
+  end
+
+  test "incr with non-numeric value", state do
+    set_result = Cachex.set(state.cache, "my_key", "my_value")
+    assert(set_result == { :ok, true })
+
+    get_result = Cachex.get(state.cache, "my_key")
+    assert(get_result == { :ok, "my_value" })
+
+    incr_result = Cachex.incr(state.cache, "my_key")
+    assert(incr_result == { :error, :non_numeric_value })
+  end
+
+end
