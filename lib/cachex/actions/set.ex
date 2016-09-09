@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Set do
+  @moduledoc false
 
   alias Cachex.Actions
   alias Cachex.LockManager

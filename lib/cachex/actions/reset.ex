@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Reset do
+  @moduledoc false
 
   alias Cachex.Actions.Clear
   alias Cachex.Hook

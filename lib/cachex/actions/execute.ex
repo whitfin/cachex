@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Execute do
+  @moduledoc false
 
   alias Cachex.State
 

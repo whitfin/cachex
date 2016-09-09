@@ -1,4 +1,6 @@
 defmodule Cachex.LockManager.Server do
+  @moduledoc false
+
   use GenServer
 
   alias Cachex.Util

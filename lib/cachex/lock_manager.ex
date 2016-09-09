@@ -1,9 +1,10 @@
 defmodule Cachex.LockManager do
+  @moduledoc false
 
   alias Cachex.State
   alias __MODULE__.Table
 
-  def is_transaction do
+  def transaction? do
     Process.get(:locked, false)
   end
 
@@ -32,7 +33,7 @@ defmodule Cachex.LockManager do
   end
 
   defp safe_exec(fun, to_exec) do
-    is_transaction() && fun.() || to_exec.()
+    transaction?() && fun.() || to_exec.()
   end
 
 end

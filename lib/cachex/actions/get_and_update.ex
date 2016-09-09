@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.GetAndUpdate do
+  @moduledoc false
 
   alias Cachex.Actions
   alias Cachex.Actions.Get

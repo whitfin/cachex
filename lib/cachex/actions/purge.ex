@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Purge do
+  @moduledoc false
 
   alias Cachex.Actions
   alias Cachex.Janitor

@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Incr do
+  @moduledoc false
 
   alias Cachex.Actions
   alias Cachex.Actions.Exists

@@ -1,4 +1,5 @@
 defmodule Cachex.Actions do
+  @moduledoc false
 
   alias Cachex.Actions.Del
   alias Cachex.Notifier

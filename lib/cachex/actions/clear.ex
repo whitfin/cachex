@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Clear do
+  @moduledoc false
 
   alias Cachex.Actions
   alias Cachex.Actions.Size

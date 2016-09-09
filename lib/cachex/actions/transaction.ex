@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Transaction do
+  @moduledoc false
 
   @packed [ :ok, :error, :loaded, :missing ]
 

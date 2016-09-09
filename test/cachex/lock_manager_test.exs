@@ -9,16 +9,16 @@ defmodule Cachex.LockManagerTest do
   end
 
   test "checking for a transaction", state do
-    refute(LockManager.is_transaction())
+    refute(LockManager.transaction?())
 
     LockManager.transaction(state.cache, [], fn ->
-      assert(LockManager.is_transaction())
+      assert(LockManager.transaction?())
     end)
   end
 
   test "writes execute outside of transactions when disabled", state do
     LockManager.write(state.cache, "key", fn ->
-      refute(LockManager.is_transaction())
+      refute(LockManager.transaction?())
     end)
   end
 
@@ -26,7 +26,7 @@ defmodule Cachex.LockManagerTest do
     enabled_cache = %State{ state.cache | transactions: true }
 
     LockManager.write(enabled_cache, "key", fn ->
-      refute(LockManager.is_transaction())
+      refute(LockManager.transaction?())
     end)
   end
 

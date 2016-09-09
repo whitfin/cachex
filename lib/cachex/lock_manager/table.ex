@@ -1,4 +1,6 @@
 defmodule Cachex.LockManager.Table do
+  @moduledoc false
+
   @lock_table :cachex_lock_table
 
   def start_link do

@@ -1,4 +1,5 @@
 defmodule Cachex.Actions.Size do
+  @moduledoc false
 
   alias Cachex.Actions
   alias Cachex.State
