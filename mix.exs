@@ -69,8 +69,7 @@ defmodule Cachex.Mixfile do
       { :credo,        "~> 0.4",  optional: true, only: [ :dev, :test ] },
       { :ex_doc,       "~> 0.13", optional: true, only: [ :dev, :test ] },
       { :excoveralls,  "~> 0.5",  optional: true, only: [ :dev, :test ] },
-      { :exprof,       "~> 0.2",  optional: true, only: [ :dev, :test ] },
-      { :power_assert, "~> 0.0",  optional: true, only: [ :dev, :test ] }
+      { :exprof,       "~> 0.2",  optional: true, only: [ :dev, :test ] }
     ]
   end
 end

@@ -3,11 +3,11 @@ defmodule Cachex.LockManager.Server do
 
   use GenServer
 
-  alias Cachex.Util
   alias Cachex.LockManager.Table
+  alias Cachex.Util.Names
 
   def start_link(cache) do
-    GenServer.start_link(__MODULE__, cache, [ name: Util.manager_for_cache(cache) ])
+    GenServer.start_link(__MODULE__, cache, [ name: Names.manager(cache) ])
   end
 
   def init(cache) do

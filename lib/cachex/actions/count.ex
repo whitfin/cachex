@@ -7,9 +7,7 @@ defmodule Cachex.Actions.Count do
 
   def execute(%State{ } = state, options \\ []) when is_list(options) do
     Actions.do_action(state, { :count, [ options ] }, fn ->
-      state.cache
-      |> :ets.select_count(Util.retrieve_all_rows(true))
-      |> Util.ok
+      { :ok, :ets.select_count(state.cache, Util.retrieve_all_rows(true)) }
     end)
   end
 

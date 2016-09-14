@@ -7,9 +7,7 @@ defmodule Cachex.Actions.Keys do
 
   def execute(%State{ } = state, options \\ []) when is_list(options) do
     Actions.do_action(state, { :keys, [ options ] }, fn ->
-      state.cache
-      |> :ets.select(Util.retrieve_all_rows(:key))
-      |> Util.ok
+      { :ok, :ets.select(state.cache, Util.retrieve_all_rows(:key)) }
     end)
   end
 

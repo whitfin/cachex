@@ -1,155 +1,80 @@
 defmodule Cachex.Actions.TransactionTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test ensures that a transaction will block any write operations on the
+  # same keys by ensuring the the transaction has executed completely before any
+  # new operations. To ensure that this is the case, we sleep inside a transaction
+  # which blocks the increment outside. The increment happens whilst there is still
+  # 40ms left in the sleep inside the transaction, but it returns 2 - meaning that
+  # it was queued until after the transaction had finished sleeping and written
+  # the value for the first time.
+  test "executing a transaction is atomic" do
+    # create a test cache
+    cache = Helper.create_cache([ transactions: true ])
 
-  test "transaction requires an existing cache name", _state do
-    assert(Cachex.transaction("test", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
-  end
-
-  test "transaction with a cache instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.transaction(state_result, &(!!&1)) == { :ok, true })
-  end
-
-  test "transaction can write", state do
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.set(worker, "my_key", "my_value")
+    # spawn a transaction to increment a key
+    spawn(fn ->
+      Cachex.transaction(cache, [ "key" ], fn(state) ->
+        :timer.sleep(50)
+        Cachex.incr(state, "key")
+      end)
     end)
 
-    assert(result == { :ok, true })
+    # wait for the spawns to happen
+    :timer.sleep(10)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # write a key from outside a transaction
+    incr = Cachex.incr(cache, "key")
+
+    # verify the write was queued after the transaction
+    assert(incr == { :ok, 2 })
   end
 
-  test "transaction can update", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+  # This test ensures that any errors which occur inside a transaction are caught
+  # and an error status is returned instead of crashing the transaction server.
+  test "raising errors from inside transactions" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.update(worker, "my_key", "my_new_value")
+    # execute a broken transaction
+    result1 = Cachex.transaction(cache, [ ], fn(_state) ->
+      raise ArgumentError, message: "Error message"
     end)
 
-    assert(result == { :ok, true })
+    # verify the error was caught
+    assert(result1 == { :error, "Error message" })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_new_value" })
-  end
-
-  test "transaction can delete", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.del(worker, "my_key")
+    # ensure a new transaction executes normally
+    result2 = Cachex.transaction(cache, [ ], fn(_state) ->
+      Cachex.LockManager.transaction?()
     end)
 
-    assert(result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
+    # verify the results are correct
+    assert(result2 == { :ok, true })
   end
 
-  test "transaction can incr", state do
-    set_result = Cachex.set(state.cache, "my_key", 1)
-    assert(set_result == { :ok, true })
+  # This test makes sure that a cache with transactions disabled will automatically
+  # enable them the first time a transaction is executed. Simple enough to test;
+  # create a state without transactions, call a transaction, and then it should
+  # have transactions enabled from that point onwards.
+  test "transactions become enabled automatically" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.incr(worker, "my_key")
-    end)
+    # retrieve the cache state
+    state1 = Cachex.State.get(cache)
 
-    assert(result == { :ok, 2 })
+    # verify transactions are disabled
+    assert(state1.transactions == false)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 2 })
-  end
+    # execute a transactions
+    Cachex.transaction(state1.cache, [], &(&1))
 
-  test "transaction can incr with missing", state do
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.incr(worker, "my_key")
-    end)
+    # pull the state back from the cache again
+    state2 = Cachex.State.get(cache)
 
-    assert(result == { :missing, 1 })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 1 })
-  end
-
-  test "transaction can incr with error", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.incr(worker, "my_key")
-    end)
-
-    assert(result == { :error, :non_numeric_value })
-  end
-
-  test "transaction can take", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.take(worker, "my_key")
-    end)
-
-    assert(result == { :ok, "my_value" })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
-  end
-
-  test "transaction carries out many actions", state do
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.set(worker, "my_key1", "my_value1")
-      Cachex.set(worker, "my_key2", "my_value2")
-      Cachex.set(worker, "my_key3", "my_value3")
-    end)
-
-    assert(result == { :ok, true })
-
-    size_result = Cachex.size(state.cache)
-
-    assert(size_result == { :ok, 3 })
-  end
-
-  test "transaction returns a custom value", state do
-    transaction_result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.get(worker, "my_key")
-    end)
-
-    assert(transaction_result == { :missing, nil })
-  end
-
-  test "transaction can be nested", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    result = Cachex.transaction(state.cache, fn(worker) ->
-      Cachex.clear(worker)
-    end)
-
-    assert(result == { :ok, 1 })
-  end
-
-  test "transactions become enabled on demand", state do
-    refute(Cachex.State.get(state.cache).transactions)
-
-    Cachex.transaction(state.cache, &(&1))
-
-    assert(Cachex.State.get(state.cache).transactions)
-  end
-
-  test "transactions skip state updates when enabled", state do
-    enabled_state = %Cachex.State{ Cachex.State.get(state.cache) | transactions: true }
-
-    Cachex.transaction(enabled_state, &(&1))
-
-    refute(Cachex.State.get(state.cache).transactions)
+    # verify transactions are now enabled
+    assert(state2.transactions == true)
   end
 
 end

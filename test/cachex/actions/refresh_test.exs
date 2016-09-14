@@ -1,60 +1,63 @@
 defmodule Cachex.Actions.RefreshTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies that we can reset the TTL time on a key. We check this
+  # by settings keys with and without a TTL, waiting for some time to pass, and
+  # then check and refresh the TTL. This ensures that the TTL is reset after we
+  # refresh the key.
+  test "refreshing the TTL time on a key" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "refresh requires an existing cache name", _state do
-    assert(Cachex.refresh("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "refresh with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.refresh(state_result, "key") == { :missing, false })
-  end
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1000)
 
-  test "refresh with an existing key and no ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # clear messages
+    Helper.flush()
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # wait for 25ms
+    :timer.sleep(25)
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
+    # retrieve all TTLs from the cache
+    ttl1 = Cachex.ttl!(cache, 1)
+    ttl2 = Cachex.ttl!(cache, 2)
 
-    refresh_result = Cachex.refresh(state.cache, "my_key")
-    assert(refresh_result == { :ok, true })
+    # the first TTL should be nil
+    assert(ttl1 == nil)
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
-  end
+    # the second TTL should be roughly 975
+    assert_in_delta(ttl2, 970, 5)
 
-  test "refresh with an existing key and an existing ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5, ttl: :timer.seconds(1))
-    assert(set_result == { :ok, true })
+    # refresh some TTLs
+    refresh1 = Cachex.refresh(cache, 1)
+    refresh2 = Cachex.refresh(cache, 2)
+    refresh3 = Cachex.refresh(cache, 3)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # the first two writes should succeed
+    assert(refresh1 == { :ok, true })
+    assert(refresh2 == { :ok, true })
 
-    :timer.sleep(100)
+    # the third shouldn't, as it's missing
+    assert(refresh3 == { :missing, false })
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert(ttl < 901)
+    # verify the hooks were updated with the message
+    assert_receive({ { :refresh, [ 1, [] ] }, ^refresh1 })
+    assert_receive({ { :refresh, [ 2, [] ] }, ^refresh2 })
+    assert_receive({ { :refresh, [ 3, [] ] }, ^refresh3 })
 
-    refresh_result = Cachex.refresh(state.cache, "my_key")
-    assert(refresh_result == { :ok, true })
+    # retrieve all TTLs from the cache
+    ttl3 = Cachex.ttl!(cache, 1)
+    ttl4 = Cachex.ttl!(cache, 2)
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 1000, 5)
-  end
+    # the first TTL should still be nil
+    assert(ttl3 == nil)
 
-  test "refresh with a missing key", state do
-    refresh_result = Cachex.refresh(state.cache, "my_key")
-    assert(refresh_result == { :missing, false })
+    # the second TTL should be reset to 1000
+    assert_in_delta(ttl4, 1000, 5)
   end
 
 end

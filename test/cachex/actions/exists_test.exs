@@ -1,55 +1,55 @@
 defmodule Cachex.Actions.ExistsTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies whether a key exists in a cache. If it does, we return
+  # true. If not we return false. If the key has expired, we return false and
+  # evict it on demand using the generic read action.
+  test "checking if a key exists" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "exists? requires an existing cache name", _state do
-    assert(Cachex.exists?("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "exists? with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.exists?(state_result, "key") == { :ok, false })
-  end
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
 
-  test "exists? with an existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # let TTLs clear
+    :timer.sleep(2)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # clear messages
+    Helper.flush()
 
-    exists_result = Cachex.exists?(state.cache, "my_key")
-    assert(exists_result == { :ok, true })
-  end
+    # check if several keys exist
+    exists1 = Cachex.exists?(cache, 1)
+    exists2 = Cachex.exists?(cache, 2)
+    exists3 = Cachex.exists?(cache, 3)
 
-  test "exists? with an expired key", state do
-    set_result = Cachex.set(state.cache, "my_key", 5, ttl: 5)
-    assert(set_result == { :ok, true })
+    # the first result should exist
+    assert(exists1 == { :ok, true })
 
-    :timer.sleep(6)
+    # the next two should be missing
+    assert(exists2 == { :ok, false })
+    assert(exists3 == { :ok, false })
 
-    exists_result = Cachex.exists?(state.cache, "my_key")
-    assert(exists_result == { :ok, false })
-  end
+    # verify the hooks were updated with the message
+    assert_receive({ { :exists?, [ 1, [] ] }, ^exists1 })
+    assert_receive({ { :exists?, [ 2, [] ] }, ^exists2 })
+    assert_receive({ { :exists?, [ 3, [] ] }, ^exists3 })
 
-  test "exists? with an expired key and disable_ode", _state do
-    cache = TestHelper.create_cache([ disable_ode: true ])
+    # check we received valid purge actions for the TTL
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
 
-    set_result = Cachex.set(cache, "my_key", 5, ttl: 5)
-    assert(set_result == { :ok, true })
+    # retrieve all values from the cache
+    value1 = Cachex.get(cache, 1)
+    value2 = Cachex.get(cache, 2)
+    value3 = Cachex.get(cache, 3)
 
-    :timer.sleep(6)
-
-    exists_result = Cachex.exists?(cache, "my_key")
-    assert(exists_result == { :ok, true })
-  end
-
-  test "exists? with a missing key", state do
-    exists_result = Cachex.exists?(state.cache, "missing_key")
-    assert(exists_result == { :ok, false })
+    # verify the second was removed
+    assert(value1 == { :ok, 1 })
+    assert(value2 == { :missing, nil })
+    assert(value3 == { :missing, nil })
   end
 
 end

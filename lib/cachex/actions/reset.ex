@@ -25,9 +25,9 @@ defmodule Cachex.Actions.Reset do
     state
   end
 
-  defp reset_hooks(state, only, opts) do
+  defp reset_hooks(%State{ pre_hooks: pre, post_hooks: post } = state, only, opts) do
     if Enum.member?(only, :hooks) do
-      state_hooks = Hook.combine(state)
+      state_hooks = Enum.concat(pre, post)
 
       hooks_list = case Keyword.get(opts, :hooks) do
         nil -> Enum.map(state_hooks, &(&1.module))
@@ -35,10 +35,18 @@ defmodule Cachex.Actions.Reset do
       end
 
       state_hooks
-      |> Enum.filter(&(&1.module in hooks_list))
-      |> Enum.each(&send(&1.ref, { :notify, { :reset, &1.args } }))
+      |> Enum.filter(&should_reset?(&1, hooks_list))
+      |> Enum.each(&notify_reset/1)
     end
     state
+  end
+
+  defp should_reset?(%Hook{ module: mod }, hooks_list) do
+    mod in hooks_list
+  end
+
+  defp notify_reset(%Hook{ args: args, ref: ref }) do
+    send(ref, { :notify, { :reset, args } })
   end
 
 end

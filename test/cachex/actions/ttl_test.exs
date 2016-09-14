@@ -1,59 +1,32 @@
 defmodule Cachex.Actions.TtlTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies the responses of checking TTLs inside the cache. We make
+  # sure that TTLs are calculated correctly based on nil and set TTLs. If the
+  # key is missing, we return a tuple signalling such.
+  test "retrieving a key TTL" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-  test "ttl with existing key with expiration", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: :timer.seconds(1))
-    assert(set_result == { :ok, true })
+    # set several keys in the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 10000)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # verify the TTL of both keys
+    ttl1 = Cachex.ttl(cache, 1)
+    ttl2 = Cachex.ttl!(cache, 2)
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 1000, 5)
-  end
+    # verify the TTL of a missing key
+    ttl3 = Cachex.ttl(cache, 3)
 
-  test "ttl with existing key with no expiration", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # the first TTL should be nil
+    assert(ttl1 == { :ok, nil })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # the second should be close to 10s
+    assert_in_delta(ttl2, 10000, 10)
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
-  end
-
-  test "ttl with missing key", state do
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :missing, nil })
-  end
-
-  test "ttl with expired key removes the key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
-    assert(set_result == { :ok, true })
-
-    :timer.sleep(6)
-
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :missing, nil })
-  end
-
-  test "ttl with expired key and disable_ode does not remove the key", _state do
-    cache = TestHelper.create_cache([ disable_ode: true ])
-
-    set_result = Cachex.set(cache, "my_key", "my_value", ttl: 5)
-    assert(set_result == { :ok, true })
-
-    :timer.sleep(6)
-
-    { ttl_status, ttl_result } = Cachex.ttl(cache, "my_key")
-    assert(ttl_status == :ok)
-    assert(ttl_result < 0)
+    # the third should return a missing value
+    assert(ttl3 == { :missing, nil })
   end
 
 end

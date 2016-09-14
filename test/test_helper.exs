@@ -1,47 +1,31 @@
+# ensure that Cachex has been started
 Application.ensure_all_started(:cachex)
 
+# require test lib files
+"#{Path.dirname(__ENV__.file)}/lib/**/*"
+|> Path.wildcard
+|> Enum.filter(&!File.dir?(&1))
+|> Enum.each(&Code.require_file/1)
+
+# start ExUnit!
 ExUnit.start()
 
+# internal module
 defmodule TestHelper do
-  use PowerAssert
+  @moduledoc false
+  # This module exists because we need a contextual helper in order to be able
+  # to execute the ExUnit callbacks. Therefore this module is just a wrapper of
+  # these callbacks.
 
-  def create_cache(args \\ []) when is_list(args) do
-    table =
-      16
-      |> TestHelper.gen_random_string_of_length
-      |> String.to_atom
+  # test context
+  use ExUnit.Case
 
-    table_name = args[:name] || table
-
-    Cachex.start_link(table_name, args)
-
-    ExUnit.Callbacks.on_exit("delete #{table_name}", fn ->
-      Eternal.stop(Cachex.Util.atom_append(table_name, "_eternal"))
+  @doc false
+  # Schedules a cache to be deleted at the end of the current test context.
+  def delete_on_exit(name) do
+    ExUnit.Callbacks.on_exit("delete #{name}", fn ->
+      Eternal.stop(Cachex.Util.Names.eternal(name))
     end)
-
-    table_name
-  end
-
-  def gen_random_string_of_length(num) when is_number(num) do
-    letters =
-      ?a..?z
-      |> Enum.to_list
-
-    1..num
-    |> Enum.map(fn(_) -> Enum.random(letters) end)
-    |> List.to_string
-  end
-
-  def poll(timeout, expected, generator, start_time \\ Cachex.Util.now()) do
-    try do
-      assert(generator.() == expected)
-    rescue
-      e ->
-        unless start_time + timeout > Cachex.Util.now() do
-          raise e
-        end
-        poll(timeout, expected, generator, start_time)
-    end
   end
 
 end

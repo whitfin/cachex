@@ -1,70 +1,67 @@
 defmodule Cachex.Actions.SetTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies the addition of new entries to the cache. We ensure that
+  # values can be added and can be given expiration values. We also test the case
+  # in which a cache has a default expiration value, and the ability to override
+  # this as necessary.
+  test "adding new values to the cache" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "set requires an existing cache name", _state do
-    assert(Cachex.set("test", "key", "value") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache1 = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "set with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.set(state_result, "key", "value") == { :ok, true })
-  end
+    # create a test cache with a default ttl
+    cache2 = Helper.create_cache([ hooks: [ hook ], default_ttl: 10000 ])
 
-  test "key set", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # set some values in the cache
+    set1 = Cachex.set(cache1, 1, 1)
+    set2 = Cachex.set(cache1, 2, 2, ttl: 5000)
+    set3 = Cachex.set(cache2, 1, 1)
+    set4 = Cachex.set(cache2, 2, 2, ttl: 5000)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
-  end
+    # ensure all set actions worked
+    assert(set1 == { :ok, true })
+    assert(set2 == { :ok, true })
+    assert(set3 == { :ok, true })
+    assert(set4 == { :ok, true })
 
-  test "key set with existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # verify the hooks were updated with the message
+    assert_receive({ { :set, [ 1, 1, [] ] }, ^set1 })
+    assert_receive({ { :set, [ 1, 1, [] ] }, ^set3 })
+    assert_receive({ { :set, [ 2, 2, [ ttl: 5000 ] ] }, ^set2 })
+    assert_receive({ { :set, [ 2, 2, [ ttl: 5000 ] ] }, ^set4 })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # read back all values from the cache
+    value1 = Cachex.get(cache1, 1)
+    value2 = Cachex.get(cache1, 2)
+    value3 = Cachex.get(cache2, 1)
+    value4 = Cachex.get(cache2, 2)
 
-    set_result = Cachex.set(state.cache, "my_key", "my_new_value")
-    assert(set_result == { :ok, true })
+    # verify all values exist
+    assert(value1 == { :ok, 1 })
+    assert(value2 == { :ok, 2 })
+    assert(value3 == { :ok, 1 })
+    assert(value4 == { :ok, 2 })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_new_value" })
-  end
+    # read back all key TTLs
+    ttl1 = Cachex.ttl!(cache1, 1)
+    ttl2 = Cachex.ttl!(cache1, 2)
+    ttl3 = Cachex.ttl!(cache2, 1)
+    ttl4 = Cachex.ttl!(cache2, 2)
 
-  test "key set with expiration", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: :timer.seconds(5))
-    assert(set_result == { :ok, true })
+    # the first should have no TTL
+    assert(ttl1 == nil)
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
-  end
+    # the second should have a TTL around 5s
+    assert_in_delta(ttl2, 5000, 10)
 
-  test "key set with default expiration", _state do
-    cache = TestHelper.create_cache([ default_ttl: :timer.seconds(5) ])
+    # the second should have a TTL around 10s
+    assert_in_delta(ttl3, 10000, 10)
 
-    set_result = Cachex.set(cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    { status, ttl } = Cachex.ttl(cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
-  end
-
-  test "key set with overridden default expiration", _state do
-    cache = TestHelper.create_cache([ default_ttl: :timer.seconds(5) ])
-
-    set_result = Cachex.set(cache, "my_key", "my_value", ttl: :timer.seconds(10))
-    assert(set_result == { :ok, true })
-
-    { status, ttl } = Cachex.ttl(cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 10000, 5)
+    # the fourth should have a TTL around 5s
+    assert_in_delta(ttl4, 5000, 10)
   end
 
 end

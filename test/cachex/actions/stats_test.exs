@@ -1,89 +1,158 @@
 defmodule Cachex.Actions.StatsTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache([record_stats: true]) }
+  # This test covers stats retrieval by making sure that the numbers coming back
+  # are both accurate and concise. We verify that the payload returned can be
+  # filtered by the provided flags in order to customize output correctly.
+  test "retrieving stats for a cache" do
+    # create a test cache
+    cache = Helper.create_cache([ record_stats: true ])
+
+    # retrieve current time
+    ctime = Cachex.Util.now()
+
+    # execute some cache actions
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok,    1 } = Cachex.get(cache, 1)
+
+    # retrieve default stats
+    stats1 = Cachex.stats!(cache)
+
+    # retrieve global stats
+    stats2 = Cachex.stats!(cache, [ for: [ :global, :get ] ])
+
+    # retrieve specific stats
+    stats3 = Cachex.stats!(cache, [ for: [ :get, :set ] ])
+
+    # retrieve raw stats
+    stats4 = Cachex.stats!(cache, [ for: :raw ])
+
+    # verify the first returns a default stat struct
+    assert_in_delta(stats1.creationDate, ctime, 5)
+    assert(stats1.hitCount == 1)
+    assert(stats1.hitRate == 100)
+    assert(stats1.missRate == 0)
+    assert(stats1.opCount == 2)
+    assert(stats1.requestCount == 1)
+    assert(stats1.setCount == 1)
+
+    # verify the second returns the global entries under a global key
+    assert(stats2 == %{
+      get: %{
+        ok: 1
+      },
+      global: %{
+        hitCount: 1,
+        opCount: 2,
+        setCount: 1
+      }
+    })
+
+    # verify the third returns only get/set stats
+    assert(stats3 == %{
+      get: %{
+        ok: 1
+      },
+      set: %{
+        true: 1
+      }
+    })
+
+    # verify the fourth returns an entire payload
+    assert_in_delta(stats4.meta.creationDate, ctime, 5)
+    assert(stats4.get == %{ ok: 1 })
+    assert(stats4.global == %{
+      hitCount: 1,
+      opCount: 2,
+      setCount: 1
+    })
+    assert(stats4.set == %{ true: 1 })
   end
 
-  test "stats requires an existing cache name", _state do
-    assert(Cachex.stats("test") == { :error, "Invalid cache provided, got: \"test\"" })
+  # This test just verifies that we receive an error trying to retrieve stats
+  # when they have already been disabled.
+  test "retrieving stats from a diabled cache" do
+    # create a test cache
+    cache = Helper.create_cache([ record_stats: false ])
+
+    # retrieve default stats
+    stats = Cachex.stats(cache)
+
+    # we should receive an error
+    assert(stats == { :error, :stats_disabled })
   end
 
-  test "stats with a worker instance", _state do
-    cache = TestHelper.create_cache([record_stats: false])
-    state_result = Cachex.inspect!(cache, :worker)
-    assert(Cachex.stats(state_result) == { :error, "Stats not enabled for cache with ref '#{cache}'" })
-  end
+  # This test verifies that we correctly handle hit/miss rates when there are 0
+  # values, to avoid arithmetic errors. We very 100% hit/miss rates, as well as
+  # 50% either way.
+  test "retrieving different rate combinations" do
+    # create test caches
+    cache1 = Helper.create_cache([ record_stats: true ])
+    cache2 = Helper.create_cache([ record_stats: true ])
+    cache3 = Helper.create_cache([ record_stats: true ])
 
-  test "stats returns an error if disabled", _state do
-    cache = TestHelper.create_cache([record_stats: false])
+    # retrieve stats with no rates
+    stats1 = Cachex.stats!(cache1)
 
-    stats_result = Cachex.stats(cache)
-    assert(stats_result == { :error, "Stats not enabled for cache with ref '#{cache}'" })
-  end
+    # get the stats keys
+    keys1 = Map.keys(stats1)
 
-  test "stats defaults to returning global statistics", state do
-    creation_date = Cachex.Util.now()
+    # there's nothing in the overview until something happens
+    assert(keys1 == [ :creationDate ])
 
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # set cache1 to 100% misses
+    { :missing, nil } = Cachex.get(cache1, 1)
 
-    { stats_status, stats_result } = Cachex.stats(state.cache)
+    # set cache2 to 100% hits
+    { :ok, true } = Cachex.set(cache2, 1, 1)
+    { :ok,    1 } = Cachex.get(cache2, 1)
 
-    assert(stats_status == :ok)
-    refute(Map.has_key?(stats_result, :requestCount))
+    # set cache3 to be 50% each way
+    { :ok, true } = Cachex.set(cache3, 1, 1)
+    { :ok,    1 } = Cachex.get(cache3, 1)
+    { :missing, nil } = Cachex.get(cache3, 2)
 
-    get_result = Cachex.get(state.cache, "missing_key")
-    assert(get_result == { :missing, nil })
+    # retrieve all cache rates
+    stats2 = Cachex.stats!(cache1)
+    stats3 = Cachex.stats!(cache2)
+    stats4 = Cachex.stats!(cache3)
 
-    { stats_status, stats_result } = Cachex.stats(state.cache)
+    # remove the creationDate
+    stats2 = Map.delete(stats2, :creationDate)
+    stats3 = Map.delete(stats3, :creationDate)
+    stats4 = Map.delete(stats4, :creationDate)
 
-    assert(stats_status == :ok)
-    assert(stats_result.hitRate == 0)
-    assert(stats_result.missRate == 100)
+    # verify a 100% miss rate for cache1
+    assert(stats2 == %{
+      hitCount: 0,
+      hitRate: 0.0,
+      missCount: 1,
+      missRate: 100.0,
+      opCount: 1,
+      requestCount: 1
+    })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # verify a 100% hit rate for cache2
+    assert(stats3 == %{
+      hitCount: 1,
+      hitRate: 100.0,
+      missCount: 0,
+      missRate: 0.0,
+      opCount: 2,
+      requestCount: 1,
+      setCount: 1
+    })
 
-    { stats_status, stats_result } = Cachex.stats(state.cache)
-
-    assert(stats_status == :ok)
-    assert(stats_result.hitCount == 1)
-    assert(stats_result.hitRate == 0.5)
-    assert(stats_result.missCount == 1)
-    assert(stats_result.missRate == 0.5)
-    assert(stats_result.opCount == 3)
-    assert(stats_result.requestCount == 2)
-    assert(stats_result.setCount == 1)
-    assert_in_delta(stats_result.creationDate, creation_date, 5)
-  end
-
-  test "stats returns global as a key when requested separately", state do
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :global ])
-
-    assert(stats_status == :ok)
-    refute(Map.has_key?(stats_result, :global))
-
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: [ :global, :get ])
-
-    assert(stats_status == :ok)
-    assert(Map.has_key?(stats_result, :get))
-    assert(Map.has_key?(stats_result, :global))
-  end
-
-  test "stats can return the raw statistics", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
-
-    { stats_status, stats_result } = Cachex.stats(state.cache, for: :raw)
-
-    assert(stats_status == :ok)
-    assert(Map.has_key?(stats_result, :meta))
-    assert(stats_result[:get] == %{ ok: 1 })
-    assert(stats_result[:set] == %{ true: 1 })
+    # verify a 50% hit rate for cache3
+    assert(stats4 == %{
+      hitCount: 1,
+      hitRate: 50.0,
+      missCount: 1,
+      missRate: 50.0,
+      opCount: 3,
+      requestCount: 2,
+      setCount: 1
+    })
   end
 
 end

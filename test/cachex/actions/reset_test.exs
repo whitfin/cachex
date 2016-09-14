@@ -1,195 +1,151 @@
 defmodule Cachex.Actions.ResetTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  alias Cachex.Hook
+  # This test ensures that we can reset a cache completely, resetting the state
+  # of all hooks and emptying the cache of keys. We verify this using the stats
+  # hook and checking the creaionDate (which is set when the hook is started),
+  # and ensuring that the creationDate resets when the cache does. We also verify
+  # that the cache is empty after being reset.
+  test "resetting a cache" do
+    # create a test cache
+    cache = Helper.create_cache([ record_stats: true ])
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
+    # get current time
+    ctime1 = Cachex.Util.now()
+
+    # set some values
+    { :ok, true } = Cachex.set(cache, 1, 1)
+
+    # retrieve the stats
+    stats1 = Cachex.stats!(cache)
+
+    # verify the stats
+    assert_in_delta(stats1.creationDate, ctime1, 5)
+
+    # ensure the cache is not empty
+    refute(Cachex."empty?!"(cache))
+
+    # wait for 10ms
+    :timer.sleep(10)
+
+    # get current time
+    ctime2 = Cachex.Util.now()
+
+    # reset the whole cache
+    reset1 = Cachex.reset(cache)
+
+    # verify the reset
+    assert(reset1 == { :ok, true })
+
+    # ensure the cache is reset
+    assert(Cachex."empty?!"(cache))
+
+    # retrieve the stats
+    stats2 = Cachex.stats!(cache)
+
+    # verify they reset properly
+    assert_in_delta(stats2.creationDate, ctime2, 5)
   end
 
-  test "resetting empties a cache and resets the state of hooks" do
-    hook = %Hook{
-      args: [:base],
-      module: __MODULE__.LastActionHook,
-      type: :pre
-    }
+  # This test ensures that we can reset a cache without touching any of the hooks
+  # and only emptying the cache. We verify this using the stats hook and checking
+  # the creaionDate does not change after the cache has been reset. We make sure
+  # to verify that the cache is empty after the reset.
+  test "resetting only a cache" do
+    # create a test cache
+    cache = Helper.create_cache([ record_stats: true ])
 
-    cache = TestHelper.create_cache([ hooks: hook ])
+    # get current time
+    ctime1 = Cachex.Util.now()
 
-    set_result = Cachex.set(cache, "key", "value")
-    assert(set_result == { :ok, true })
+    # set some values
+    { :ok, true } = Cachex.set(cache, 1, 1)
 
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 1 })
+    # retrieve the stats
+    stats1 = Cachex.stats!(cache)
 
-    hook =
-      cache
-      |> Cachex.inspect!(:worker)
-      |> Map.get(:pre_hooks)
-      |> Hook.hook_by_module(__MODULE__.LastActionHook)
+    # verify the stats
+    assert_in_delta(stats1.creationDate, ctime1, 5)
 
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [[]] })
+    # ensure the cache is not empty
+    refute(Cachex."empty?!"(cache))
 
-    reset_result = Cachex.reset(cache)
-    assert(reset_result == { :ok, true })
+    # reset only cache
+    reset1 = Cachex.reset(cache, [ only: :cache ])
 
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == :base)
+    # verify the reset
+    assert(reset1 == { :ok, true })
 
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 0 })
+    # ensure the cache is reset
+    assert(Cachex."empty?!"(cache))
 
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [[]] })
+    # retrieve the stats
+    stats2 = Cachex.stats!(cache)
+
+    # verify they didn't change
+    assert(stats2.creationDate == stats1.creationDate)
   end
 
-  test "resetting only a cache and no hooks" do
-    hook = %Hook{
-      args: [:base],
-      module: __MODULE__.LastActionHook,
-      type: :pre
-    }
+  # This test covers the resetting of a cache's hooks, but not resetting the cache
+  # itself. We do this by ensuring that the cache never becomes empty, but the
+  # creationDate on the stats hook is reset. Firstly we do a reset with a whitelist
+  # of hooks to reset to ensure that this does not reset the stats hook (thus
+  # verifying that this works correctly), and then we reset all hooks and check
+  # that the creationDate of the stats hook is reset properly.
+  test "resetting only a cache's hooks" do
+    # create a test cache
+    cache = Helper.create_cache([ record_stats: true ])
 
-    cache = TestHelper.create_cache([ hooks: hook ])
+    # get current time
+    ctime1 = Cachex.Util.now()
 
-    set_result = Cachex.set(cache, "key", "value")
-    assert(set_result == { :ok, true })
+    # set some values
+    { :ok, true } = Cachex.set(cache, 1, 1)
 
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 1 })
+    # retrieve the stats
+    stats1 = Cachex.stats!(cache)
 
-    hook =
-      cache
-      |> Cachex.inspect!(:worker)
-      |> Map.get(:pre_hooks)
-      |> Hook.hook_by_module(__MODULE__.LastActionHook)
+    # verify the stats
+    assert_in_delta(stats1.creationDate, ctime1, 5)
 
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [[]] })
+    # ensure the cache is not empty
+    refute(Cachex."empty?!"(cache))
 
-    reset_result = Cachex.reset(cache, only: :cache)
-    assert(reset_result == { :ok, true })
+    # wait for 10ms
+    :timer.sleep(10)
 
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [[]] })
+    # get current time
+    ctime2 = Cachex.Util.now()
 
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 0 })
+    # reset only cache
+    reset1 = Cachex.reset(cache, [ only: :hooks, hooks: [ MyModule ] ])
+
+    # verify the reset
+    assert(reset1 == { :ok, true })
+
+    # ensure the cache is not reset
+    refute(Cachex."empty?!"(cache))
+
+    # retrieve the stats
+    stats2 = Cachex.stats!(cache)
+
+    # verify they don't reset
+    assert(stats2.creationDate == stats1.creationDate)
+
+    # reset without a hooks list
+    reset2 = Cachex.reset(cache, [ only: :hooks ])
+
+    # verify the reset
+    assert(reset2 == { :ok, true })
+
+    # ensure the cache is not reset
+    refute(Cachex."empty?!"(cache))
+
+    # retrieve the stats
+    stats3 = Cachex.stats!(cache)
+
+    # verify they don't reset
+    assert_in_delta(stats3.creationDate, ctime2, 5)
   end
 
-  test "resetting only hooks and no cache" do
-    hook = %Hook{
-      args: [:base],
-      module: __MODULE__.LastActionHook,
-      type: :pre
-    }
-
-    cache = TestHelper.create_cache([ hooks: hook ])
-
-    set_result = Cachex.set(cache, "key", "value")
-    assert(set_result == { :ok, true })
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 1 })
-
-    hook =
-      cache
-      |> Cachex.inspect!(:worker)
-      |> Map.get(:pre_hooks)
-      |> Hook.hook_by_module(__MODULE__.LastActionHook)
-
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == { :size, [[]] })
-
-    reset_result = Cachex.reset(cache, only: :hooks)
-    assert(reset_result == { :ok, true })
-
-    hook_state = Hook.call(hook, :state)
-    assert(hook_state == :base)
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 1 })
-  end
-
-  test "resetting only a whitelist of hooks" do
-    hooks = [
-      %Hook{
-        args: [:base],
-        module: __MODULE__.LastActionHook,
-        type: :pre
-      },
-      %Hook{
-        args: [:base],
-        module: __MODULE__.LastFunctionHook,
-        type: :pre
-      }
-    ]
-
-    cache = TestHelper.create_cache([ hooks: hooks ])
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 0 })
-
-    pre_hooks =
-      cache
-      |> Cachex.inspect!(:worker)
-      |> Map.get(:pre_hooks)
-
-    actions_hook  = Hook.hook_by_module(pre_hooks, __MODULE__.LastActionHook)
-    function_hook = Hook.hook_by_module(pre_hooks, __MODULE__.LastFunctionHook)
-
-    action_hook_state = Hook.call(actions_hook, :state)
-    assert(action_hook_state == { :size, [[]] })
-
-    function_hook_state = Hook.call(function_hook, :state)
-    assert(function_hook_state == :size)
-
-    reset_result = Cachex.reset(cache, hooks: [ __MODULE__.LastActionHook ])
-    assert(reset_result == { :ok, true })
-
-    action_hook_state = Hook.call(actions_hook, :state)
-    assert(action_hook_state == :base)
-
-    function_hook_state = Hook.call(function_hook, :state)
-    assert(function_hook_state == :size)
-  end
-
-  test "resetting with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.reset(state_result) == { :ok, true })
-  end
-
-end
-
-defmodule Cachex.Actions.ResetTest.LastActionHook do
-  use Cachex.Hook
-
-  def init(base) do
-    { :ok, base }
-  end
-
-  def handle_notify(action, _state) do
-    { :ok, action }
-  end
-
-  def handle_call(:state, state) do
-    { :ok, state, state }
-  end
-end
-
-defmodule Cachex.Actions.ResetTest.LastFunctionHook do
-  use Cachex.Hook
-
-  def init(base) do
-    { :ok, base }
-  end
-
-  def handle_notify({ action, _opts }, _state) do
-    { :ok, action }
-  end
-
-  def handle_call(:state, state) do
-    { :ok, state, state }
-  end
 end

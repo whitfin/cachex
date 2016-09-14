@@ -1,59 +1,52 @@
 defmodule Cachex.Actions.SizeTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies the size of a cache. It should be noted that size is the
+  # total size of the cache, regardless of any evictions (unlike count). We make
+  # sure that evictions aren't taken into account, and that size increments as
+  # new keys are added to the cache.
+  test "checking the total size of a cache" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "size requires an existing cache name", _state do
-    assert(Cachex.size("test") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "size with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.size(state_result) == { :ok, 0 })
-  end
+    # retrieve the cache size
+    result1 = Cachex.size(cache)
 
-  test "size with an empty cache", state do
-    size_result = Cachex.size(state.cache)
-    assert(size_result == { :ok, 0 })
-  end
+    # it should be empty
+    assert(result1 == { :ok, 0 })
 
-  test "size with basic cache entries", state do
-    Enum.each(1..20, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # verify the hooks were updated with the message
+    assert_receive({ { :size, [[]] }, ^result1 })
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
+    # add some cache entries
+    { :ok, true } = Cachex.set(cache, 1, 1)
 
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # retrieve the cache size
+    result2 = Cachex.size(cache)
 
-    size_result = Cachex.size(state.cache)
-    assert(size_result == { :ok, 20 })
-  end
+    # it should show the new key
+    assert(result2 == { :ok, 1 })
 
-  test "size with some expired entries", state do
-    Enum.each(1..10, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # verify the hooks were updated with the message
+    assert_receive({ { :size, [[]] }, ^result2 })
 
-      set_result = Cachex.set(state.cache, key, "my_value", ttl: 1)
-      assert(set_result == { :ok, true })
-    end)
+    # add a final entry
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
 
-    Enum.each(11..20, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # let it expire
+    :timer.sleep(2)
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
+    # retrieve the cache size
+    result3 = Cachex.size(cache)
 
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # it shouldn't care about TTL
+    assert(result3 == { :ok, 2 })
 
-    size_result = Cachex.size(state.cache)
-    assert(size_result == { :ok, 20 })
+    # verify the hooks were updated with the message
+    assert_receive({ { :size, [[]] }, ^result3 })
   end
 
 end

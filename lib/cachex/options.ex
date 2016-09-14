@@ -7,6 +7,7 @@ defmodule Cachex.Options do
   alias Cachex.Hook
   alias Cachex.Limit
   alias Cachex.Util
+  alias Cachex.Util.Names
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like
@@ -17,110 +18,143 @@ defmodule Cachex.Options do
   potential to become a little messy - but that's okay, since it saves us trying
   to duplicate this logic all over the codebase.
   """
-  @spec parse(options :: Keyword.t) :: State.t
-  def parse(options \\ [])
-  def parse(options) when is_list(options) do
-    cache = case options[:name] do
-      val when val == nil or not is_atom(val) ->
-        raise ArgumentError, message: "Cache name must be a valid atom"
-      val -> val
-    end
+  @spec parse(cache :: atom, options :: Keyword.t) :: State.t
+  def parse(cache, options) when is_list(options) do
+    with { :ok,   ets_result } <- setup_ets(cache, options),
+         { :ok, limit_result } <- setup_limit(cache, options),
+         { :ok,  hook_result } <- setup_hooks(cache, options, limit_result),
+         { :ok, trans_result } <- setup_transactions(cache, options),
+         { :ok,    fb_result } <- setup_fallbacks(cache, options),
+         { :ok,   ttl_result } <- setup_ttl_components(cache, options)
+      do
+        { pre_hooks, post_hooks } = hook_result
+        { transactional, manager } = trans_result
+        { default_fallback, fallback_args } = fb_result
+        { default_ttl, ttl_interval, janitor } = ttl_result
 
-    onde_dis = Util.truthy?(options[:disable_ode])
-    ets_opts = Keyword.get(options, :ets_opts, [
-      read_concurrency: true,
-      write_concurrency: true
-    ])
+        state = %Cachex.State{
+          "cache": cache,
+          "disable_ode": !!options[:disable_ode],
+          "ets_opts": ets_result,
+          "default_fallback": default_fallback,
+          "default_ttl": default_ttl,
+          "fallback_args": fallback_args,
+          "janitor": janitor,
+          "limit": limit_result,
+          "manager": manager,
+          "pre_hooks": pre_hooks,
+          "post_hooks": post_hooks,
+          "transactions": transactional,
+          "ttl_interval": ttl_interval
+        }
 
-    cache_limits = setup_limit(cache, options)
-
-    { pre_hooks, post_hooks } = setup_hooks(cache, options, cache_limits)
-    { transactional, manager } = setup_transactions(cache, options)
-    { default_fallback, fallback_args } = setup_fallbacks(cache, options)
-    { default_ttl, ttl_interval, janitor } = setup_ttl_components(cache, options)
-
-    %Cachex.State{
-      "cache": cache,
-      "disable_ode": onde_dis,
-      "ets_opts": ets_opts,
-      "default_fallback": default_fallback,
-      "default_ttl": default_ttl,
-      "fallback_args": fallback_args,
-      "janitor": janitor,
-      "limit": cache_limits,
-      "manager": manager,
-      "pre_hooks": pre_hooks,
-      "post_hooks": post_hooks,
-      "transactions": transactional,
-      "ttl_interval": ttl_interval
-    }
+        { :ok, state }
+      end
   end
-  def parse(_options), do: parse([])
+  def parse(cache, _options),
+  do: parse(cache, [])
 
   # Sets up and fallback behaviour options. Currently this just retrieves the
   # two flags from the options list and returns them inside a tuple for storage.
-  defp setup_fallbacks(_cache, options), do: {
-    Util.get_opt_function(options, :default_fallback),
-    Util.get_opt_list(options, :fallback_args, [])
-  }
+  defp setup_fallbacks(_cache, options) do
+    fb_opts = {
+      Util.get_opt(options, :default_fallback, &is_function/1),
+      Util.get_opt(options, :fallback_args, &is_list/1, [])
+    }
+    { :ok, fb_opts }
+  end
 
   # Sets up any hooks to be enabled for this cache. Also parses out whether a
   # Stats hook has been requested or not. The returned value is a tuple of pre
   # and post hooks as they're stored separately.
   defp setup_hooks(cache, options, limit) do
     stats_hook = options[:record_stats] && %Hook{
-      args: [ ],
-      module: Cachex.Stats,
-      type: :post,
+      module: Cachex.Hook.Stats,
       results: true,
       server_args: [
-        name: Util.stats_for_cache(cache)
+        name: Names.stats(cache)
       ]
     }
+
+    hooks_list =
+      options
+      |> Keyword.get(:hooks, [])
+      |> List.wrap
 
     hooks =
       limit
       |> Limit.to_hooks
       |> List.insert_at(0, stats_hook)
-      |> Enum.concat(List.wrap(options[:hooks] || []))
-      |> Hook.initialize_hooks
+      |> Enum.concat(hooks_list)
 
-    {
-      Hook.hooks_by_type(hooks, :pre),
-      Hook.hooks_by_type(hooks, :post)
-    }
+    with { :ok, hooks } <- Hook.validate(hooks) do
+      groups = {
+        Hook.group_by_type(hooks, :pre),
+        Hook.group_by_type(hooks, :post)
+      }
+
+      { :ok, groups }
+    end
   end
 
   # Parses out a potential cache size limit to cap the cache at. This will return
   # a Limit struct based on the provided values. If the cache has no limits, the
   # `:limit` key in the struct will be nil.
   defp setup_limit(_cache, options) do
-    options
-    |> Keyword.get(:max_size)
-    |> Limit.parse
+    limit =
+      options
+      |> Keyword.get(:max_size)
+      |> Limit.parse
+
+    { :ok, limit }
+  end
+
+  # Parses out a potential list of ETS options, passing through the default opts
+  # used for concurrency settings. This allows them to be overridden, but it would
+  # have to be explicitly overridden.
+  defp setup_ets(_cache, options) do
+    ets_opts =
+      options
+      |> Util.get_opt(:ets_opts, &is_list/1, [])
+      |> Keyword.put_new(:write_concurrency, true)
+      |> Keyword.put_new(:read_concurrency, true)
+
+    { :ok, ets_opts }
   end
 
   # Parses out whether the user wishes to utilize transactions or not. They can
   # either be enabled or disabled, represented by `true` and `false`.
-  defp setup_transactions(cache, options), do: {
-    Util.get_opt_boolean(options, :transactions),
-    Util.manager_for_cache(cache)
-  }
+  defp setup_transactions(cache, options) do
+    trans_opts = {
+      Util.get_opt(options, :transactions, &is_boolean/1, false),
+      Names.manager(cache)
+    }
+    { :ok, trans_opts }
+  end
 
   # Sets up and parses any options related to TTL behaviours. Currently this deals
   # with janitor naming, TTL defaults, and purge intervals.
   defp setup_ttl_components(cache, options) do
-    janitor_name = Util.janitor_for_cache(cache)
-    default_ttl  = Util.get_opt_positive(options, :default_ttl)
+    janitor_name = Names.janitor(cache)
 
-    case Keyword.get(options, :ttl_interval) do
-      val when val == true or (val == nil and default_ttl != nil) ->
+    default_ttl  = Util.get_opt(options, :default_ttl, fn(val) ->
+      is_integer(val) and val > 0
+    end)
+
+    ttl_interval = Util.get_opt(options, :ttl_interval, fn(val) ->
+      is_integer(val) and val >= -1
+    end)
+
+    opts = case ttl_interval do
+      nil when default_ttl != nil ->
         { default_ttl, :timer.seconds(3), janitor_name }
-      val when is_number(val) and val > 0 ->
+      val when val > -1 ->
         { default_ttl, val, janitor_name }
       _na ->
         { default_ttl, nil, nil }
     end
+
+    { :ok, opts }
   end
 
 end

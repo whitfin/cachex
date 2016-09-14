@@ -1,143 +1,84 @@
 defmodule Cachex.Actions.GetAndUpdateTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  test "retrieving and updated cache records" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "get and update requires an existing cache name", _state do
-    assert(Cachex.get_and_update("test", "key", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "get and update with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.get_and_update(state_result, "key", &(&1)) == { :missing, nil })
-  end
+    # set some keys in the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
+    { :ok, true } = Cachex.set(cache, 5, 5, ttl: 1000)
 
-  test "get and update with missing key", state do
-    gau_result = Cachex.get_and_update(state.cache, "my_key", fn
-      (nil) -> 1
-      (val) -> val
-    end)
-    assert(gau_result == { :missing, 1 })
+    # wait for the TTL to pass
+    :timer.sleep(25)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 1 })
-  end
+    # flush all existing messages
+    Helper.flush()
 
-  test "get and update with existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # update the first and second keys
+    result1 = Cachex.get_and_update(cache, 1, &to_string/1)
+    result2 = Cachex.get_and_update(cache, 2, &to_string/1)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # update a missing key
+    result3 = Cachex.get_and_update(cache, 3, &to_string/1)
 
-    gau_result = Cachex.get_and_update(state.cache, "my_key", fn
-      (nil) -> 1
-      (val) -> val * 2
-    end)
-    assert(gau_result == { :ok, 10 })
+    # define the fallback options
+    fb_opts = [ fallback: fn(key) ->
+      "_#{key}_"
+    end ]
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 10 })
-  end
+    # update a fallback key
+    result4 = Cachex.get_and_update(cache, 4, &to_string/1, fb_opts)
 
-  test "get_and_update with fallback on existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # update the fifth value
+    result5 = Cachex.get_and_update(cache, 5, &to_string/1)
 
-    gau_result = Cachex.get_and_update(state.cache, "my_key", &(String.reverse/1), fallback: &(&1))
-    assert(gau_result == { :ok, "eulav_ym" })
-  end
+    # verify the first key is retrieved
+    assert(result1 == { :ok, "1" })
 
-  test "get_and_update with fallback on missing key", state do
-    gau_result = Cachex.get_and_update(state.cache, "my_key", &(String.reverse/1), fallback: &(&1))
-    assert(gau_result == { :loaded, "yek_ym" })
-  end
+    # verify the second and third keys are missing
+    assert(result2 == { :missing, "" })
+    assert(result3 == { :missing, "" })
 
-  test "get_and_update with default fallback", _state do
-    gau_result =
-      [ default_fallback: &(String.reverse/1)]
-      |> TestHelper.create_cache
-      |> Cachex.get_and_update("my_key", &(String.reverse/1))
+    # verify the fourth key uses the fallback
+    assert(result4 == { :loaded, "_4_" })
 
-    assert(gau_result == { :loaded, "my_key" })
-  end
+    # verify the fifth result
+    assert(result5 == { :ok, "5" })
 
-  test "get_and_update with overridden default fallback", _state do
-    gau_result =
-      [ default_fallback: &(String.reverse/1)]
-      |> TestHelper.create_cache
-      |> Cachex.get_and_update("my_key", &(String.reverse/1), fallback: &(&1))
+    # assert we receive valid notifications
+    assert_receive({ { :get_and_update, [ 1, _to_string, [ ] ] }, ^result1 })
+    assert_receive({ { :get_and_update, [ 2, _to_string, [ ] ] }, ^result2 })
+    assert_receive({ { :get_and_update, [ 3, _to_string, [ ] ] }, ^result3 })
+    assert_receive({ { :get_and_update, [ 4, _to_string, ^fb_opts ] }, ^result4 })
+    assert_receive({ { :get_and_update, [ 5, _to_string, [ ] ] }, ^result5 })
 
-    assert(gau_result == { :loaded, "yek_ym" })
-  end
+    # check we received valid purge actions for the TTL
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
 
-  test "get_and_update with fallback arguments and no arguments specified", _state do
-    gau_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get_and_update("my_key", &(String.reverse/1), fallback: fn -> "test" end)
+    # retrieve all entries from the cache
+    value1 = Cachex.get(cache, 1)
+    value2 = Cachex.get(cache, 2)
+    value3 = Cachex.get(cache, 3)
+    value4 = Cachex.get(cache, 4)
+    value5 = Cachex.get(cache, 5)
 
-    assert(gau_result == { :loaded, "tset" })
-  end
+    # all should now have values
+    assert(value1 == { :ok, "1" })
+    assert(value2 == { :ok, "" })
+    assert(value3 == { :ok, "" })
+    assert(value4 == { :ok, "_4_" })
+    assert(value5 == { :ok, "5" })
 
-  test "get_and_update with fallback arguments and single argument specified", _state do
-    gau_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get_and_update("my_key", &(String.reverse/1), fallback: &(&1))
+    # check the TTL on the last key
+    ttl1 = Cachex.ttl!(cache, 5)
 
-    assert(gau_result == { :loaded, "yek_ym" })
-  end
-
-  test "get_and_update with fallback arguments and valid argument count specified", _state do
-    gau_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get_and_update("my_key", &(String.reverse/1), fallback: &(&1 <> &2 <> &3 <> &4))
-
-    assert(gau_result == { :loaded, "321yek_ym" })
-  end
-
-  test "get_and_update with fallback arguments and invalid argument count specified", _state do
-    gau_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get_and_update("my_key", &(to_string/1), fallback: &(&1 <> &2 <> &3))
-
-    assert(gau_result == { :missing, "" })
-  end
-
-  test "get_and_update with expired key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
-    assert(set_result == { :ok, true })
-
-    :timer.sleep(10)
-
-    gau_result = Cachex.get_and_update(state.cache, "my_key", fn
-      (nil) -> true
-      (_na) -> false
-    end)
-    assert(gau_result == { :missing, true })
-  end
-
-  test "get and update with touch/ttl times being maintained", state do
-    set_result = Cachex.set(state.cache, "my_key", 5, ttl: 20)
-    assert(set_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
-
-    :timer.sleep(10)
-
-    gau_result = Cachex.get_and_update(state.cache, "my_key", &(&1))
-    assert(gau_result == { :ok, 5 })
-
-    :timer.sleep(10)
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
+    # TTL should be maintained
+    assert_in_delta(ttl1, 970, 5)
   end
 
 end

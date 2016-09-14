@@ -5,9 +5,6 @@ defmodule Cachex.Janitor do
   # import utils for convenience
   import Cachex.Util
 
-  # add a worker alias
-  alias Cachex.Actions
-
   @moduledoc false
   # The main TTL cleanup for Cachex, providing a very basic task scheduler to
   # repeatedly cleanup the cache table for all records which have expired. This
@@ -26,11 +23,9 @@ defmodule Cachex.Janitor do
   All options are passed throught to the initialization function, and the GenServer
   options are passed straight to GenServer to deal with.
   """
-  @spec start_link(state :: State.t, gen_options :: Keyword.t) :: { :ok, pid } | nil
-  def start_link(state \\ %Cachex.State { }, gen_options \\ []) do
-    if state.ttl_interval do
-      GenServer.start_link(__MODULE__, state, gen_options)
-    end
+  @spec start_link(state :: State.t, server_opts :: Keyword.t) :: { :ok, pid } | nil
+  def start_link(state \\ %Cachex.State { }, server_opts \\ []) do
+    GenServer.start_link(__MODULE__, state, server_opts)
   end
 
   @doc """
@@ -40,19 +35,19 @@ defmodule Cachex.Janitor do
   this janitor. The state is then passed through for use in the future.
   """
   @spec init(state :: State.t) :: { :ok, %__MODULE__{ } }
-  def init(state \\ %Cachex.State { }) do
-    inner_state = %__MODULE__{
-      cache: state.cache,
-      interval: state.ttl_interval
+  def init(%Cachex.State{ cache: cache, ttl_interval: ttl_interval }) do
+    state = %__MODULE__{
+      cache: cache,
+      interval: ttl_interval
     }
-    { :ok, schedule_check(inner_state) }
+    { :ok, schedule_check(state) }
   end
 
   @doc """
   Simply plucks and returns the last metadata for this Janitor.
   """
-  def handle_call(:last, _ctx, state) do
-    { :reply, state.last, state }
+  def handle_call(:last, _ctx, %__MODULE__{ last: last } = state) do
+    { :reply, last, state }
   end
 
   @doc """
@@ -62,18 +57,20 @@ defmodule Cachex.Janitor do
   a select which only matches docs to be removed, and then ETS deletes them as it
   goes.
   """
-  def handle_info(:ttl_check, state) do
+  def handle_info(:ttl_check, %__MODULE__{ cache: cache } = state) do
     start_time = now()
 
     { duration, result } = :timer.tc(fn ->
-      purge_records(state.cache)
+      purge_records(cache)
     end)
 
-    result
-    |> update_evictions(state)
-    |> schedule_check
-    |> update_meta(start_time, duration, result)
-    |> noreply
+    new_state =
+      result
+      |> update_evictions(state)
+      |> schedule_check
+      |> update_meta(start_time, duration, result)
+
+    { :noreply, new_state }
   end
 
   @doc """
@@ -89,15 +86,15 @@ defmodule Cachex.Janitor do
   # Broadcasts the number of evictions against this purge in order to notify any
   # hooks that a purge has just occurred.
   defp update_evictions({ :ok, evictions } = result, state) when evictions > 0 do
-    Actions.broadcast(state.cache, { :purge, [[]] }, result)
+    Cachex.Hook.broadcast(state.cache, { :purge, [ [] ] }, result)
     state
   end
   defp update_evictions(_other, state), do: state
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(state) do
-    :erlang.send_after(state.interval, self, :ttl_check)
+  defp schedule_check(%__MODULE__{ interval: interval } = state) do
+    :erlang.send_after(interval, self, :ttl_check)
     state
   end
 

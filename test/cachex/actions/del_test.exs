@@ -1,36 +1,38 @@
 defmodule Cachex.Actions.DelTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This case tests that we can safely remove items from the cache. We test the
+  # removal of both existing and missing keys, as the behaviour is the same for
+  # both. We also ensure that hooks receive the delete notification successfully.
+  test "removing entries from a cache" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "del requires an existing cache name", _state do
-    assert(Cachex.del("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "del with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.del(state_result, "key") == { :ok, true })
-  end
+    # add some cache entries
+    { :ok, true } = Cachex.set(cache, 1, 1)
 
-  test "del with existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # delete some entries
+    result1 = Cachex.del(cache, 1)
+    result2 = Cachex.del(cache, 2)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # verify both are true
+    assert(result1 == { :ok, true })
+    assert(result2 == { :ok, true })
 
-    del_result = Cachex.del(state.cache, "my_key")
-    assert(del_result == { :ok, true })
+    # verify the hooks were updated with the delete
+    assert_receive({ { :del, [ 1, [] ] }, ^result1 })
+    assert_receive({ { :del, [ 2, [] ] }, ^result2 })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
-  end
+    # retrieve all items
+    value1 = Cachex.get(cache, 1)
+    value2 = Cachex.get(cache, 2)
 
-  test "del with missing key", state do
-    del_result = Cachex.del(state.cache, "my_key")
-    assert(del_result == { :ok, true })
+    # verify the items are gone
+    assert(value1 == { :missing, nil })
+    assert(value2 == { :missing, nil })
   end
 
 end

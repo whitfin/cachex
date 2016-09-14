@@ -10,13 +10,6 @@ defmodule Cachex.Hook do
   # define our opaque type
   @opaque t :: %__MODULE__{ }
 
-  # add aliases
-  alias Cachex.State
-  alias Supervisor.Spec
-
-  # require the Logger
-  require Logger
-
   # define our struct
   defstruct args: [],
             async: true,
@@ -29,44 +22,13 @@ defmodule Cachex.Hook do
             type: :post
 
   @doc """
-  Starts any required listeners.
-
-  We allow either a list of listeners, or a single listener (a user can attach N
-  listeners as plugins). We take all listeners and convert them into a parsed hook,
-  and then start all the hooks in processes which allows async listening.
-  """
-  @spec initialize_hooks(mods :: [ Hook.t ]) :: [ Hook.t ]
-  def initialize_hooks(mods) do
-    mods
-    |> List.wrap
-    |> Enum.map(&verify_hook/1)
-    |> Enum.filter(&(&1 != nil))
-    |> Enum.to_list
-  end
-
-  @doc """
-  Allows for finding a hook by the name of the module.
-
-  This is only for convenience when trying to locate a potential Cachex.Stats hook.
-  """
-  @spec hook_by_module(hooks :: [ Hook.t ], module :: atom) :: Hook.t | nil
-  def hook_by_module(hooks, module) do
-    hooks
-    |> List.wrap
-    |> Enum.find(fn
-        (%__MODULE__{ "module": ^module }) -> true
-        (_) -> false
-       end)
-  end
-
-  @doc """
   Groups hooks by their execution type (pre/post).
 
   We use this to separate the execution phases in order to achieve a smaller
   iteration at later stages of execution (it saves a microsecond or so).
   """
-  @spec hooks_by_type(hooks :: [ Hook.t ]) :: %{ pre: [Hook.t], post: [Hook.t] }
-  def hooks_by_type(hooks) do
+  @spec group_by_type(hooks :: [ Hook.t ]) :: %{ pre: [Hook.t], post: [Hook.t] }
+  def group_by_type(hooks) do
     hooks
     |> List.wrap
     |> Enum.group_by(fn
@@ -76,95 +38,85 @@ defmodule Cachex.Hook do
     |> Map.put_new(:pre, [])
     |> Map.put_new(:post, [])
   end
-  def hooks_by_type(hooks, type) when type in [ :pre, :post ],
-  do: hooks_by_type(hooks)[type] || []
+  def group_by_type(hooks, type) when type in [ :pre, :post ],
+  do: group_by_type(hooks)[type]
 
   @doc """
-  Simple shorthanding for pulling the ref of a hook which is found by module.
-
-  This is again just for convenience when finding the Cachex.Stats hooks.
+  Handler for broadcasting a set of actions and results to all registered hooks.
+  This is fired by out-of-proc calls (i.e. Janitors) which need to notify hooks.
   """
-  @spec ref_by_module(hooks :: [ Hook.t ], module :: atom) :: pid | nil
-  def ref_by_module(hooks, module) do
-    case hook_by_module(hooks, module) do
-      nil -> nil
-      mod -> mod.ref
+  def broadcast(cache, action, result) when is_atom(cache) do
+    case Cachex.State.get(cache) do
+      nil -> false
+      val -> notify(val.post_hooks, action, result)
     end
   end
 
   @doc """
-  Calls a hook instance with the specified message and timeout.
+  Notifies a listener of the passed in data.
+
+  If the data is a list, we convert it to a tuple in order to make it easier to
+  pattern match against. We accept a list of listeners in order to allow for
+  multiple (plugin style) listeners. Initially had the empty clause at the top
+  but this way is better (at the very worst it's the same performance).
   """
-  @spec call(hook :: Hook.t, msg :: any, timeout :: number) :: any
-  def call(%__MODULE__{ module: mod, ref: ref }, msg, timeout \\ 5000),
-  do: GenEvent.call(ref, mod, msg, timeout)
+  @spec notify(hooks :: [ Hook.t ], action :: { }, results :: { } | nil) :: true
+  def notify(_hooks, _action, _results \\ nil)
+  def notify([hook|tail], action, results) do
+    emit(hook, action, results)
+    notify(tail, action, results)
+  end
+  def notify([], _action, _results), do: true
 
-  @doc """
-  Concatenates the pre and post Hooks of a State struct.
-  """
-  @spec combine(state :: State.t) :: [ Hook.t ]
-  def combine(%State{ pre_hooks: pre, post_hooks: post }),
-  do: Enum.concat(pre, post)
-
-  @doc """
-  Iterates a child spec of a Supervisor and maps the process module names to a
-  list of Hook structs.
-
-  Wherever there is a match, the PID of the child is added to the Hook so that a
-  Hook struct can track where it lives.
-  """
-  @spec link(children :: [ ], hooks :: [ Hook.t ]) :: [ Hook.t ]
-  def link(children, hooks) when is_list(children) and is_list(hooks) do
-    Enum.map(hooks, fn(%__MODULE__{ "args": args, "module": mod } = hook) ->
-      pid = Enum.find_value(children, fn
-        ({ ^mod, pid, _, _ }) -> pid
-        (_) -> nil
-      end)
-
-      if pid do
-        GenEvent.add_handler(pid, mod, args)
-      end
-
-      %__MODULE__{ hook | "ref": pid }
-     end)
+  def validate(hooks) do
+    hooks
+    |> List.wrap
+    |> do_validate([])
   end
 
-  @doc """
-  Provides a single point to call to provision all hooks.
-  """
-  @spec provision(hook :: Hook.t, msg :: any) :: msg :: any
-  def provision(%__MODULE__{ } = hook, msg),
-  do: __MODULE__.send(hook, { :provision, msg })
-
-  @doc """
-  Delivers a message to the specified hook.
-  """
-  @spec send(hook :: Hook.t, msg :: any) :: msg :: any
-  def send(%__MODULE__{ ref: ref }, msg),
-  do: Kernel.send(ref, msg)
-
-  @doc """
-  Creates a Supervisor spec of workers for enough GenEvent managers to host all
-  of the provided hooks.
-  """
-  @spec spec(state :: State.t) :: [ spec :: { } ]
-  def spec(%State{ } = state) do
-    state
-    |> combine
-    |> Enum.map(&(Spec.worker(GenEvent, [&1.server_args], id: &1.module)))
+  defp do_validate([ ], acc) do
+    { :ok, Enum.reverse(acc) }
+  end
+  defp do_validate([ %__MODULE__{ module: mod } = hook | rest ], acc) do
+    mod.__info__(:module)
+    do_validate(rest, [ hook | acc ])
+  rescue
+    _ -> Cachex.Errors.invalid_hook()
+  end
+  defp do_validate([ _invalid | rest ], acc) do
+    do_validate(rest, acc)
   end
 
-  @doc """
-  Updates the provided hooks inside an Options struct.
-
-  This is used when the PID of hooks have changed and need to be blended into the
-  Options.
-  """
-  @spec update(hooks :: [ Hook.t ], state :: State.t) :: State.t
-  def update(hooks, %State{ } = state) do
-    %{ pre: pre, post: post } = hooks_by_type(hooks)
-    %State { state | pre_hooks: pre, post_hooks: post }
+  # Internal emission, used to define whether we send using an async request or
+  # not. We also determine whether to pass the results back at this point or not.
+  # This only happens for post-hooks, and if the results have been requested. We
+  # skip the overhead in GenEvent and go straight to `send/2` to gain all speed
+  # possible here.
+  defp emit(hook, action, results) do
+    cond do
+      hook.ref == nil ->
+        nil
+      hook.results and hook.type == :post ->
+        emit(hook, { action, results })
+      true ->
+        emit(hook, action)
+    end
   end
+  defp emit(%__MODULE__{ "async": true, "ref": ref }, payload) do
+    send(ref, { :notify, { :async, payload } })
+  end
+  defp emit(%__MODULE__{ "async": false, "ref": ref } = hook, payload) do
+    message_ref = :erlang.make_ref()
+
+    send(ref, { :notify, { :sync, { self, message_ref }, payload } })
+
+    receive do
+      { :ack, ^ref, ^message_ref } -> nil
+    after
+      hook.max_timeout -> nil
+    end
+  end
+  defp emit(_, _action), do: nil
 
   @doc false
   defmacro __using__(_) do
@@ -254,30 +206,5 @@ defmodule Cachex.Hook do
       ]
     end
   end
-
-  # Verifies a listener. We check to ensure that the listener is a module before
-  # trying to start it and add as a handler. If anything goes wrong at this point
-  # we just nil the listener to avoid errors later.
-  defp verify_hook(%__MODULE__{ } = hook) do
-    try do
-      hook.module.__info__(:module)
-
-      if !hook.async && !hook.max_timeout do
-        %__MODULE__{ hook | max_timeout: 5 }
-      else
-        hook
-      end
-    rescue
-      e ->
-        Logger.warn(fn ->
-          """
-          Unable to assign hook (uncaught error): #{inspect(e)}
-          #{Exception.format_stacktrace(System.stacktrace())}
-          """
-        end)
-        nil
-    end
-  end
-  defp verify_hook(_), do: nil
 
 end

@@ -18,7 +18,7 @@ defmodule Cachex.Actions.Get do
     { :ok, value }
   end
   defp handle_record(_missing, state, key, opts) do
-    fallb = Util.get_opt_function(opts, :fallback)
+    fallb = Util.get_opt(opts, :fallback, &is_function/1)
 
     state
     |> Util.get_fallback(key, fallb)

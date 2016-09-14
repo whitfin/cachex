@@ -1,81 +1,49 @@
 defmodule Cachex.Actions.PurgeTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test makes sure that we can manually purge expired records from the cache.
+  # We attempt to purge before a key has expired and verify that it has not been
+  # removed. We then wait until after the TTL has passed and ensure that it is
+  # removed by the purge call. Finally we make sure to check the hook notifications.
+  test "purging expired records" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "purge requires an existing cache name", _state do
-    assert(Cachex.purge("test") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "purge with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.purge(state_result) == { :ok, 0 })
-  end
+    # add a new cache entry
+    { :ok, true } = Cachex.set(cache, "key", "value", ttl: 25)
 
-  test "purge with an empty cache", state do
-    purge_result = Cachex.purge(state.cache)
-    assert(purge_result == { :ok, 0 })
-  end
+    # flush messages
+    Helper.flush()
 
-  test "purge with a filled cache with no expirations", state do
-    Enum.each(0..9, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # purge before the entry expires
+    purge1 = Cachex.purge(cache)
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
+    # verify that the purge removed nothing
+    assert(purge1 == { :ok, 0 })
 
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # ensure we received a message
+    assert_receive({ { :purge, [[]] }, { :ok, 0 } })
 
-    purge_result = Cachex.purge(state.cache)
-    assert(purge_result == { :ok, 0 })
-  end
+    # wait until the entry has expired
+    :timer.sleep(25)
 
-  test "purge with a filled cache with some expirations", state do
-    Enum.each(0..4, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # purge after the entry expires
+    purge2 = Cachex.purge(cache)
 
-      set_result = Cachex.set(state.cache, key, "my_value", ttl: 1)
-      assert(set_result == { :ok, true })
+    # verify that the purge removed the key
+    assert(purge2 == { :ok, 1 })
 
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # ensure we received a message
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
 
-    Enum.each(5..9, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # check whether the key exists
+    exists = Cachex.exists?(cache, "key")
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
-
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
-
-    :timer.sleep(5)
-
-    purge_result = Cachex.purge(state.cache)
-    assert(purge_result == { :ok, 5 })
-  end
-
-  test "purge with a filled cache with all expirations", state do
-    Enum.each(0..9, fn(x) ->
-      key = "my_key" <> to_string(x)
-
-      set_result = Cachex.set(state.cache, key, "my_value", ttl: 1)
-      assert(set_result == { :ok, true })
-
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
-
-    :timer.sleep(5)
-
-    purge_result = Cachex.purge(state.cache)
-    assert(purge_result == { :ok, 10 })
+    # verify that the key is gone
+    assert(exists == { :ok, false })
   end
 
 end
