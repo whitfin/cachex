@@ -103,7 +103,7 @@ defmodule Cachex.Options do
   defp setup_limit(_cache, options) do
     limit =
       options
-      |> Keyword.get(:max_size)
+      |> Keyword.get(:limit)
       |> Limit.parse
 
     { :ok, limit }

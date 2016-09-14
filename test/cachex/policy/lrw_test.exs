@@ -42,7 +42,7 @@ defmodule Cachex.Policy.LRWTest do
     }
 
     # create a cache with a max size
-    cache = Helper.create_cache([ hooks: [ hook ], max_size: limit ])
+    cache = Helper.create_cache([ hooks: [ hook ], limit: limit ])
 
     # retrieve the cache state
     state = Cachex.State.get(cache)
@@ -110,7 +110,7 @@ defmodule Cachex.Policy.LRWTest do
     }
 
     # create a cache with a max size
-    cache = Helper.create_cache([ max_size: limit ])
+    cache = Helper.create_cache([ limit: limit ])
 
     # retrieve the cache state
     state = Cachex.State.get(cache)

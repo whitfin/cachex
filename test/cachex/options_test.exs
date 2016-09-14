@@ -168,7 +168,7 @@ defmodule Cachex.OptionsTest do
   # this flag will set the Limit field inside the returned State, so it needs to
   # be checked. It will also add any Limit hooks to the hooks list, so this needs
   # to also be verified within this test.
-  test "parsing :max_size flags" do
+  test "parsing :limit flags" do
     # grab a cache name
     name = Helper.create_name()
 
@@ -180,11 +180,11 @@ defmodule Cachex.OptionsTest do
     c_limits = %Cachex.Limit{ limit: max_size }
 
     # parse options with a valid max_size
-    { :ok, state1 } = Cachex.Options.parse(name, [ max_size: max_size ])
-    { :ok, state2 } = Cachex.Options.parse(name, [ max_size: c_limits ])
+    { :ok, state1 } = Cachex.Options.parse(name, [ limit: max_size ])
+    { :ok, state2 } = Cachex.Options.parse(name, [ limit: c_limits ])
 
     # parse options with invalid max_size
-    { :ok, state3 } = Cachex.Options.parse(name, [ max_size: "max_size" ])
+    { :ok, state3 } = Cachex.Options.parse(name, [ limit: "max_size" ])
     { :ok, state4 } = Cachex.Options.parse(name, [ ])
 
     # check the first and second states have limits

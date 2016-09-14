@@ -30,7 +30,6 @@ defmodule Cachex do
   alias Cachex.Actions
   alias Cachex.Errors
   alias Cachex.Hook
-  alias Cachex.Inspector
   alias Cachex.Janitor
   alias Cachex.LockManager
   alias Cachex.Options
