@@ -129,17 +129,6 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Very small unwrapper for an Mnesia start result. We accept already started tables
-  due to re-creation inside tests and setup/teardown scenarios.
-  """
-  def normalize_started({ :ok, _pid }),
-    do: { :ok, true }
-  def normalize_started({ :error, { :already_started, _pid } }),
-    do: { :ok, true }
-  def normalize_started(err),
-    do: err
-
-  @doc """
   Consistency wrapper around current time in millis.
   """
   def now, do: :os.system_time(1000)

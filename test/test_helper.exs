@@ -24,7 +24,11 @@ defmodule TestHelper do
   # Schedules a cache to be deleted at the end of the current test context.
   def delete_on_exit(name) do
     ExUnit.Callbacks.on_exit("delete #{name}", fn ->
-      Eternal.stop(Cachex.Util.Names.eternal(name))
+      try do
+        Supervisor.stop(name)
+      catch
+        :exit, _ -> :ok
+      end
     end)
   end
 

@@ -234,36 +234,6 @@ defmodule Cachex.UtilTest do
     assert(result2 == nil)
   end
 
-  # This test handles the validation done on an Eternal response when creating a
-  # cache table. Due to persistence, we want to make sure that we don't error if
-  # the table already exists, so we accept both an ok Tuple, as well as an already
-  # existing Tuple. Anything else returns as is so we can access the error.
-  test "normalizing an Eternal startup response" do
-    # generate a fake proc
-    pid = :erlang.list_to_pid('<0.100.0>')
-
-    # define an ok response
-    status1 = { :ok, pid }
-
-    # define am already started response
-    status2 = { :error, { :already_started, pid } }
-
-    # define an error response
-    status3 = { :error, :oh_dear }
-
-    # pull back the normalizations
-    result1 = Cachex.Util.normalize_started(status1)
-    result2 = Cachex.Util.normalize_started(status2)
-    result3 = Cachex.Util.normalize_started(status3)
-
-    # ensure the first two are valid
-    assert(result1 == { :ok, true })
-    assert(result2 == { :ok, true })
-
-    # the latter should return the error
-    assert(result3 == { :error, :oh_dear })
-  end
-
   # We use milliseconds for dates around Cachex, so we just need to make sure we
   # have a utility function which does this safely for us. We create the miils
   # from an Erlang timestamp, just to make sure we have another tier of validation.

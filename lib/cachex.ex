@@ -141,7 +141,7 @@ defmodule Cachex do
   def start_link(cache, options, server_opts) do
     with { :ok, true } <- ensure_started,
          { :ok, opts } <- setup_env(cache, options),
-         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, [ name: cache ] ++ server_opts)
+         { :ok,  pid }  = Supervisor.start_link(__MODULE__, opts, [ name: cache ] ++ server_opts)
       do
         hlist = Enum.concat(opts.pre_hooks, opts.post_hooks)
 
@@ -993,16 +993,17 @@ defmodule Cachex do
   # `start_link/3` and `start/3`.
   defp setup_env(cache, options) when is_list(options) do
     with { :ok, opts } <- Options.parse(cache, options),
-         { :ok, true } <- start_table(opts),
+         { :ok, _pid } <- start_table(opts),
      do: { :ok, opts }
   end
 
   # Starts up an Mnesia table based on the provided options. If an error occurs
   # when setting up the table, we return an error tuple to represent the issue.
   defp start_table(%State{ cache: cache, ets_opts: ets_opts }) do
-    cache
-    |> Eternal.start(ets_opts, [ name: Names.eternal(cache), quiet: true ])
-    |> Util.normalize_started
+    Eternal.start_link(cache, ets_opts, [
+      name: Names.eternal(cache),
+      quiet: true
+    ])
   rescue
     _ -> Errors.invalid_option()
   end
