@@ -1,39 +1,24 @@
 defmodule Cachex.Actions.ExecuteTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test just makes sure that execution blocks are handled correctly in that
+  # they can carry out many actions and return a joint result without having to
+  # go back to the state table.
+  test "execution blocks can carry out many actions" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-  test "execute requires an existing cache name", _state do
-    assert(Cachex.execute("test", &(&1)) == { :error, "Invalid cache provided, got: \"test\"" })
-  end
-
-  test "execute with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.execute(state_result, &(!!&1)) == { :ok, true })
-  end
-
-  test "execute carries out many actions", state do
-    result = Cachex.execute(state.cache, fn(worker) ->
-      Cachex.set(worker, "my_key1", "my_value1")
-      Cachex.set(worker, "my_key2", "my_value2")
-      Cachex.set(worker, "my_key3", "my_value3")
+    # start an execution block
+    result = Cachex.execute(cache, fn(%Cachex.State{ } = state) ->
+      [
+        Cachex.set!(state, 1, 1),
+        Cachex.set!(state, 2, 2),
+        Cachex.set!(state, 3, 3)
+      ]
     end)
 
-    assert(result == { :ok, { :ok, true } })
-
-    size_result = Cachex.size(state.cache)
-
-    assert(size_result == { :ok, 3 })
-  end
-
-  test "execute returns a custom value", state do
-    execute_result = Cachex.execute(state.cache, fn(worker) ->
-      Cachex.get(worker, "my_key")
-    end)
-
-    assert(execute_result == { :ok, { :missing, nil } })
+    # verify the block returns correct values
+    assert(result == [ true, true, true ])
   end
 
 end

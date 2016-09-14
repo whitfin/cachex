@@ -12,15 +12,10 @@
   ],
   "custom_stop_words": [
     "defwrap.+",
-    "{ :ok, pid } -> pid"
+    "{ :ok, .+_result } <-"
   ],
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true
   },
-  "skip_files": [
-    "lib/cachex/macros.ex",
-    "lib/cachex/macros/*",
-    "lib/mix/cachex.ex",
-    "lib/mix/tasks/*",
-  ]
+  "skip_files": [ ]
 }

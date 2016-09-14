@@ -1,75 +1,47 @@
 defmodule Cachex.Actions.KeysTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies that it's possible to retrieve the keys inside a cache.
+  # It should be noted that the keys function takes TTL into account and only
+  # returns the keys of those records which have not expired. Order is not in
+  # any way guaranteed, even with no cache modification.
+  test "retrieving the keys inside the cache" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "keys requires an existing cache name", _state do
-    assert(Cachex.keys("test") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "keys with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.keys(state_result) == { :ok, [] })
-  end
+    # fill with some items
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2)
+    { :ok, true } = Cachex.set(cache, 3, 3)
 
-  test "keys with an empty cache", state do
-    keys_result = Cachex.keys(state.cache)
-    assert(keys_result == { :ok, [] })
-  end
+    # add some expired items
+    { :ok, true } = Cachex.set(cache, 4, 4, ttl: 1)
+    { :ok, true } = Cachex.set(cache, 5, 5, ttl: 1)
+    { :ok, true } = Cachex.set(cache, 6, 6, ttl: 1)
 
-  test "keys with some cache entries", state do
-    Enum.each(0..9, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # let entries expire
+    :timer.sleep(2)
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
+    # clear all hook
+    Helper.flush()
 
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # retrieve the keys
+    { status, keys } = Cachex.keys(cache)
 
-    { keys_status, keys_list } = Cachex.keys(state.cache)
-    assert(keys_status == :ok)
+    # ensure the status is ok
+    assert(status == :ok)
 
-    keys_list
-    |> Enum.sort
-    |> Enum.with_index
-    |> Enum.each(fn({ key, index }) ->
-        assert(key == "my_key" <> to_string(index))
-       end)
-  end
+    # sort the keys
+    result = Enum.sort(keys)
 
-  test "keys with some expired entries", state do
-    Enum.each(0..9, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # only 3 items should come back
+    assert(result == [ 1, 2, 3 ])
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
-    end)
-
-    Enum.each(10..19, fn(x) ->
-      key = "my_key" <> to_string(x)
-
-      set_result = Cachex.set(state.cache, key, "my_value", ttl: 1)
-      assert(set_result == { :ok, true })
-
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
-
-    :timer.sleep(1)
-
-    { keys_status, keys_list } = Cachex.keys(state.cache)
-    assert(keys_status == :ok)
-
-    keys_list
-    |> Enum.sort
-    |> Enum.with_index
-    |> Enum.each(fn({ key, index }) ->
-        assert(key == "my_key" <> to_string(index))
-       end)
+    # verify the hooks were updated with the count
+    assert_receive({ { :keys, [[]] }, { ^status, ^keys } })
   end
 
 end

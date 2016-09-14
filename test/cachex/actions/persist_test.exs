@@ -1,54 +1,57 @@
 defmodule Cachex.Actions.PersistTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test just ensures that we can safely remove expiration times from a key.
+  # We set a TTL on a key and then persist it and verify that there is then no
+  # TTL associated with the key going forwards.
+  test "removing the TTL on a key" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "persist requires an existing cache name", _state do
-    assert(Cachex.persist("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "persist with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.persist(state_result, "key") == { :missing, false })
-  end
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1000)
 
-  test "persist with a key with no ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # clear messages
+    Helper.flush()
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # retrieve all TTLs from the cache
+    ttl1 = Cachex.ttl!(cache, 1)
+    ttl2 = Cachex.ttl!(cache, 2)
 
-    persist_result = Cachex.persist(state.cache, "my_key")
-    assert(persist_result == { :ok, true })
+    # the first TTL should be nil
+    assert(ttl1 == nil)
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
-  end
+    # the second TTL should be roughly 1000
+    assert_in_delta(ttl2, 1000, 5)
 
-  test "persist with a key with a ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5, ttl: :timer.seconds(5))
-    assert(set_result == { :ok, true })
+    # remove the TTLs
+    persist1 = Cachex.persist(cache, 1)
+    persist2 = Cachex.persist(cache, 2)
+    persist3 = Cachex.persist(cache, 3)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # the first two writes should succeed
+    assert(persist1 == { :ok, true })
+    assert(persist2 == { :ok, true })
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
+    # the third shouldn't, as it's missing
+    assert(persist3 == { :missing, false })
 
-    persist_result = Cachex.persist(state.cache, "my_key")
-    assert(persist_result == { :ok, true })
+    # verify the hooks were updated with the message
+    assert_receive({ { :persist, [ 1, [] ] }, ^persist1 })
+    assert_receive({ { :persist, [ 2, [] ] }, ^persist2 })
+    assert_receive({ { :persist, [ 3, [] ] }, ^persist3 })
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
-  end
+    # retrieve all TTLs from the cache
+    ttl3 = Cachex.ttl!(cache, 1)
+    ttl4 = Cachex.ttl!(cache, 2)
 
-  test "persist with a missing key", state do
-    persist_result = Cachex.persist(state.cache, "my_key")
-    assert(persist_result == { :missing, false })
+    # both TTLs should now be nil
+    assert(ttl3 == nil)
+    assert(ttl4 == nil)
   end
 
 end

@@ -1,165 +1,172 @@
 defmodule Cachex.Policy.LRWTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  test "LRW doesn't evict with a nil upper bound" do
-    limit = %Cachex.Limit{
-      limit: nil,
-      policy: Cachex.Policy.LRW,
-      reclaim: 0.1
-    }
+  # This test just ensures that there are no artificial limits placed on a cache
+  # by adding 5000 keys and making sure they're not evicted. It simply serves as
+  # validation that there are no bad defaults set anywhere.
+  test "evicting with no upper bound" do
+    # create a cache with no max size
+    cache = Helper.create_cache()
 
-    my_cache = TestHelper.create_cache([ limit: limit ])
+    # retrieve the cache state
+    state = Cachex.State.get(cache)
 
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(1..5000, fn(x) ->
-        Cachex.set(state, x, x)
-      end)
-    end)
+    # add 5000 keys to the cache
+    for x <- 1..5000 do
+      { :ok, true } = Cachex.set(state, x, x)
+    end
 
-    assert(Cachex.size!(my_cache) == 5000)
+    # retrieve the cache size
+    count = Cachex.size!(state)
+
+    # make sure all keys are there
+    assert(count == 5000)
   end
 
-  test "LRW evicts the oldest entries when the limit is crossed" do
+  # This test ensures that a cache will cap caches at a given limit by trimming
+  # caches by a given size once they cross a given threshold. We ensure that the
+  # size is trimmed properly and the oldest entries are evicted first, with the
+  # newest entries kept in the cache. Finally we make sure that all hooks are
+  # notified of the evictions that occurred.
+  test "evicting when a cache crosses a limit" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{
+      results: true
+    })
+
+    # define our cache limit
     limit = %Cachex.Limit{
-      limit: 500,
+      limit: 100,
       policy: Cachex.Policy.LRW,
-      reclaim: 0.1
+      reclaim: 0.75
     }
 
-    my_cache = TestHelper.create_cache([ max_size: limit ])
+    # create a cache with a max size
+    cache = Helper.create_cache([ hooks: [ hook ], max_size: limit ])
 
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(1..500, fn(x) ->
-        Cachex.set(state, x, x)
-      end)
+    # retrieve the cache state
+    state = Cachex.State.get(cache)
+
+    # add 1000 keys to the cache
+    for x <- 1..100 do
+      # add the entry to the cache
+      { :ok, true } = Cachex.set(state, x, x)
+
+      # tick to make sure each has a new touch time
+      :timer.sleep(1)
+    end
+
+    # retrieve the cache size
+    size1 = Cachex.size!(cache)
+
+    # verify the cache size
+    assert(size1 == 100)
+
+    # flush all existing hook events
+    Helper.flush()
+
+    # add a new key to the cache to trigger evictions
+    { :ok, true } = Cachex.set(state, 101, 101)
+
+    # verify the cache shrinks to 25%
+    Helper.poll(250, 25, fn ->
+      Cachex.size!(state)
     end)
 
-    assert(Cachex.size!(my_cache) == 500)
+    # our validation step
+    validate = fn(range, expected) ->
+      # iterate all keys in the range
+      for x <- range do
+        # retrieve whether the key exists
+        exists = Cachex."exists?!"(state, x)
 
-    Cachex.set(my_cache, 501, 501)
+        # verify whether it exists
+        assert(exists == expected)
+      end
+    end
 
-    TestHelper.poll(100, 450, fn ->
-      Cachex.size!(my_cache)
-    end)
+    # verify the first 76 keys are removed
+    validate.(1..76, false)
+
+    # verify the latest 25 are retained
+    validate.(77..101, true)
+
+    # finally, verify hooks are notified
+    assert_receive({ { :clear, [[]] }, { :ok, 76 } })
   end
 
-  test "LRW evicts a custom number of entries when the limit is crossed" do
+  # This test ensures that the cache eviction policy will evict any expired values
+  # before removing the oldest. This is to make sure that we don't remove anything
+  # without good reason. To verify this we add 50 keys with a TTL more recently
+  # than those without and cross the cache limit. We then validate that all expired
+  # keys have been purged, and no other keys have been removed as the purge takes
+  # the cache size back under the maximum size.
+  test "evicting by removing expired keys" do
+    # define our cache limit
     limit = %Cachex.Limit{
-      limit: 500,
+      limit: 100,
       policy: Cachex.Policy.LRW,
-      reclaim: 1.0
+      reclaim: 0.3
     }
 
-    my_cache = TestHelper.create_cache([ max_size: limit ])
+    # create a cache with a max size
+    cache = Helper.create_cache([ max_size: limit ])
 
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(1..500, fn(x) ->
-        Cachex.set(state, x, x)
-      end)
+    # retrieve the cache state
+    state = Cachex.State.get(cache)
+
+    # set 50 keys without ttl
+    for x <- 1..50 do
+      # set the key
+      { :ok, true } = Cachex.set(state, x, x)
+
+      # tick to make sure each has a new touch time
+      :timer.sleep(1)
+    end
+
+    # set a more recent 50 keys
+    for x <- 51..100 do
+      # set the key
+      { :ok, true } = Cachex.set(state, x, x, ttl: 1)
+
+      # tick to make sure each has a new touch time
+      :timer.sleep(1)
+    end
+
+    # retrieve the cache size
+    size1 = Cachex.size!(cache)
+
+    # verify the cache size
+    assert(size1 == 100)
+
+    # add a new key to the cache to trigger evictions
+    { :ok, true } = Cachex.set(state, 101, 101)
+
+    # verify the cache shrinks to 51%
+    Helper.poll(250, 51, fn ->
+      Cachex.size!(state)
     end)
 
-    assert(Cachex.size!(my_cache) == 500)
+    # our validation step
+    validate = fn(range, expected) ->
+      # iterate all keys in the range
+      for x <- range do
+        # retrieve whether the key exists
+        exists = Cachex."exists?!"(state, x)
 
-    Cachex.set(my_cache, 501, 501)
+        # verify whether it exists
+        assert(exists == expected)
+      end
+    end
 
-    TestHelper.poll(1000, 0, fn ->
-      Cachex.size!(my_cache)
-    end)
-  end
+    # verify the first 50 keys are retained
+    validate.(1..50, true)
 
-  test "LRW doesn't check cache size on non-insert operations" do
-    limit = %Cachex.Limit{
-      limit: 500,
-      policy: Cachex.Policy.LRW,
-      reclaim: 0.5
-    }
+    # verify the second 50 are removed
+    validate.(51..100, false)
 
-    my_cache = TestHelper.create_cache([ max_size: limit ])
-
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(1..500, fn(x) ->
-        Cachex.set(state, x, x)
-      end)
-    end)
-
-    assert(Cachex.size!(my_cache) == 500)
-
-    :ets.insert(my_cache, { 501, Cachex.Util.now(), nil, 501 })
-
-    assert(Cachex.get!(my_cache, 501) == 501)
-    assert(Cachex.size!(my_cache) == 501)
-
-    Cachex.set(my_cache, 501, 501)
-
-    TestHelper.poll(1000, 250, fn ->
-      Cachex.size!(my_cache)
-    end)
-  end
-
-  test "LRW correctly broadcasts evictions to cache hooks" do
-    limit = %Cachex.Limit{
-      limit: 500,
-      policy: Cachex.Policy.LRW,
-      reclaim: 0.5
-    }
-
-    my_cache = TestHelper.create_cache([
-      max_size: limit,
-      record_stats: true
-    ])
-
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(1..500, fn(x) ->
-        Cachex.set(state, x, x)
-      end)
-    end)
-
-    Cachex.set(my_cache, 501, 501)
-
-    TestHelper.poll(1000, 250, fn ->
-      Cachex.size!(my_cache)
-    end)
-
-    stats = Cachex.stats!(my_cache)
-
-    assert(stats.evictionCount == 251)
-  end
-
-  test "LRW purges expired entries before evicting old entries" do
-    limit = %Cachex.Limit{
-      limit: 500,
-      policy: Cachex.Policy.LRW,
-      reclaim: 0.5
-    }
-
-    my_cache = TestHelper.create_cache([
-      max_size: limit,
-      record_stats: true
-    ])
-
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(1..251, fn(x) ->
-        Cachex.set(state, x, x, ttl: 1)
-      end)
-    end)
-
-    Cachex.execute(my_cache, fn(state) ->
-      Enum.each(252..500, fn(x) ->
-        Cachex.set(state, x, x)
-      end)
-    end)
-
-    :timer.sleep(5)
-
-    Cachex.set(my_cache, 501, 501)
-
-    TestHelper.poll(1000, 250, fn ->
-      Cachex.size!(my_cache)
-    end)
-
-    stats = Cachex.stats!(my_cache)
-
-    assert(stats.expiredCount == 251)
+    # verify the last key added is retained
+    validate.(101..101, true)
   end
 
 end

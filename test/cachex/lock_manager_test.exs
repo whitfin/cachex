@@ -1,59 +1,128 @@
 defmodule Cachex.LockManagerTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  alias Cachex.LockManager
-  alias Cachex.State
+  # This test verifies that we can detect when we're running inside a transactional
+  # context within a process. This is used to automatically detect nested transactions
+  # and should be false when run outside of the LockManager server, otherwise true.
+  test "detecting a transactional context" do
+    # start a new cache
+    cache = Helper.create_cache()
 
-  setup do
-    { :ok, cache: State.get(TestHelper.create_cache([ transactions: false ])) }
-  end
+    # fetch the cache state
+    state = Cachex.State.get(cache)
 
-  test "checking for a transaction", state do
-    refute(LockManager.transaction?())
-
-    LockManager.transaction(state.cache, [], fn ->
-      assert(LockManager.transaction?())
+    # check transaction status from inside of a transaction
+    transaction1 = Cachex.LockManager.transaction(state, [], fn ->
+      Cachex.LockManager.transaction?()
     end)
+
+    # check transaction status from outside of a transaction
+    transaction2 = Cachex.LockManager.transaction?()
+
+    # the first should be true, latter be false
+    assert(transaction1 == true)
+    assert(transaction2 == false)
   end
 
-  test "writes execute outside of transactions when disabled", state do
-    LockManager.write(state.cache, "key", fn ->
-      refute(LockManager.transaction?())
-    end)
+  # When we execute a write against a key which isn't locked, we should bypass
+  # the transaction context and write instantly. This is also the case for a cache
+  # which has transactions disabled. This test will verify both of these cases to
+  # ensure that writes are queued unnecessarily.
+  test "executing a write outside of a transaction" do
+    # start two caches, one transactional, one not
+    cache1 = Helper.create_cache([ transactions:  true ])
+    cache2 = Helper.create_cache([ transactions: false ])
+
+    # fetch the states for the caches
+    state1 = Cachex.State.get(cache1)
+    state2 = Cachex.State.get(cache2)
+
+    # our write action
+    write = &Cachex.LockManager.transaction?/0
+
+    # execute writes against unlocked keys
+    write1 = Cachex.LockManager.write(state1, "key", write)
+    write2 = Cachex.LockManager.write(state2, "key", write)
+
+    # neither should be transactional
+    assert(write1 == false)
+    assert(write2 == false)
   end
 
-  test "writes execute when keys are not locked by transactions", state do
-    enabled_cache = %State{ state.cache | transactions: true }
+  # This test verifies the queueing of writes when operating against keys which
+  # are currently locked. If a key is locked, the write should be submitted to the
+  # lock server, to ensure consistency. However, if the state is not transactional,
+  # this condition should never be checked. This test will verify both of these
+  # cases in order to ensure that we're handling optimistic writes appropriately.
+  # In addition this test also verifies the submission of a transaction in of
+  # itself, as it's needed to test the write execution.
+  test "executing a transactional block" do
+    # start two caches, one transactional, one not
+    cache1 = Helper.create_cache([ transactions: false ])
+    cache2 = Helper.create_cache([ transactions:  true ])
 
-    LockManager.write(enabled_cache, "key", fn ->
-      refute(LockManager.transaction?())
-    end)
-  end
+    # fetch the states for the caches
+    state1 = Cachex.State.get(cache1)
+    state2 = Cachex.State.get(cache2)
 
-  test "writes queue after transactions when keys are locked", state do
-    enabled_cache = %State{ state.cache | transactions: true }
-
-    spawn(fn ->
-      LockManager.transaction(enabled_cache, [ "test" ], fn ->
-        Cachex.incr(enabled_cache, "test")
-        :timer.sleep(1000)
+    # our transaction actions - this will lock the key "key" in both caches for
+    # 50ms before incrementing the same key by 1.
+    transaction = fn(state) ->
+      spawn(fn ->
+        Cachex.LockManager.transaction(state, [ "key" ], fn ->
+          :timer.sleep(50)
+          Cachex.incr(state, "key")
+        end)
       end)
-    end)
+    end
 
-    :timer.sleep(5)
+    # execute transactions to lock our keys in the caches
+    transaction.(state1)
+    transaction.(state2)
 
-    incr_result = LockManager.write(enabled_cache, "key", fn ->
-      Cachex.incr(enabled_cache, "test")
-    end)
+    # wait for the spawns to happen
+    :timer.sleep(10)
 
-    assert(incr_result == { :ok, 2 })
+    # our write action - this will increment the key "key" by 1 and return the
+    # value after incrementing as well as whether the write took place in a
+    # transaction, this demonstrating the key locking.
+    write = fn(state) ->
+      Cachex.LockManager.write(state, "key", fn ->
+        {
+          Cachex.incr!(state, "key"),
+          Cachex.LockManager.transaction?()
+        }
+      end)
+    end
+
+    # execute writes against unlocked keys
+    write1 = write.(state1)
+    write2 = write.(state2)
+
+    # the first write executes before the transaction from outside
+    assert(write1 == { 1, false })
+
+    # the second write executes after the transaction from within
+    assert(write2 == { 2, true })
   end
 
-  test "error catching inside a transaction", state do
-    result = LockManager.transaction(state.cache, [ "key" ], fn ->
+  # Because transactions execute inside a GenServer, we need to make sure the
+  # server is able to withstand a crash inside the block (as blocks are totally
+  # arbitrary). This test ensures that a crash does not cause an error, it just
+  # notifies the user of the error occurring without causing other issues.
+  test "executing a crashing transaction" do
+    # create a test cache
+    cache = Helper.create_cache([ transactions: true ])
+
+    # retrieve the state for our cache
+    state = Cachex.State.get(cache)
+
+    # execute a crashing transaction
+    result = Cachex.LockManager.transaction(state, [ ], fn ->
       raise ArgumentError, message: "oh dear"
     end)
 
+    # the result should contain the error
     assert(result == { :error, "oh dear" })
   end
 

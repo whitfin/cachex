@@ -18,10 +18,8 @@ defmodule Cachex.Macros do
   Fetches the name and arguments from a function head and returns them inside a
   tuple.
   """
-  def name_and_args({ :when, _, [head | _] }),
-  do: Macro.decompose_call(head)
-  def name_and_args(head),
-  do: Macro.decompose_call(head)
+  def find_head({ :when, _, [ head | _ ] }), do: head
+  def find_head(head), do: head
 
   @doc """
   Trim all defaults from a set of arguments.
@@ -46,7 +44,8 @@ defmodule Cachex.Macros do
   version simply unwrapping the results of the safe version.
   """
   defmacro defwrap(head, do: body) do
-    { func_name, arguments } = name_and_args(head)
+    { func_name, _ctx, arguments } = find_head(head)
+
     explicit_head  = gen_unsafe(head)
     sanitized_args = trim_defaults(arguments)
 
@@ -57,7 +56,9 @@ defmodule Cachex.Macros do
 
       @doc false
       def unquote(explicit_head) do
-        case apply(Cachex, unquote(func_name), [unquote_splicing(sanitized_args)]) do
+        case unquote(func_name)(unquote_splicing(sanitized_args)) do
+          { :error, value } when is_atom(value) ->
+            raise ExecutionError, message: Cachex.Errors.long_form(value)
           { :error, value } when is_binary(value) ->
             raise ExecutionError, message: value
           { _state, value } ->
@@ -76,14 +77,11 @@ defmodule Cachex.Macros do
 
   # Converts various function input to an unsafe version by adding a trailing
   # "!" to the function name.
-  defp gen_unsafe({ :when, ctx, [head | tail] }) do
-    scary_head = gen_unsafe(head)
-    { :when, ctx, [scary_head|tail]}
+  defp gen_unsafe({ :when, ctx, [ head | tail ] }) do
+    { :when, ctx, [ gen_unsafe(head) | tail ]}
   end
-  defp gen_unsafe(head) do
-    { name, _, _ } = head
-    scary_name = Util.atom_append(name, "!")
-    put_elem(head, 0, scary_name)
+  defp gen_unsafe({ name, ctx, args }) do
+    { Util.atom_append(name, "!"), ctx, args }
   end
 
 end

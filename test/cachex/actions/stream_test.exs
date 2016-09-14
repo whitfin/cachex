@@ -1,123 +1,74 @@
 defmodule Cachex.Actions.StreamTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test ensures that a default cache stream will stream keys and values
+  # back in Tuple pairs back to the calling process. This test just makes sure
+  # that the Stream correctly forms these Tuples using the default structure.
+  test "streaming keys and values" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-  test "stream requires an existing cache name", _state do
-    assert(Cachex.stream("test") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, "key1", "value1")
+    { :ok, true } = Cachex.set(cache, "key2", "value2")
+    { :ok, true } = Cachex.set(cache, "key3", "value3")
 
-  test "stream with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.stream!(state_result) |> Enum.to_list == [])
-  end
+    # create a cache stream
+    { :ok, stream } = Cachex.stream(cache)
 
-  test "stream returns a stream of keys and values", state do
-    Enum.each(1..3, fn(x) ->
-      set_result = Cachex.set(state.cache, "key#{x}", "value#{x}")
-      assert(set_result == { :ok, true })
-    end)
+    # consume the stream
+    result = Enum.sort(stream)
 
-    { status, stream } = Cachex.stream(state.cache)
-
-    assert(status == :ok)
-
-    sorted_stream =
-      stream
-      |> Enum.sort
-      |> Enum.to_list
-
-      assert(sorted_stream == [
-        {"key1", "value1"},
-        {"key2", "value2"},
-        {"key3", "value3"}
-      ])
-  end
-
-  test "stream returns a stream of only keys", state do
-    Enum.each(1..3, fn(x) ->
-      set_result = Cachex.set(state.cache, "key#{x}", "value#{x}")
-      assert(set_result == { :ok, true })
-    end)
-
-    { status, stream } = Cachex.stream(state.cache, of: :key)
-
-    assert(status == :ok)
-
-    sorted_stream =
-      stream
-      |> Enum.sort
-      |> Enum.to_list
-
-    assert(sorted_stream == ["key1", "key2", "key3"])
-  end
-
-  test "stream returns a stream of only values", state do
-    Enum.each(1..3, fn(x) ->
-      set_result = Cachex.set(state.cache, "key#{x}", "value#{x}")
-      assert(set_result == { :ok, true })
-    end)
-
-    { status, stream } = Cachex.stream(state.cache, of: :value)
-
-    assert(status == :ok)
-
-    sorted_stream =
-      stream
-      |> Enum.sort
-      |> Enum.to_list
-
-    assert(sorted_stream == ["value1", "value2", "value3"])
-  end
-
-  test "stream returns a moving view of a cache", state do
-    Enum.each(1..3, fn(x) ->
-      set_result = Cachex.set(state.cache, "key#{x}", "value#{x}")
-      assert(set_result == { :ok, true })
-    end)
-
-    { status, stream } = Cachex.stream(state.cache)
-
-    assert(status == :ok)
-
-    set_result = Cachex.set(state.cache, "key4", "value4")
-    assert(set_result == { :ok, true })
-
-    sorted_stream =
-      stream
-      |> Enum.sort
-      |> Enum.to_list
-
-    assert(sorted_stream == [
-      {"key1", "value1"},
-      {"key2", "value2"},
-      {"key3", "value3"},
-      {"key4", "value4"}
+    # verify the results
+    assert(result == [
+      { "key1", "value1" },
+      { "key2", "value2" },
+      { "key3", "value3" }
     ])
   end
 
-  test "stream returns a stream of custom types", state do
-    Enum.each(1..3, fn(x) ->
-      set_result = Cachex.set(state.cache, "key#{x}", "value#{x}")
-      assert(set_result == { :ok, true })
-    end)
+  # This test covers the use case of custom match patterns, by testing various
+  # pattern combinations. We stream custom record formats, as well as a single
+  # field in order to test this properly.
+  test "streaming custom patterns" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-    { status, stream } = Cachex.stream(state.cache, of: { :value, :key, :ttl })
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, "key1", "value1")
+    { :ok, true } = Cachex.set(cache, "key2", "value2")
+    { :ok, true } = Cachex.set(cache, "key3", "value3")
 
-    assert(status == :ok)
+    # create cache streams
+    { :ok, stream1 } = Cachex.stream(cache, [ of: { { :key, :value, :key, :ttl } } ])
+    { :ok, stream2 } = Cachex.stream(cache, [ of: :key ])
 
-    sorted_stream =
-      stream
-      |> Enum.sort
-      |> Enum.to_list
+    # consume the streams
+    result1 = Enum.sort(stream1)
+    result2 = Enum.sort(stream2)
 
-      assert(sorted_stream == [
-        {"value1", "key1", nil},
-        {"value2", "key2", nil},
-        {"value3", "key3", nil}
-      ])
+    # verify the first results
+    assert(result1 == [
+      { "key1", "value1", "key1", nil },
+      { "key2", "value2", "key2", nil },
+      { "key3", "value3", "key3", nil }
+    ])
+
+    # verify the second results
+    assert(result2 == [ "key1", "key2", "key3" ])
+  end
+
+  # If an invalid match spec is provided in the of option, an error is returned.
+  # We just ensure that this breaks accordingly and returns an invalid match error.
+  test "streaming invalid patterns" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # create cache stream
+    result  = Cachex.stream(cache, [ of: { :invalid } ])
+
+    # verify the stream fails
+    assert(result == { :error, :invalid_match })
   end
 
 end

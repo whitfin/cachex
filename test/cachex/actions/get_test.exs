@@ -1,119 +1,81 @@
 defmodule Cachex.Actions.GetTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies that we can retrieve keys from the cache. If a key has expired,
+  # the value is not returned and the hooks are updated with an eviction. If the
+  # key is missing, we return a message stating as such.
+  test "retrieving keys from a cache" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "get requires an existing cache name", _state do
-    assert(Cachex.get("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache1 = Helper.create_cache([ hooks: [ hook ] ])
+    cache2 = Helper.create_cache([ hooks: [ hook ], fallback_args: [ "val" ], default_fallback: fn(key, val) ->
+      String.reverse("#{key}_#{val}")
+    end ])
 
-  test "get with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.get(state_result, "key") == { :missing, nil })
-  end
+    # set some keys in the cache
+    { :ok, true } = Cachex.set(cache1, 1, 1)
+    { :ok, true } = Cachex.set(cache1, 2, 2, ttl: 1)
 
-  test "key get with existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # wait for the TTL to pass
+    :timer.sleep(2)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
-  end
+    # flush all existing messages
+    Helper.flush()
 
-  test "key get with missing key", state do
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
-  end
+    # take the first and second key
+    result1 = Cachex.get(cache1, 1)
+    result2 = Cachex.get(cache1, 2)
 
-  test "key get with fallback on existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # take a missing key with no fallback
+    result3 = Cachex.get(cache1, 3)
 
-    get_result = Cachex.get(state.cache, "my_key", fallback: &(&1))
-    assert(get_result == { :ok, "my_value" })
-  end
+    # define the fallback options
+    fb_opts = [ fallback: fn(key, val) ->
+      key <> "_" <> val
+    end ]
 
-  test "key get with fallback on missing key", state do
-    get_result = Cachex.get(state.cache, "my_key", fallback: &(&1))
-    assert(get_result == { :loaded, "my_key" })
-  end
+    # take keys with a fallback
+    result4 = Cachex.get(cache2, "key1")
+    result5 = Cachex.get(cache2, "key2", fb_opts)
 
-  test "key get with default fallback", _state do
-    get_result =
-      [ default_fallback: &(String.reverse/1)]
-      |> TestHelper.create_cache
-      |> Cachex.get("my_key")
+    # verify the first key is retrieved
+    assert(result1 == { :ok, 1 })
 
-    assert(get_result == { :loaded, "yek_ym" })
-  end
+    # verify the second and third keys are missing
+    assert(result2 == { :missing, nil })
+    assert(result3 == { :missing, nil })
 
-  test "key get with overridden default fallback", _state do
-    get_result =
-      [ default_fallback: &(String.reverse/1)]
-      |> TestHelper.create_cache
-      |> Cachex.get("my_key", fallback: &(&1))
+    # verify the fourth key uses the default fallback
+    assert(result4 == { :loaded, "lav_1yek" })
 
-    assert(get_result == { :loaded, "my_key" })
-  end
+    # verify the fifth uses the custom fallback
+    assert(result5 == { :loaded, "key2_val" })
 
-  test "key get with fallback arguments and no arguments specified", _state do
-    get_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get("my_key", fallback: fn -> "test" end)
+    # assert we receive valid notifications
+    assert_receive({ { :get, [ 1, [ ] ] }, ^result1 })
+    assert_receive({ { :get, [ 2, [ ] ] }, ^result2 })
+    assert_receive({ { :get, [ 3, [ ] ] }, ^result3 })
+    assert_receive({ { :get, [ "key1", [ ] ] }, ^result4 })
+    assert_receive({ { :get, [ "key2", ^fb_opts ] }, ^result5 })
 
-    assert(get_result == { :loaded, "test" })
-  end
+    # check we received valid purge actions for the TTL
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
 
-  test "key get with fallback arguments and single argument specified", _state do
-    get_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get("my_key", fallback: &(&1))
+    # check if the expired key has gone
+    exists1 = Cachex.exists?(cache1, 2)
 
-    assert(get_result == { :loaded, "my_key" })
-  end
+    # it shouldn't exist
+    assert(exists1 == { :ok, false })
 
-  test "key get with fallback arguments and valid argument count specified", _state do
-    get_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get("my_key", fallback: &(&1 <> &2 <> &3 <> &4))
+    # retrieve the loaded keys
+    value1 = Cachex.get(cache2, "key1")
+    value2 = Cachex.get(cache2, "key2")
 
-    assert(get_result == { :loaded, "my_key123" })
-  end
-
-  test "key get with fallback arguments and invalid argument count specified", _state do
-    get_result =
-      [ fallback_args: ["1","2","3"] ]
-      |> TestHelper.create_cache
-      |> Cachex.get("my_key", fallback: &(&1 <> &2 <> &3))
-
-    assert(get_result == { :missing, nil })
-  end
-
-  test "key get with expired key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
-    assert(set_result == { :ok, true })
-
-    :timer.sleep(6)
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
-  end
-
-  test "key get with expired key and disable_ode", _state do
-    cache = TestHelper.create_cache([ disable_ode: true ])
-
-    set_result = Cachex.set(cache, "my_key", "my_value", ttl: 5)
-    assert(set_result == { :ok, true })
-
-    :timer.sleep(6)
-
-    get_result = Cachex.get(cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # both should now exist
+    assert(value1 == { :ok, "lav_1yek" })
+    assert(value2 == { :ok, "key2_val" })
   end
 
 end

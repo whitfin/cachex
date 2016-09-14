@@ -20,13 +20,10 @@ defmodule CachexBench do
     Cachex.set(:bench_cache, "ttl_test", "ttl_value", ttl: @one_hour)
     Cachex.set(:bench_cache, "update_test", "update_value")
 
-    { parsed, _argv, _errors } = OptionParser.parse(System.argv(), [
-      aliases: [ s: :state, t: :transactions ],
-      strict:  [ state: :boolean, transactions: :boolean ]
-    ])
+    get_opt = &System.get_env(&1) == "true"
 
-    use_state = Keyword.get(parsed, :state, false)
-    use_trans = Keyword.get(parsed, :transactions, false)
+    use_state = get_opt("CACHEX_BENCH_STATE")
+    use_trans = get_opt("CACHEX_BENCH_TRANSACTIONS")
 
     if use_trans do
       Cachex.State.update(:bench_cache, fn(state) ->

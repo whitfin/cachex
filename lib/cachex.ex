@@ -1,18 +1,4 @@
 defmodule Cachex do
-  # use Macros and Supervisor
-  use Cachex.Macros
-  use Supervisor
-
-  # add some aliases
-  alias Cachex.Actions
-  alias Cachex.Hook
-  alias Cachex.Inspector
-  alias Cachex.Janitor
-  alias Cachex.LockManager
-  alias Cachex.Options
-  alias Cachex.State
-  alias Cachex.Util
-
   @moduledoc """
   Cachex provides a straightforward interface for in-memory key/value storage.
 
@@ -35,6 +21,25 @@ defmodule Cachex do
   See `start_link/3` for further details about how to configure these options and
   example usage.
   """
+
+  # use Macros and Supervisor
+  use Cachex.Macros
+  use Supervisor
+
+  # add some aliases
+  alias Cachex.Actions
+  alias Cachex.Errors
+  alias Cachex.Hook
+  alias Cachex.Inspector
+  alias Cachex.Janitor
+  alias Cachex.LockManager
+  alias Cachex.Options
+  alias Cachex.State
+  alias Cachex.Util
+  alias Cachex.Util.Names
+
+  # avoid inspect clashes
+  import Kernel, except: [ inspect: 2 ]
 
   # the cache type
   @type cache :: atom | State.t
@@ -130,21 +135,26 @@ defmodule Cachex do
 
   """
   @spec start_link(options, options) :: { atom, pid }
-  def start_link(name, options \\ [], server_opts \\ [])
-  def start_link(name, options, server_opts) when is_atom(name) do
-    start_link([ { :name, name } | options ], server_opts)
+  def start_link(cache, options \\ [], server_opts \\ [])
+  def start_link(cache, _options, _server_opts) when not is_atom(cache) do
+    Errors.invalid_name()
   end
-  def start_link(options, server_opts, _opts) do
+  def start_link(cache, options, server_opts) do
     with { :ok, true } <- ensure_started,
-         { :ok, opts } <- setup_env(options),
-         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, [ name: opts.cache ] ++ server_opts)
+         { :ok, opts } <- setup_env(cache, options),
+         { :ok,  pid } <- Supervisor.start_link(__MODULE__, opts, [ name: cache ] ++ server_opts)
       do
-        hooks =
+        hlist = Enum.concat(opts.pre_hooks, opts.post_hooks)
+
+        %{ pre: pre, post: post } =
           pid
           |> Supervisor.which_children
-          |> Hook.link(Hook.combine(opts))
+          |> link_hooks(hlist)
+          |> Hook.group_by_type
 
-        State.update(opts.cache, &Hook.update(hooks, &1))
+        State.update(cache, fn(state) ->
+          %State{ state | pre_hooks: pre, post_hooks: post }
+        end)
 
         { :ok, pid }
       end
@@ -161,12 +171,8 @@ defmodule Cachex do
   Supervision tree.
   """
   @spec start(options) :: { atom, pid }
-  def start(name, options \\ [], server_opts \\ [])
-  def start(name, options, server_opts) when is_atom(name) do
-    start([ { :name, name } | options ], server_opts)
-  end
-  def start(options, server_opts, _opts) do
-    with { :ok, pid } <- start_link(options, server_opts) do
+  def start(cache, options \\ [], server_opts \\ []) do
+    with { :ok, pid } <- start_link(cache, options, server_opts) do
       :erlang.unlink(pid) && { :ok, pid }
     end
   end
@@ -177,26 +183,32 @@ defmodule Cachex do
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
   @spec init(state :: State.t) :: { status, any }
-  def init(%State{ } = options) do
-    ttl_workers = if options.ttl_interval do
-      [ worker(Janitor, [options, [ name: options.janitor ]]) ]
+  def init(%State{ pre_hooks: pre, post_hooks: post } = state) do
+    hook_spec =
+      pre
+      |> Enum.concat(post)
+      |> Enum.map(fn(%Hook{ module: mod, server_args: args }) ->
+          worker(GenEvent, [ args ], [ id: mod ])
+         end)
+
+    ttl_workers = if state.ttl_interval do
+      [ worker(Janitor, [ state, [ name: state.janitor ] ]) ]
     end
 
     children = [
       ttl_workers || [],
       [
-        worker(LockManager.Server, [ options.cache ])
+        worker(LockManager.Server, [ state.cache ])
       ],
-      Hook.spec(options)
+      hook_spec
     ]
 
-    State.set(options.cache, options)
+    State.set(state.cache, state)
 
     children
     |> Enum.concat
     |> supervise(strategy: :one_for_one)
   end
-
 
   @doc """
   Retrieves a value from the cache using a given key.
@@ -406,7 +418,7 @@ defmodule Cachex do
   @spec decr(cache, any, options) :: { status, number }
   defwrap decr(cache, key, options \\ []) do
     mod_opts = Keyword.update(options, :amount, -1, &(&1 * -1))
-    incr(cache, key, via(:decr, mod_opts))
+    incr(cache, key, via({ :decr, [ key, options ] }, mod_opts))
   end
 
   @doc """
@@ -432,10 +444,7 @@ defmodule Cachex do
   @spec empty?(cache, options) :: { status, true | false }
   defwrap empty?(cache, options \\ []) when is_list(options) do
     do_action(cache, fn(cache) ->
-      case size(cache) do
-        { :ok, 0 } -> { :ok, true }
-        _other_value_ -> { :ok, false }
-      end
+      do_action(cache, &Actions.Empty.execute(&1, options))
     end)
   end
 
@@ -548,7 +557,7 @@ defmodule Cachex do
   @spec expire_at(cache, binary, number, options) :: { status, true | false }
   defwrap expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
-    expire(cache, key, timestamp - Util.now(), via(:expire_at, options))
+    expire(cache, key, timestamp - Util.now(), via({ :expire_at, [ key, timestamp, options ] }, options))
   end
 
   @doc """
@@ -650,7 +659,7 @@ defmodule Cachex do
   """
   @spec inspect(cache, atom | tuple) :: { status, any }
   defwrap inspect(cache, option),
-  do: do_action(cache, &Inspector.inspect(&1, option))
+  do: do_action(cache, &Actions.Inspect.execute(&1, option))
 
   @doc """
   Removes a TTL on a given document.
@@ -670,7 +679,7 @@ defmodule Cachex do
   """
   @spec persist(cache, any, options) :: { status, true | false }
   defwrap persist(cache, key, options \\ []) when is_list(options),
-  do: expire(cache, key, nil, via(:persist, options))
+  do: expire(cache, key, nil, via({ :persist, [ key, options ] }, options))
 
   @doc """
   Triggers a mass deletion of all expired keys.
@@ -797,7 +806,7 @@ defmodule Cachex do
       {:ok, %{creationDate: 1460312824198, get: %{missing: 1}, set: %{true: 1}}}
 
       iex> Cachex.stats(:cache_with_no_stats)
-      { :error, "Stats not enabled for cache with ref ':cache_with_no_stats'" }
+      { :error, :stats_disabled }
 
   """
   @spec stats(cache, options) :: { status, %{ } }
@@ -895,15 +904,15 @@ defmodule Cachex do
 
   """
   @spec transaction(cache, function, options) :: { status, any }
-  defwrap transaction(cache, operation, options \\ [])
-  when is_function(operation, 1) and is_list(options) do
+  defwrap transaction(cache, keys, operation, options \\ [])
+  when is_function(operation, 1) and is_list(keys) and is_list(options) do
     do_action(cache, fn
       (%State{ cache: cache, transactions: false }) ->
         cache
         |> State.update(&%State{ &1 | transactions: true })
-        |> Actions.Transaction.execute(operation, options)
+        |> Actions.Transaction.execute(keys, operation, options)
       (state) ->
-        Actions.Transaction.execute(state, operation, options)
+        Actions.Transaction.execute(state, keys, operation, options)
     end)
   end
 
@@ -937,57 +946,44 @@ defmodule Cachex do
     if where != :undefined and state != nil do
       action.(state)
     else
-      invalid_cache(cache)
+      Errors.no_cache()
     end
   end
-  defp do_action(%State{ } = cache, action) do
-    action.(cache)
-  end
-  defp do_action(cache, _action) do
-    invalid_cache(cache)
-  end
+  defp do_action(%State{ } = cache, action),
+    do: action.(cache)
+  defp do_action(_cache, _action),
+    do: Errors.no_cache()
 
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
   defp ensure_started do
-    if State.setup?() do
-      { :ok, true }
-    else
-      { :error, "Cachex tables not initialized, did you start the Cachex application?" }
-    end
+    State.setup?() && { :ok, true } || Errors.not_started()
   end
 
-  # Determines whether a process has started or not. If the process has started,
-  # an error message is returned - otherwise `true` is returned to represent not
-  # being started.
-  defp ensure_unused(name) when not is_atom(name) do
-    { :error, "Cache name must be a valid atom" }
-  end
-  defp ensure_unused(name) do
-    if Process.whereis(name) != nil do
-      { :error, "Cache name already in use!" }
-    else
-      { :ok, true }
-    end
-  end
+  # Iterates a child spec of a Supervisor and maps the process module names to a
+  # list of Hook structs. Wherever there is a match, the PID of the child is added
+  # to the Hook so that a Hook struct can track where it lives.
+  defp link_hooks(children, hooks) do
+    Enum.map(hooks, fn(%Hook{ "args": args, "module": mod } = hook) ->
+      pid = Enum.find_value(children, fn
+        ({ ^mod, pid, _, _ }) -> pid
+        (_) -> nil
+      end)
 
-  # Format an error message related to having an invalid cache provided.
-  defp invalid_cache(cache) do
-    { :error, "Invalid cache provided, got: #{inspect cache}" }
-  end
+      if pid do
+        GenEvent.add_handler(pid, mod, args)
+      end
 
-  # Parses a keyword list of options into a Cachex Options structure. We return
-  # it in tuple just to avoid compiler warnings when using it with the `with` block.
-  defp parse_options(options) when is_list(options),
-  do: { :ok, Options.parse(options) }
+      %Hook{ hook | "ref": pid }
+     end)
+  end
 
   # Runs through the initial setup for a cache, parsing a list of options into
   # a set of Cachex options, before adding the node to any remote nodes and then
   # setting up the local table. This is separated out as it's required in both
   # `start_link/3` and `start/3`.
-  defp setup_env(options) when is_list(options) do
-    with { :ok, true } <- ensure_unused(options[:name]),
-         { :ok, opts }  = parse_options(options),
+  defp setup_env(cache, options) when is_list(options) do
+    with { :ok, opts } <- Options.parse(cache, options),
          { :ok, true } <- start_table(opts),
      do: { :ok, opts }
   end
@@ -996,10 +992,10 @@ defmodule Cachex do
   # when setting up the table, we return an error tuple to represent the issue.
   defp start_table(%State{ cache: cache, ets_opts: ets_opts }) do
     cache
-    |> Eternal.start(ets_opts, [ name: Util.eternal_for_cache(cache), quiet: true ])
+    |> Eternal.start(ets_opts, [ name: Names.eternal(cache), quiet: true ])
     |> Util.normalize_started
   rescue
-    _ -> { :error, :invalid_opts }
+    _ -> Errors.invalid_option()
   end
 
   # Simply adds a "via" param to the options to allow the use of delegates.

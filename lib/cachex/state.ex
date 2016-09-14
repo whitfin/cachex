@@ -110,8 +110,12 @@ defmodule Cachex.State do
   """
   @spec transaction(cache :: atom, function :: fun) :: any
   def transaction(cache, fun) when is_atom(cache) and is_function(fun, 0) do
-    Agent.get(@transaction_manager, fn(_) ->
-      fun.()
+    Agent.get(@transaction_manager, fn(state) ->
+      try do
+        fun.()
+      rescue
+        _ -> state
+      end
     end)
   end
 
@@ -129,13 +133,20 @@ defmodule Cachex.State do
 
       set(cache, nstate)
 
-      nstate
-      |> Hook.combine
-      |> Enum.filter(&(&1.provide |> List.wrap |> Enum.member?(:worker)))
-      |> Enum.each(&(Hook.provision(&1, { :worker, nstate })))
+      nstate.pre_hooks
+      |> Enum.concat(nstate.post_hooks)
+      |> Enum.filter(&requires_worker?/1)
+      |> Enum.each(&send(&1.ref, { :provision, { :worker, nstate } }))
 
       nstate
     end)
+  end
+
+  defp requires_worker?(%Hook{ provide: provide }) when is_list(provide) do
+    :worker in provide
+  end
+  defp requires_worker?(_hook) do
+    false
   end
 
 end

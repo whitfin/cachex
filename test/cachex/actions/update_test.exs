@@ -1,54 +1,60 @@
 defmodule Cachex.Actions.UpdateTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
+  # This test just ensures that we can update the value associated with a key
+  # when the value already exists inside the cache. We make sure that any TTL
+  # associated with the key remains unchanged (as the record is being modified,
+  # not overwritten).
+  test "updates against an existing key" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # set a value with no TTL inside the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+
+    # set a value with a TTL in the cache
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 10000)
+
+    # attempt to update both keys
+    update1 = Cachex.update(cache, 1, 3)
+    update2 = Cachex.update(cache, 2, 3)
+
+    # ensure both succeeded
+    assert(update1 == { :ok, true })
+    assert(update2 == { :ok, true })
+
+    # retrieve the modified keys
+    value1 = Cachex.get(cache, 1)
+    value2 = Cachex.get(cache, 2)
+
+    # verify the updates
+    assert(value1 == { :ok, 3 })
+    assert(value2 == { :ok, 3 })
+
+    # pull back the TTLs
+    ttl1 = Cachex.ttl!(cache, 1)
+    ttl2 = Cachex.ttl!(cache, 2)
+
+    # the first TTL should still be unset
+    assert(ttl1 == nil)
+
+    # the second should still be set
+    assert_in_delta(ttl2, 10000, 10)
   end
 
-  test "update requires an existing cache name", _state do
-    assert(Cachex.update("test", "key", "value") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+  # This test just verifies that we successfully return an error when we try to
+  # update a value which does not exist inside the cache.
+  test "updates against a missing key" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-  test "update with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.update(state_result, "key", "value") == { :missing, false })
-  end
+    # attempt to update a missing key in the cache
+    update1 = Cachex.update(cache, 1, 3)
+    update2 = Cachex.update(cache, 2, 3)
 
-  test "update with existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
-
-    update_result = Cachex.update(state.cache, "my_key", "my_new_value")
-    assert(update_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_new_value" })
-  end
-
-  test "update with missing key returns error", state do
-    update_result = Cachex.update(state.cache, "my_key", "my_value")
-    assert(update_result == { :missing, false })
-  end
-
-  test "update with touch/ttl times being maintained", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 20)
-    assert(set_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
-
-    :timer.sleep(10)
-
-    update_result = Cachex.update(state.cache, "my_key", "my_new_value")
-    assert(update_result == { :ok, true })
-
-    :timer.sleep(10)
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
+    # ensure both failed
+    assert(update1 == { :missing, false })
+    assert(update2 == { :missing, false })
   end
 
 end

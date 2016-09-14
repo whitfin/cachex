@@ -2,44 +2,29 @@ defmodule Cachex.Actions do
   @moduledoc false
 
   alias Cachex.Actions.Del
-  alias Cachex.Notifier
+  alias Cachex.Hook
   alias Cachex.State
   alias Cachex.Util
 
   # define purge constants
   @purge_override [{ :via, { :purge, [[]] } }, { :hook_result, { :ok, 1 } }]
 
-  @doc """
-  Handler for broadcasting a set of actions and results to all registered hooks.
-  This is fired by out-of-proc calls (i.e. Janitors) which need to notify hooks.
-  """
-  def broadcast(%State{ } = state, action, result) do
-    do_action(state, action, fn -> result end)
-  end
-  def broadcast(cache, action, result) when is_atom(cache) do
-    case State.get(cache) do
-      nil -> false
-      val -> broadcast(val, action, result)
-    end
-  end
-
   # Forwards a call to the correct actions set, currently only the local actions.
   # The idea is that in future this will delegate to distributed implementations,
   # so it has been built out in advance to provide a clear migration path.
-  def do_action(%State{ } = state, { _act, opts } = msg, fun) when is_function(fun) do
+  def do_action(%State{ } = state, { _act, opts } = msg, fun) when is_function(fun, 0) do
     options = List.last(opts)
     notify  = Keyword.get(options, :notify, true)
 
     message = case options[:via] do
-      nil -> msg
       val when is_tuple(val) -> val
-      val -> put_elem(msg, 0, val)
+      _na -> msg
     end
 
     if notify do
       case state.pre_hooks do
         [] -> nil;
-        li -> Notifier.notify(li, message)
+        li -> Hook.notify(li, message)
       end
     end
 
@@ -48,7 +33,7 @@ defmodule Cachex.Actions do
     if notify do
       case state.post_hooks do
         [] -> nil;
-        li -> Notifier.notify(li, message, options[:hook_result] || result)
+        li -> Hook.notify(li, message, options[:hook_result] || result)
       end
     end
 

@@ -1,270 +1,179 @@
 defmodule Cachex.HookTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  import ExUnit.CaptureLog
+  # This test ensures that we are able to broadcast a set of results from an out
+  # of bound process to all post_hooks (and only post_hooks).
+  test "broadcasting results to a list of hooks" do
+    # create a pre and post hook
+    hook1 = ForwardHook.create(%{ type:  :pre })
+    hook2 = ForwardHook.create(%{ type: :post })
 
-  setup do
-    { :ok, name: String.to_atom(TestHelper.gen_random_string_of_length(16)) }
+    # start a cache with the hooks
+    cache1 = Helper.create_cache([ hooks: [ hook1 ] ])
+    cache2 = Helper.create_cache([ hooks: [ hook2 ] ])
+
+    # broadcast using the cache name
+    Cachex.Hook.broadcast(cache1, :broadcast, :result)
+
+    # verify pre hooks aren't notified
+    refute_receive(:broadcast)
+
+    # broadcast using the cache name
+    Cachex.Hook.broadcast(cache2, :broadcast, :result)
+
+    # verify only one message is forwarded
+    assert_receive(:broadcast)
+
+    # ensure nil values come back when a bad cache name is used
+    false = Cachex.Hook.broadcast(:missing_cache, :broadcast, :result)
   end
 
-  test "hooks can fire a synchronous pre-notification", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: false,
-      max_timeout: 250,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    }
+  # This test ensures that hooks can be correctly grouped into their execution
+  # type, and that there is always an entry for both types (pre/post).
+  test "grouping Hooks by type" do
+    # create a pre and post hook
+    hook1 = ForwardHook.create(%{ type:  :pre })
+    hook2 = ForwardHook.create(%{ type: :post })
 
-    Cachex.start_link([ name: state.name, hooks: hooks ])
+    # group various combinations
+    result1 = Cachex.Hook.group_by_type(hook1)
+    result2 = Cachex.Hook.group_by_type(hook2)
+    result3 = Cachex.Hook.group_by_type([ hook1, hook2 ])
 
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.get(state.name, "sync_pre_hook")
+    # pull specific types
+    result4 = Cachex.Hook.group_by_type(hook1, :post)
+    result5 = Cachex.Hook.group_by_type(hook2, :pre)
+    result6 = Cachex.Hook.group_by_type(hook1, :pre)
+    result7 = Cachex.Hook.group_by_type(hook2, :post)
+
+    # verify the first two groups use defaults
+    assert(result1 == %{ pre: [ hook1 ], post: [ ] })
+    assert(result2 == %{ pre: [ ], post: [ hook2 ] })
+
+    # verify the third group contains both hooks
+    assert(result3 == %{ pre: [ hook1 ], post: [ hook2 ] })
+
+    # verify the fourth and fifth groups are empty lists
+    assert(result4 == [ ])
+    assert(result5 == [ ])
+
+    # the sixth and seventh should be lists of each hook
+    assert(result6 == [ hook1 ])
+    assert(result7 == [ hook2 ])
+  end
+
+  # This test ensures that Hook notifications function correctly, trying various
+  # Hook types and execution patterns. If the hook executes before the action,
+  # we only ever receive the action as the message, as results will often not
+  # exist. This is true if we use a post hook without the results flag set to true.
+  # We also verify that non-async hooks block the chain of execution whilst they
+  # wait for a response. This behaviour will be improved in future to clean up
+  # after itself, but for now it's sufficient to validate a rough timeout - we
+  # allow a delta of 10ms just because of Erlang's timers not being overly accurate.
+  test "notifying a list of Hooks" do
+    # create a pre Hook
+    hook1 = ForwardHook.create(%{ type: :pre })
+
+    # create a post Hook
+    hook2 = ForwardHook.create(%{ type: :post })
+
+    # create a pre hook with results
+    hook3 = ForwardHook.create(%{ type: :pre, results: true })
+
+    # create a post hook with results
+    hook4 = ForwardHook.create(%{ type: :post, results: true })
+
+    # create a synchronous hook
+    hook5 = ExecuteHook.create(%{ async: false, max_timeout: 50 })
+
+    # create a hook without initializing
+    hook6 = ForwardHook.create(%{ })
+
+    # initialize caches to initialize the hooks
+    cache1 = Helper.create_cache([ hooks: hook1 ])
+    cache2 = Helper.create_cache([ hooks: hook2 ])
+    cache3 = Helper.create_cache([ hooks: hook3 ])
+    cache4 = Helper.create_cache([ hooks: hook4 ])
+    cache5 = Helper.create_cache([ hooks: hook5 ])
+
+    # update our hooks from the caches
+    [hook1] = Cachex.State.get(cache1).pre_hooks
+    [hook2] = Cachex.State.get(cache2).post_hooks
+    [hook3] = Cachex.State.get(cache3).pre_hooks
+    [hook4] = Cachex.State.get(cache4).post_hooks
+    [hook5] = Cachex.State.get(cache5).post_hooks
+
+    # uninitialized hooks shouldn't emit
+    Cachex.Hook.notify([ hook6 ], :hook6, :result)
+
+    # ensure nothing is received
+    refute_receive(:hook6)
+    refute_receive({ :hook6, :result })
+
+    # pre hooks only ever get the action
+    Cachex.Hook.notify([ hook1, hook3 ], :pre_hooks, :result)
+
+    # ensure only the action is received
+    assert_receive(:pre_hooks)
+    assert_receive(:pre_hooks)
+
+    # post hooks can receive results if requested
+    Cachex.Hook.notify([ hook2, hook4 ], :post_hooks, :result)
+
+    # ensure the messages are received
+    assert_receive(:post_hooks)
+    assert_receive({ :post_hooks, :result })
+
+    # synchronous hooks can block the notify call
+    { time1, _value } = :timer.tc(fn ->
+      Cachex.Hook.notify([ hook5 ], fn ->
+        :timer.sleep(25)
+        :sync_hook
+      end)
     end)
 
-    assert(sync_time > 20000)
-  end
+    # ensure we received the message
+    assert_receive(:sync_hook)
 
-  test "hooks can fire an asynchronous pre-notification", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: true,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    }
+    # ensure it took roughly 25ms
+    assert_in_delta(time1, 25000, 10000)
 
-    Cachex.start_link([ name: state.name, hooks: hooks ])
-
-    { async_time, _res } = :timer.tc(fn ->
-      Cachex.get(state.name, "async_pre_hook")
+    # synchronous hooks can block the notify call up to a limit
+    { time2, _value } = :timer.tc(fn ->
+      Cachex.Hook.notify([ hook5 ], fn ->
+        :timer.sleep(1000)
+        :sync_hook
+      end)
     end)
 
-    assert(async_time < 125)
+    # ensure it took roughly 50ms
+    assert_in_delta(time2, 50000, 10000)
   end
 
-  test "hooks can time out a synchronous notification", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: false,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    }
+  # This test validates a list of hooks. If any hook in the list to be validated
+  # are not valid, it short-circuits and returns an error. If all hooks are valid,
+  # they're returned (in order). This test covers both of these cases. Right now
+  # the only thing making a hook invalid is a bad module definition.
+  test "validating a list of Hooks" do
+    # create a valid Hook
+    hook1 = ForwardHook.create()
 
-    Cachex.start_link([ name: state.name, hooks: hooks ])
+    # create a hook with an invalid module
+    hook2 = %Cachex.Hook{ hook1 | module: MissingModule }
 
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.get(state.name, "sync_pre_hook")
-    end)
+    # validate the hooks individually
+    result1 = Cachex.Hook.validate(hook1)
+    result2 = Cachex.Hook.validate(hook2)
 
-    assert(sync_time > 5000 && sync_time < 7500)
-  end
+    # try validate both hooks
+    result3 = Cachex.Hook.validate([ hook1, hook2 ])
 
-  test "hooks default asynchronous timeouts to nil", _state do
-    [hook] = Cachex.Hook.initialize_hooks(%Cachex.Hook{
-      args: self(),
-      async: true,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    })
+    # the first hook should come back
+    assert(result1 == { :ok, [ hook1 ] })
 
-    assert(hook.max_timeout == nil)
-  end
-
-  test "hooks default synchronous timeouts to 5ms", _state do
-    [hook] = Cachex.Hook.initialize_hooks(%Cachex.Hook{
-      args: self(),
-      async: false,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    })
-
-    assert(hook.max_timeout == 5)
-  end
-
-  test "hooks with synchronous notifications have minimal overhead", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: false,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    }
-
-    Cachex.start_link([ name: state.name, hooks: hooks ])
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.get(state.name, "fast_sync_hook")
-    end)
-
-    assert(sync_time < 125)
-  end
-
-  test "hooks can handle old messages in synchronous hooks", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: false,
-      module: Cachex.HookTest.TestHook,
-      type: :pre
-    }
-
-    Cachex.start_link([ name: state.name, hooks: hooks ])
-
-    { sync_time, _res } = :timer.tc(fn ->
-      Cachex.get(state.name, "sync_double_hook")
-    end)
-
-    assert(sync_time > 5000 && sync_time < 7500)
-  end
-
-  test "hooks with results attached in a pre-hook", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: false,
-      module: Cachex.HookTest.TestHook,
-      results: true,
-      type: :pre
-    }
-
-    Cachex.start_link([ name: state.name, hooks: hooks ])
-    Cachex.get(state.name, "key_without_results")
-
-    wait_for("key_without_results")
-  end
-
-  test "hooks with results attached in a post-hook", state do
-    hooks = %Cachex.Hook{
-      args: self(),
-      async: false,
-      module: Cachex.HookTest.TestHook,
-      results: true,
-      type: :post
-    }
-
-    Cachex.start_link([ name: state.name, hooks: hooks ])
-    Cachex.get(state.name, "key_with_results")
-
-    wait_for("key_with_results")
-  end
-
-  test "hooks can be provisioned with a worker", state do
-    hook_mod = Cachex.HookTest.ModifyTestHook
-
-    hooks = %Cachex.Hook{
-      args: %{},
-      module: hook_mod,
-      provide: :worker,
-      type: :pre
-    }
-
-    Cachex.start_link([ name: state.name, hooks: hooks ])
-
-    worker_state = Cachex.inspect!(state.name, :worker)
-
-    hook = Cachex.Hook.hook_by_module(worker_state.pre_hooks, hook_mod)
-    hook_state = Cachex.Hook.call(hook, :state)
-
-    assert(worker_state == hook_state.worker)
-  end
-
-  test "hooks with invalid module provided", state do
-    hooks = [
-      %Cachex.Hook{
-        args: self(),
-        async: false,
-        module: Cachex.HookTest.FakeHook,
-        results: true,
-        server_args: [
-          name: :test_multiple_hooks
-        ],
-        type: :post
-      }
-    ]
-
-    io_output = capture_log(fn ->
-      Cachex.start_link([ name: state.name, hooks: hooks ])
-    end)
-
-    chunks = String.split(io_output, "\n")
-
-    error = Enum.at(chunks, 1)
-    line = Enum.at(chunks, 2)
-    context = Enum.at(chunks, 3)
-
-    expected_pattern = ~r/Unable to assign hook \(uncaught error\): %UndefinedFunctionError{arity: 1, function: :__info__, module: Cachex\.HookTest\.FakeHook, reason: nil}/
-    assert(String.match?(error, expected_pattern))
-
-    expected_pattern = ~r/    Cachex\.HookTest\.FakeHook\.__info__\(:module\)/
-    assert(String.match?(line, expected_pattern))
-
-    expected_pattern = ~r/    \(cachex\) lib\/cachex\/hook\.ex:\d+: Cachex.Hook.verify_hook\/1/
-    assert(String.match?(context, expected_pattern))
-  end
-
-  defp wait_for(msg, timeout \\ 5) do
-    receive do
-      ^msg -> nil
-    after
-      timeout -> raise "Message not received in time: #{msg}"
-    end
-  end
-
-end
-
-defmodule Cachex.HookTest.TestHook do
-  use Cachex.Hook
-
-  def handle_notify({ :get, [ "async_pre_hook", _options ] }, state) do
-    :timer.sleep(100)
-    { :ok, state }
-  end
-
-  def handle_notify({ :get, [ "sync_pre_hook", _options ] }, state) do
-    :timer.sleep(100)
-    { :ok, state }
-  end
-
-  def handle_notify({ :get, [ "sync_double_hook", _options ] }, state) do
-    send(state, { :ack, self, 1111 })
-    :timer.sleep(100)
-    { :ok, state }
-  end
-
-  def handle_notify({ :get, [ "key_without_results", _options ] }, state) do
-    { :ok, send(state, "key_without_results") }
-  end
-
-  def handle_notify(_missing, state) do
-    { :ok, state }
-  end
-
-  def handle_notify({ :get, [ "key_with_results", _options ] }, _results, state) do
-    { :ok, send(state, "key_with_results") }
-  end
-
-  def handle_notify(_missing, _results, state) do
-    { :ok, state }
-  end
-
-end
-
-defmodule Cachex.HookTest.SecondTestHook do
-  use Cachex.Hook
-
-  def handle_notify(_missing, state) do
-    IO.inspect("TEST #{__MODULE__}")
-    { :ok, state }
-  end
-
-end
-
-defmodule Cachex.HookTest.ModifyTestHook do
-  use Cachex.Hook
-
-  def handle_info({ :provision, { :worker, worker } }, state) do
-    { :ok, Map.put(state, :worker, worker) }
-  end
-
-  def handle_call(:state, state) do
-    { :ok, state, state }
+    # the second and third should error
+    assert(result2 == { :error, :invalid_hook })
+    assert(result3 == { :error, :invalid_hook })
   end
 
 end

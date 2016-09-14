@@ -1,37 +1,45 @@
 defmodule Cachex.Actions.ClearTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies that a cache can be successfully cleared. We fill the cache
+  # and clear it, verifying that the entries were removed successfully. We also
+  # ensure that hooks were updated with the correct values.
+  test "clearing a cache of all items" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "clear requires an existing cache name", _state do
-    assert(Cachex.clear("test") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "clear with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.clear(state_result) == { :ok, 0 })
-  end
+    # fill with some items
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2)
+    { :ok, true } = Cachex.set(cache, 3, 3)
 
-  test "clear with empty cache", state do
-    clear_result = Cachex.clear(state.cache)
-    assert(clear_result == { :ok, 0 })
-  end
+    # clear all hook
+    Helper.flush()
 
-  test "clear with filled cache", state do
-    Enum.each(1..20, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # clear the cache
+    result = Cachex.clear(cache)
 
-      set_result = Cachex.set(state.cache, key, "my_value")
-      assert(set_result == { :ok, true })
+    # 3 items should have been removed
+    assert(result == { :ok, 3 })
 
-      get_result = Cachex.get(state.cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # verify the hooks were updated with the clear
+    assert_receive({ { :clear, [[]] }, ^result })
 
-    clear_result = Cachex.clear(state.cache)
-    assert(clear_result == { :ok, 20 })
+    # verify the size call never notified
+    refute_receive({ {  :size, [[]] }, ^result })
+
+    # retrieve all items
+    value1 = Cachex.get(cache, 1)
+    value2 = Cachex.get(cache, 2)
+    value3 = Cachex.get(cache, 3)
+
+    # verify the items are gone
+    assert(value1 == { :missing, nil })
+    assert(value2 == { :missing, nil })
+    assert(value3 == { :missing, nil })
   end
 
 end

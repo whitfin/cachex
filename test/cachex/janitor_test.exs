@@ -1,89 +1,96 @@
 defmodule Cachex.JanitorTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  test "janitor purges expired keys every 3 seconds by default" do
-    cache = TestHelper.create_cache([default_ttl: :timer.seconds(1)])
+  # The Janitor module provides a public function for use by external processes
+  # which wish to purge expired records. This function simply purges expired
+  # records and returns the count of removed records. This test simply verifies
+  # the number returned here and that the records are indeed removed.
+  test "purging records manually" do
+    # create a test cache
+    cache = Helper.create_cache()
 
-    Enum.each(1..15, fn(x) ->
-      key = "my_key" <> to_string(x)
+    # add a new cache entry
+    { :ok, true } = Cachex.set(cache, "key", "value", ttl: 25)
 
-      set_result = Cachex.set(cache, key, "my_value")
-      assert(set_result == { :ok, true })
+    # purge before the entry expires
+    purge1 = Cachex.Janitor.purge_records(cache)
 
-      get_result = Cachex.get(cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
+    # verify that the purge removed nothing
+    assert(purge1 == { :ok, 0 })
 
-    count_result = Cachex.count(cache)
-    assert(count_result == { :ok, 15 })
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 15 })
-
-    :timer.sleep(:timer.seconds(2))
-
-    count_result = Cachex.count(cache)
-    assert(count_result == { :ok, 0 })
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 15 })
-
-    :timer.sleep(:timer.seconds(1))
-
-    count_result = Cachex.count(cache)
-    assert(count_result == { :ok, 0 })
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 0 })
-  end
-
-  test "janitor purges expired keys with custom schedule" do
-    cache = TestHelper.create_cache([default_ttl: 25, ttl_interval: 25])
-
-    Enum.each(1..15, fn(x) ->
-      key = "my_key" <> to_string(x)
-
-      set_result = Cachex.set(cache, key, "my_value")
-      assert(set_result == { :ok, true })
-
-      get_result = Cachex.get(cache, key)
-      assert(get_result == { :ok, "my_value" })
-    end)
-
-    count_result = Cachex.count(cache)
-    assert(count_result == { :ok, 15 })
-
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 15 })
-
+    # wait until the entry has expired
     :timer.sleep(50)
 
-    count_result = Cachex.count(cache)
-    assert(count_result == { :ok, 0 })
+    # purge after the entry expires
+    purge2 = Cachex.Janitor.purge_records(cache)
 
-    size_result = Cachex.size(cache)
-    assert(size_result == { :ok, 0 })
+    # verify that the purge removed the key
+    assert(purge2 == { :ok, 1 })
+
+    # check whether the key exists
+    exists = Cachex.exists?(cache, "key")
+
+    # verify that the key is gone
+    assert(exists == { :ok, false })
   end
 
-  test "janitor correctly notifies a stats hook", _state do
-    cache = TestHelper.create_cache([default_ttl: 1, ttl_interval: 1, record_stats: true])
+  # The Janitor process can run on a schedule too, to automatically purge records.
+  # This test should verify a Janitor running on a schedule, as well as make sure
+  # that the Janitor sends a notification to hooks whenever the process removes
+  # some keys, as Janitor actions should be subscribable. This test will als
+  # verify that the metadata of the last run is updated alongside the changes.
+  test "purging records on a schedule" do
+    # create our forwarding hook
+    hooks = ForwardHook.create(%{
+      results: true
+    })
 
-    :timer.sleep(3)
+    # set our interval values
+    ttl_interval = 50
+    ttl_value = div(ttl_interval, 2)
+    ttl_wait = round(ttl_interval * 1.5)
 
-    { stats_status, stats_result } = Cachex.stats(cache, for: [ :purge ])
+    # create a test cache
+    cache = Helper.create_cache([ hooks: hooks, ttl_interval: ttl_interval ])
 
-    assert(stats_status == :ok)
-    assert(stats_result[:purge] == %{ })
+    # retrieve the cache state
+    state = Cachex.State.get(cache)
 
-    set_result = Cachex.set(cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # add a new cache entry
+    { :ok, true } = Cachex.set(cache, "key", "value", ttl: ttl_value)
 
-    :timer.sleep(5)
+    # check that the key exists
+    exists1 = Cachex.exists?(cache, "key")
 
-    { stats_status, stats_result } = Cachex.stats(cache, for: [ :purge ])
+    # before the schedule, the key should exist
+    assert(exists1 == { :ok, true })
 
-    assert(stats_status == :ok)
-    assert(stats_result[:purge] == %{ total: 1 })
+    # wait for the schedule
+    :timer.sleep(ttl_wait)
+
+    # check that the key exists
+    exists2 = Cachex.exists?(cache, "key")
+
+    # the key should have been removed
+    assert(exists2 == { :ok, false })
+
+    # retrieve the metadata
+    metadata1 = GenServer.call(state.janitor, :last)
+
+    # verify the count was updated
+    assert(metadata1.count == 1)
+
+    # verify the duration is valid
+    assert(is_integer(metadata1.duration))
+    assert(metadata1.duration > 0)
+
+    # verify the start time was set
+    assert(is_integer(metadata1.started))
+    assert(metadata1.started > 0)
+    assert(metadata1.started <= :os.system_time(:milli_seconds))
+
+    # ensure we receive(d) the hook notification
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
   end
 
 end

@@ -1,72 +1,70 @@
 defmodule Cachex.Actions.ExpireAtTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  alias Cachex.Util
+  # This test updates the expire time on a key to expire at a given timestamp.
+  # We make sure that TTLs are updated accordingly. If a date in the past is
+  # given, the key is immediately removed. We also make sure that we can handle
+  # setting expire times on missing keys.
+  test "setting a key to expire at a given time" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "expire at requires an existing cache name", _state do
-    assert(Cachex.expire_at("test", "key", Util.now()) == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 10)
+    { :ok, true } = Cachex.set(cache, 3, 3, ttl: 10)
 
-  test "expire at with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.expire_at(state_result, "key", Util.now() + 5) == { :missing, false })
-  end
+    # clear messages
+    Helper.flush()
 
-  test "expire at with an existing key and no ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # grab current time
+    ctime = Cachex.Util.now()
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # set the expire time
+    f_expire_time = ctime + 10000
+    p_expire_time = ctime - 10000
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
+    # expire several keys
+    result1 = Cachex.expire_at(cache, 1, f_expire_time)
+    result2 = Cachex.expire_at(cache, 2, f_expire_time)
+    result3 = Cachex.expire_at(cache, 3, p_expire_time)
+    result4 = Cachex.expire_at(cache, 4, f_expire_time)
 
-    expire_at_result = Cachex.expire_at(state.cache, "my_key", Util.now() + :timer.seconds(5))
-    assert(expire_at_result == { :ok, true })
+    # the first two should succeed
+    assert(result1 == { :ok, true })
+    assert(result2 == { :ok, true })
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
-  end
+    # the third should succeed and remove the key
+    assert(result3 == { :ok, true })
 
-  test "expire_at with an existing key and an existing ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5, ttl: :timer.seconds(10))
-    assert(set_result == { :ok, true })
+    # the last one is missing and should fail
+    assert(result4 == { :missing, false })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # verify the hooks were updated with the message
+    assert_receive({ { :expire_at, [ 1, ^f_expire_time, [] ] }, ^result1 })
+    assert_receive({ { :expire_at, [ 2, ^f_expire_time, [] ] }, ^result2 })
+    assert_receive({ { :expire_at, [ 3, ^p_expire_time, [] ] }, ^result3 })
+    assert_receive({ { :expire_at, [ 4, ^f_expire_time, [] ] }, ^result4 })
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 10000, 5)
+    # check we received valid purge actions for the removed key
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
 
-    expire_at_result = Cachex.expire_at(state.cache, "my_key", Util.now() + :timer.seconds(5))
-    assert(expire_at_result == { :ok, true })
+    # retrieve all TTLs from the cache
+    ttl1 = Cachex.ttl!(cache, 1)
+    ttl2 = Cachex.ttl!(cache, 2)
+    ttl3 = Cachex.ttl(cache, 3)
+    ttl4 = Cachex.ttl(cache, 4)
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
-  end
+    # verify the new TTL has taken effect
+    assert_in_delta(ttl1, 10000, 25)
+    assert_in_delta(ttl2, 10000, 25)
 
-  test "expire_at with a missing key", state do
-    expire_at_result = Cachex.expire_at(state.cache, "my_key", Util.now() + :timer.seconds(5))
-    assert(expire_at_result == { :missing, false })
-  end
-
-  test "expire_at with an already passed timestamp", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
-
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
-
-    expire_at_result = Cachex.expire_at(state.cache, "my_key", Util.now() - :timer.seconds(1))
-    assert(expire_at_result == { :ok, true })
+    # assert the last two keys don't exist
+    assert(ttl3 == { :missing, nil })
+    assert(ttl4 == { :missing, nil })
   end
 
 end

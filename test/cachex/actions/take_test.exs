@@ -1,46 +1,59 @@
 defmodule Cachex.Actions.TakeTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies that we can take keys from the cache. If a key has expired,
+  # the value is not returned and the hooks are updated with an eviction. If the
+  # key is missing, we return a message stating as such.
+  test "taking keys from a cache" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{
+      results: true
+    })
 
-  test "take requires an existing cache name", _state do
-    assert(Cachex.take("test", "key") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "take with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.take(state_result, "key") == { :missing, nil })
-  end
+    # set some keys in the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
 
-  test "take with existing key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value")
-    assert(set_result == { :ok, true })
+    # wait for the TTL to pass
+    :timer.sleep(2)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, "my_value" })
+    # flush all existing messages
+    Helper.flush()
 
-    take_result = Cachex.take(state.cache, "my_key")
-    assert(take_result == { :ok, "my_value" })
+    # take the first and second key
+    result1 = Cachex.take(cache, 1)
+    result2 = Cachex.take(cache, 2)
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
-  end
+    # take a missing key
+    result3 = Cachex.take(cache, 3)
 
-  test "take with missing key", state do
-    take_result = Cachex.take(state.cache, "my_key")
-    assert(take_result == { :missing, nil })
-  end
+    # verify the first key is retrieved
+    assert(result1 == { :ok, 1 })
 
-  test "take with expired key", state do
-    set_result = Cachex.set(state.cache, "my_key", "my_value", ttl: 5)
-    assert(set_result == { :ok, true })
+    # verify the second and third keys are missing
+    assert(result2 == { :missing, nil })
+    assert(result3 == { :missing, nil })
 
-    :timer.sleep(10)
+    # assert we receive valid notifications
+    assert_receive({ { :take, [ 1, [ ] ] }, ^result1 })
+    assert_receive({ { :take, [ 2, [ ] ] }, ^result2 })
+    assert_receive({ { :take, [ 3, [ ] ] }, ^result3 })
 
-    get_result = Cachex.take(state.cache, "my_key")
-    assert(get_result == { :missing, nil })
+    # check we received valid purge actions for the TTL
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
+
+    # ensure that the keys no longer exist in the cache
+    exists1 = Cachex.exists?(cache, 1)
+    exists2 = Cachex.exists?(cache, 2)
+    exists3 = Cachex.exists?(cache, 3)
+
+    # none should exist
+    assert(exists1 == { :ok, false })
+    assert(exists2 == { :ok, false })
+    assert(exists3 == { :ok, false })
   end
 
 end

@@ -1,33 +1,37 @@
 defmodule Cachex.Actions.EmptyTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test verifies that a cache is empty. We first check that it is before
+  # adding any items, and after we add some we check that it's no longer empty.
+  # Hook messages are represented as size calls, as empty is purely sugar on top
+  # of the size functionality.
+  test "checking if a cache is empty" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "empty? requires an existing cache name", _state do
-    assert(Cachex.empty?("test") == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "empty? with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.empty?(state_result) == { :ok, true })
-  end
+    # check if the cache is empty
+    result1 = Cachex.empty?(cache)
 
-  test "empty? with values in the cache", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # it should be
+    assert(result1 == { :ok, true })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # verify the hooks were updated with the message
+    assert_receive({ { :empty?, [[]] }, ^result1 })
 
-    empty_result = Cachex.empty?(state.cache)
-    assert(empty_result == { :ok, false })
-  end
+    # add some cache entries
+    { :ok, true } = Cachex.set(cache, 1, 1)
 
-  test "empty? with no values in the cache", state do
-    empty_result = Cachex.empty?(state.cache)
-    assert(empty_result == { :ok, true })
+    # check if the cache is empty
+    result2 = Cachex.empty?(cache)
+
+    # it shouldn't be
+    assert(result2 == { :ok, false })
+
+    # verify the hooks were updated with the message
+    assert_receive({ { :empty?, [[]] }, ^result2 })
   end
 
 end

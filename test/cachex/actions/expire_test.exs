@@ -1,59 +1,67 @@
 defmodule Cachex.Actions.ExpireTest do
-  use PowerAssert, async: false
+  use CachexCase
 
-  setup do
-    { :ok, cache: TestHelper.create_cache() }
-  end
+  # This test updates the expire time on a key to expire after a given period.
+  # We make sure that TTLs are updated accordingly. If the period is negative,
+  # the key is immediately removed. We also make sure that we can handle setting
+  # expire times on missing keys.
+  test "setting a key to expire after a given period" do
+    # create a forwarding hook
+    hook = ForwardHook.create(%{ results: true })
 
-  test "expire requires an existing cache name", _state do
-    assert(Cachex.expire("test", "key", :timer.seconds(1)) == { :error, "Invalid cache provided, got: \"test\"" })
-  end
+    # create a test cache
+    cache = Helper.create_cache([ hooks: [ hook ] ])
 
-  test "expire with a worker instance", state do
-    state_result = Cachex.inspect!(state.cache, :worker)
-    assert(Cachex.expire(state_result, "key", 100) == { :missing, false })
-  end
+    # add some keys to the cache
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 10)
+    { :ok, true } = Cachex.set(cache, 3, 3, ttl: 10)
 
-  test "expire with an existing key and no ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5)
-    assert(set_result == { :ok, true })
+    # clear messages
+    Helper.flush()
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # set the expire time
+    f_expire_time =  10000
+    p_expire_time = -10000
 
-    ttl_result = Cachex.ttl(state.cache, "my_key")
-    assert(ttl_result == { :ok, nil })
+    # expire several keys
+    result1 = Cachex.expire(cache, 1, f_expire_time)
+    result2 = Cachex.expire(cache, 2, f_expire_time)
+    result3 = Cachex.expire(cache, 3, p_expire_time)
+    result4 = Cachex.expire(cache, 4, f_expire_time)
 
-    expire_result = Cachex.expire(state.cache, "my_key", :timer.seconds(5))
-    assert(expire_result == { :ok, true })
+    # the first two should succeed
+    assert(result1 == { :ok, true })
+    assert(result2 == { :ok, true })
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
-  end
+    # the third should succeed and remove the key
+    assert(result3 == { :ok, true })
 
-  test "expire with an existing key and an existing ttl", state do
-    set_result = Cachex.set(state.cache, "my_key", 5, ttl: :timer.seconds(10))
-    assert(set_result == { :ok, true })
+    # the last one is missing and should fail
+    assert(result4 == { :missing, false })
 
-    get_result = Cachex.get(state.cache, "my_key")
-    assert(get_result == { :ok, 5 })
+    # verify the hooks were updated with the message
+    assert_receive({ { :expire, [ 1, ^f_expire_time, [] ] }, ^result1 })
+    assert_receive({ { :expire, [ 2, ^f_expire_time, [] ] }, ^result2 })
+    assert_receive({ { :expire, [ 3, ^p_expire_time, [] ] }, ^result3 })
+    assert_receive({ { :expire, [ 4, ^f_expire_time, [] ] }, ^result4 })
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 10000, 5)
+    # check we received valid purge actions for the removed key
+    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
 
-    expire_result = Cachex.expire(state.cache, "my_key", :timer.seconds(5))
-    assert(expire_result == { :ok, true })
+    # retrieve all TTLs from the cache
+    ttl1 = Cachex.ttl!(cache, 1)
+    ttl2 = Cachex.ttl!(cache, 2)
+    ttl3 = Cachex.ttl(cache, 3)
+    ttl4 = Cachex.ttl(cache, 4)
 
-    { status, ttl } = Cachex.ttl(state.cache, "my_key")
-    assert(status == :ok)
-    assert_in_delta(ttl, 5000, 5)
-  end
+    # verify the new TTL has taken effect
+    assert_in_delta(ttl1, 10000, 25)
+    assert_in_delta(ttl2, 10000, 25)
 
-  test "expire with a missing key", state do
-    expire_result = Cachex.expire(state.cache, "my_key", :timer.seconds(5))
-    assert(expire_result == { :missing, false })
+    # assert the last two keys don't exist
+    assert(ttl3 == { :missing, nil })
+    assert(ttl4 == { :missing, nil })
   end
 
 end
