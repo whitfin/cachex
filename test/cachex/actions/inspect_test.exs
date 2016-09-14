@@ -75,14 +75,14 @@ defmodule Cachex.Actions.InspectTest do
     cache = Helper.create_cache()
 
     # retrieve the memory usage
-    result1 = Cachex.inspect(cache, { :memory, :bytes })
-    result2 = Cachex.inspect(cache, { :memory, :binary })
+    { :ok, result1 } = Cachex.inspect(cache, { :memory, :bytes })
+    { :ok, result2 } = Cachex.inspect(cache, { :memory, :binary })
 
     # the first result should be a number of bytes
-    assert(result1 == { :ok, 10624 })
+    assert_in_delta(result1, 10624, 1000)
 
     # the second result should be a human readable representation
-    assert(result2 == { :ok, "10.38 KiB" })
+    assert(result2 =~ ~r/10.3\d KiB/)
   end
 
   # This test simply ensures that inspecting the cache state will return you the
