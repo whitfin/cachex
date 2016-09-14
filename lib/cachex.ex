@@ -875,6 +875,16 @@ defmodule Cachex do
   end
 
   @doc """
+  Touches the last write time on a key.
+
+  This is similar to `refresh/3` except that TTLs are maintained.
+  """
+  @spec touch(cache, any, options) :: { status, true | false }
+  defwrap touch(cache, key, options \\ []) when is_list(options) do
+    do_action(cache, &Actions.Touch.execute(&1, key, options))
+  end
+
+  @doc """
   Transactional equivalent of `execute/3`.
 
   You **must** use the worker instance passed to the provided function when calling
