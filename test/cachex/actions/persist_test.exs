@@ -26,7 +26,7 @@ defmodule Cachex.Actions.PersistTest do
     assert(ttl1 == nil)
 
     # the second TTL should be roughly 1000
-    assert_in_delta(ttl2, 1000, 5)
+    assert_in_delta(ttl2, 995, 6)
 
     # remove the TTLs
     persist1 = Cachex.persist(cache, 1)

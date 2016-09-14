@@ -30,7 +30,7 @@ defmodule Cachex.Actions.RefreshTest do
     assert(ttl1 == nil)
 
     # the second TTL should be roughly 975
-    assert_in_delta(ttl2, 970, 5)
+    assert_in_delta(ttl2, 970, 6)
 
     # refresh some TTLs
     refresh1 = Cachex.refresh(cache, 1)
@@ -57,7 +57,7 @@ defmodule Cachex.Actions.RefreshTest do
     assert(ttl3 == nil)
 
     # the second TTL should be reset to 1000
-    assert_in_delta(ttl4, 1000, 5)
+    assert_in_delta(ttl4, 995, 6)
   end
 
 end
