@@ -11,8 +11,6 @@ defmodule CachexCase do
       alias CachexCase.Helper
 
       import ExUnit.CaptureLog
-
-      ExUnit.Case.register_attribute(__ENV__, :ctx)
     end
   end
 
