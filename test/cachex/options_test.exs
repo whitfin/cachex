@@ -14,28 +14,6 @@ defmodule Cachex.OptionsTest do
     assert(state.cache == name)
   end
 
-  # Every cache can have a default fallback implementation which is used in case
-  # of no fallback provided against cache reads. The only constraint here is that
-  # the provided value is a valid function (of any arity).
-  test "parsing :default_fallback flags" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # define our fallbacks
-    valid_fb   = &(&1)
-    invalid_fb = "nop"
-
-    # parse both as options
-    { :ok, state1 } = Cachex.Options.parse(name, [ default_fallback:   valid_fb ])
-    { :ok, state2 } = Cachex.Options.parse(name, [ default_fallback: invalid_fb ])
-
-    # the first should have parsed
-    assert(state1.default_fallback == valid_fb)
-
-    # but the second should be nil
-    assert(state2.default_fallback == nil)
-  end
-
   # On-Demand expiration can be disabled, and so we have to parse out whether the
   # user has chosen to disable it or not. This is simply checking for a truthy
   # value provided aginst disabling the expiration.
@@ -94,6 +72,28 @@ defmodule Cachex.OptionsTest do
       read_concurrency: false,
       write_concurrency: false
     ])
+  end
+
+  # Every cache can have a default fallback implementation which is used in case
+  # of no fallback provided against cache reads. The only constraint here is that
+  # the provided value is a valid function (of any arity).
+  test "parsing :fallback flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # define our fallbacks
+    valid_fb   = &(&1)
+    invalid_fb = "nop"
+
+    # parse both as options
+    { :ok, state1 } = Cachex.Options.parse(name, [ fallback:   valid_fb ])
+    { :ok, state2 } = Cachex.Options.parse(name, [ fallback: invalid_fb ])
+
+    # the first should have parsed
+    assert(state1.fallback == valid_fb)
+
+    # but the second should be nil
+    assert(state2.fallback == nil)
   end
 
   # This test will ensure that fallback arguments can be passed as options. We

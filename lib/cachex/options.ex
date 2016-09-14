@@ -29,15 +29,15 @@ defmodule Cachex.Options do
       do
         { pre_hooks, post_hooks } = hook_result
         { transactional, manager } = trans_result
-        { default_fallback, fallback_args } = fb_result
+        { fallback, fallback_args } = fb_result
         { default_ttl, ttl_interval, janitor } = ttl_result
 
         state = %Cachex.State{
           "cache": cache,
           "disable_ode": !!options[:disable_ode],
           "ets_opts": ets_result,
-          "default_fallback": default_fallback,
           "default_ttl": default_ttl,
+          "fallback": fallback,
           "fallback_args": fallback_args,
           "janitor": janitor,
           "limit": limit_result,
@@ -58,7 +58,7 @@ defmodule Cachex.Options do
   # two flags from the options list and returns them inside a tuple for storage.
   defp setup_fallbacks(_cache, options) do
     fb_opts = {
-      Util.get_opt(options, :default_fallback, &is_function/1),
+      Util.get_opt(options, :fallback, &is_function/1),
       Util.get_opt(options, :fallback_args, &is_list/1, [])
     }
     { :ok, fb_opts }

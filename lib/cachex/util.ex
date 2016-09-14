@@ -60,7 +60,7 @@ defmodule Cachex.Util do
   """
   def get_fallback(state, key, fb_fun, default \\ nil) do
     fb_args = [ key | state.fallback_args ]
-    fb_def  = state.default_fallback
+    fb_def  = state.fallback
     fb_len  = length(fb_args)
 
     cond do

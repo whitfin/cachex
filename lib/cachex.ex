@@ -67,16 +67,6 @@ defmodule Cachex do
 
           iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
 
-    - **default_fallback**
-
-      A default fallback implementation to use when dealing with multi-layered caches.
-      This function is called with a key which has no value, in order to allow loading
-      from a different location.
-
-          iex> Cachex.start_link(:my_cache, [ default_fallback: fn(key) ->
-          ...>   generate_value(key)
-          ...> end])
-
     - **default_ttl**
 
       A default expiration time to place on any keys inside the cache (this can be
@@ -91,6 +81,16 @@ defmodule Cachex do
       have a Janitor running and don't want potential deletes to impact your reads.
 
           iex> Cachex.start_link(:my_cache, [ disable_ode: true ])
+
+    - **fallback**
+
+      A default fallback implementation to use when dealing with multi-layered caches.
+      This function is called with a key which has no value, in order to allow loading
+      from a different location.
+
+          iex> Cachex.start_link(:my_cache, [ fallback: fn(key) ->
+          ...>   generate_value(key)
+          ...> end])
 
     - **fallback_args**
 
@@ -649,7 +649,7 @@ defmodule Cachex do
       iex> Cachex.inspect(:my_cache, :worker)
       {:ok,
         %Cachex.Worker{actions: Cachex.Worker.Local, cache: :my_cache,
-         options: %Cachex.Options{cache: :my_cache, default_fallback: nil,
+         options: %Cachex.Options{cache: :my_cache, fallback: nil,
           default_ttl: nil,
           ets_opts: [read_concurrency: true, write_concurrency: true],
           fallback_args: [], nodes: [:nonode@nohost], post_hooks: [], pre_hooks: [],

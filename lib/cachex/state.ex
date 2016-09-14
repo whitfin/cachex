@@ -13,8 +13,8 @@ defmodule Cachex.State do
   defstruct cache: nil,             # the name of the cache
             disable_ode: false,     # whether we disable on-demand expiration
             ets_opts: nil,          # any options to give to ETS
-            default_fallback: nil,  # the default fallback implementation
             default_ttl: nil,       # any default ttl values to use
+            fallback: nil,          # the default fallback implementation
             fallback_args: nil,     # arguments to pass to a cache loader
             janitor: nil,           # the name of the janitor attached (if any)
             limit: nil,             # any limit to apply to the cache

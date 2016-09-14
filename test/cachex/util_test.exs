@@ -86,7 +86,7 @@ defmodule Cachex.UtilTest do
 
     # define a state with and without a default fallback
     state1 = %Cachex.State{ fallback_args: [ ] }
-    state2 = %Cachex.State{ state1 | default_fallback: fb_fun }
+    state2 = %Cachex.State{ state1 | fallback: fb_fun }
 
     # retrieve a missing key using a custom fallback
     result1 = Cachex.Util.get_fallback(state1, "key", fb_fun)

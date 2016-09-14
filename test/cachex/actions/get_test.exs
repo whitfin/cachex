@@ -10,7 +10,7 @@ defmodule Cachex.Actions.GetTest do
 
     # create a test cache
     cache1 = Helper.create_cache([ hooks: [ hook ] ])
-    cache2 = Helper.create_cache([ hooks: [ hook ], fallback_args: [ "val" ], default_fallback: fn(key, val) ->
+    cache2 = Helper.create_cache([ hooks: [ hook ], fallback_args: [ "val" ], fallback: fn(key, val) ->
       String.reverse("#{key}_#{val}")
     end ])
 
