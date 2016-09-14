@@ -85,6 +85,36 @@ defmodule Cachex.Actions.InspectTest do
     assert(result2 =~ ~r/10.3\d KiB/)
   end
 
+  # This test verifies that we can retrieve a raw cache record without doing any
+  # extra work such as checking TTLs. We check that a missing record returns a
+  # nil, and that an existing record returns the record.
+  test "inspecting cache records" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # get the current time
+    ctime = Cachex.Util.now()
+
+    # set a cache record
+    { :ok, true } = Cachex.set(cache, 1, "one", ttl: 1000)
+
+    # fetch some records
+    record1 = Cachex.inspect(cache, { :record, 1 })
+    record2 = Cachex.inspect(cache, { :record, 2 })
+
+    # break down the first record
+    { :ok, { key, touched, ttl, value } } = record1
+
+    # verify the first record
+    assert(key == 1)
+    assert_in_delta(touched, ctime, 2)
+    assert(ttl == 1000)
+    assert(value == "one")
+
+    # the second should be nil
+    assert(record2 == { :ok, nil })
+  end
+
   # This test simply ensures that inspecting the cache state will return you the
   # cache state. This should always match the latest copy of the state, rather
   # than using the state passed in. This is the only thing to verify.
