@@ -19,7 +19,7 @@ defmodule Cachex.JanitorTest do
     assert(purge1 == { :ok, 0 })
 
     # wait until the entry has expired
-    :timer.sleep(25)
+    :timer.sleep(50)
 
     # purge after the entry expires
     purge2 = Cachex.Janitor.purge_records(cache)

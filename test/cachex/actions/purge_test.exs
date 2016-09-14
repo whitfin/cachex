@@ -28,7 +28,7 @@ defmodule Cachex.Actions.PurgeTest do
     assert_receive({ { :purge, [[]] }, { :ok, 0 } })
 
     # wait until the entry has expired
-    :timer.sleep(25)
+    :timer.sleep(50)
 
     # purge after the entry expires
     purge2 = Cachex.purge(cache)
