@@ -91,18 +91,11 @@ defmodule Cachex.Hook do
   defp do_notify(%__MODULE__{ ref: nil }, _event),
     do: nil
   defp do_notify(%__MODULE__{ async: true, ref: ref }, event),
-    do: send(ref, { :notify, { :async, event } })
-  defp do_notify(%__MODULE__{ max_timeout: timeout, ref: ref }, event) do
-    msg_ref = :erlang.make_ref()
-
-    send(ref, { :notify, { :sync, { self, msg_ref }, event } })
-
-    receive do
-      { :ack, ^ref, ^msg_ref } -> nil
-    after
-      (timeout || 5) -> nil
-    end
-  end
+    do: GenServer.cast(ref, { :cachex_notify, event })
+  defp do_notify(%__MODULE__{ max_timeout: nil, ref: ref }, event),
+    do: GenServer.call(ref, { :cachex_notify, event }, :infinity)
+  defp do_notify(%__MODULE__{ max_timeout: val, ref: ref }, event),
+    do: GenServer.call(ref, { :cachex_notify, event, val }, :infinity)
 
   @doc """
   Validates a set of Hooks.
@@ -138,7 +131,7 @@ defmodule Cachex.Hook do
   defmacro __using__(_) do
     quote location: :keep do
       # inherit GenEvent
-      use GenEvent
+      use GenServer
 
       # force the Hook behaviours
       @behaviour Cachex.Hook.Behaviour
@@ -154,42 +147,36 @@ defmodule Cachex.Hook do
       end
 
       @doc false
-      def handle_event({ :async, { event, result } }, state) do
-        handle_notify(event, result, state)
-      end
-      def handle_event({ :sync, { ref, msg }, { event, result } }, state) do
-        res = handle_notify(event, result, state)
-        send(ref, { :ack, self, msg })
-        res
-      end
-      def handle_event({ :reset, args }, state),
-      do: apply(__MODULE__, :init, args)
-      def handle_event(_msg, state) do
-        {:ok, state}
+      def handle_cast({ :cachex_notify, { event, result } }, state) do
+        { :ok, new_state } = handle_notify(event, result, state)
+        { :noreply, new_state }
       end
 
       @doc false
-      def handle_call(msg, state) do
-        reason = { :bad_call, msg }
-        case :erlang.phash2(1, 1) do
-          0 -> exit(reason)
-          1 -> { :remove_handler, reason }
+      def handle_cast({ :cachex_reset, args }, state) do
+        { :ok, new_state } = apply(__MODULE__, :init, args)
+        { :noreply, new_state }
+      end
+
+      @doc false
+      def handle_call({ :cachex_notify, { event, result } } = msg, _ctx, state) do
+        { :ok, new_state } = handle_notify(event, result, state)
+        { :reply, :ok, new_state }
+      end
+
+      @doc false
+      def handle_call({ :cachex_notify, { event, result }, timeout } = msg, _ctx, state) do
+        task = Task.async(fn ->
+          handle_notify(event, result, state)
+        end)
+
+        case Task.yield(task, timeout) do
+          { :ok, { :ok, new_state } } ->
+            { :reply, :ok, new_state }
+          _timeout ->
+            Task.shutdown(task)
+            { :reply, :hook_timeout, state }
         end
-      end
-
-      @doc false
-      def handle_info(_msg, state) do
-        {:ok, state}
-      end
-
-      @doc false
-      def terminate(_reason, _state) do
-        :ok
-      end
-
-      @doc false
-      def code_change(_old, state, _extra) do
-        {:ok, state}
       end
 
       # Allow overrides of everything *except* the handle_event implementation.
@@ -197,11 +184,7 @@ defmodule Cachex.Hook do
       # straightforward as possible.
       defoverridable [
         init: 1,
-        handle_notify: 3,
-        handle_call: 2,
-        handle_info: 2,
-        terminate: 2,
-        code_change: 3
+        handle_notify: 3
       ]
     end
   end
