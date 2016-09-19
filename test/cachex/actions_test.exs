@@ -1,6 +1,10 @@
 defmodule Cachex.ActionsTest do
   use CachexCase
 
+  # for our Action macros
+  import Cachex.Actions
+
+
   test "carrying out generic read actions" do
     # create a forwarding hook
     hook = ForwardHook.create(%{ results: true })
@@ -78,12 +82,15 @@ defmodule Cachex.ActionsTest do
     assert(value2 == { "key", 1, nil, "yek" })
   end
 
+  # This test focuses on the `defact` macro which binds Hook notifications to the
+  # Action interface. We just ensure that hooks are sent to both types of hook
+  # appropriately and with the correct messages.
   test "executing actions inside a notify scope" do
     # define a pre hook
     hook1 = ForwardHook.create(%{ type: :pre })
 
     # define a post hook
-    hook2 = ForwardHook.create(%{ type: :post, results: true })
+    hook2 = ForwardHook.create(%{ type: :post })
 
     # create a cache for each hook
     cache1 = Helper.create_cache([ hooks: [ hook1 ] ])
@@ -94,28 +101,31 @@ defmodule Cachex.ActionsTest do
     state2 = Cachex.State.get(cache2)
 
     # execute some actions
-    5  = Cachex.Actions.do_action(state1, { :fake, [ [ ] ] }, fn -> 5 end)
-    10 = Cachex.Actions.do_action(state1, { :fake, [ [ via: { :test, [[]] } ] ] }, fn -> 10 end)
-    15 = Cachex.Actions.do_action(state1, { :fake, [ [ notify: false ] ] }, fn -> 15 end)
+    5  = execute(state1, 5, [])
+    10 = execute(state1, 10, [ via: { :fake, [[]] } ])
+    15 = execute(state1, 15, [ notify: false ])
 
     # check the messages arrive
-    assert_receive({ :fake, [[]] })
-    assert_receive({ :test, [[]] })
+    assert_receive({ { :test, [ 5, []] }, nil })
+    assert_receive({ { :fake, [[]] }, nil })
 
     # ensure the last doesn't
-    refute_receive({ :fake, [ [ notify: false ] ] })
+    refute_receive({ :test, [15, [ notify: false ] ] })
 
     # execute some actions
-    5  = Cachex.Actions.do_action(state2, { :fake, [ [ ] ] }, fn -> 5 end)
-    10 = Cachex.Actions.do_action(state2, { :fake, [ [ via: { :test, [[]] } ] ] }, fn -> 10 end)
-    15 = Cachex.Actions.do_action(state2, { :fake, [ [ notify: false ] ] }, fn -> 15 end)
+    5  = execute(state2, 5, [])
+    10 = execute(state2, 10, [ via: { :fake, [[]] } ])
+    15 = execute(state2, 15, [ notify: false ])
 
     # check the messages arrive
-    assert_receive({ { :fake, [[]] }, 5 })
-    assert_receive({ { :test, [[]] }, 10 })
+    assert_receive({ { :test, [ 5, []] }, 5 })
+    assert_receive({ { :fake, [[]] }, 10 })
 
     # ensure the last doesn't
-    refute_receive({ { :fake, [ [ notify: false ] ] }, 15 })
+    refute_receive({ { :test, [15, [ notify: false ] ] }, 15 })
   end
+
+  # Use our actions Macro internally as a test example for scoping.
+  defaction test(state, value, options), do: value
 
 end

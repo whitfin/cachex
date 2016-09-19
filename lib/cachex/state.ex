@@ -55,7 +55,7 @@ defmodule Cachex.State do
   @doc """
   Removes a state from the local state table.
   """
-  @spec del(cache :: atom) :: true
+  @spec del(atom) :: true
   def del(cache) when is_atom(cache) do
     :ets.delete(@state_table, cache)
   end
@@ -63,7 +63,7 @@ defmodule Cachex.State do
   @doc """
   Retrieves a state from the local state table, or `nil` if none exists.
   """
-  @spec get(cache :: atom) :: state :: State.t | nil
+  @spec get(atom) :: State.t | nil
   def get(cache) when is_atom(cache) do
     case :ets.lookup(@state_table, cache) do
       [{ ^cache, state }] ->
@@ -76,7 +76,7 @@ defmodule Cachex.State do
   @doc """
   Determines whether the given cache is provided in the state table.
   """
-  @spec member?(cache :: atom) :: true | false
+  @spec member?(atom) :: true | false
   def member?(cache) when is_atom(cache) do
     :ets.member(@state_table, cache)
   end
@@ -84,7 +84,7 @@ defmodule Cachex.State do
   @doc """
   Sets a state in the local state table.
   """
-  @spec set(cache :: atom, state :: State.t) :: true
+  @spec set(atom, State.t) :: true
   def set(cache, %__MODULE__{ } = state) when is_atom(cache) do
     :ets.insert(@state_table, { cache, state })
   end
@@ -100,7 +100,7 @@ defmodule Cachex.State do
   @doc """
   Returns the name of the local state table.
   """
-  @spec table_name :: table_name :: atom
+  @spec table_name :: atom
   def table_name do
     @state_table
   end
@@ -108,7 +108,7 @@ defmodule Cachex.State do
   @doc """
   Carries out a blocking set of actions against the state table.
   """
-  @spec transaction(cache :: atom, function :: fun) :: any
+  @spec transaction(atom, ( -> any)) :: any
   def transaction(cache, fun) when is_atom(cache) and is_function(fun, 0) do
     Agent.get(@transaction_manager, fn(state) ->
       try do
@@ -125,7 +125,7 @@ defmodule Cachex.State do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(cache :: atom, function :: (State.t -> State.t)) :: state :: State.t
+  @spec update(atom, (State.t -> State.t)) :: State.t
   def update(cache, fun) when is_atom(cache) and is_function(fun, 1) do
     transaction(cache, fn ->
       cstate = get(cache)
@@ -142,8 +142,10 @@ defmodule Cachex.State do
     end)
   end
 
+  # Verifies whether a Hook requires a state worker. If it does, return true
+  # otherwise return a false.
   defp requires_worker?(%Hook{ provide: provide }) when is_list(provide) do
-    :worker in provide
+    :state in provide or :worker in provide
   end
   defp requires_worker?(_hook) do
     false

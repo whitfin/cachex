@@ -77,12 +77,22 @@ defmodule Cachex.Actions.InspectTest do
     # retrieve the memory usage
     { :ok, result1 } = Cachex.inspect(cache, { :memory, :bytes })
     { :ok, result2 } = Cachex.inspect(cache, { :memory, :binary })
+    { :ok, result3 } = Cachex.inspect(cache, { :memory, :words })
 
     # the first result should be a number of bytes
     assert_in_delta(result1, 10624, 1000)
 
     # the second result should be a human readable representation
     assert(result2 =~ ~r/10.3\d KiB/)
+
+    # fetch the system word size
+    wsize = :erlang.system_info(:wordsize)
+
+    # verify the words in the byte result
+    words = div(result1, wsize)
+
+    # the third should be a number of words
+    assert(result3 == words)
   end
 
   # This test verifies that we can retrieve a raw cache record without doing any

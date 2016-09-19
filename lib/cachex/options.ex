@@ -18,7 +18,6 @@ defmodule Cachex.Options do
   potential to become a little messy - but that's okay, since it saves us trying
   to duplicate this logic all over the codebase.
   """
-  @spec parse(cache :: atom, options :: Keyword.t) :: State.t
   def parse(cache, options) when is_list(options) do
     with { :ok,   ets_result } <- setup_ets(cache, options),
          { :ok, limit_result } <- setup_limit(cache, options),
@@ -70,7 +69,6 @@ defmodule Cachex.Options do
   defp setup_hooks(cache, options, limit) do
     stats_hook = options[:record_stats] && %Hook{
       module: Cachex.Hook.Stats,
-      results: true,
       server_args: [
         name: Names.stats(cache)
       ]

@@ -20,8 +20,6 @@ defmodule CachexBench do
     Cachex.set(:bench_cache, "ttl_test", "ttl_value", ttl: @one_hour)
     Cachex.set(:bench_cache, "update_test", "update_value")
 
-    get_opt = &System.get_env(&1) == "true"
-
     use_state = get_opt("CACHEX_BENCH_STATE")
     use_trans = get_opt("CACHEX_BENCH_TRANSACTIONS")
 
@@ -136,6 +134,10 @@ defmodule CachexBench do
   bench "update" do
     Cachex.update(bench_context, "update_test", "update_value")
     :ok
+  end
+
+  defp get_opt(key) do
+    System.get_env(key) == "true"
   end
 
 end

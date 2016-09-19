@@ -28,7 +28,6 @@ defmodule Cachex.Limit do
   Acceptable values are a preconstructed limit, or a maximum count. In the latter
   case, the LRW policy will be used with a 10% reclaim space.
   """
-  @spec parse(limit :: (limit | limit_total)) :: limit :: limit
   def parse(%__MODULE__{ limit: limit, policy: policy, reclaim: reclaim }),
     do: parse_limit(limit, policy, reclaim)
   def parse(limit),
@@ -40,7 +39,6 @@ defmodule Cachex.Limit do
   Limits function as hooks inside a cache (at this point in time), and as such,
   this function is just sugar to do the conversion on a given Limit structure.
   """
-  @spec to_hooks(limit :: limit) :: limit_hook :: Hook.t
   def to_hooks(%__MODULE__{ limit: nil }) do
     [ ]
   end
@@ -49,7 +47,6 @@ defmodule Cachex.Limit do
       %Cachex.Hook{
         args: { limit, reclaim },
         module: policy,
-        results: true,
         provide: [ :worker ],
         type: :post
       }

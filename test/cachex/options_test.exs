@@ -210,7 +210,6 @@ defmodule Cachex.OptionsTest do
     # create a stats hook
     hook = %Cachex.Hook{
       module: Cachex.Hook.Stats,
-      results: true,
       server_args: [ name: Cachex.Util.Names.stats(name) ]
     }
 

@@ -1,10 +1,4 @@
 defmodule Cachex.Janitor do
-  # use GenServer
-  use GenServer
-
-  # import utils for convenience
-  import Cachex.Util
-
   @moduledoc false
   # The main TTL cleanup for Cachex, providing a very basic task scheduler to
   # repeatedly cleanup the cache table for all records which have expired. This
@@ -12,6 +6,18 @@ defmodule Cachex.Janitor do
   # It's possible that certain cleanups will result in full table scans, and so
   # we split into a separate GenServer for safety in case it takes a while.
 
+  # use GenServer
+  use GenServer
+
+  # add some aliases
+  alias Cachex.Hook
+  alias Cachex.LockManager
+  alias Cachex.State
+
+  # import utils for convenience
+  import Cachex.Util
+
+  # define our struct
   defstruct cache: nil,         # the name of the cache
             interval: nil,      # the interval to check the ttl
             last: %{}           # information stored about the last run
@@ -23,8 +29,7 @@ defmodule Cachex.Janitor do
   All options are passed throught to the initialization function, and the GenServer
   options are passed straight to GenServer to deal with.
   """
-  @spec start_link(state :: State.t, server_opts :: Keyword.t) :: { :ok, pid } | nil
-  def start_link(state \\ %Cachex.State { }, server_opts \\ []) do
+  def start_link(%State{ } = state, server_opts) when is_list(server_opts) do
     GenServer.start_link(__MODULE__, state, server_opts)
   end
 
@@ -34,8 +39,7 @@ defmodule Cachex.Janitor do
   This will create a stats struct as required and create the initial state for
   this janitor. The state is then passed through for use in the future.
   """
-  @spec init(state :: State.t) :: { :ok, %__MODULE__{ } }
-  def init(%Cachex.State{ cache: cache, ttl_interval: ttl_interval }) do
+  def init(%State{ cache: cache, ttl_interval: ttl_interval }) do
     state = %__MODULE__{
       cache: cache,
       interval: ttl_interval
@@ -44,18 +48,17 @@ defmodule Cachex.Janitor do
   end
 
   @doc """
-  Simply plucks and returns the last metadata for this Janitor.
+  Returns the last metadata for this Janitor.
   """
   def handle_call(:last, _ctx, %__MODULE__{ last: last } = state) do
     { :reply, last, state }
   end
 
   @doc """
-  The only code which currently runs within this process, the ttl check. This
-  function is black magic and potentially needs to be improved, but it's super
-  fast (the best perf I've seen). We basically drop to the ETS level and provide
-  a select which only matches docs to be removed, and then ETS deletes them as it
-  goes.
+  Runs a TTL check and eviction against the backing ETS table.
+
+  We basically drop to the ETS level and provide a select which only matches docs
+  to be removed, and then ETS deletes them as it goes.
   """
   def handle_info(:ttl_check, %__MODULE__{ cache: cache } = state) do
     start_time = now()
@@ -77,16 +80,25 @@ defmodule Cachex.Janitor do
   A public handler for purging records, so that it can be called from the main
   process as needed.
 
-  This is needed because we expose purging in the public API.
+  This execution happens inside a Transaction to ensure that there are no open
+  key locks on the table.
   """
   def purge_records(cache) when is_atom(cache) do
-    { :ok, :ets.select_delete(cache, retrieve_expired_rows(true)) }
+    case State.get(cache) do
+      nil -> false
+      val -> purge_records(val)
+    end
+  end
+  def purge_records(%State{ cache: cache } = state) do
+    LockManager.transaction(state, [ ], fn ->
+      { :ok, :ets.select_delete(cache, retrieve_expired_rows(true)) }
+    end)
   end
 
   # Broadcasts the number of evictions against this purge in order to notify any
   # hooks that a purge has just occurred.
   defp update_evictions({ :ok, evictions } = result, state) when evictions > 0 do
-    Cachex.Hook.broadcast(state.cache, { :purge, [ [] ] }, result)
+    Hook.broadcast(state.cache, { :purge, [ [] ] }, result)
     state
   end
   defp update_evictions(_other, state), do: state
@@ -99,7 +111,8 @@ defmodule Cachex.Janitor do
   end
 
   # Updates the metadata of this cache, keeping track of various things about the
-  # last run sequence.
+  # last run sequence. Currently we only keep track of the number of previous
+  # evictions, the duration of the eviction run, and the start time of the run.
   defp update_meta(state, start_time, duration, { :ok, count }) do
     new_last = %{
       count: count,

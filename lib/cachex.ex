@@ -11,6 +11,7 @@ defmodule Cachex do
   Cachex comes with support for all of the following (amongst other things):
 
   - Time-based key expirations
+  - Maximum size protection
   - Pre/post execution hooks
   - Statistics gathering
   - Multi-layered caching/key fallbacks
@@ -23,12 +24,12 @@ defmodule Cachex do
   """
 
   # use Macros and Supervisor
+  use Cachex.Constants
   use Cachex.Macros
   use Supervisor
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Errors
   alias Cachex.Hook
   alias Cachex.Janitor
   alias Cachex.LockManager
@@ -113,6 +114,13 @@ defmodule Cachex do
           iex> hook = %Cachex.Hook{ module: MyHook, type: :post }
           iex> Cachex.start_link(:my_cache, [ hooks: [hook] ])
 
+    - **limit**
+
+      A limit to cap the cache at. This can be an integer or a `Cachex.Limit` structure.
+
+          iex> limit = %Cachex.Limit{ limit: 500, reclaim: 0.1 } # 10%
+          iex> Cachex.start_link(:my_cache, [ limit: limit ])
+
     - **record_stats**
 
       Whether you wish this cache to record usage statistics or not. This has only minor
@@ -120,6 +128,15 @@ defmodule Cachex do
       can be retrieve from a running cache by using `stats/1`.
 
           iex> Cachex.start_link(:my_cache, [ record_stats: true ])
+
+    - **transactions**
+
+      Whether to have transactions and row locking enabled from cache startup. Please
+      note that even if this is false, it will be enable the moment a transaction
+      is executed. It's recommended to leave this as the default as it will handle
+      most use cases in the most performant way possible.
+
+          iex> Cachex.start_link(:my_cache, [ transactions: true ])
 
     - **ttl_interval**
 
@@ -136,7 +153,7 @@ defmodule Cachex do
   @spec start_link(options, options) :: { atom, pid }
   def start_link(cache, options \\ [], server_opts \\ [])
   def start_link(cache, _options, _server_opts) when not is_atom(cache) do
-    Errors.invalid_name()
+    @error_invalid_name
   end
   def start_link(cache, options, server_opts) do
     with { :ok, true } <- ensure_started,
@@ -161,8 +178,7 @@ defmodule Cachex do
 
   @doc """
   Initialize the Mnesia table and supervision tree for this cache, without linking
-  the cache to the current process. We hack this by starting a linked Supervisor
-  and then just unlinking afterwards.
+  the cache to the current process.
 
   Supports all the same options as `start_link/3`. This is mainly used for testing
   in order to keep caches around when processes may be torn down. You should try
@@ -227,7 +243,7 @@ defmodule Cachex do
       iex> Cachex.get(:my_cache, "missing_key")
       { :missing, nil }
 
-      iex> Cachex.get(:my_cache, "missing_key", fallback: &(String.reverse/1))
+      iex> Cachex.get(:my_cache, "missing_key", fallback: &String.reverse/1)
       { :loaded, "yek_gnissim" }
 
   """
@@ -254,7 +270,7 @@ defmodule Cachex do
       iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
       { :ok, [1, 2] }
 
-      iex> Cachex.get_and_update(:my_cache, "missing_key", &(["value"|&1]), fallback: &(String.reverse/1))
+      iex> Cachex.get_and_update(:my_cache, "missing_key", &(["value"|&1]), fallback: &String.reverse/1)
       { :loaded, [ "value", "yek_gnissim" ] }
 
   """
@@ -473,7 +489,7 @@ defmodule Cachex do
   @spec execute(cache, function, options) :: { status, any }
   defwrap execute(cache, operation, options \\ [])
   when is_function(operation, 1) and is_list(options) do
-    do_action(cache, &Actions.Execute.execute(&1, operation, options))
+    do_action(cache, operation)
   end
 
   @doc """
@@ -639,21 +655,24 @@ defmodule Cachex do
       a Janitor process.
     * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
     * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
-    * `:worker` - the internal state of the cache worker.
+    * `{ :memory, :words }` - the memory footprint of the cache as a number of
+      Erlang words.
+    * `{ :record, key }` - the raw record of a key inside the cache.
+    * `:state` - the internal state of the cache.
 
   ## Examples
 
       iex> Cachex.inspect(:my_cache, { :memory, :bytes })
       { :ok, 10624 }
 
-      iex> Cachex.inspect(:my_cache, :worker)
+      iex> Cachex.inspect(:my_cache, :state)
       {:ok,
-        %Cachex.Worker{actions: Cachex.Worker.Local, cache: :my_cache,
-         options: %Cachex.Options{cache: :my_cache, fallback: nil,
-          default_ttl: nil,
-          ets_opts: [read_concurrency: true, write_concurrency: true],
-          fallback_args: [], nodes: [:nonode@nohost], post_hooks: [], pre_hooks: [],
-          remote: false, transactional: false, ttl_interval: nil}}}
+       %Cachex.State{cache: :my_cache, default_ttl: nil, disable_ode: false,
+        ets_opts: [read_concurrency: true, write_concurrency: true], fallback: nil,
+        fallback_args: [], janitor: :my_cache_janitor,
+        limit: %Cachex.Limit{limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1},
+        manager: :my_cache_manager, post_hooks: [], pre_hooks: [],
+        transactions: false, ttl_interval: nil}}
 
   """
   @spec inspect(cache, atom | tuple) :: { status, any }
@@ -955,18 +974,18 @@ defmodule Cachex do
     if where != :undefined and state != nil do
       action.(state)
     else
-      Errors.no_cache()
+      @error_no_cache
     end
   end
   defp do_action(%State{ } = cache, action),
     do: action.(cache)
   defp do_action(_cache, _action),
-    do: Errors.no_cache()
+    do: @error_no_cache
 
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
   defp ensure_started do
-    State.setup?() && { :ok, true } || Errors.not_started()
+    State.setup?() && { :ok, true } || @error_not_started
   end
 
   # Iterates a child spec of a Supervisor and maps the process module names to a
@@ -1005,7 +1024,7 @@ defmodule Cachex do
       quiet: true
     ])
   rescue
-    _ -> Errors.invalid_option()
+    _ -> @error_invalid_option
   end
 
   # Simply adds a "via" param to the options to allow the use of delegates.

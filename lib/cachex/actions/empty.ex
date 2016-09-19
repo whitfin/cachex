@@ -1,19 +1,41 @@
 defmodule Cachex.Actions.Empty do
   @moduledoc false
+  # This module controls the action implementation for the `:empty?` command,
+  # which checks whether the cache is currently empty or not. This action is
+  # currently sugar around the `:size` command, which normalizing the numeric
+  # results back into boolean values.
 
-  alias Cachex.Actions
+  # we need our imports
+  use Cachex.Actions
+
+  # add some aliases
   alias Cachex.Actions.Size
   alias Cachex.State
 
-  def execute(%State{ } = state, options \\ []) when is_list(options) do
-    Actions.do_action(state, { :empty?, [ options ] }, fn ->
-      case Size.execute(state, notify: false) do
-        { :ok, 0 } ->
-          { :ok, true }
-        _other_value_ ->
-          { :ok, false }
-      end
-    end)
+  @doc """
+  Checks whether the cache contains any records.
+
+  If the cache is not empty, we return a false response. It should be noted here
+  that emptiness is determined by overall cache size, regardless of key expiration.
+  Thus it may be that you have a non-empty cache, yet be unable to retrieve any
+  keys due to on-demand expiration.
+
+  We delegate this action internally to the Size action and simply cast the numeric
+  value in the response into a boolean for consumption.
+
+  There are currently no recognised options, the argument only exists for future
+  proofing.
+  """
+  defaction empty?(%State{ } = state, options) do
+    state
+    |> Size.execute(@notify_false)
+    |> handle_size
   end
+
+  # Handles the casting of the size values back into booleans. If the size is
+  # more than 0, we return false. If it's 0, we return true. There will never
+  # be anything accepted below 0, so we don't need to worry about it.
+  defp handle_size({ :ok, 0 }), do: { :ok, true }
+  defp handle_size(_other_val), do: { :ok, false }
 
 end

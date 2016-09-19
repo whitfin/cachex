@@ -126,4 +126,33 @@ defmodule Cachex.LockManagerTest do
     assert(result == { :error, "oh dear" })
   end
 
+  # The LockManager provides a `set_transaction/1` function to set the current
+  # process as transactional. This test just makes sure that this sets the flag
+  # correctly between true/false.
+  test "setting a transactional context" do
+    # check that the current process is unset
+    is_transaction1 = Process.get(:transactional)
+
+    # ensure unsert
+    assert(is_transaction1 == nil)
+
+    # set the value to true
+    true = Cachex.LockManager.set_transaction(true)
+
+    # check that the current process is true
+    is_transaction2 = Process.get(:transactional)
+
+    # ensure set to true
+    assert(is_transaction2 == true)
+
+    # set the value to false
+    false = Cachex.LockManager.set_transaction(false)
+
+    # check that the current process is false
+    is_transaction3 = Process.get(:transactional)
+
+    # ensure set to false
+    assert(is_transaction3 == false)
+  end
+
 end

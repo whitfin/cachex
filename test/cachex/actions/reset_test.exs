@@ -5,25 +5,33 @@ defmodule Cachex.Actions.ResetTest do
   # of all hooks and emptying the cache of keys. We verify this using the stats
   # hook and checking the creaionDate (which is set when the hook is started),
   # and ensuring that the creationDate resets when the cache does. We also verify
-  # that the cache is empty after being reset.
+  # that the cache is empty after being reset. The second cache here with no hooks
+  # is to ensure coverage of clearing a cache with no hooks, as there are optimizations
+  # which avoid this from wasting time - this can sadly only be verified using
+  # coverage tools, as the entire point is that it doesn't do anything.
   test "resetting a cache" do
     # create a test cache
-    cache = Helper.create_cache([ record_stats: true ])
+    cache1 = Helper.create_cache([ record_stats: true ])
+
+    # create a cache with no hooks
+    cache2 = Helper.create_cache()
 
     # get current time
     ctime1 = Cachex.Util.now()
 
     # set some values
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.set(cache1, 1, 1)
+    { :ok, true } = Cachex.set(cache2, 1, 1)
 
     # retrieve the stats
-    stats1 = Cachex.stats!(cache)
+    stats1 = Cachex.stats!(cache1)
 
     # verify the stats
     assert_in_delta(stats1.creationDate, ctime1, 5)
 
     # ensure the cache is not empty
-    refute(Cachex."empty?!"(cache))
+    refute(Cachex."empty?!"(cache1))
+    refute(Cachex."empty?!"(cache2))
 
     # wait for 10ms
     :timer.sleep(10)
@@ -32,16 +40,19 @@ defmodule Cachex.Actions.ResetTest do
     ctime2 = Cachex.Util.now()
 
     # reset the whole cache
-    reset1 = Cachex.reset(cache)
+    reset1 = Cachex.reset(cache1)
+    reset2 = Cachex.reset(cache2)
 
     # verify the reset
     assert(reset1 == { :ok, true })
+    assert(reset2 == { :ok, true })
 
     # ensure the cache is reset
-    assert(Cachex."empty?!"(cache))
+    assert(Cachex."empty?!"(cache1))
+    assert(Cachex."empty?!"(cache2))
 
     # retrieve the stats
-    stats2 = Cachex.stats!(cache)
+    stats2 = Cachex.stats!(cache1)
 
     # verify they reset properly
     assert_in_delta(stats2.creationDate, ctime2, 5)
