@@ -11,6 +11,7 @@ defmodule Cachex.Hook do
 
   # add some aliases
   alias Cachex.State
+  alias Supervisor.Spec
 
   # define our opaque type
   @opaque t :: %__MODULE__{ }
@@ -75,7 +76,6 @@ defmodule Cachex.Hook do
   multiple (plugin style) listeners. Initially had the empty clause at the top
   but this way is better (at the very worst it's the same performance).
   """
-  @spec notify(hooks :: [ Hook.t ], action :: { }, results :: { } | nil) :: true
   def notify(hooks, action, result \\ nil)
   def notify([hook|tail], action, result) do
     do_notify(hook, { action, result })
@@ -96,6 +96,13 @@ defmodule Cachex.Hook do
     do: GenServer.call(ref, { :cachex_notify, event }, :infinity)
   defp do_notify(%__MODULE__{ max_timeout: val, ref: ref }, event),
     do: GenServer.call(ref, { :cachex_notify, event, val }, :infinity)
+
+  @doc """
+  Generates a Supervisor specification for a hook.
+  """
+  def spec(%__MODULE__{ module: mod, args: args, server_args: opts }) do
+    Spec.worker(GenServer, [ mod, args, opts ], [ id: mod ])
+  end
 
   @doc """
   Validates a set of Hooks.

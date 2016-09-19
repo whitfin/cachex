@@ -202,9 +202,7 @@ defmodule Cachex do
     hook_spec =
       pre
       |> Enum.concat(post)
-      |> Enum.map(fn(%Hook{ args: args, module: mod, server_args: opts }) ->
-          worker(GenServer, [ mod, args, opts ], [ id: mod ])
-         end)
+      |> Enum.map(&Hook.spec/1)
 
     ttl_workers = if state.ttl_interval do
       [ worker(Janitor, [ state, [ name: state.janitor ] ]) ]
