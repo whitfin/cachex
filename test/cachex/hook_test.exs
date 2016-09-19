@@ -78,26 +78,31 @@ defmodule Cachex.HookTest do
     hook2 = ForwardHook.create(%{ type: :post })
 
     # create a synchronous hook
-    hook3 = ExecuteHook.create(%{ async: false, max_timeout: 50 })
+    hook3 = ExecuteHook.create(%{ async: false, max_timeout: nil })
+
+    # create a synchronous hook
+    hook4 = ExecuteHook.create(%{ async: false, max_timeout: 50 })
 
     # create a hook without initializing
-    hook4 = ForwardHook.create(%{ })
+    hook5 = ForwardHook.create(%{ })
 
     # initialize caches to initialize the hooks
     cache1 = Helper.create_cache([ hooks: hook1 ])
     cache2 = Helper.create_cache([ hooks: hook2 ])
     cache3 = Helper.create_cache([ hooks: hook3 ])
+    cache4 = Helper.create_cache([ hooks: hook4 ])
 
     # update our hooks from the caches
     [hook1] = Cachex.State.get(cache1).pre_hooks
     [hook2] = Cachex.State.get(cache2).post_hooks
     [hook3] = Cachex.State.get(cache3).post_hooks
+    [hook4] = Cachex.State.get(cache4).post_hooks
 
     # uninitialized hooks shouldn't emit
-    Cachex.Hook.notify([ hook4 ], :hook4, :result)
+    Cachex.Hook.notify([ hook5 ], :hook5, :result)
 
     # ensure nothing is received
-    refute_receive({ :hook4, :result })
+    refute_receive({ :hook5, :result })
 
     # pre hooks only ever get the action
     Cachex.Hook.notify([ hook1 ], :pre_hooks, :result)
@@ -127,7 +132,7 @@ defmodule Cachex.HookTest do
 
     # synchronous hooks can block the notify call up to a limit
     { time2, _value } = :timer.tc(fn ->
-      Cachex.Hook.notify([ hook3 ], fn ->
+      Cachex.Hook.notify([ hook4 ], fn ->
         :timer.sleep(1000)
         :sync_hook
       end)

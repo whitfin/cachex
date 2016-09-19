@@ -85,7 +85,7 @@ defmodule Cachex.Actions.Reset do
   # There is a listener built into the server implementation backing hooks which
   # will handle this automatically, so there's nothing more we need to do.
   defp notify_reset(%Hook{ args: args, ref: ref }) do
-    send(ref, { :notify, { :reset, args } })
+    GenServer.cast(ref, { :cachex_reset, args })
   end
 
 end

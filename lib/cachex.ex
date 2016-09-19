@@ -202,9 +202,7 @@ defmodule Cachex do
     hook_spec =
       pre
       |> Enum.concat(post)
-      |> Enum.map(fn(%Hook{ module: mod, server_args: args }) ->
-          worker(GenEvent, [ args ], [ id: mod ])
-         end)
+      |> Enum.map(&Hook.spec/1)
 
     ttl_workers = if state.ttl_interval do
       [ worker(Janitor, [ state, [ name: state.janitor ] ]) ]
@@ -992,18 +990,14 @@ defmodule Cachex do
   # list of Hook structs. Wherever there is a match, the PID of the child is added
   # to the Hook so that a Hook struct can track where it lives.
   defp link_hooks(children, hooks) do
-    Enum.map(hooks, fn(%Hook{ "args": args, "module": mod } = hook) ->
+    Enum.map(hooks, fn(%Hook{ module: mod } = hook) ->
       pid = Enum.find_value(children, fn
         ({ ^mod, pid, _, _ }) -> pid
         (_) -> nil
       end)
 
-      if pid do
-        GenEvent.add_handler(pid, mod, args)
-      end
-
-      %Hook{ hook | "ref": pid }
-     end)
+      %Hook{ hook | ref: pid }
+   end)
   end
 
   # Runs through the initial setup for a cache, parsing a list of options into

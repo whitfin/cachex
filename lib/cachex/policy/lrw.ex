@@ -62,7 +62,7 @@ defmodule Cachex.Policy.LRW do
   of looking up the state. Again an optimization.
   """
   def handle_info({ :provision, { :worker, worker } }, { max_size, trim_bound, _worker }) do
-    { :ok, { max_size, trim_bound, worker } }
+    { :noreply, { max_size, trim_bound, worker } }
   end
 
   # Suggest stepping through this pipeline a function at a time and reading the

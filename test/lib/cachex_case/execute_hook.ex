@@ -20,6 +20,7 @@ defmodule CachexCase.ExecuteHook do
   # state as it was to start with.
   def handle_notify(fun, _results, proc) do
     handle_info(fun.(), proc)
+    { :ok, proc }
   end
 
   @doc false
@@ -27,7 +28,7 @@ defmodule CachexCase.ExecuteHook do
   # state as it was to start with.
   def handle_info(msg, proc) do
     send(proc, msg)
-    { :ok, proc }
+    { :noreply, proc }
   end
 
 end
