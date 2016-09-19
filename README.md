@@ -4,6 +4,7 @@
 Cachex is an extremely fast in-memory key/value store with support for many useful features:
 
 - Time-based key expirations
+- Maximum size protection
 - Pre/post execution hooks
 - Statistics gathering
 - Multi-layered caching/key fallbacks
@@ -22,6 +23,8 @@ All of these features are optional and are off by default so you can pick and ch
 - [Migrating To v2.x](#migrating-to-v2x)
     - [Distribution](#distribution)
     - [Hook Interface](#hook-interface)
+- [Cache Limits](#cache-limits)
+    - [Limit Structures](#limit-structures)
 - [Multi-Layered Caches](#multi-layered-caches)
     - [Common Fallbacks](#common-fallbacks)
     - [Specified Fallbacks](#specified-fallbacks)
@@ -123,17 +126,21 @@ Caches can accept a list of options during initialization, which determine vario
 |      Options     |       Values       |                               Description                               |
 |:----------------:|:------------------:|:-----------------------------------------------------------------------:|
 |     ets_opts     |   list of options  |               A list of options to give to the ETS table.               |
-| default_fallback |       function     |   A function accepting a key which is used for multi-layered caching.   |
 |    default_ttl   |     milliseconds   | A default expiration time for a key when being placed inside the cache. |
 |    disable_ode   |  `true` or `false` | Whether or not to disable on-demand expirations when reading back keys. |
+|     fallback     |       function     |   A function accepting a key which is used for multi-layered caching.   |
 |   fallback_args  |  list of arguments |  A list of arguments to pass alongside the key to a fallback function.  |
 |       hooks      |    list of Hooks   |    A list of execution hooks (see below) to listen on cache actions.    |
+|       limit      |  a Limit constuct  |     An integer or Limit struct to define the bounds of this cache.      |
 |   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
+|   transactions   |  `true` or `false` |             Whether to turn on transactions at cache start.             |
 |   ttl_interval   |     milliseconds   |          The frequency the Janitor process runs at (see below).         |
 
 For more information and examples, please see the official documentation on [Hex](https://hexdocs.pm/cachex/).
 
 ## Migrating To v2
+
+There are a number of breaking changes in Cachex v2.0.0 for several reasons. Please read the [migration guide](https://github.com/zackehh/cachex/blob/master/MIGRATE.md) to learn about the changes and update your codebase. I tried to keep changes small, easy to learn, and only do them for the greater good, so there should be very little in a developer's codebase to modify (I hope).
 
 ### Distribution
 
@@ -147,11 +154,43 @@ If there are cases this doesn't solve, please file issues with a description of 
 
 There have been a couple of tweaks to the interface behind hooks to make them more convenient to work with:
 
-Firstly, Hooks will default to being of `type: :post`. This is because post hooks are the more common use case, and it was very easy to become confused when using `results: true` and receiving nothing (because of the default to `:pre`). I feel that defaulting to `:post` going forward is more user-friendly.
+Firstly, Hooks will default to being of `type: :post`. This is because post hooks are the more common use case, and it was very easy to become confused when trying to deal with results and receiving nothing (because of the default to `:pre`). I feel that defaulting to `:post` going forward is more user-friendly.
 
 Additionally, there has been a change in the message format used to talk to Hooks. Previously this was a Tuple of the action and arguments, e.g. `{ :get, "key", [] }`. Going forward, this will always be a two-element Tuple, with the action and a list of arguments, e.g. `{ :get, [ "key", [] ] }`. This change makes it easier to pattern match only on the action (something very common in hooks) and avoids arbitrarily long Tuples (which is almost always the wrong thing to do).
 
 Both of these changes should be fairly easy to adopt, but please file issues if you feel something is missing. It's also worth noting that going forwards the last element of the arguments list should be options provided to the function - if this is ever not the case, please file a bug.
+
+## Cache Limits
+
+There are currently two ways to define cache limits, currently based only around the number of entries in a cache (although this will change in future). You can provide either an integer, or a `Cachex.Limit` structure to the `:limit` option in the Cachex interface.
+
+### Limit Structures
+
+A Limit struct consists of currently only 3 fields which dictate a limit and how it should be enforced. This allows the user to customize their eviction without getting too low-level. For example, here is a basic Limit structure. This is what passing an integer as the `:limit` option to a cache would unpack to internally:
+
+```elixir
+%Cachex.Limit{
+  limit: 500,
+  policy: Cachex.Policy.LRW,
+  reclaim: 0.1
+}
+```
+
+This defines that the cache should aim to store no more than `500` entries. If the cache goes other this number, it should evict `50` of the oldest entries. The `50` is dictated by the `:reclaim` option which is a percentage of the cache to evict upon becoming maxed out. This value must fit `1 >= reclaim > 0` in order to be accepted.
+
+The policy here is a built-in Cachex eviction policy which removes the oldest values first. This means that we calculate the first `N` oldest entries, where `N` is roughly equal to `limit * reclaim`, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" here means "those written or updated longest ago".
+
+This is currently the only policy implemented within Cachex, although more will follow (most likely LRU will come soon). Here are a few examples of how they can be implemented against a cache:
+
+```elixir
+# maximum 500 entries, default eviction
+Cachex.start(:my_cache1, [ limit: 500 ])
+
+# maximum 500 entries, LRW eviction, trim 50%
+Cachex.start(:my_cache2, [ limit: %Cachex.Limit{ limit: 500, policy: Cachex.Policy.LRW, reclaim: 0.5 } ])
+```
+
+You should be aware that eviction is not instant - it happens in reaction to events which are additive to the cache and is extremely quick, however if you have a cache limit of 500 keys and you add 500,000 keys, the cleanup does take a few hundred milliseconds to occur (that's a lot to clean). This shouldn't affect most users, but it is something to point out and be aware of.
 
 ## Multi-Layered Caches
 
@@ -165,7 +204,7 @@ Assume you have a backing Redis cache with a fairly large amount of keys, and yo
 
 ```elixir
 # initialize the cache instance
-{ :ok, pid } = Cachex.start_link(:redis_memory_layer, [ default_ttl: :timer.minutes(5), default_fallback: &RedisClient.get/1 ])
+{ :ok, pid } = Cachex.start_link(:redis_memory_layer, [ default_ttl: :timer.minutes(5), fallback: &RedisClient.get/1 ])
 
 # status will equal :loaded if Redis was hit, otherwise :ok when successful
 { status, information } = Cachex.get(:redis_memory_layer, "my_key")
@@ -208,11 +247,11 @@ It's pretty straightforward, but in the interest of completeness, here is a quic
 Cachex.get(:my_cache, "key") == { :get, [ :my_cache, "key" ] }
 ```
 
-Cachex uses the typical `GenServer` pattern (it's actually a `GenEvent` implementation under the hood), and as such you get most of the typical interfaces. There are a couple of differences, but they're detailed below.
+Cachex uses the typical `GenServer` pattern, and as such you get most of the typical interfaces. There are a couple of differences, but they're detailed below.
 
 #### Definition
 
-Hooks are quite simply a small abstraction above the existing `GenEvent` which ships with Elixir. Cachex tweaks a couple of minor things related to synchronous execution and argument format, but nothing too special. Below is an example of a very basic hook implementation:
+Hooks are quite simply a small abstraction above the existing `GenServer` which ships with Elixir. Cachex tweaks a couple of minor things related to synchronous execution and argument format, but nothing too special. Below is an example of a very basic hook implementation:
 
 
 ```elixir
@@ -234,26 +273,15 @@ defmodule MyProject.MyHook do
   end
 
   @doc """
-  This is the actual handler of your hook, receiving a message and the state. This
-  behaves in the same way as `GenEvent.handle_event/2` in that you can modify the
-  state and return it at the end of your function.
+  This is the actual handler of your hook, receiving a message, results and the
+  state. If the hook is a of type `:pre`, then the results will always be `nil`.
 
   Messages take the form `{ :action, args... }`, so you can quite easily pattern
   match and take different action based on different events (or ignore certain
   events entirely).
-  """
-  def handle_notify(msg, state) do
-    IO.puts("Message: #{msg}")
-    { :ok, msg }
-  end
 
-  @doc """
-  This is functionally the same as the above `handle_notify/2` definition except
-  that it receives the results of the action taken. This will only ever be called
-  if you set `results` to `true` in your hook registration.
-
-  Message formats are as above, and results are of the same format as if they had
-  been returned in the main worker thread.
+  The return type of this function should be `{ :ok, new_state }`, anything else
+  is not accepted.
   """
   def handle_notify(msg, results, state) do
     IO.puts("Message: #{msg}")
@@ -264,14 +292,14 @@ defmodule MyProject.MyHook do
   @doc """
   Provides a way to retrieve the last action taken inside the cache.
   """
-  def handle_call(:last_action, state) do
-    { :ok, state, state }
+  def handle_call(:last_action, _ctx, state) do
+    { :reply, state, state }
   end
 
 end
 ```
 
-You can override any of the typical callback functions *except* for the `handle_event/2` callback which is used by Cachex. This is because Cachex hijacks `handle_event/2` and adds some bindings based around synchronous execution, so for safety it's easier to keep this away from the user. Cachex exposes the `handle_notify/2` and `handle_notify/3` callbacks in order to replace this behaviour by operating in the same way as `handle_event/2`.
+As we're using a `GenServer`, you have access to all of the usual callback functions from the `GenServer` module. This is an improvement over v1.x, where only `GenEvent` functions were available. As such, make sure your `handle_call/3`, `handle_cast/2` and `handle_info/2` functions return appropriate values.
 
 #### Registration
 
@@ -300,12 +328,11 @@ A hook is an instance of the `%Cachex.Hook{}` struct. These structs store variou
 %Cachex.Hook{
   args: [],
   async: true,
-  max_timeout: 5,
+  max_timeout: nil,
   module: nil,
-  results: false,
   provide: [],
   server_args: [],
-  type: :pre
+  type: :post
 }
 ```
 
@@ -318,7 +345,6 @@ These fields translate to the following:
 |max_timeout| no. of milliseconds| A maximum time to wait for your synchronous hook to complete.  |
 |   module  | a module definition| A module containing your which implements the Hook interface.  |
 |  provide  |    list of atoms   |      A list of post-startup values to provide to your hook.    |
-|  results  | `true` or `false`  |     Whether the results should be included in notifications.   |
 |server_args|        any         |           Arguments to pass to the GenEvent server.            |
 |   type    | `:pre` or `:post`  |   Whether this hook should execute before or after the action. |
 
@@ -326,7 +352,6 @@ These fields translate to the following:
 
 - `max_timeout` has no effect if the hook is not being executed in a synchronous form.
 - `module` is the only required argument, as there's no logical default to set if not provided.
-- `results` has no effect on `:pre` hooks (as naturally results can only be forwarded after the action has taken place. Do not forget that this option has an effect on which callback is called (either `/2` or `/3`).
 
 #### Provisions
 
@@ -350,8 +375,8 @@ defmodule MyProject.MyHook do
   state. This worker can be passed to the main Cachex interface in order to call
   the cache from inside your hooks.
   """
-  def handle_info({ :provision, { :worker, worker } }, state) do
-    { :ok, Map.put(state, :worker, worker) }
+  def handle_info({ :provision, { :state, worker } }, state) do
+    { :noreply, Map.put(state, :state, worker) }
   end
 end
 ```
@@ -367,7 +392,7 @@ hook = %Cachex.Hook{
 Cachex.start_link(:my_cache, [ hooks: hook ])
 ```
 
-The message you receive in `handle_info/2` will always be `{ :provision, { provide_option, value } }` where `provide_option` is equal to the atom you've asked for (in this case `:worker`). Be aware that this modification event may be fired multiple times if the internal worker structure has changed for any reason (for example when extra nodes are added to the cluster).
+The message you receive in `handle_info/2` will always be `{ :provision, { provide_option, value } }` where `provide_option` is equal to the atom you've asked for (in this case `:state`). Be aware that this modification event may be fired multiple times if the internal worker structure has changed for any reason (for example when extra nodes are added to the cluster).
 
 #### Performance
 
@@ -398,7 +423,7 @@ The Janitor is pretty well optimized; it can check and purge 500,000 expired key
 There are several rules to be aware of when setting up the interval:
 
 - If you have `default_ttl` set in the cache options, and you have not set `ttl_interval`, the Janitor will default to running every 3 seconds. This is to avoid people forgetting to set it or simply being unaware that it's not running by default.
-- If you set `ttl_interval` to either `false` or `-1`, it is disabled entirely - even if you have a `default_ttl` set. This means you will be solely reliant on the on-demand expiration policy.
+- If you set `ttl_interval` to `-1`, it is disabled entirely - even if you have a `default_ttl` set. This means you will be solely reliant on the on-demand expiration policy.
 - If you set `ttl_interval` to `true`, it behaves the same way as if you had set a `default_ttl`; it will set the Janitor to run every 3 seconds.
 - If you set `ttl_interval` to any numeric value above `0`, it will run on this schedule (this value is in milliseconds).
 
@@ -420,7 +445,7 @@ val2 = Cachex.get!(:my_cache, "key2")
 You can do something like this:
 
 ```elixir
-{ val1, val2 } = Cachex.execute!(:my_cache, fn(worker) ->
+{ val1, val2 } = Cachex.execute!(:my_cache, fn(state) ->
   v1 = Cachex.get!(worker, "key1")
   v2 = Cachex.get!(worker, "key2")
   { v1, v2 }
@@ -435,45 +460,42 @@ In addition, all actions taken inside an execution block are committed immediate
 
 #### Transaction Blocks
 
-Transaction Blocks are the consistent counterpart of Execution Blocks. They bind all actions into a transaction in order to ensure consistency even in distributed situations. This means that all actions you define in your transaction will execute one after another and are guaranteed successful. These blocks look identical to Execution Blocks:
+Transaction Blocks are the consistent counterpart of Execution Blocks. They bind all actions into a transaction in order to ensure consistency even in distributed situations. This means that all actions you define in your transaction will execute one after another and are guaranteed successful. These blocks look almost identical to Execution Blocks, except that they require a list of keys to lock throughout their execution:
 
 ```elixir
-{ val1, val2 } = Cachex.transaction!(:my_cache, fn(worker) ->
-  v1 = Cachex.get!(worker, "key1")
-  v2 = Cachex.get!(worker, "key2")
+{ val1, val2 } = Cachex.transaction!(:my_cache, [ "key1", "key2" ], fn(state) ->
+  v1 = Cachex.set!(worker, "key1", 1)
+  v2 = Cachex.set!(worker, "key2", 2)
   { v1, v2 }
 end)
 ```
 
-However, the other major difference is that they do not commit their changes immediately - only if the block executes successfully. This means that you can `abort/3` a transaction!
+The major difference here is that it is guaranteed that no write operations occur on the locked keys whilst your transaction is executing. This means you can safely retrieve/modify/update values using custom logic without worrying that other processes are modifying your records in the meantime.
 
-```elixir
-# abort a write op
-Cachex.transaction!(:my_cache, fn(worker) ->
-  Cachex.set(worker, "key", "val")
-  Cachex.abort(worker, :i_want_to_abort) # second arg is the reason
-end)
+Of course it should be noted (and obvious) that transactions have quite a bit of overhead to them, so only use them when you have to (e.g. the example above should not be using them). The overhead is much less than previous iterations of Cachex due to an in-built lock table rather than going via Mnesia.
 
-# write never happened
-Cachex.exists?(:my_cache, "key") == { :ok, false }
-```
-
-Cool, right?
-
-Of course it should be noted (and obvious) that transactions have quite a bit of overhead to them, so only use them when you have to.
-
-In addition, please note that calls to `Cachex.clear/2` from inside a transaction will fail. This is due to the call creating a transaction internally and causing nested transaction issues. Sadly, this is a Mnesia issue and cannot be resolved inside Cachex, and so we just return an error against the call.
+In addition, please note that transactions should only operate on the keys they have locked - if you write keys which haven't been locked, they're open to being written by external processes. This should always be checked appropriately when dealing with nested transactions.
 
 #### Things To Remember
 
-Hopefully you've noticed that in all examples above, we receive a `worker` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. If you use the cache name inside your block, you lose all benefits of the block execution. Changes to Cachex in `v0.9.0` allow you to pass the `worker` argument to the interface to safely avoid this issue.
+Hopefully you've noticed that in all examples above, we receive a `state` argument in our blocks. You **must** pass this to your `Cachex` calls, rather than the cache name. If you use the cache name inside your block, you lose all benefits of the block execution. Changes to Cachex in `v0.9.0` allow you to pass the `state` argument to the interface to safely avoid this issue.
 
 ## Benchmarks
 
-There are some very trivial benchmarks available using [Benchee](https://github.com/PragTob/benchee) in the `bench/` directory. Please use the median to gauge performance as the averages shown have wild error bounds (due to operations being so fast and hard to calculate). You can run the benchmarks using the following command:
+There are some very trivial benchmarks available using [Benchfella](https://github.com/alco/benchfella) in the `bench/` directory. Please use the median to gauge performance as the averages shown have wild error bounds (due to operations being so fast and hard to calculate). You can run the benchmarks using the following command:
 
 ```bash
-$ mix run bench/cachex_bench.exs
+# default benchmarks, no modifiers
+$ mix bench
+
+# use a state instead of a cache name
+$ CACHEX_BENCH_STATE=true mix bench
+
+# use a lock write context for all writes
+$ CACHEX_BENCH_TRANSACTIONS=true mix bench
+
+# use both a state and lock write context
+$ CACHEX_BENCH_STATE=true CACHEX_BENCH_TRANSACTIONS=true mix bench
 ```
 
 ## Contributions
