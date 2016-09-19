@@ -20,9 +20,7 @@ All of these features are optional and are off by default so you can pick and ch
     - [Startup](#startup)
     - [Interface](#interface)
     - [Options](#options)
-- [Migrating To v2.x](#migrating-to-v2x)
-    - [Distribution](#distribution)
-    - [Hook Interface](#hook-interface)
+- [Migrating To v2.x](#migrating-to-v2)
 - [Cache Limits](#cache-limits)
     - [Limit Structures](#limit-structures)
 - [Multi-Layered Caches](#multi-layered-caches)
@@ -141,24 +139,6 @@ For more information and examples, please see the official documentation on [Hex
 ## Migrating To v2
 
 There are a number of breaking changes in Cachex v2.0.0 for several reasons. Please read the [migration guide](https://github.com/zackehh/cachex/blob/master/MIGRATE.md) to learn about the changes and update your codebase. I tried to keep changes small, easy to learn, and only do them for the greater good, so there should be very little in a developer's codebase to modify (I hope).
-
-### Distribution
-
-In the v1.x line of Cachex, there was a notion of remote Cachex instances which have been removed in v2.x onwards. This is a design decision due to the limitations of supporting remote instances and the complexities involved, specifically with regards to discovery and eviction policies.
-
-As an alternative to remote Cachex instances, you should now use a remote datastore such as Redis as your master copy and use fallback functions inside Cachex to replicate this data locally. This should support almost all cases for which people required the distributed nature of Cachex. To migrate the behaviour of deletion on remote nodes, simply set a TTL on your data which pulls from Redis and it'll periodically sync automatically. This has the advantage of removing a lot of complexity from Cachex whilst still solving many common use cases.
-
-If there are cases this doesn't solve, please file issues with a description of what you're trying to do and we can work together to design how to efficiently implement it inside Cachex. I'm not against reintroducing the idea of remote caches if there is an audience for them, as long as they're implemented in such a way that it doesn't limit local caches. There are several ideas in flux around how to make this happen but each needs a lot of thought and review, and so will only be revisited as needed.
-
-### Hook Interface
-
-There have been a couple of tweaks to the interface behind hooks to make them more convenient to work with:
-
-Firstly, Hooks will default to being of `type: :post`. This is because post hooks are the more common use case, and it was very easy to become confused when trying to deal with results and receiving nothing (because of the default to `:pre`). I feel that defaulting to `:post` going forward is more user-friendly.
-
-Additionally, there has been a change in the message format used to talk to Hooks. Previously this was a Tuple of the action and arguments, e.g. `{ :get, "key", [] }`. Going forward, this will always be a two-element Tuple, with the action and a list of arguments, e.g. `{ :get, [ "key", [] ] }`. This change makes it easier to pattern match only on the action (something very common in hooks) and avoids arbitrarily long Tuples (which is almost always the wrong thing to do).
-
-Both of these changes should be fairly easy to adopt, but please file issues if you feel something is missing. It's also worth noting that going forwards the last element of the arguments list should be options provided to the function - if this is ever not the case, please file a bug.
 
 ## Cache Limits
 
