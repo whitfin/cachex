@@ -24,6 +24,9 @@ defmodule Cachex.State do
             transactions: nil,      # whether to enable transactions
             ttl_interval: nil       # the ttl check interval
 
+  # grab constants
+  use Cachex.Constants
+
   # add any aliases
   alias Cachex.Hook
   alias Supervisor.Spec
@@ -53,6 +56,27 @@ defmodule Cachex.State do
   end
 
   @doc """
+  Enforces a cache binding into a given state.
+
+  If the cache cannot be coerced into the given state, a nil value is returned.
+  If it can be coerced, the body is unquoted and executed.
+  """
+  defmacro enforce(cache, state, do: body) do
+    quote do
+      case Cachex.State.ensure(unquote(cache)) do
+        nil ->
+          @error_no_cache
+        unquote(state) ->
+          if :erlang.whereis(unquote(state).cache) != :undefined do
+            unquote(body)
+          else
+            @error_no_cache
+          end
+      end
+    end
+  end
+
+  @doc """
   Removes a state from the local state table.
   """
   @spec del(atom) :: true
@@ -61,10 +85,21 @@ defmodule Cachex.State do
   end
 
   @doc """
+  Ensures a state from a cache name or state.
+  """
+  @spec ensure(atom | State.t) :: State.t | nil
+  def ensure(%__MODULE__{ } = state),
+    do: state
+  def ensure(cache) when is_atom(cache),
+    do: get(cache)
+  def ensure(_miss),
+    do: nil
+
+  @doc """
   Retrieves a state from the local state table, or `nil` if none exists.
   """
   @spec get(atom) :: State.t | nil
-  def get(cache) when is_atom(cache) do
+  def get(cache) do
     case :ets.lookup(@state_table, cache) do
       [{ ^cache, state }] ->
         state
@@ -144,11 +179,9 @@ defmodule Cachex.State do
 
   # Verifies whether a Hook requires a state worker. If it does, return true
   # otherwise return a false.
-  defp requires_worker?(%Hook{ provide: provide }) when is_list(provide) do
-    :state in provide or :worker in provide
-  end
-  defp requires_worker?(_hook) do
-    false
-  end
+  defp requires_worker?(%Hook{ provide: provide }) when is_list(provide),
+    do: :worker in provide
+  defp requires_worker?(_hook),
+    do: false
 
 end

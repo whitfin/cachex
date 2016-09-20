@@ -109,10 +109,10 @@ iex(1)> Cachex.get(:my_cache, "key")
 iex(2)> Cachex.get!(:my_cache, "key")
 nil
 iex(3)> Cachex.get(:missing_cache, "key")
-{:error, "Invalid cache name provided, got: :missing_cache"}
+{:error, :no_cache}
 iex(4)> Cachex.get!(:missing_cache, "key")
-** (Cachex.ExecutionError) Invalid cache provided, got: :missing_cache
-    (cachex) lib/cachex.ex:204: Cachex.get!/3
+** (Cachex.ExecutionError) Specified cache not running
+    (cachex) lib/cachex.ex:249: Cachex.get!/3
 ```
 
 I'd typically recommend checking the values and using the safe version which gives you a tuple, but sometimes it's easier to use the unsafe version (for example in unit tests or when you're calling something which can't fail).
@@ -160,7 +160,7 @@ This defines that the cache should aim to store no more than `500` entries. If t
 
 The policy here is a built-in Cachex eviction policy which removes the oldest values first. This means that we calculate the first `N` oldest entries, where `N` is roughly equal to `limit * reclaim`, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" here means "those written or updated longest ago".
 
-This is currently the only policy implemented within Cachex, although more will follow (most likely LRU will come soon). Here are a few examples of how they can be implemented against a cache:
+This is currently the only policy implemented within Cachex, although more will follow. Here are a few examples of how they can be implemented against a cache:
 
 ```elixir
 # maximum 500 entries, default eviction
@@ -171,6 +171,8 @@ Cachex.start(:my_cache2, [ limit: %Cachex.Limit{ limit: 500, policy: Cachex.Poli
 ```
 
 You should be aware that eviction is not instant - it happens in reaction to events which are additive to the cache and is extremely quick, however if you have a cache limit of 500 keys and you add 500,000 keys, the cleanup does take a few hundred milliseconds to occur (that's a lot to clean). This shouldn't affect most users, but it is something to point out and be aware of.
+
+It should be noted that although LRW is the only policy implemented at this time, you can control LRU policies by using `Cachex.touch/2` to do a write on a key without affecting the value or TTL. Using `Cachex.touch/2` and the LRW policy is likely how an LRU policy would work regardless.
 
 ## Multi-Layered Caches
 
@@ -435,8 +437,6 @@ end)
 Although this looks more complicated it saves you a read of the internal Cachex state, which actually trims off a large amount of the overhead of a Cachex request.
 
 It should be noted that the consistency of these actions should not be relied upon. Even though you execute in a single block, you may still have cache actions occur between your calls inside the block. This is very important to keep in mind, and if this poses an issue, you might wish to move to [Transaction Blocks](#transaction-blocks) instead.
-
-In addition, all actions taken inside an execution block are committed immediately. This means that there is no way to abort your block. Again, if this is a requirement please take a look at [Transaction Blocks](#transaction-blocks).
 
 #### Transaction Blocks
 

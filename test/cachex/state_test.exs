@@ -23,6 +23,30 @@ defmodule Cachex.StateTest do
     refute(Cachex.State.member?(name))
   end
 
+  # Ensures that we receive a state from the input if possible. If we provide a
+  # state name, there's a lookup. If there's a state it returns as is. Otherwise
+  # we should get a nil.
+  test "ensuring a state" do
+    # grab a state name
+    name = Helper.create_name()
+
+    # create our state
+    state = %Cachex.State{ cache: name }
+
+    # set our state in the table
+    Cachex.State.set(name, state)
+
+    # ensure that the state comes back
+    assert(Cachex.State.ensure(state) === state)
+    assert(Cachex.State.ensure(name) === state)
+
+    # remove our state from the table
+    Cachex.State.del(name)
+
+    # ensure the state is gone
+    assert(Cachex.State.ensure(name) == nil)
+  end
+
   # Covers the retrieval of a cache state from inside the table. We just have to
   # make sure that the returned cache value is the same as what went into the
   # table in the first place.

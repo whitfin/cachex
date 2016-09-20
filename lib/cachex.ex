@@ -38,6 +38,9 @@ defmodule Cachex do
   alias Cachex.Util
   alias Cachex.Util.Names
 
+  # require state macros
+  require Cachex.State
+
   # avoid inspect clashes
   import Kernel, except: [ inspect: 2 ]
 
@@ -247,7 +250,9 @@ defmodule Cachex do
   """
   @spec get(cache, any, options) :: { status | :loaded, any }
   defwrap get(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Get.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Get.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -275,7 +280,9 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, options) :: { status | :loaded, any }
   defwrap get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    do_action(cache, &Actions.GetAndUpdate.execute(&1, key, update_function, options))
+    State.enforce(cache, state) do
+      Actions.GetAndUpdate.execute(state, key, update_function, options)
+    end
   end
 
   @doc """
@@ -303,7 +310,9 @@ defmodule Cachex do
   """
   @spec set(cache, any, any, options) :: { status, true | false }
   defwrap set(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Set.execute(&1, key, value, options))
+    State.enforce(cache, state) do
+      Actions.Set.execute(state, key, value, options)
+    end
   end
 
   @doc """
@@ -333,7 +342,9 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, options) :: { status, any }
   defwrap update(cache, key, value, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Update.execute(&1, key, value, options))
+    State.enforce(cache, state) do
+      Actions.Update.execute(state, key, value, options)
+    end
   end
 
   @doc """
@@ -353,7 +364,9 @@ defmodule Cachex do
   """
   @spec del(cache, any, options) :: { status, true | false }
   defwrap del(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Del.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Del.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -375,7 +388,9 @@ defmodule Cachex do
   """
   @spec clear(cache, options) :: { status, true | false }
   defwrap clear(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Clear.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Clear.execute(state, options)
+    end
   end
 
   @doc """
@@ -396,7 +411,9 @@ defmodule Cachex do
   """
   @spec count(cache, options) :: { status, number }
   defwrap count(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Count.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Count.execute(state, options)
+    end
   end
 
   @doc """
@@ -456,9 +473,9 @@ defmodule Cachex do
   """
   @spec empty?(cache, options) :: { status, true | false }
   defwrap empty?(cache, options \\ []) when is_list(options) do
-    do_action(cache, fn(cache) ->
-      do_action(cache, &Actions.Empty.execute(&1, options))
-    end)
+    State.enforce(cache, state) do
+      Actions.Empty.execute(state, options)
+    end
   end
 
   @doc """
@@ -487,7 +504,9 @@ defmodule Cachex do
   @spec execute(cache, function, options) :: { status, any }
   defwrap execute(cache, operation, options \\ [])
   when is_function(operation, 1) and is_list(options) do
-    do_action(cache, operation)
+    State.enforce(cache, state) do
+      operation.(state)
+    end
   end
 
   @doc """
@@ -509,7 +528,9 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, options) :: { status, true | false }
   defwrap exists?(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Exists.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Exists.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -541,7 +562,9 @@ defmodule Cachex do
   @spec expire(cache, any, number, options) :: { status, true | false }
   defwrap expire(cache, key, expiration, options \\ [])
   when (expiration == nil or is_number(expiration)) and is_list(options) do
-    do_action(cache, &Actions.Expire.execute(&1, key, expiration, options))
+    State.enforce(cache, state) do
+      Actions.Expire.execute(state, key, expiration, options)
+    end
   end
 
   @doc """
@@ -591,7 +614,9 @@ defmodule Cachex do
   """
   @spec keys(cache, options) :: [ any ]
   defwrap keys(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Keys.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Keys.execute(state, options)
+    end
   end
 
   @doc """
@@ -625,7 +650,9 @@ defmodule Cachex do
   """
   @spec incr(cache, any, options) :: { status, number }
   defwrap incr(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Incr.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Incr.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -674,8 +701,11 @@ defmodule Cachex do
 
   """
   @spec inspect(cache, atom | tuple) :: { status, any }
-  defwrap inspect(cache, option),
-  do: do_action(cache, &Actions.Inspect.execute(&1, option))
+  defwrap inspect(cache, option) do
+    State.enforce(cache, state) do
+      Actions.Inspect.execute(state, option)
+    end
+  end
 
   @doc """
   Removes a TTL on a given document.
@@ -715,7 +745,9 @@ defmodule Cachex do
   """
   @spec purge(cache, options) :: { status, number }
   defwrap purge(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Purge.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Purge.execute(state, options)
+    end
   end
 
   @doc """
@@ -742,7 +774,9 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, options) :: { status, true | false }
   defwrap refresh(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Refresh.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Refresh.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -773,7 +807,9 @@ defmodule Cachex do
   """
   @spec reset(cache, options) :: { status, true }
   defwrap reset(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Reset.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Reset.execute(state, options)
+    end
   end
 
   @doc """
@@ -793,7 +829,9 @@ defmodule Cachex do
   """
   @spec size(cache, options) :: { status, number }
   defwrap size(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Size.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Size.execute(state, options)
+    end
   end
 
   @doc """
@@ -827,7 +865,9 @@ defmodule Cachex do
   """
   @spec stats(cache, options) :: { status, %{ } }
   defwrap stats(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Stats.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Stats.execute(state, options)
+    end
   end
 
   @doc """
@@ -865,7 +905,9 @@ defmodule Cachex do
   """
   @spec stream(cache, options) :: { status, Enumerable.t }
   defwrap stream(cache, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Stream.execute(&1, options))
+    State.enforce(cache, state) do
+      Actions.Stream.execute(state, options)
+    end
   end
 
   @doc """
@@ -888,7 +930,9 @@ defmodule Cachex do
   """
   @spec take(cache, any, options) :: { status, any }
   defwrap take(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Take.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Take.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -898,7 +942,9 @@ defmodule Cachex do
   """
   @spec touch(cache, any, options) :: { status, true | false }
   defwrap touch(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Touch.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Touch.execute(state, key, options)
+    end
   end
 
   @doc """
@@ -932,14 +978,15 @@ defmodule Cachex do
   @spec transaction(cache, function, options) :: { status, any }
   defwrap transaction(cache, keys, operation, options \\ [])
   when is_function(operation, 1) and is_list(keys) and is_list(options) do
-    do_action(cache, fn
-      (%State{ cache: cache, transactions: false }) ->
+    State.enforce(cache, state) do
+      if state.transactions do
+        Actions.Transaction.execute(state, keys, operation, options)
+      else
         cache
         |> State.update(&%State{ &1 | transactions: true })
         |> Actions.Transaction.execute(keys, operation, options)
-      (state) ->
-        Actions.Transaction.execute(state, keys, operation, options)
-    end)
+      end
+    end
   end
 
   @doc """
@@ -956,29 +1003,14 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, options) :: { status, number }
   defwrap ttl(cache, key, options \\ []) when is_list(options) do
-    do_action(cache, &Actions.Ttl.execute(&1, key, options))
+    State.enforce(cache, state) do
+      Actions.Ttl.execute(state, key, options)
+    end
   end
 
   ###
   # Private utility functions.
   ###
-
-  # Executes an action against the given cache. If the cache does not exist, we
-  # return an error otherwise we execute the passed in action.
-  defp do_action(cache, action) when is_atom(cache) do
-    state = State.get(cache)
-    where = :erlang.whereis(cache)
-
-    if where != :undefined and state != nil do
-      action.(state)
-    else
-      @error_no_cache
-    end
-  end
-  defp do_action(%State{ } = cache, action),
-    do: action.(cache)
-  defp do_action(_cache, _action),
-    do: @error_no_cache
 
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
