@@ -1,4 +1,6 @@
 # Cachex
+
+[![Join the chat at https://gitter.im/cachex/Lobby](https://badges.gitter.im/cachex/Lobby.svg)](https://gitter.im/cachex/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://img.shields.io/travis/zackehh/cachex.svg)](https://travis-ci.org/zackehh/cachex) [![Coverage Status](https://img.shields.io/coveralls/zackehh/cachex.svg)](https://coveralls.io/github/zackehh/cachex) [![Dependency Status](https://beta.hexfaktor.org/badge/all/github/zackehh/cachex.svg)](https://beta.hexfaktor.org/github/zackehh/cachex) [![Hex.pm Version](https://img.shields.io/hexpm/v/cachex.svg)](https://hex.pm/packages/cachex) [![Documentation](https://img.shields.io/badge/docs-latest-yellowgreen.svg)](https://hexdocs.pm/cachex/)
 
 Cachex is an extremely fast in-memory key/value store with support for many useful features:
