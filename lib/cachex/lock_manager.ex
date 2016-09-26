@@ -31,8 +31,9 @@ defmodule Cachex.LockManager do
   Sets whether this process is inside a transactional context.
   """
   def set_transaction(transactional) do
-    Process.put(:transactional, !!transactional)
-    !!transactional
+    bool = !!transactional
+    Process.put(:transactional, bool)
+    bool
   end
 
   @doc """

@@ -92,8 +92,14 @@ defmodule Cachex do
       This function is called with a key which has no value, in order to allow loading
       from a different location.
 
+      You should tag the return value inside a `:commit` Tuple, to signal that you
+      wish to commit the changes to the cache. If you *don't* want to commit the
+      changes (for example if something goes wrong), you can use `{ :ignore, val }`
+      to only return the value and not persist it. If you don't specify either of
+      these flags, it will be assumed you are committing your changes.
+
           iex> Cachex.start_link(:my_cache, [ fallback: fn(key) ->
-          ...>   generate_value(key)
+          ...>   { :commit, generate_value(key) }
           ...> end])
 
     - **fallback_args**

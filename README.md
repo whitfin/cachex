@@ -182,7 +182,7 @@ A very common use case (and one of the reasons I built Cachex) is the desire to 
 
 Let's look at an example;
 
-Assume you have a backing Redis cache with a fairly large amount of keys, and you wish to cache it locally to avoid the network calls (let's say you're doing it thousands of times a second). Cachex can do this easily be providing a **fallback** action to take when a key is missing. This is configured during cache initialization using the `default_fallback` option, as below:
+Assume you have a backing Redis cache with a fairly large amount of keys, and you wish to cache it locally to avoid the network calls (let's say you're doing it thousands of times a second). Cachex can do this easily be providing a **fallback** action to take when a key is missing. This is configured during cache initialization using the `fallback` option, as below:
 
 ```elixir
 # initialize the cache instance

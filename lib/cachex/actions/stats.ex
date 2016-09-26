@@ -69,9 +69,8 @@ defmodule Cachex.Actions.Stats do
     meta   = Map.get(stats,   :meta, %{ })
     global = Map.get(stats, :global, %{ })
 
-    load_count = Map.get(global, :loadCount, 0)
     hits_count = Map.get(global,  :hitCount, 0)
-    miss_count = Map.get(global, :missCount, 0) + load_count
+    miss_count = Map.get(global, :missCount, 0)
 
     req_rates = case hits_count + miss_count do
       0 -> %{ }
