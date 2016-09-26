@@ -81,40 +81,49 @@ defmodule Cachex.UtilTest do
   # generated. This test covers the retrieval of a loaded value using a fallback
   # function as well as defaults and invalid function specifications.
   test "getting a fallback value" do
-    # define our fallback function
-    fb_fun = &String.reverse/1
-
     # define a state with and without a default fallback
     state1 = %Cachex.State{ fallback_args: [ ] }
-    state2 = %Cachex.State{ state1 | fallback: fb_fun }
+    state2 = %Cachex.State{ state1 | fallback: &String.reverse/1 }
 
     # retrieve a missing key using a custom fallback
-    result1 = Cachex.Util.get_fallback(state1, "key", fb_fun)
+    result1 = Cachex.Util.get_fallback(state1, "key", &String.reverse/1)
+
+    # retrieve a missing key using a commit return
+    result2 = Cachex.Util.get_fallback(state1, "key", fn(x) ->
+      { :commit, String.reverse(x) }
+    end)
+
+    # retrieve a missing key using an ignored return
+    result3 = Cachex.Util.get_fallback(state1, "key", fn(x) ->
+      { :ignore, String.reverse(x) }
+    end)
 
     # retrieve a missing key with a default fallback
-    result2 = Cachex.Util.get_fallback(state2, "key", nil)
+    result4 = Cachex.Util.get_fallback(state2, "key", nil)
 
     # retrieve a missing key with no fallback
-    result3 = Cachex.Util.get_fallback(state1, "key", nil)
+    result5 = Cachex.Util.get_fallback(state1, "key", nil)
 
     # retrieve a missing key with no fallback and a custom default
-    result4 = Cachex.Util.get_fallback(state1, "key", nil, 10)
+    result6 = Cachex.Util.get_fallback(state1, "key", nil, 10)
 
     # retrieve a missing key with an invalid fallback arity
-    result5 = Cachex.Util.get_fallback(state1, "key", &String.split/3)
+    result7 = Cachex.Util.get_fallback(state1, "key", &String.split/3)
 
     # custom and default fallbacks should return successfully
-    assert(result1 == { :loaded, "yek" })
-    assert(result2 == { :loaded, "yek" })
+    assert(result1 == { :commit, "yek" })
+    assert(result2 == { :commit, "yek" })
+    assert(result3 == { :ignore, "yek" })
+    assert(result4 == { :commit, "yek" })
 
     # no fallback should return a default value of nil
-    assert(result3 == { :ok, nil })
+    assert(result5 == { :default, nil })
 
     # overloaded default should be returned
-    assert(result4 == { :ok, 10 })
+    assert(result6 == { :default, 10 })
 
     # invalid functions should skip to returning the default
-    assert(result5 == { :ok, nil })
+    assert(result7 == { :default, nil })
   end
 
   # This test ensures the integrity of the basic option parser provided for use
@@ -232,6 +241,30 @@ defmodule Cachex.UtilTest do
 
     # the second should default to nil
     assert(result2 == nil)
+  end
+
+  # This test just ensures that we correctly convert return values to either a
+  # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
+  # behaviour is a :commit Tuple for backwards compatibility.
+  test "normalizing commit/ignore return values" do
+    # define our base Tuples to test against
+    tuple1 = { :commit, true }
+    tuple2 = { :ignore, true }
+
+    # define our base value
+    value1 = true
+
+    # normalize all values
+    result1 = Cachex.Util.normalize_commit(tuple1)
+    result2 = Cachex.Util.normalize_commit(tuple2)
+    result3 = Cachex.Util.normalize_commit(value1)
+
+    # the first two should persist
+    assert(result1 == tuple1)
+    assert(result2 == tuple2)
+
+    # the value should be converted to the first
+    assert(result3 == tuple1)
   end
 
   # We use milliseconds for dates around Cachex, so we just need to make sure we

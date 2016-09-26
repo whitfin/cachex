@@ -47,14 +47,17 @@ defmodule Cachex.Actions.Get do
   # value, we've missing the cache and haven't been able to load anything so we
   # just return nil and stop. If we have received a fallback, then we make sure
   # to set the value inside the cache so that it can be hit first try next time.
-  defp handle_fallback({ :ok, nil }, _state, _key, _opts) do
-    { :missing, nil }
-  end
-  defp handle_fallback({ :loaded, value } = res, state, key, opts) do
+  defp handle_fallback({ :default, val }, _state, _key, _opts),
+    do: { :missing, val }
+  defp handle_fallback({ :ignore, val }, _state, _key, _opts),
+    do: { :loaded, val }
+  defp handle_fallback({ :commit, val }, state, key, opts) do
     note_opt = Enum.find(opts, [], &find_notify/1)
     set_opts = List.wrap(note_opt)
-    Set.execute(state, key, value, set_opts)
-    res
+
+    Set.execute(state, key, val, set_opts)
+
+    { :loaded, val }
   end
 
   # Simply returns true only if the option key is `:notify`.

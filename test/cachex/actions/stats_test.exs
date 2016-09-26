@@ -90,6 +90,7 @@ defmodule Cachex.Actions.StatsTest do
     cache1 = Helper.create_cache([ record_stats: true ])
     cache2 = Helper.create_cache([ record_stats: true ])
     cache3 = Helper.create_cache([ record_stats: true ])
+    cache4 = Helper.create_cache([ record_stats: true ])
 
     # retrieve stats with no rates
     stats1 = Cachex.stats!(cache1)
@@ -112,15 +113,22 @@ defmodule Cachex.Actions.StatsTest do
     { :ok,    1 } = Cachex.get(cache3, 1)
     { :missing, nil } = Cachex.get(cache3, 2)
 
+    # set cache4 to have some loads
+    { :loaded, 1 } = Cachex.get(cache4, 1, fallback: &(&1))
+
     # retrieve all cache rates
     stats2 = Cachex.stats!(cache1)
     stats3 = Cachex.stats!(cache2)
     stats4 = Cachex.stats!(cache3)
+    stats5 = Cachex.stats!(cache4)
 
     # remove the creationDate
     stats2 = Map.delete(stats2, :creationDate)
     stats3 = Map.delete(stats3, :creationDate)
     stats4 = Map.delete(stats4, :creationDate)
+    stats5 = Map.delete(stats5, :creationDate)
+
+    IO.inspect(stats5)
 
     # verify a 100% miss rate for cache1
     assert(stats2 == %{
@@ -151,6 +159,18 @@ defmodule Cachex.Actions.StatsTest do
       missRate: 50.0,
       opCount: 3,
       requestCount: 2,
+      setCount: 1
+    })
+
+    # verify a load count for cache4
+    assert(stats5 == %{
+      hitCount: 0,
+      hitRate: 0.0,
+      loadCount: 1,
+      missCount: 1,
+      missRate: 100.0,
+      opCount: 2,
+      requestCount: 1,
       setCount: 1
     })
   end

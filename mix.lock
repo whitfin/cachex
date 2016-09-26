@@ -6,7 +6,7 @@
   "deppie": {:hex, :deppie, "1.0.0", "ec1207cdadf7c81aea171cb8acc68fc0eb1a8f6015ad785e6b5001dbb2a7d7ea", [:mix], []},
   "earmark": {:hex, :earmark, "1.0.1", "2c2cd903bfdc3de3f189bd9a8d4569a075b88a8981ded9a0d95672f6e2b63141", [:mix], []},
   "eternal": {:hex, :eternal, "1.1.3", "e9193326d9f8475bdc75a3e8cc83aa317449c5aeb41b315d6e1b67068075f028", [:mix], [{:deppie, "~> 1.0", [hex: :deppie, optional: false]}]},
-  "ex_doc": {:hex, :ex_doc, "0.13.1", "658dbfc8cc5b0fac192f0f3254efe66ee6294200804a291549e0aeb052053bba", [:mix], [{:earmark, "~> 1.0", [hex: :earmark, optional: false]}]},
+  "ex_doc": {:hex, :ex_doc, "0.13.2", "1059a588d2ad3ffab25a0b85c58abf08e437d3e7a9124ac255e1d15cec68ab79", [:mix], [{:earmark, "~> 1.0", [hex: :earmark, optional: false]}]},
   "excoveralls": {:hex, :excoveralls, "0.5.6", "35a903f6f78619ee7f951448dddfbef094b3a0d8581657afaf66465bc930468e", [:mix], [{:exjsx, "~> 3.0", [hex: :exjsx, optional: false]}, {:hackney, ">= 0.12.0", [hex: :hackney, optional: false]}]},
   "exjsx": {:hex, :exjsx, "3.2.0", "7136cc739ace295fc74c378f33699e5145bead4fdc1b4799822d0287489136fb", [:mix], [{:jsx, "~> 2.6.2", [hex: :jsx, optional: false]}]},
   "exprintf": {:hex, :exprintf, "0.1.6", "b5b0a38bf78a357dbc61cdf7364fea004af6fdf5214be44021eb2ea7edf61f6e", [:mix], []},

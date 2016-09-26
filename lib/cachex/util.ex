@@ -66,15 +66,15 @@ defmodule Cachex.Util do
     cond do
       # valid provided fallback
       is_function(fb_fun, fb_len) ->
-        { :loaded, apply(fb_fun, fb_args) }
+        fb_fun |> apply(fb_args) |> normalize_commit
 
       # valid default fallback
       is_function(fb_def, fb_len) ->
-        { :loaded, apply(fb_def, fb_args) }
+        fb_def |> apply(fb_args) |> normalize_commit
 
       # no fallback
       true ->
-        { :ok, default }
+        { :default, default }
     end
   end
 
@@ -127,6 +127,14 @@ defmodule Cachex.Util do
       n -> elem(tuple, n - 1)
     end
   end
+
+  @doc """
+  Normalizes a commit result to determine whether we're going to signal to
+  commit the changes to the cache, or simply ignore the changes and return.
+  """
+  def normalize_commit({ :commit, _val } = val), do: val
+  def normalize_commit({ :ignore, _val } = val), do: val
+  def normalize_commit(val), do: { :commit, val }
 
   @doc """
   Consistency wrapper around current time in millis.
