@@ -126,8 +126,7 @@ Caches can accept a list of options during initialization, which determine vario
 |     ets_opts     |   list of options  |               A list of options to give to the ETS table.               |
 |    default_ttl   |     milliseconds   | A default expiration time for a key when being placed inside the cache. |
 |    disable_ode   |  `true` or `false` | Whether or not to disable on-demand expirations when reading back keys. |
-|     fallback     |       function     |   A function accepting a key which is used for multi-layered caching.   |
-|   fallback_args  |  list of arguments |  A list of arguments to pass alongside the key to a fallback function.  |
+|     fallback     |  Function or List  |   A function accepting a key which is used for multi-layered caching.   |
 |       hooks      |    list of Hooks   |    A list of execution hooks (see below) to listen on cache actions.    |
 |       limit      |  a Limit constuct  |     An integer or Limit struct to define the bounds of this cache.      |
 |   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
@@ -207,7 +206,7 @@ Using another example, let's assume that you need to read information from a dat
 { :ok, db } = initialize_database_client()
 
 # initialize the cache instance
-{ :ok, pid } = Cachex.start_link(:info_cache, [ default_ttl: :timer.minutes(5), fallback_args: [db] ])
+{ :ok, pid } = Cachex.start_link(:info_cache, [ default_ttl: :timer.minutes(5), fallback: [ state: db ] ])
 
 # status will equal :loaded if the database was hit, otherwise :ok when successful
 { status, information } = Cachex.get(:info_cache, "/api/v1/packages", fallback: fn(key, db) ->
@@ -215,7 +214,11 @@ Using another example, let's assume that you need to read information from a dat
 end)
 ```
 
-The above is a multi-layered cache which only hits the database **at most** every 5 minutes, and hits local memory in the meantime (retrieving the exact same data as was returned from your database). This allows you to easily lower the pressure on your backing systems as the context of your call requires - for example in the use case above, we can totally ignore the key argument as the function is only ever invoked on that call. Also note that this example demonstrates how you can bind arguments to your fallback functions using the `fallback_args` option.
+The above is a multi-layered cache which only hits the database **at most** every 5 minutes, and hits local memory in the meantime (retrieving the exact same data as was returned from your database). This allows you to easily lower the pressure on your backing systems as the context of your call requires - for example in the use case above, we can totally ignore the key argument as the function is only ever invoked on that call.
+
+Also note that this example demonstrates how you can provide state to your fallback functions by providing a Keyword List against the `:fallback` option. This list can contain the `:state` and `:action` keys to further customize how fallbacks work. The state is provided as a second argument to the action in the case it is not set to `nil`.
+
+As demonstrated in the [Common Fallbacks](#common-fallbacks) section above, providing a function instead of a List is internally converted to `[ action: &RedisClient.get/1 ]`. It is simply shorthand in case you do not wish to provide a state.
 
 ## Execution Hooks
 
@@ -234,7 +237,6 @@ Cachex uses the typical `GenServer` pattern, and as such you get most of the typ
 #### Definition
 
 Hooks are quite simply a small abstraction above the existing `GenServer` which ships with Elixir. Cachex tweaks a couple of minor things related to synchronous execution and argument format, but nothing too special. Below is an example of a very basic hook implementation:
-
 
 ```elixir
 defmodule MyProject.MyHook do
@@ -327,7 +329,7 @@ These fields translate to the following:
 |max_timeout| no. of milliseconds| A maximum time to wait for your synchronous hook to complete.  |
 |   module  | a module definition| A module containing your which implements the Hook interface.  |
 |  provide  |    list of atoms   |      A list of post-startup values to provide to your hook.    |
-|server_args|        any         |           Arguments to pass to the GenEvent server.            |
+|server_args|        any         |              Arguments to pass to the GenServer.               |
 |   type    | `:pre` or `:post`  |   Whether this hook should execute before or after the action. |
 
 **Notes**

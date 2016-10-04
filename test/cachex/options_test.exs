@@ -81,41 +81,38 @@ defmodule Cachex.OptionsTest do
     # grab a cache name
     name = Helper.create_name()
 
-    # define our fallbacks
-    valid_fb   = &(&1)
-    invalid_fb = "nop"
+    # define our falbacks
+    fallback1 = []
+    fallback2 = [ action: &String.reverse/1 ]
+    fallback3 = [ action: &String.reverse/1, state: {} ]
+    fallback4 = [ state: {} ]
+    fallback5 = &String.reverse/1
+    fallback6 = { }
 
     # parse both as options
-    { :ok, state1 } = Cachex.Options.parse(name, [ fallback:   valid_fb ])
-    { :ok, state2 } = Cachex.Options.parse(name, [ fallback: invalid_fb ])
+    { :ok, state1 } = Cachex.Options.parse(name, [ fallback: fallback1 ])
+    { :ok, state2 } = Cachex.Options.parse(name, [ fallback: fallback2 ])
+    { :ok, state3 } = Cachex.Options.parse(name, [ fallback: fallback3 ])
+    { :ok, state4 } = Cachex.Options.parse(name, [ fallback: fallback4 ])
+    { :ok, state5 } = Cachex.Options.parse(name, [ fallback: fallback5 ])
+    { :ok, state6 } = Cachex.Options.parse(name, [ fallback: fallback6 ])
 
-    # the first should have parsed
-    assert(state1.fallback == valid_fb)
+    # the first and sixth should use defaults
+    assert(state1.fallback == %Cachex.Fallback{ })
+    assert(state6.fallback == %Cachex.Fallback{ })
 
-    # but the second should be nil
-    assert(state2.fallback == nil)
-  end
+    # the second and fifth should have an action but no state
+    assert(state2.fallback == %Cachex.Fallback{ action: &String.reverse/1 })
+    assert(state5.fallback == %Cachex.Fallback{ action: &String.reverse/1 })
 
-  # This test will ensure that fallback arguments can be passed as options. We
-  # only accept a list of arguments, anything else should be defaulted to an empty
-  # list of arguments (to avoid having to check later in the execution flow).
-  test "parsing :fallback_args flags" do
-    # grab a cache name
-    name = Helper.create_name()
+    # the third should have both an action and state
+    assert(state3.fallback == %Cachex.Fallback{
+      action: &String.reverse/1,
+      state: {}
+    })
 
-    # parse out valid arguments
-    { :ok, state1 } = Cachex.Options.parse(name, [ fallback_args: [ 1, 2, 3 ] ])
-
-    # parse out invalid arguments
-    { :ok, state2 } = Cachex.Options.parse(name, [ fallback_args: "[1, 2, 3]" ])
-    { :ok, state3 } = Cachex.Options.parse(name, [ ])
-
-    # assert the first arguments are valid
-    assert(state1.fallback_args == [ 1, 2, 3 ])
-
-    # both the second and third options use defaults
-    assert(state2.fallback_args == [])
-    assert(state3.fallback_args == [])
+    # the fourth should have a state but no action
+    assert(state4.fallback == %Cachex.Fallback{ state: { } })
   end
 
   # This test will ensure that we can parse Hook values successfully. Hooks can

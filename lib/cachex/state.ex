@@ -9,27 +9,28 @@ defmodule Cachex.State do
   # and should only be accessed via this module. The interface is deliberately
   # small in order to reduce potential complexity.
 
-  # internal state struct
-  defstruct cache: nil,             # the name of the cache
-            disable_ode: false,     # whether we disable on-demand expiration
-            ets_opts: nil,          # any options to give to ETS
-            default_ttl: nil,       # any default ttl values to use
-            fallback: nil,          # the default fallback implementation
-            fallback_args: nil,     # arguments to pass to a cache loader
-            janitor: nil,           # the name of the janitor attached (if any)
-            limit: nil,             # any limit to apply to the cache
-            manager: nil,           # the name of the manager attached
-            pre_hooks: nil,         # any pre hooks to attach
-            post_hooks: nil,        # any post hooks to attach
-            transactions: nil,      # whether to enable transactions
-            ttl_interval: nil       # the ttl check interval
-
   # grab constants
   use Cachex.Constants
 
   # add any aliases
+  alias Cachex.Fallback
   alias Cachex.Hook
+  alias Cachex.Limit
   alias Supervisor.Spec
+
+  # internal state struct
+  defstruct cache: nil,             # the name of the cache
+            disable_ode: false,     # whether we disable on-demand expiration
+            ets_opts: [],           # any options to give to ETS
+            default_ttl: nil,       # any default ttl values to use
+            fallback: %Fallback{},  # the default fallback implementation
+            janitor: nil,           # the name of the janitor attached (if any)
+            limit: %Limit{},        # any limit to apply to the cache
+            manager: nil,           # the name of the manager attached
+            pre_hooks: [],          # any pre hooks to attach
+            post_hooks: [],         # any post hooks to attach
+            transactions: false,    # whether to enable transactions
+            ttl_interval: nil       # the ttl check interval
 
   # our opaque type
   @opaque t :: %__MODULE__{ }

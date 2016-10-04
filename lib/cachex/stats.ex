@@ -13,7 +13,7 @@ defmodule Cachex.Stats do
   global operation count, but all other changes are action-specific.
   """
   @spec register(action :: { }, result :: { }, stats :: %{ }) :: %{ }
-  def register(action, result, stats \\ %{ }) do
+  def register(action, result, stats) do
     action
     |> process_action(result)
     |> Enum.reduce(stats, &increment/2)
