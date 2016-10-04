@@ -216,7 +216,7 @@ end)
 
 The above is a multi-layered cache which only hits the database **at most** every 5 minutes, and hits local memory in the meantime (retrieving the exact same data as was returned from your database). This allows you to easily lower the pressure on your backing systems as the context of your call requires - for example in the use case above, we can totally ignore the key argument as the function is only ever invoked on that call.
 
-Also note that this example demonstrates how you can provide state to your fallback functions by providing a Keyword List against the `:fallback` option. This list can contain the `:state` and `:action` keys to further customize how fallbacks work. The state is provided as a second argument to the action in the case it is provided and is not set to `nil`.
+Also note that this example demonstrates how you can provide state to your fallback functions by providing a Keyword List against the `:fallback` option. This list can contain the `:state` and `:action` keys to further customize how fallbacks work. The state is provided as a second argument to the action in the case it is not set to `nil`.
 
 As demonstrated in the [Common Fallbacks](#common-fallbacks) section above, providing a function instead of a List is internally converted to `[ action: &RedisClient.get/1 ]`. It is simply shorthand in case you do not wish to provide a state.
 
