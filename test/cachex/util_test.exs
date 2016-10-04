@@ -81,9 +81,14 @@ defmodule Cachex.UtilTest do
   # generated. This test covers the retrieval of a loaded value using a fallback
   # function as well as defaults and invalid function specifications.
   test "getting a fallback value" do
+    # define fallbacks
+    fallback1 = %Cachex.Fallback{ action: &String.reverse/1 }
+    fallback2 = %Cachex.Fallback{ state:  true }
+
     # define a state with and without a default fallback
-    state1 = %Cachex.State{ fallback_args: [ ] }
-    state2 = %Cachex.State{ state1 | fallback: &String.reverse/1 }
+    state1 = %Cachex.State{ }
+    state2 = %Cachex.State{ state1 | fallback: fallback1 }
+    state3 = %Cachex.State{ state2 | fallback: fallback2 }
 
     # retrieve a missing key using a custom fallback
     result1 = Cachex.Util.get_fallback(state1, "key", &String.reverse/1)
@@ -110,6 +115,11 @@ defmodule Cachex.UtilTest do
     # retrieve a missing key with an invalid fallback arity
     result7 = Cachex.Util.get_fallback(state1, "key", &String.split/3)
 
+    # retrieve a missing key with a fallback state
+    result8 = Cachex.Util.get_fallback(state3, "key", fn(x, true) ->
+      { :commit, String.reverse(x) }
+    end)
+
     # custom and default fallbacks should return successfully
     assert(result1 == { :commit, "yek" })
     assert(result2 == { :commit, "yek" })
@@ -124,6 +134,9 @@ defmodule Cachex.UtilTest do
 
     # invalid functions should skip to returning the default
     assert(result7 == { :default, nil })
+
+    # custom states should function successfully
+    assert(result8 == { :commit, "yek" })
   end
 
   # This test ensures the integrity of the basic option parser provided for use
@@ -349,6 +362,26 @@ defmodule Cachex.UtilTest do
     # validate both results (as they should be the same)
     validate.(result1)
     validate.(result2)
+  end
+
+  # This test simply validates the ability to retrieve and transform an option
+  # from inside a Keyword List. We validate both existing and missing options in
+  # order to make sure there are no issues when retrieving. We also verify the
+  # result of the call is the transformed result.
+  test "transforming an option value in a Keyword List" do
+    # define our list of options
+    options = [ key: "value" ]
+
+    # define a transformer
+    transformer = &({ &1 })
+
+    # transformer various options
+    result1 = Cachex.Util.opt_transform(options, :key, transformer)
+    result2 = Cachex.Util.opt_transform(options, :nah, transformer)
+
+    # only the first should come back
+    assert(result1 == { "value" })
+    assert(result2 == {   nil  })
   end
 
 end

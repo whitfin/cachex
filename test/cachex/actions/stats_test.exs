@@ -128,8 +128,6 @@ defmodule Cachex.Actions.StatsTest do
     stats4 = Map.delete(stats4, :creationDate)
     stats5 = Map.delete(stats5, :creationDate)
 
-    IO.inspect(stats5)
-
     # verify a 100% miss rate for cache1
     assert(stats2 == %{
       hitCount: 0,

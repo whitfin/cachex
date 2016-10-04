@@ -3,7 +3,6 @@
     "defmodule",
     "defrecord",
     "defimpl",
-    "defexception",
     "defprotocol",
     "defstruct",
     "defdelegate",

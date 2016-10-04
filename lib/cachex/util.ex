@@ -58,19 +58,24 @@ defmodule Cachex.Util do
   Retrieves a fallback value for a given key, using either the provided function
   or using the default fallback implementation.
   """
-  def get_fallback(state, key, fb_fun, default \\ nil) do
-    fb_args = [ key | state.fallback_args ]
-    fb_def  = state.fallback
-    fb_len  = length(fb_args)
+  def get_fallback(%Cachex.State{ fallback: fall }, key, fb_fun, default \\ nil) do
+    # pluck out the default fallback options
+    %{ state: fb_state, action: fb_def } = fall
+
+    # determine state length
+    fb_len = case fb_state do
+      nil -> 1
+      _na -> 2
+    end
 
     cond do
       # valid provided fallback
       is_function(fb_fun, fb_len) ->
-        fb_fun |> apply(fb_args) |> normalize_commit
+        fb_state |> do_fallback(key, fb_fun) |> normalize_commit
 
       # valid default fallback
       is_function(fb_def, fb_len) ->
-        fb_def |> apply(fb_args) |> normalize_commit
+        fb_state |> do_fallback(key, fb_def) |> normalize_commit
 
       # no fallback
       true ->
@@ -83,12 +88,13 @@ defmodule Cachex.Util do
   in, we return it. Otherwise we return a default value.
   """
   def get_opt(options, key, condition, default \\ nil) do
-    try do
-      value = options[key]
-      condition.(value) && value || default
-    rescue
-      _e -> default
-    end
+    opt_transform(options, key, fn(val) ->
+      try do
+        condition.(val) && val || default
+      rescue
+        _ -> default
+      end
+    end)
   end
 
   @doc """
@@ -142,6 +148,15 @@ defmodule Cachex.Util do
   def now, do: :os.system_time(1000)
 
   @doc """
+  Transforms an option value from inside a Keyword list using a provided transformer.
+  """
+  def opt_transform(options, key, transformer) do
+    options
+    |> Keyword.get(key)
+    |> transformer.()
+  end
+
+  @doc """
   Returns a selection to return the designated value for all rows. Enables things
   like finding all stored keys and all stored values.
   """
@@ -167,6 +182,13 @@ defmodule Cachex.Util do
       }
     ])
   end
+
+  # Executes a fallback based on the provided state. If the state is nil, then
+  # we don't pass a state - otherwise we pass the state as the second argument.
+  defp do_fallback(nil, key, fun),
+    do: fun.(key)
+  defp do_fallback(state, key, fun),
+    do: fun.(key, state)
 
   # Used to normalize some quick select syntax to valid Erlang handles. Used when
   # creating match specifications instead of having `$` atoms everywhere.

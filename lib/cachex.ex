@@ -65,96 +65,96 @@ defmodule Cachex do
 
   ## Options
 
-    - **ets_opts**
-
-      A list of options to pass to the ETS table initialization.
+    * `:ets_opts` - A list of options to pass to the ETS table initialization.
 
           iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
 
-    - **default_ttl**
-
-      A default expiration time to place on any keys inside the cache (this can be
-      overridden when a key is set). This value is in **milliseconds**.
+    * `:default_ttl` - A default expiration time to place on any keys inside the
+      cache (this can be overridden when a key is set). This value is in **milliseconds**.
 
           iex> Cachex.start_link(:my_cache, [ default_ttl: :timer.seconds(1) ])
 
-    - **disable_ode**
-
-      If true, on-demand expiration will be disabled. Keys will only be removed
-      by Janitor processes, or by calling `purge/2` directly. Useful in case you
-      have a Janitor running and don't want potential deletes to impact your reads.
+    * `:disable_ode` -  If true, on-demand expiration will be disabled. Keys will
+      only be removed by Janitor processes, or by calling `purge/2` directly. Useful
+      in case you have a Janitor running and don't want potential deletes to impact
+      your reads.
 
           iex> Cachex.start_link(:my_cache, [ disable_ode: true ])
 
-    - **fallback**
-
-      A default fallback implementation to use when dealing with multi-layered caches.
-      This function is called with a key which has no value, in order to allow loading
-      from a different location.
-
+    * `:fallback` - A default fallback implementation to use when dealing with
+      multi-layered caches. This function is called with a key which has no value,
+      in order to allow loading from a different location.
+      </br></br>
       You should tag the return value inside a `:commit` Tuple, to signal that you
       wish to commit the changes to the cache. If you *don't* want to commit the
       changes (for example if something goes wrong), you can use `{ :ignore, val }`
       to only return the value and not persist it. If you don't specify either of
       these flags, it will be assumed you are committing your changes.
+      </br></br>
+      You can also provide a state to your fallback by passing a List of options
+      rather than just a function. Using the `:state` key will provide your state
+      value as the second argument any time it is called. Any state which is set
+      to `nil` will not be provided as the second argument. Even if a default
+      fallback function is not set, you may still set a state - the state will
+      still be provided to any fallbacks which are command-specific.
+      </br></br>
+      When providing option syntax you should use the `:action` key to provide
+      your function. Should you prefer you can use this syntax even when you
+      don't need a state, simply by providing `[ action: function ]`. This is the
+      internal behaviour used when a simple function is provided anyway.
 
-          iex> Cachex.start_link(:my_cache, [ fallback: fn(key) ->
-          ...>   { :commit, generate_value(key) }
-          ...> end])
+          iex> Cachex.start_link(:my_cache, [
+          ...>   fallback: fn(key) ->
+          ...>     { :commit, generate_value(key) }
+          ...>   end
+          ...> ])
+          { :ok, _pid1 }
 
-    - **fallback_args**
+          iex> Cachex.start_link(:my_cache, [
+          ...>   fallback: [
+          ...>     state: my_state,
+          ...>     action: fn(key, state) ->
+          ...>       { :commit, generate_value(key) }
+          ...>     end
+          ...>   ]
+          ...> ])
+          { :ok, _pid2 }
 
-      A list of arguments which can be passed to your fallback functions for multi-layered
-      caches. The fallback function receives `[key] ++ args`, so make sure you configure
-      your args appropriately. This can be used to pass through things such as clients and
-      connections.
-
-          iex> Cachex.start_link(:my_cache, [ fallback_args: [redis_client] ])
-          iex> Cachex.get(:my_cache, "key", fallback: fn(key, redis_client) ->
-          ...>   redis_client.get(key)
-          ...> end)
-
-    - **hooks**
-
-      A list of hooks which will be executed either before or after a Cachex action has
-      taken place. These hooks should be instances of Cachex.Hook and implement the hook
-      behaviour. An example hook can be found in `Cachex.Stats`.
+    * `:hooks` - A list of hooks which will be executed either before or after a
+      Cachex action has taken place. These hooks should be instances of `Cachex.Hook`
+      and implement the hook behaviour. An example hook can be found in `Cachex.Stats`.
 
           iex> hook = %Cachex.Hook{ module: MyHook, type: :post }
           iex> Cachex.start_link(:my_cache, [ hooks: [hook] ])
 
-    - **limit**
-
-      A limit to cap the cache at. This can be an integer or a `Cachex.Limit` structure.
+    * `:limit` - A limit to cap the cache at. This can be an integer or a `Cachex.Limit`
+      structure.
 
           iex> limit = %Cachex.Limit{ limit: 500, reclaim: 0.1 } # 10%
           iex> Cachex.start_link(:my_cache, [ limit: limit ])
 
-    - **record_stats**
-
-      Whether you wish this cache to record usage statistics or not. This has only minor
-      overhead due to being implemented as an asynchronous hook (roughly 1µ/op). Stats
-      can be retrieve from a running cache by using `stats/1`.
+    * `:record_stats` - Whether you wish this cache to record usage statistics or
+      not. This has only minor overhead due to being implemented as an asynchronous
+      hook (roughly 1µ/op). Stats can be retrieve from a running cache by using
+      `Cachex.stats/2`.
 
           iex> Cachex.start_link(:my_cache, [ record_stats: true ])
 
-    - **transactions**
-
-      Whether to have transactions and row locking enabled from cache startup. Please
-      note that even if this is false, it will be enable the moment a transaction
-      is executed. It's recommended to leave this as the default as it will handle
-      most use cases in the most performant way possible.
+    * `:transactions` - Whether to have transactions and row locking enabled from
+      cache startup. Please note that even if this is false, it will be enabled
+      the moment a transaction is executed. It's recommended to leave this as the
+      default as it will handle most use cases in the most performant way possible.
 
           iex> Cachex.start_link(:my_cache, [ transactions: true ])
 
-    - **ttl_interval**
-
-      Keys are purged on a schedule (defaults to once a second). This value can be changed
-      to customize the schedule that keys are purged on. Be aware that if a key is accessed
-      when it *should* have expired, but has not yet been purged, it will be removed at that
-      time. The purge runs in a separate process so it doesn't have a negative effect on the
-      application, but it may make sense to lower the frequency if you don't have many keys
-      expiring at one time. This value is set in **milliseconds**.
+    * `:ttl_interval` - An interval to dicate how often to purge expired keys.
+      This value can be changed to customize the schedule that keys are purged on.
+      Be aware that if a key is accessed when it *should* have expired, but has
+      not yet been purged, it will be removed at that time.
+      </br></br>
+      The purge runs in a separate process so it doesn't have a negative effect
+      on the application, but it may make sense to lower the frequency if you don't
+      have many keys expiring at one time. This value is set in **milliseconds**.
 
           iex> Cachex.start_link(:my_cache, [ ttl_interval: :timer.seconds(5) ])
 
@@ -693,14 +693,32 @@ defmodule Cachex do
 
   ## Examples
 
+      iex> Cachex.inspect(:my_cache, { :expired, :count })
+      { :ok, 0 }
+
+      iex> Cachex.inspect(:my_cache, { :expired, :count })
+      { :ok, [ ] }
+
+      iex> Cachex.inspect(:my_cache, { :janitor, :last })
+      { :ok, %{ count: 0, duration: 57, started: 1475476530925 } }
+
+      iex> Cachex.inspect(:my_cache, { :memory, :binary })
+      { :ok, "10.38 KiB" }
+
       iex> Cachex.inspect(:my_cache, { :memory, :bytes })
       { :ok, 10624 }
+
+      iex> Cachex.inspect(:my_cache, { :memory, :words })
+      { :ok, 1328 }
+
+      iex> Cachex.inspect(:my_cache, { :record, "my_key" } )
+      { :ok, { "my_key", 1475476615662, 1, "my_value" } }
 
       iex> Cachex.inspect(:my_cache, :state)
       {:ok,
        %Cachex.State{cache: :my_cache, default_ttl: nil, disable_ode: false,
-        ets_opts: [read_concurrency: true, write_concurrency: true], fallback: nil,
-        fallback_args: [], janitor: :my_cache_janitor,
+        ets_opts: [read_concurrency: true, write_concurrency: true],
+        fallback: {nil, nil}, janitor: :my_cache_janitor,
         limit: %Cachex.Limit{limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1},
         manager: :my_cache_manager, post_hooks: [], pre_hooks: [],
         transactions: false, ttl_interval: nil}}

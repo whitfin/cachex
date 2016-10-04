@@ -3,6 +3,7 @@
 If anything is not covered in here, or there are any issues with anything written in here, please file an issue and I'll get it taken care of.
 
 - [Distribution](#distribution)
+- [Fallbacks](#fallbacks)
 - [Hook Interface](#hook-interface)
   - [Callbacks](#callbacks)
   - [Defaults](#defaults)
@@ -24,6 +25,33 @@ The decision to remove the remote interface does not come lightly; I have spent 
 Do not despair though; if you were totally set on using a native Elixir/Erlang datastore witout having to have something separate such as Redis, I'm planning on writing a separate library which is dedicated more to handling the distributed nature as opposed to the feature set that Cachex offers. At the end of the day, I see caching as a different use case to remote data replication - I believe remote Cachex was closer to a distributed state table, rather than a local mirror of data.
 
 In addition, you can obviously keep on using Cachex `v1.x` as long as you need - it's still on Hex.pm and has a tag on the repo. I can't promise anything new will be added to that codebase, but for what it's worth I do intend to answer any issues reporting bugs on that branch, so file issues as you see fit - just make sure to flag that you're talking about `v1.x`.
+
+## Fallbacks
+
+The options and interface for fallback functions have changed a little bit in order to optimize their efficiency and just remove some bloat from the fallback flow.
+
+In the v1.x branch of Cachex, there were two cache options related to fallbacks; `:default_fallback` and `:fallback_args`. This was a little clumsy looking, and so this has been unified in v2.x to only be a simple `:fallback` option. This can either be a function, or list of fallback options. Below are some examples:
+
+```elixir
+# fallback with no state
+[ fallback: fn(key) -> do_fallback(key) end ]
+[ fallback: [ action: fn(key) -> do_fallback(key) end ] ]
+
+# fallback with a state
+[
+  fallback: [
+    state: db_client,
+    action: fn(key, client) ->
+      retrieve_from_db(client, key)
+    end
+  ]
+]
+
+# provide a state but no default fallback
+[ fallback: [ state: db_client ] ]
+```
+
+It should be noted that the `state` is passed in as a second argument in the case that the `state` provided is not `nil`. This is another change to previously where you would provide a list and have arbitrarily long arguments. This change was made as it's a more efficient way of calling a fallback and lessens the overhead involved.
 
 ## Hook Interface
 

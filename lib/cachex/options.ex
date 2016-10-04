@@ -4,6 +4,7 @@ defmodule Cachex.Options do
   # to avoid accidentally getting mixed field names and values across the library.
 
   # add some aliases
+  alias Cachex.Fallback
   alias Cachex.Hook
   alias Cachex.Limit
   alias Cachex.Util
@@ -28,16 +29,14 @@ defmodule Cachex.Options do
       do
         { pre_hooks, post_hooks } = hook_result
         { transactional, manager } = trans_result
-        { fallback, fallback_args } = fb_result
         { default_ttl, ttl_interval, janitor } = ttl_result
 
         state = %Cachex.State{
           "cache": cache,
+          "default_ttl": default_ttl,
           "disable_ode": !!options[:disable_ode],
           "ets_opts": ets_result,
-          "default_ttl": default_ttl,
-          "fallback": fallback,
-          "fallback_args": fallback_args,
+          "fallback": fb_result,
           "janitor": janitor,
           "limit": limit_result,
           "manager": manager,
@@ -56,11 +55,16 @@ defmodule Cachex.Options do
   # Sets up and fallback behaviour options. Currently this just retrieves the
   # two flags from the options list and returns them inside a tuple for storage.
   defp setup_fallbacks(_cache, options) do
-    fb_opts = {
-      Util.get_opt(options, :fallback, &is_function/1),
-      Util.get_opt(options, :fallback_args, &is_list/1, [])
-    }
-    { :ok, fb_opts }
+    fb_opts = Util.opt_transform(options, :fallback, fn
+      (fun) when is_function(fun) ->
+        [ action: fun ]
+      (list) when is_list(list) ->
+        list
+      (_inv) ->
+        []
+    end)
+
+    { :ok, Fallback.parse(fb_opts) }
   end
 
   # Sets up any hooks to be enabled for this cache. Also parses out whether a
