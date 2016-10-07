@@ -37,7 +37,7 @@ defmodule Cachex.Actions do
       { unquote(func_name), [ unquote_splicing(args_without_state) ] }
     end
 
-    quote location: :keep do
+    quote do
       def execute(unquote_splicing(arguments)) do
         local_opts  = var!(options)
         local_state = var!(state)

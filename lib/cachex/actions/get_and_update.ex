@@ -9,12 +9,11 @@ defmodule Cachex.Actions.GetAndUpdate do
 
   # add some action aliases
   alias Cachex.Actions.Get
-  alias Cachex.Actions.Set
-  alias Cachex.Actions.Update
 
   # add other aliases
   alias Cachex.LockManager
   alias Cachex.State
+  alias Cachex.Util
 
   @doc """
   Retrieves a value and updates it inside the cache.
@@ -38,19 +37,12 @@ defmodule Cachex.Actions.GetAndUpdate do
 
       tempv = update_fun.(value)
 
-      write_mod(status, state, key, tempv)
+      Util
+        .write_mod(status)
+        .execute(state, key, tempv, @notify_false)
 
       { status, tempv }
     end)
   end
-
-  # Writes the record using the appropriate function. If the key exists in the
-  # cache, we use an update operation, otherwise we use a set operation. This
-  # is kinda ugly because they both use the same arguments, but rather than using
-  # an `apply/3` call this should be a little more performant.
-  defp write_mod(:missing, state, key, tempv),
-    do: Set.execute(state, key, tempv, @notify_false)
-  defp write_mod(_others_, state, key, tempv),
-    do: Update.execute(state, key, tempv, @notify_false)
 
 end

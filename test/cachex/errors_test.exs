@@ -6,6 +6,7 @@ defmodule Cachex.ErrorsTest do
   test "error generation and mapping" do
     # define all recognised errors
     errors = [
+      invalid_command:   "Invalid command definition provided",
       invalid_hook:      "Invalid hook definition provided",
       invalid_match:     "Invalid match specification provided",
       invalid_name:      "Invalid cache name provided",

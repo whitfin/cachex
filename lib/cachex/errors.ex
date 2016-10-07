@@ -14,6 +14,8 @@ defmodule Cachex.Errors do
   If an invalid error identifer is provided, there will simply be an error due
   to no matching function head (and this is intended).
   """
+  def long_form(:invalid_command),
+    do: "Invalid command definition provided"
   def long_form(:invalid_hook),
     do: "Invalid hook definition provided"
   def long_form(:invalid_match),

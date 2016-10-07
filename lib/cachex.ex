@@ -65,9 +65,30 @@ defmodule Cachex do
 
   ## Options
 
-    * `:ets_opts` - A list of options to pass to the ETS table initialization.
+    * `:commands` - A custom set of commands to attach to the cache in order to
+      provide shorthand execution. A cache command must be of the form
+      `{ :return | :modify, fn/1 }` and adhere to these rules:
 
-          iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
+      </br>
+      - If you use `:return`, the return value of your command will simply be the
+        return value of your call to `:invoke` - very straightforward and easy.
+      - If you use `:modify`, your command must return a two-element Tuple, with
+        the first element being the return value of your command, and the second
+        being the modified value to write back into the cache. Anything that
+        doesn't fit this will cause an error intentionally (there's no way to
+        rescue this).
+
+      </br>
+      Cache commands are set on a per-cache basis (for now), and can only be set
+      at cache start (though this may change).
+
+          iex> Cachex.start_link(:my_cache, [
+          ...>   commands: [
+          ...>     last: { :return, &List.last/1 },
+          ...>     trim: { :modify, &String.trim/1 }
+          ...>   ]
+          ...> ])
+          { :ok, _pid }
 
     * `:default_ttl` - A default expiration time to place on any keys inside the
       cache (this can be overridden when a key is set). This value is in **milliseconds**.
@@ -80,6 +101,10 @@ defmodule Cachex do
       your reads.
 
           iex> Cachex.start_link(:my_cache, [ disable_ode: true ])
+
+    * `:ets_opts` - A list of options to pass to the ETS table initialization.
+
+          iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
 
     * `:fallback` - A default fallback implementation to use when dealing with
       multi-layered caches. This function is called with a key which has no value,
@@ -728,6 +753,29 @@ defmodule Cachex do
   defwrap inspect(cache, option) do
     State.enforce(cache, state) do
       Actions.Inspect.execute(state, option)
+    end
+  end
+
+  @doc """
+  Invokes a custom command against a key inside a cache.
+
+  The chosen command must be a valid command as defined in the `start_link/3`
+  call when setting up your cache. The return value of this function depends
+  almost entirely on the return value of your command, but with `{ :ok, _res }`
+  syntax.
+
+  ## Examples
+
+      iex> Cachex.start_link(:my_cache, [ commands: [ last: { :return, &List.last/1 } ] ])
+      iex> Cachex.set(:my_cache, "my_list", [ 1, 2, 3 ])
+      iex> Cachex.invoke(:my_cache, :last, "my_list")
+      { :ok, 3 }
+
+  """
+  @spec invoke(cache, atom, any, Keyword.t) :: any
+  defwrap invoke(cache, cmd, key, options \\ []) when is_list(options) do
+    State.enforce(cache, state) do
+      Actions.Invoke.execute(state, cmd, key, options)
     end
   end
 

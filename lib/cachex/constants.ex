@@ -5,12 +5,13 @@ defmodule Cachex.Constants do
 
   @doc false
   defmacro __using__(_) do
-    quote location: :keep do
+    quote do
       @notify_false             [ notify: false ]
       @purge_override_call      { :purge, [[]] }
       @purge_override_result    { :ok, 1 }
       @purge_override           [ via: @purge_override_call, hook_result: @purge_override_result ]
 
+      @error_invalid_command    { :error, :invalid_command }
       @error_invalid_hook       { :error, :invalid_hook }
       @error_invalid_match      { :error, :invalid_match }
       @error_invalid_name       { :error, :invalid_name }
