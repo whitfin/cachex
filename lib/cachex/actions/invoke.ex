@@ -34,15 +34,9 @@ defmodule Cachex.Actions.Invoke do
     |> do_invoke(state, key)
   end
 
-  # Carries out an invocation. If the command retrieved is invalid, we just pass
-  # an error back to the caller instead of trying to do anything too clever.
-  defp do_invoke(nil, _state, _key) do
-    @error_invalid_command
-  end
-
   # In the case of a `:return` function, we just pull the value from the cache
   # and pass it off to be transformed before the result is passed back.
-  defp do_invoke({ :return, fun }, state, key) do
+  defp do_invoke({ :return, fun }, state, key) when is_function(fun, 1) do
     { _status_, value } = Get.execute(state, key, @notify_false)
     { :ok, fun.(value) }
   end
@@ -51,16 +45,21 @@ defmodule Cachex.Actions.Invoke do
   # consistency, before retrieving the value of the key. This value is then passed
   # through to the command and the return value is used to dictate the new value
   # to be written to the cache, as well as the value to return.
-  defp do_invoke({ :modify, fun }, state, key) do
+  defp do_invoke({ :modify, fun }, state, key)  when is_function(fun, 1) do
     LockManager.transaction(state, [ key ], fn ->
       { status, value } = Get.execute(state, key, @notify_false)
       { return, tempv } = fun.(value)
 
-      Util
+      tempv == value || Util
         .write_mod(status)
         .execute(state, key, tempv, @notify_false)
 
       { :ok, return }
     end)
   end
+
+  # Carries out an invocation. If the command retrieved is invalid, we just pass
+  # an error back to the caller instead of trying to do anything too clever.
+  defp do_invoke(_cmd, _state, _key), do: @error_invalid_command
+
 end
