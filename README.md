@@ -197,7 +197,7 @@ Hopefully you've noticed that in all examples above, we receive a `state` argume
 
 There are currently two ways to define cache limits, currently based only around the number of entries in a cache (although this will change in future). You can provide either an integer, or a `Cachex.Limit` structure to the `:limit` option in the Cachex interface.
 
-### Limit Structures
+#### Limit Structures
 
 A Limit struct consists of currently only 3 fields which dictate a limit and how it should be enforced. This allows the user to customize their eviction without getting too low-level. For example, here is a basic Limit structure. This is what passing an integer as the `:limit` option to a cache would unpack to internally:
 
@@ -235,7 +235,7 @@ Commands operate in such a way that they're marginally quicker than hand-writing
 
 Commands are defined on a per-cache basis, and you simply need to use the `:command` flag inside the `start_link/3` options to add your commands.
 
-### Command Definition
+#### Command Definition
 
 There are two types of commands which can be added, `:return` commands and `:modify` commands - they should be self explanatory. The former will return a value after your command transformation, whilst the latter will modify the value before placing it back into the cache. You can think of them as `read` and `write`, in effect.
 
@@ -268,7 +268,7 @@ I should mention that these command definitions are incredibly strict on purpose
 
 Finally it should be noted that if your key is missing, you will be provided with a `nil` value. If you're using a `:modify` command and receive a missing value, your modified value will only be written to the cache if it is not `nil` - this is to avoid forcing you to write keys which were previously missing.
 
-### Command Invocation
+#### Command Invocation
 
 Your entry point to running a command is `Cachex.invoke/4`, which has the signature `(cache, command, key, options)`. The command is just the name of your custom command, and the key is the key you wish to run it against (simple enough). If you provide an invalid command name, you will receive an error. There are currently no options available, they're just provided as future proofing.
 
@@ -461,7 +461,7 @@ Hooks are always notified sequentially as spawning another process for each has 
 
 A very common use case (and one of the reasons I built Cachex) is the desire to have Multi-Layered Caches. Multi-layering is the idea of a backing cache (i.e. something remote) which populates your local caches on misses. A typical pattern is using [Redis](http://redis.io) as a remote data store and replicating it locally in-memory for faster access.
 
-### Common Fallbacks
+#### Common Fallbacks
 
 Let's look at an example;
 
@@ -479,7 +479,7 @@ The use above will ensure that Cachex jumps to Redis to look for a key, **only i
 
 An effective approach with fallbacks is to use a TTL to make sure that your data doesn't become stale. In the case above, we can be sure that our data will never be more than 5 minutes out of date, whilst saving the impact of the network calls to Redis. Once a key expires locally after 5 minutes, Cachex will then jump back to Redis the next time the key is asked for. Of course the acceptable level of staleness depends on your use case, but generally this is a very useful behaviour as it allows applications to easily reap performance gains without sacrificing the ability to have a consistent backing store.
 
-### Specified Fallbacks
+#### Specified Fallbacks
 
 You may have noticed that the above example assumes that all keys behave in the same way. Naturally this isn't the case, and so all commands which allow for fallbacks also allow overrides in the call itself.
 
