@@ -28,7 +28,7 @@ defmodule Cachex.Actions.Invoke do
   There are currently no options accepted here, but it's required as an argument
   in order to future-proof the arity.
   """
-  defaction invoke(%State{ commands: commands } = state, cmd, key, options) do
+  defaction invoke(%State{ commands: commands } = state, key, cmd, options) do
     commands
     |> Map.get(cmd)
     |> do_invoke(state, key)

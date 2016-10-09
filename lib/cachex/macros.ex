@@ -77,11 +77,9 @@ defmodule Cachex.Macros do
 
   # Converts various function input to an unsafe version by adding a trailing
   # "!" to the function name.
-  defp gen_unsafe({ :when, ctx, [ head | tail ] }) do
-    { :when, ctx, [ gen_unsafe(head) | tail ]}
-  end
-  defp gen_unsafe({ name, ctx, args }) do
-    { Util.atom_append(name, "!"), ctx, args }
-  end
+  defp gen_unsafe({ :when, ctx, [ head | tail ] }),
+    do: { :when, ctx, [ gen_unsafe(head) | tail ]}
+  defp gen_unsafe({ name, ctx, args }),
+    do: { Util.atom_append(name, "!"), ctx, args }
 
 end

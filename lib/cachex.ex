@@ -768,14 +768,14 @@ defmodule Cachex do
 
       iex> Cachex.start_link(:my_cache, [ commands: [ last: { :return, &List.last/1 } ] ])
       iex> Cachex.set(:my_cache, "my_list", [ 1, 2, 3 ])
-      iex> Cachex.invoke(:my_cache, :last, "my_list")
+      iex> Cachex.invoke(:my_cache, "my_list", :last)
       { :ok, 3 }
 
   """
-  @spec invoke(cache, atom, any, Keyword.t) :: any
-  defwrap invoke(cache, cmd, key, options \\ []) when is_list(options) do
+  @spec invoke(cache, any, atom, Keyword.t) :: any
+  defwrap invoke(cache, key, cmd, options \\ []) when is_list(options) do
     State.enforce(cache, state) do
-      Actions.Invoke.execute(state, cmd, key, options)
+      Actions.Invoke.execute(state, key, cmd, options)
     end
   end
 

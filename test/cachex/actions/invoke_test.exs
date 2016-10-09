@@ -22,10 +22,10 @@ defmodule Cachex.Actions.InvokeTest do
     { "list", touched, nil, _val } = Cachex.inspect!(cache, { :record, "list" })
 
     # execute some custom commands
-    lpop1 = Cachex.invoke(cache, :lpop, "list")
-    lpop2 = Cachex.invoke(cache, :lpop, "list")
-    rpop1 = Cachex.invoke(cache, :rpop, "list")
-    rpop2 = Cachex.invoke(cache, :rpop, "list")
+    lpop1 = Cachex.invoke(cache, "list", :lpop)
+    lpop2 = Cachex.invoke(cache, "list", :lpop)
+    rpop1 = Cachex.invoke(cache, "list", :rpop)
+    rpop2 = Cachex.invoke(cache, "list", :rpop)
 
     # verify that all results are as expected
     assert(lpop1 == { :ok, 1 })
@@ -34,14 +34,14 @@ defmodule Cachex.Actions.InvokeTest do
     assert(rpop2 == { :ok, 3 })
 
     # retrieve the raw record again
-    inspect1 = Cachex.inspect(cache, { :record, "list" })
+    inspect1 = Cachex.inspect!(cache, { :record, "list" })
 
     # verify the touched time was unchanged
-    assert(inspect1 == { :ok, { "list", touched, nil, [ ] }})
+    assert(inspect1 == { "list", touched, nil, [ ] })
 
     # pop some extras to test avoiding writes
-    lpop3 = Cachex.invoke(cache, :lpop, "list")
-    rpop3 = Cachex.invoke(cache, :rpop, "list")
+    lpop3 = Cachex.invoke(cache, "list", :lpop)
+    rpop3 = Cachex.invoke(cache, "list", :rpop)
 
     # verify we stayed the same
     assert(lpop3 == { :ok, nil })
@@ -65,7 +65,7 @@ defmodule Cachex.Actions.InvokeTest do
       { :ok, true } = Cachex.set(cache, "list", list)
 
       # retrieve the last value
-      last = Cachex.invoke(cache, :last, "list")
+      last = Cachex.invoke(cache, "list", :last)
 
       # compare with the expected
       assert(last == { :ok, expected })
@@ -96,11 +96,11 @@ defmodule Cachex.Actions.InvokeTest do
     } }
 
     # try to invoke a missing command
-    invoke1 = Cachex.invoke(state, :invoke, "heh")
+    invoke1 = Cachex.invoke(state, "heh", :unknowns)
 
     # try to invoke bad arity commands
-    invoke2 = Cachex.invoke(state, :fake_mod, "heh")
-    invoke3 = Cachex.invoke(state, :fake_ret, "heh")
+    invoke2 = Cachex.invoke(state, "heh", :fake_mod)
+    invoke3 = Cachex.invoke(state, "heh", :fake_ret)
 
     # all should error
     assert(invoke1 == { :error, :invalid_command })
