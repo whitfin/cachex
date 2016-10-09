@@ -20,6 +20,7 @@ defmodule Cachex.State do
 
   # internal state struct
   defstruct cache: nil,             # the name of the cache
+            commands: %{},          # any custom commands attached to the cache
             disable_ode: false,     # whether we disable on-demand expiration
             ets_opts: [],           # any options to give to ETS
             default_ttl: nil,       # any default ttl values to use

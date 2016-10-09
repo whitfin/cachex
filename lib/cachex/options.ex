@@ -3,7 +3,11 @@ defmodule Cachex.Options do
   # A container to ensure that all option parsing is done in a single location
   # to avoid accidentally getting mixed field names and values across the library.
 
+  # access to constants
+  use Cachex.Constants
+
   # add some aliases
+  alias Cachex.Commands
   alias Cachex.Fallback
   alias Cachex.Hook
   alias Cachex.Limit
@@ -21,6 +25,7 @@ defmodule Cachex.Options do
   """
   def parse(cache, options) when is_list(options) do
     with { :ok,   ets_result } <- setup_ets(cache, options),
+         { :ok,   cmd_result } <- setup_commands(cache, options),
          { :ok, limit_result } <- setup_limit(cache, options),
          { :ok,  hook_result } <- setup_hooks(cache, options, limit_result),
          { :ok, trans_result } <- setup_transactions(cache, options),
@@ -33,6 +38,7 @@ defmodule Cachex.Options do
 
         state = %Cachex.State{
           "cache": cache,
+          "commands": cmd_result,
           "default_ttl": default_ttl,
           "disable_ode": !!options[:disable_ode],
           "ets_opts": ets_result,
@@ -51,6 +57,28 @@ defmodule Cachex.Options do
   end
   def parse(cache, _options),
   do: parse(cache, [])
+
+  # Parses out any custom commands to be used against invocations. We delegate
+  # most of the parsing to the Commands module, here we just validate that we
+  # have a Keyword List to work with, and that there are no duplicate command
+  # entries (we want to keep the first to match a typical Keyword behaviour).
+  def setup_commands(_cache, options) do
+    options
+    |> Util.get_opt(:commands, &Keyword.keyword?/1, [])
+    |> Enum.uniq_by(&elem(&1, 0))
+    |> Commands.parse
+  end
+
+  # Parses out a potential list of ETS options, passing through the default opts
+  # used for concurrency settings. This allows them to be overridden, but it would
+  # have to be explicitly overridden.
+  defp setup_ets(_cache, options) do
+    options
+    |> Util.get_opt(:ets_opts, &is_list/1, [])
+    |> Keyword.put_new(:write_concurrency, true)
+    |> Keyword.put_new(:read_concurrency, true)
+    |> Util.wrap(:ok)
+  end
 
   # Sets up and fallback behaviour options. Currently this just retrieves the
   # two flags from the options list and returns them inside a tuple for storage.
@@ -103,25 +131,10 @@ defmodule Cachex.Options do
   # a Limit struct based on the provided values. If the cache has no limits, the
   # `:limit` key in the struct will be nil.
   defp setup_limit(_cache, options) do
-    limit =
-      options
-      |> Keyword.get(:limit)
-      |> Limit.parse
-
-    { :ok, limit }
-  end
-
-  # Parses out a potential list of ETS options, passing through the default opts
-  # used for concurrency settings. This allows them to be overridden, but it would
-  # have to be explicitly overridden.
-  defp setup_ets(_cache, options) do
-    ets_opts =
-      options
-      |> Util.get_opt(:ets_opts, &is_list/1, [])
-      |> Keyword.put_new(:write_concurrency, true)
-      |> Keyword.put_new(:read_concurrency, true)
-
-    { :ok, ets_opts }
+    options
+    |> Keyword.get(:limit)
+    |> Limit.parse
+    |> Util.wrap(:ok)
   end
 
   # Parses out whether the user wishes to utilize transactions or not. They can

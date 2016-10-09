@@ -14,6 +14,57 @@ defmodule Cachex.OptionsTest do
     assert(state.cache == name)
   end
 
+  # This test makes sure that we can correctly parse out commands which are to
+  # be attached to the cache. We make sure to try with commands which are both
+  # valid and invalid, as well as badly formed command options. We also make
+  # sure (via `v_cmds3`) that we only keep the first definition of a command.
+  # This is because commands are provided as a Keyword List, but internally stored
+  # as a Map - so we need to make sure the kept command is intuitive for the user.
+  test "parsing :commands flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # define some functions
+    fun1 = fn(_) -> [ 1, 2, 3 ] end
+    fun2 = fn(_) -> [ 3, 2, 1 ] end
+
+    # define valid command lists
+    v_cmds1 = [ commands: [ ] ]
+    v_cmds2 = [ commands: [ lpop: { :return, fun1 } ] ]
+    v_cmds3 = [ commands: [ lpop: { :return, fun1 }, lpop: { :modify, fun2 } ] ]
+
+    # define invalid command lists
+    i_cmds1 = [ commands: [ 1 ] ]
+    i_cmds2 = [ commands: { 1 } ]
+    i_cmds3 = [ commands: [ lpop: 1 ] ]
+
+    # attempt to validate
+    { :ok, results1 } = Cachex.Options.parse(name, v_cmds1)
+    { :ok, results2 } = Cachex.Options.parse(name, v_cmds2)
+    { :ok, results3 } = Cachex.Options.parse(name, v_cmds3)
+
+    # the first two should be parsed into maps
+    assert(results1.commands == %{ })
+    assert(results2.commands == %{ lpop: { :return, fun1 } })
+
+    # the third should keep only the first implementation
+    assert(results3.commands == %{ lpop: { :return, fun1 } })
+
+    # parse the fourth and fifth
+    { :ok, results4 } = Cachex.Options.parse(name, i_cmds1)
+    { :ok, results5 } = Cachex.Options.parse(name, i_cmds2)
+
+    # the fourth and fifth default to empty
+    assert(results4.commands == %{ })
+    assert(results5.commands == %{ })
+
+    # parse the invalid list
+    results6 = Cachex.Options.parse(name, i_cmds3)
+
+    # should return an error
+    assert(results6 == { :error, :invalid_command })
+  end
+
   # On-Demand expiration can be disabled, and so we have to parse out whether the
   # user has chosen to disable it or not. This is simply checking for a truthy
   # value provided aginst disabling the expiration.

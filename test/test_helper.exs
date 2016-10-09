@@ -18,7 +18,7 @@ defmodule TestHelper do
   # these callbacks.
 
   # test context
-  use ExUnit.Case
+  require ExUnit.Case
 
   @doc false
   # Schedules a cache to be deleted at the end of the current test context.

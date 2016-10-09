@@ -297,6 +297,23 @@ defmodule Cachex.UtilTest do
     assert_in_delta(current, millis, 2)
   end
 
+  # This test just provides basic coverage of the write_mod function, by using
+  # tags to determine the correct Action to use to write a value. We make sure
+  # that the :missing and :new tags define a Set and the others define an Update.
+  test "retrieving a module name to write with" do
+    # ask for some modules
+    result1 = Cachex.Util.write_mod(:new)
+    result2 = Cachex.Util.write_mod(:missing)
+    result3 = Cachex.Util.write_mod(:unknown)
+
+    # the first two should be Set actions
+    assert(result1 == Cachex.Actions.Set)
+    assert(result2 == Cachex.Actions.Set)
+
+    # the third should be an Update
+    assert(result3 == Cachex.Actions.Update)
+  end
+
   # There are several places we wish to fetch all rows from a cache, so this util
   # just generates a spec which takes a return set. All we can do here is check
   # that a specification is correctly generated with and without field indexes.

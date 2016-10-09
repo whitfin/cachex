@@ -3,6 +3,12 @@ defmodule Cachex.Util do
   # A small collection of utilities for use throughout the library. Mainly things
   # to do with response formatting and generally just common functions.
 
+  # memory size suffixes
+  @sibs ["B","KiB","MiB","GiB","TiB"]
+
+  # tags which allow Set actions
+  @stgs [ :missing, :new ]
+
   @doc """
   Appends a string to an atom and returns as an atom.
   """
@@ -22,12 +28,9 @@ defmodule Cachex.Util do
       more efficient ways, but that seems easiest for now.
 
   """
-  def bytes_to_readable(size) do
-    bytes_to_readable(size, ["B","KiB","MiB","GiB","TiB"])
-  end
-  def bytes_to_readable(size, [ _, next |tail ]) when size >= 1024 do
-    bytes_to_readable(size / 1024, [ next | tail ])
-  end
+  def bytes_to_readable(size, sibs \\ @sibs)
+  def bytes_to_readable(size, [ _, next |tail ]) when size >= 1024,
+  do: bytes_to_readable(size / 1024, [ next | tail ])
   def bytes_to_readable(size, [ head|_ ]) do
     "~.2f ~s"
     |> :io_lib.format([size / 1, head])
@@ -182,6 +185,23 @@ defmodule Cachex.Util do
       }
     ])
   end
+
+  @doc """
+  Wraps a value inside a Tuple with a given tag as first element. This is just a
+  convenience function for pipelines.
+  """
+  def wrap(val, tag), do: { tag, val }
+
+  @doc """
+  Finds the module to use for a write action based on the provided tag.
+
+  If the tag is either `:missing` or `:new`, we return the Set action, otherwise
+  we return the Update action.
+  """
+  def write_mod(tag) when tag in @stgs,
+    do: Cachex.Actions.Set
+  def write_mod(_tag),
+    do: Cachex.Actions.Update
 
   # Executes a fallback based on the provided state. If the state is nil, then
   # we don't pass a state - otherwise we pass the state as the second argument.
