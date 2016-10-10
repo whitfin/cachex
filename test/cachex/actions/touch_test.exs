@@ -72,7 +72,7 @@ defmodule Cachex.Actions.TouchTest do
     ttl5 = Cachex.ttl!(cache, 2)
 
     # it should be roughly 945ms left
-    assert_in_delta(ttl5, 940, 10)
+    assert_in_delta(ttl5, 940, 11)
   end
 
 end
