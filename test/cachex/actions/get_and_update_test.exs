@@ -78,7 +78,7 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     ttl1 = Cachex.ttl!(cache, 5)
 
     # TTL should be maintained
-    assert_in_delta(ttl1, 970, 6)
+    assert_in_delta(ttl1, 965, 11)
   end
 
 end
