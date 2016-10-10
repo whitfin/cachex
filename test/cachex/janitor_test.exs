@@ -82,7 +82,9 @@ defmodule Cachex.JanitorTest do
 
     # verify the duration is valid
     assert(is_integer(metadata1.duration))
-    assert(metadata1.duration > 0)
+
+    # windows will round to nearest millis (0)
+    assert(metadata1.duration >= 0)
 
     # verify the start time was set
     assert(is_integer(metadata1.started))

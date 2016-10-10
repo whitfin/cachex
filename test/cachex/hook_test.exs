@@ -139,7 +139,7 @@ defmodule Cachex.HookTest do
     end)
 
     # ensure it took roughly 50ms
-    assert_in_delta(time2, 50000, 10000)
+    assert_in_delta(time2, 57500, 7500)
   end
 
   # This test validates a list of hooks. If any hook in the list to be validated

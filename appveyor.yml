@@ -1,0 +1,22 @@
+version: 1.X-{branch}-{build}
+
+skip_commits:
+  message: /\[skip ci\]/
+
+environment:
+  elixir_version: 1.3.3
+
+cache:
+  - C:\Users\appveyor\AppData\Local\Temp\chocolatey\ -> appveyor.yml
+
+install:
+  - cinst elixir --version %elixir_version%
+  - refreshenv
+
+build_script:
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix deps.get
+
+test_script:
+  - mix coveralls --trace
