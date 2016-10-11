@@ -3,10 +3,10 @@ defmodule Cachex do
   Cachex provides a straightforward interface for in-memory key/value storage.
 
   Cachex is an extremely fast, designed for caching but also allowing for more
-  general in-memory storage. The main goal of Cachex is achieve a caching implementation
-  with a wide array of options, without sacrificing performance. Internally, Cachex
-  is backed by ETS and Mnesia, allowing for an easy-to-use interface sitting upon
-  extremely well tested tools.
+  general in-memory storage. The main goal of Cachex is achieve a caching
+  implementation with a wide array of options, without sacrificing performance.
+  Internally, Cachex is backed by ETS, allowing for an easy-to-use interface
+  sitting upon extremely well tested tools.
 
   Cachex comes with support for all of the following (amongst other things):
 
@@ -17,6 +17,7 @@ defmodule Cachex do
   - Multi-layered caching/key fallbacks
   - Transactions and row locking
   - Asynchronous write operations
+  - User command invocation
 
   All features are optional to allow you to tune based on the throughput needed.
   See `start_link/3` for further details about how to configure these options and
