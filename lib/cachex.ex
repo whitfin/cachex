@@ -186,11 +186,11 @@ defmodule Cachex do
   """
   @spec start_link(options, options) :: { atom, pid }
   def start_link(cache, options \\ [], server_opts \\ [])
-  def start_link(cache, _options, _server_opts) when not is_atom(cache) do
-    @error_invalid_name
-  end
+  def start_link(cache, _options, _server_opts) when not is_atom(cache),
+  do: @error_invalid_name
   def start_link(cache, options, server_opts) do
     with { :ok, true } <- ensure_started,
+         { :ok, true } <- ensure_unused(cache),
          { :ok, opts } <- setup_env(cache, options),
          { :ok,  pid }  = Supervisor.start_link(__MODULE__, opts, [ name: cache ] ++ server_opts)
       do
@@ -243,11 +243,19 @@ defmodule Cachex do
     end
 
     children = [
-      ttl_workers || [],
       [
+        worker(Eternal, [
+          state.cache,
+          state.ets_opts,
+          [
+            name: Names.eternal(state.cache),
+            quiet: true
+          ]
+        ]),
         worker(LockManager.Server, [ state.cache ])
       ],
-      hook_spec
+      hook_spec,
+      ttl_workers || []
     ]
 
     State.set(state.cache, state)
@@ -1087,7 +1095,20 @@ defmodule Cachex do
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
   defp ensure_started do
-    State.setup?() && { :ok, true } || @error_not_started
+    if State.setup?() do
+      { :ok, true }
+    else
+      @error_not_started
+    end
+  end
+
+  # Ensures that the designated cache name is not currently in use. To determine
+  # this we check to see if the name is in use by an existing GenServer.
+  defp ensure_unused(cache) do
+    case GenServer.whereis(cache) do
+      nil -> { :ok, true }
+      pid -> { :error, { :already_started, pid } }
+    end
   end
 
   # Iterates a child spec of a Supervisor and maps the process module names to a
@@ -1105,24 +1126,21 @@ defmodule Cachex do
   end
 
   # Runs through the initial setup for a cache, parsing a list of options into
-  # a set of Cachex options, before adding the node to any remote nodes and then
-  # setting up the local table. This is separated out as it's required in both
-  # `start_link/3` and `start/3`.
+  # a set of Cachex options, We then try to create a base ETS table to ensure
+  # that all options are valid, remove it, and report back that everything is
+  # ready to go. This cannot be done later, as Eternal is started in the tree -
+  # meaning that the Supervisor would crash and restart rather than returning
+  # an error message explaining what had happened.
   defp setup_env(cache, options) when is_list(options) do
-    with { :ok, opts } <- Options.parse(cache, options),
-         { :ok, _pid } <- start_table(opts),
-     do: { :ok, opts }
-  end
-
-  # Starts up an Mnesia table based on the provided options. If an error occurs
-  # when setting up the table, we return an error tuple to represent the issue.
-  defp start_table(%State{ cache: cache, ets_opts: ets_opts }) do
-    Eternal.start_link(cache, ets_opts, [
-      name: Names.eternal(cache),
-      quiet: true
-    ])
-  rescue
-    _ -> @error_invalid_option
+    with { :ok, opts } <- Options.parse(cache, options) do
+      try do
+        :ets.new(cache, [ :named_table | opts.ets_opts ])
+        :ets.delete(cache)
+        { :ok, opts }
+      rescue
+        _ -> @error_invalid_option
+      end
+    end
   end
 
   # Simply adds a "via" param to the options to allow the use of delegates.
