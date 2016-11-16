@@ -185,7 +185,7 @@ defmodule Cachex do
   @spec start_link(atom, Keyword.t, Keyword.t) :: { atom, pid }
   def start_link(cache, options \\ [], server_opts \\ [])
   def start_link(cache, _options, _server_opts) when not is_atom(cache),
-  do: @error_invalid_name
+    do: @error_invalid_name
   def start_link(cache, options, server_opts) do
     with { :ok, true } <- ensure_started,
          { :ok, true } <- ensure_unused(cache),
@@ -298,6 +298,11 @@ defmodule Cachex do
   This operation is an internal mutation, and as such any set TTL persists - i.e.
   it is not refreshed on this operation.
 
+  This function accepts the same return syntax as fallback functions, in that if
+  you return a Tuple of the form `{ :ignore, value }`, the value is returned from
+  the call but is not written to the cache. You can use this to abandon writes
+  which began eagerly (for example if a key is actually missing).
+
   ## Options
 
     * `:fallback` - a fallback function for multi-layered caches, overriding any
@@ -312,6 +317,12 @@ defmodule Cachex do
 
       iex> Cachex.get_and_update(:my_cache, "missing_key", &(["value"|&1]), fallback: &String.reverse/1)
       { :loaded, [ "value", "yek_gnissim" ] }
+
+      iex> Cachex.get_and_update(:my_cache, "missing_key", fn
+      ...>   (nil) -> { :ignore, nil }
+      ...>   (val) -> { :commit, [ "value" | val ] }
+      ...> end)
+      { :missing, nil }
 
   """
   @spec get_and_update(cache, any, function, Keyword.t) :: { status | :loaded, any }
