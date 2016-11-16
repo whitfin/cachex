@@ -35,14 +35,24 @@ defmodule Cachex.Actions.GetAndUpdate do
     LockManager.transaction(state, [ key ], fn ->
       { status, value } = Get.execute(state, key, @notify_false ++ options)
 
-      tempv = update_fun.(value)
-
-      Util
-        .write_mod(status)
-        .execute(state, key, tempv, @notify_false)
-
-      { status, tempv }
+      value
+      |> update_fun.()
+      |> Util.normalize_commit
+      |> handle_commit(state, key, status)
     end)
+  end
+
+  # Handles a commit Tuple, writing the value to the table only if the Tuple is
+  # tagged with `:commit` rather than `:ignore`. The same value is returned either
+  # way, just that one does not write to the cache.
+  defp handle_commit({ :ignore, tempv }, _state, _key, status),
+    do: { status, tempv }
+  defp handle_commit({ :commit, tempv }, state, key, status) do
+    Util
+      .write_mod(status)
+      .execute(state, key, tempv, @notify_false)
+
+    { status, tempv }
   end
 
 end
