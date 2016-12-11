@@ -166,9 +166,9 @@ defmodule Cachex.Util do
   def retrieve_all_rows(return) do
     create_match(return, [
       {
-        :orelse,                                # guards for matching
-        { :"==", :"$3", nil },                  # where a TTL is not set
-        { :">", { :"+", :"$2", :"$3" }, now }   # or the TTL has not passed
+        :orelse,                                  # guards for matching
+        { :"==", :"$3", nil },                    # where a TTL is not set
+        { :">", { :"+", :"$2", :"$3" }, now() }   # or the TTL has not passed
       }
     ])
   end
@@ -179,9 +179,9 @@ defmodule Cachex.Util do
   def retrieve_expired_rows(return) do
     create_match(return, [
       {
-        :andalso,                               # guards for matching
-        { :"/=", :"$3", nil },                  # where a TTL is set
-        { :"<", { :"+", :"$2", :"$3" }, now }   # and the TTL has passed
+        :andalso,                                 # guards for matching
+        { :"/=", :"$3", nil },                    # where a TTL is set
+        { :"<", { :"+", :"$2", :"$3" }, now() }   # and the TTL has passed
       }
     ])
   end

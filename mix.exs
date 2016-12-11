@@ -25,7 +25,7 @@ defmodule Cachex.Mixfile do
       },
       version: "2.0.1",
       elixir: "~> 1.2",
-      deps: deps,
+      deps: deps(),
       docs: [
         extras: [ "README.md" ],
         source_ref: "master",

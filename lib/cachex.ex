@@ -187,7 +187,7 @@ defmodule Cachex do
   def start_link(cache, _options, _server_opts) when not is_atom(cache),
     do: @error_invalid_name
   def start_link(cache, options, server_opts) do
-    with { :ok, true } <- ensure_started,
+    with { :ok, true } <- ensure_started(),
          { :ok, true } <- ensure_unused(cache),
          { :ok, opts } <- setup_env(cache, options),
          { :ok,  pid }  = Supervisor.start_link(__MODULE__, opts, [ name: cache ] ++ server_opts)
