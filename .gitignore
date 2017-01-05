@@ -6,6 +6,7 @@
 /deps
 /diff
 /doc
+/patch
 .tool-versions
 erl_crash.dump
 *.ez
