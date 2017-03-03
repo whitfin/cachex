@@ -524,7 +524,7 @@ defmodule Cachex do
   """
   @spec dump(cache, binary, Keyword.t) :: { status, any }
   defwrap dump(cache, path, options \\ [])
-  when is_list(options) and is_binary(path) do
+  when is_binary(path) and is_list(options) do
     State.enforce(cache, state) do
       Actions.Dump.execute(state, path, options)
     end
@@ -845,7 +845,7 @@ defmodule Cachex do
   """
   @spec load(cache, binary, Keyword.t) :: { status, any }
   defwrap load(cache, path, options \\ [])
-  when is_list(options) and is_binary(path) do
+  when is_binary(path) and is_list(options) do
     State.enforce(cache, state) do
       Actions.Load.execute(state, path, options)
     end
