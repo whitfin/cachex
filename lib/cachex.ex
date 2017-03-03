@@ -17,6 +17,7 @@ defmodule Cachex do
   - Multi-layered caching/key fallbacks
   - Transactions and row locking
   - Asynchronous write operations
+  - Syncing to a local filesystem
   - User command invocation
 
   All features are optional to allow you to tune based on the throughput needed.
@@ -187,12 +188,12 @@ defmodule Cachex do
   def start_link(cache, _options, _server_opts) when not is_atom(cache),
     do: @error_invalid_name
   def start_link(cache, options, server_opts) do
-    with { :ok, true } <- ensure_started(),
-         { :ok, true } <- ensure_unused(cache),
-         { :ok, opts } <- setup_env(cache, options),
-         { :ok,  pid }  = Supervisor.start_link(__MODULE__, opts, [ name: cache ] ++ server_opts)
+    with { :ok,  true } <- ensure_started(),
+         { :ok,  true } <- ensure_unused(cache),
+         { :ok, state } <- setup_env(cache, options),
+         { :ok,   pid }  = Supervisor.start_link(__MODULE__, state, [ name: cache ] ++ server_opts)
       do
-        hlist = Enum.concat(opts.pre_hooks, opts.post_hooks)
+        hlist = Enum.concat(state.pre_hooks, state.post_hooks)
 
         %{ pre: pre, post: post } =
           pid
@@ -500,6 +501,37 @@ defmodule Cachex do
   end
 
   @doc """
+  Writes a cache to a location on disk.
+
+  This operation will flush the current state to the provided disk location, with
+  any issues being returned to the user. This dump can be loaded back into a new
+  cache instance in the future.
+
+  ## Options
+
+    * `:compression` - a level of compression to apply to the backup (0-9). This
+      will default to 1, which is typically appropriate for most backups. Using
+      0 will disable compression completely at a cost of higher disk space.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.dump(:my_cache, "/tmp/my_default_backup")
+      { :ok, true }
+
+      iex> Cachex.dump(:my_cache, "/tmp/my_custom_backup", [ compressed: 0 ])
+      { :ok, true }
+
+  """
+  @spec dump(cache, binary, Keyword.t) :: { status, any }
+  defwrap dump(cache, path, options \\ [])
+  when is_binary(path) and is_list(options) do
+    State.enforce(cache, state) do
+      Actions.Dump.execute(state, path, options)
+    end
+  end
+
+  @doc """
   Checks whether the cache is empty.
 
   This operates based on keys living in the cache, regardless of whether they should
@@ -661,7 +693,7 @@ defmodule Cachex do
       { :ok, [] }
 
   """
-  @spec keys(cache, Keyword.t) :: [ any ]
+  @spec keys(cache, Keyword.t) :: { status, [ any ] }
   defwrap keys(cache, options \\ []) when is_list(options) do
     State.enforce(cache, state) do
       Actions.Keys.execute(state, options)
@@ -794,6 +826,29 @@ defmodule Cachex do
   defwrap invoke(cache, key, cmd, options \\ []) when is_list(options) do
     State.enforce(cache, state) do
       Actions.Invoke.execute(state, key, cmd, options)
+    end
+  end
+
+  @doc """
+  Loads a cache backup file from a location on disk.
+
+  This operation will only succeed if a valid backup file is provided, otherwise
+  an error will be returned.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.dump(:my_cache, "/tmp/my_backup")
+      iex> Cachex.clear(:my_cache)
+      iex> Cachex.load(:my_cache, "/tmp/my_backup")
+      { :ok, true }
+
+  """
+  @spec load(cache, binary, Keyword.t) :: { status, any }
+  defwrap load(cache, path, options \\ [])
+  when is_binary(path) and is_list(options) do
+    State.enforce(cache, state) do
+      Actions.Load.execute(state, path, options)
     end
   end
 

@@ -10,6 +10,7 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 - Multi-layered caching/key fallbacks
 - Transactions and row locking
 - Asynchronous write operations
+- Syncing to a local filesystem
 - User command invocation
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
@@ -31,6 +32,7 @@ All of these features are optional and are off by default so you can pick and ch
 - [Custom Commands](#custom-commands)
     - [Definition](#command-definition)
     - [Invocation](#command-invocation)
+- [Disk Interaction](#disk-interaction)
 - [Execution Hooks](#execution-hooks)
     - [Definition](#hook-definition)
     - [Registration](#hook-registration)
@@ -292,6 +294,43 @@ Cachex.start_link(:my_cache, [
 { :ok,    3 } = Cachex.invoke(:my_cache, "my_list", :lpop)
 { :ok,  nil } = Cachex.invoke(:my_cache, "my_list", :lpop)
 ```
+
+## Disk Interaction
+
+As of v2.1.0, Cachex comes with support for backing up caches to a local file using Erlang Term Format. These backup files can then be used to load into a new instance of a cache to persist values between cache instances.
+
+To dump a cache to disk you can use the `dump/3` function, which accepts an optional compression option to determine the compression level on the output. This value can be a number `0-9`, with `0` being disabled and `9` being maximum compression. The default compression level is set to `1` as it optimizes the tradeoff between performance and disk space.
+
+To bring a dump back into a cache, you can use the `load/2` function. This will merge a file into a provided cache, overwriting any clashing keys. If you want to match the backup exactly, you should clear the cache before loading your backup.
+
+Below is an example flow to demonstrate dumping a cache and then loading it back.
+
+```elixir
+# set some values in a cache
+:ok = Enum.each(1..5, fn(x) ->
+  { :ok, true } = Cachex.set(:my_cache, x, x)
+end)
+
+# verify the size of the cache == 5
+{ :ok, 5 } = Cachex.size(:my_cache)
+
+# write our cache to disk
+{ :ok, true } = Cachex.dump(:my_cache, "/tmp/my_backup")
+
+# clear our local cache
+{ :ok, 5 } = Cachex.clear(:my_cache)
+
+# now the size will equal zero
+{ :ok, 0 } = Cachex.size(:my_cache)
+
+# reload the cache from the disk
+{ :ok, true } = Cachex.load(:my_cache, "/tmp/my_backup")
+
+# now the values will exist again
+{ :ok, 5 } = Cachex.size(:my_cache)
+```
+
+A cache dump can be transferred between machines and most Erlang/Elixir versions (unless you're using something *ancient*), but you must have started your cache in advance before you load (for obvious reasons).
 
 ## Execution Hooks
 

@@ -34,5 +34,7 @@ defmodule Cachex.Errors do
     do: "State table not active, have you started the Cachex application?"
   def long_form(:stats_disabled),
     do: "Stats are not enabled for the specified cache"
+  def long_form(:unreachable_file),
+    do: "Unable to access provided file path"
 
 end
