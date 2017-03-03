@@ -20,7 +20,7 @@ defmodule Cachex.Actions.Dump do
   interfaces.
 
   By default, files are written to disk with level 1 compression due to performance
-  implications but the `:compressed` option can be passed as an integer between
+  implications but the `:compression` option can be passed as an integer between
   1 and 9 (inclusive) to specify a compression level.
 
   Passing a 0 compressed flag will disable compression. This is way faster than

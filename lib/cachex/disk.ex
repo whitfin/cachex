@@ -33,15 +33,15 @@ defmodule Cachex.Disk do
   @doc """
   Writes a set of Erlang terms to a location on disk.
 
-  We allow the user to pass a `:compressed` option in order to reduce the output,
-  but by default we'll compress using level 1 compression. If the `:compressed`
+  We allow the user to pass a `:compression` option in order to reduce the output,
+  but by default we'll compress using level 1 compression. If the `:compression`
   is set to `0` then compression will be disabled, but be aware storage will
   increase dramatically.
   """
   def write(val, path, options \\ []) when is_binary(path) and is_list(options) do
     binopt =
       options
-      |> Util.opt_transform(:compressed, &fetch_compress_opt/1)
+      |> Util.opt_transform(:compression, &fetch_compress_opt/1)
       |> Keyword.put(:minor_version, 1)
 
     insert = :erlang.term_to_binary(val, binopt)

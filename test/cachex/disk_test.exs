@@ -33,11 +33,11 @@ defmodule Cachex.DiskTest do
     end
 
     # validate various option sets
-    validate.([ compressed: -1 ])
-    validate.([ compressed:  0 ])
-    validate.([ compressed:  1 ])
-    validate.([ compressed:  5 ])
-    validate.([ compressed:  9 ])
+    validate.([ compression: -1 ])
+    validate.([ compression:  0 ])
+    validate.([ compression:  1 ])
+    validate.([ compression:  5 ])
+    validate.([ compression:  9 ])
 
     # cause some errors by using invalid paths
     result1 = Cachex.Disk.read(tmp)

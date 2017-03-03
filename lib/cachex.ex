@@ -17,6 +17,7 @@ defmodule Cachex do
   - Multi-layered caching/key fallbacks
   - Transactions and row locking
   - Asynchronous write operations
+  - Syncing to a local filesystem
   - User command invocation
 
   All features are optional to allow you to tune based on the throughput needed.
@@ -508,7 +509,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:compressed` - a level of compression to apply to the backup (0-9). This
+    * `:compression` - a level of compression to apply to the backup (0-9). This
       will default to 1, which is typically appropriate for most backups. Using
       0 will disable compression completely at a cost of higher disk space.
 
