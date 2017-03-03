@@ -21,6 +21,7 @@ defmodule Cachex.Constants do
       @error_non_numeric_value  { :error, :non_numeric_value }
       @error_not_started        { :error, :not_started }
       @error_stats_disabled     { :error, :stats_disabled }
+      @error_unreachable_file   { :error, :unreachable_file }
     end
   end
 
