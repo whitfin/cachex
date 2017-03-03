@@ -73,7 +73,7 @@ defmodule Cachex.LockManager.Table do
   def unlock(cache, keys) do
     keys
     |> List.wrap
-    |> Enum.map(&:ets.delete(@lock_table, { cache, &1 }))
+    |> Enum.each(&:ets.delete(@lock_table, { cache, &1 }))
     true
   end
 
