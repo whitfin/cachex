@@ -2,7 +2,7 @@
 
 Cache limits are restrictions on a cache to ensure that it stays within given bounds. Currently these limits are based around the number of entries inside a cache, but there are plans to add new policies in future (for example basing the limits on memory spaces).
 
-### Configuration
+## Configuration
 
 Limits are defined at cache startup and cannot be changed at this point in time. You can provide either an integer or a `Cachex.Limit` structure to the `:limit` option in the Cachex interface.
 
@@ -29,7 +29,7 @@ A `Cachex.Limit` structure consists (currently) of only 3 fields which dictate a
 
 To expound a little on the above, it defines that the cache should aim to store no more than `500` entries (which is user defined). If the cache key space goes above this number, it should evict `50` of the entries in the cache as chosen by the provided `:policy`. The amount `50` is dictated by the `:reclaim` option, which is essentially a percentage of the cache to evict on hitting the bounds. This value much match `1 >= value >= 0` in order to be accepted and override the default (due to being a percentage).
 
-### Policies
+## Policies
 
 The policy above is a built-in Cachex eviction policy which removes the oldest values first. This means that we calculate the first `N` oldest entries, where `N` is roughly equal to `limit * reclaim`, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" in this context means "those written or updated longest ago". This is currently the only policy implemented within Cachex, although it's likely that more will follow (and you can write them yourself too).
 

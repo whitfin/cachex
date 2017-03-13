@@ -18,11 +18,9 @@ All of these features are optional and are off by default so you can pick and ch
 ## Table of Contents
 
 - [Installation](#installation)
-- [Usage](#usage)
-    - [Startup](#startup)
-    - [Interface](#interface)
-    - [Options](#options)
-- [Migrating To v2.x](#migrating-to-v2)
+- [Getting Started](docs/Getting Started.md)
+    - [Starting Your Cache](docs/Getting Started.md#starting-your-cache)
+    - [Main Interface](docs/Getting Started.md#main-interface)
 - [Action Blocks](docs/Action Blocks.md)
     - [Execution Blocks](docs/Action Blocks.md#execution-blocks)
     - [Transaction Blocks](docs/Action Blocks.md#transaction-blocks)
@@ -84,11 +82,7 @@ If you wish to start it manually (for example, in `iex`), you can just use `Cach
 Cachex.start_link(:my_cache, [])
 ```
 
-For anything else, please see the documentation.
-
-## Migrating To v2
-
-There are a number of breaking changes in Cachex v2.0.0 for several reasons. Please read the [migration guide](https://github.com/zackehh/cachex/blob/master/MIGRATE.md) to learn about the changes and update your codebase. I tried to keep changes small, easy to learn, and only do them for the greater good, so there should be very little in a developer's codebase to modify (I hope).
+For anything else, please see the [documentation](https://github.com/zackehh/cachex/tree/master/docs).
 
 ## Benchmarks
 

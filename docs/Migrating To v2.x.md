@@ -1,16 +1,6 @@
-# Migrating v1.x to v2.x
+# Migrating to v2.x
 
 If anything is not covered in here, or there are any issues with anything written in here, please file an issue and I'll get it taken care of.
-
-- [Distribution](#distribution)
-- [Fallbacks](#fallbacks)
-- [Hook Interface](#hook-interface)
-  - [Callbacks](#callbacks)
-  - [Defaults](#defaults)
-  - [Message Format](#message-format)
-  - [Results](#results)
-- [Options](#options)
-- [Transactions](#transactions)
 
 ## Distribution
 

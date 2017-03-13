@@ -22,7 +22,7 @@ Cachex.get(:my_cache, "key", fn(key, db_conn) ->
 end)
 ```
 
-### Common Use Cases
+## Common Use Cases
 
 The combinations above allow you to build very simple bindings using a cache in order to reduce overhead on your backing systems. A very common use case is to use a Cachex instance with fallbacks to a remote system to lower the jumps across network. With effective use of expirations and fallbacks, you can ensure that your application doesn't receive stale data and yet minimizes network overhead and the number of remote operations.
 
@@ -45,7 +45,7 @@ end)
 
 This example demonstrates an application using a cache to read from a remote database **at most** every 5 minutes, and retrieves the cached value from local memory in the meantime. This allows you to esaily lower the pressure on backing systems with very little code; a few lines can improve your API performance dramatically.
 
-### Expirations
+## Expirations
 
 If you wish to set an expiration on a value retrieved via a fallback execution, you can use the return value of your cache call to determine when it's appropriate. In the case your value was retrieved via a fallback, the first value in the returned Tuple will be the `:loaded` atom to signify that the value was loaded via a fallback. You can use this to conditionally set an expiration if you need to, but note that if your cache has a defined default TTL, it will be applied to fallback values automatically.
 
@@ -57,7 +57,7 @@ with { :loaded, value } = res <- Cachex.get(:my_cache, "key") do
 end
 ```
 
-### Handling Errors
+## Handling Errors
 
 The syntax shown above is a straightforward example of using a fallback which doesn't address the possibility of errors coming back from the database. In order to at least provide some degree of control over this, Cachex allows for `{ :commit | :ignore, value }` syntax. Rather than just returning a value in your fallback, you can return a Tuple tagged with either `:commit` or `:ignore`. Values tagged with `:ignore` will just be returned without being stored in the cache, and those tagged with `:commit` will be returned after being stored in the cache.
 

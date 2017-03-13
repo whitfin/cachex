@@ -34,10 +34,11 @@ defmodule Cachex.Mixfile do
           "docs/Action Blocks.md",
           "docs/Cache Limits.md",
           "docs/Custom Commands.md",
-          "docs/Disk Persistence.md",
+          "docs/Disk Interaction.md",
           "docs/Execution Hooks.md",
           "docs/Fallback Caching.md",
-          "docs/TTL Implementation.md"
+          "docs/TTL Implementation.md",
+          "docs/Migrating To v2.x.md"
         ]
       ],
       test_coverage: [

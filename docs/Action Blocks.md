@@ -2,7 +2,7 @@
 
 As of `v0.9.0`, support for action blocks has been incorporated into Cachex. These blocks provide different ways of executing a batch of actions sequentially inside a modified cache context. This change in context provides differences in behaviour which affect how your cache actions are carried out. Currently, they come in two flavours; execution blocks and transaction blocks. Each block uses a function provided with a `state` in order to utilise the scope correctly; if you don't pass the `state` to your cache calls and instead use the cache name, you'll lose out on the advantages of the block.
 
-### Execution Blocks
+## Execution Blocks
 
 An execution block is a pretty straightforward notion; due to Cachex requiring internal state to carry out a call, we can optimize this by retrieving the state once, executing all actions, then putting the state back. Back in the v1.x line, this was important as the state was stored in a GenServer and so an execution block would be a single GenServer call rather than N calls. Even though this is no longer backed by a GenServer there is still a throughput boost, so consider using these blocks if you're doing several cache calls in a row.
 
@@ -39,7 +39,7 @@ end)
 
 As we wait 5 seconds before reading the value back, the value may have been modified or even removed by other processes using the cache (such as TTL cleanup or other places in your application). If you want to guarantee that nothing is modified between your interactions, you should consider a transactional block instead.
 
-### Transaction Blocks
+## Transaction Blocks
 
 One of the most useful blocks is the transactional block. These blocks will bind all actions inside into a transaction in order to ensure consistency, meaning that all actions defined in your transaction will execute sequentially with zero interaction from other processes. These blocks are quite similar in definition to execution blocks, except that they require a list of keys to lock throughout execution. Any keys not specified can still be written by other processes due to the optimizations made for locking.
 

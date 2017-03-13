@@ -2,7 +2,7 @@
 
 Cachex implements several different ways of working with key expirations, each operating in different ways with different behaviour. The two main techniques being currently used are the background TTL loop (i.e. the `Janitor`) and on-demand key expiration. Alone these two techniques aren't sufficient to provide an efficient system with a consistent result, but together they ensure the realiability of your cache as well as ensuring correctness. Having said this it should be noted that there are cases where you may wish to use only one, as each technique is sufficient alone in specific scenarios. By default Cachex opts for a combination of both in order to ensure consistency to reduce surprises for the user.
 
-### Janitor Processes
+## Janitor Processes
 
 The Janitor is a background process which will purge the internal tables every so often. The Janitor operates using a full-table sweep of the records to ensure nothing is missed, and so it runs somewhat less frequently - by default only every few seconds. This interval can be controlled by the user, and a Janitor process exists on a per-cache basis (so that each cache doesn't have an interleaved dependency).
 
@@ -17,7 +17,7 @@ There are several rules to take note of when setting up the Janitor interval, as
 
 Please note that this is rolling interval that is set to trigger after completion of a run, meaning that if you schedule a Janitor every 5s it will be 5s after a successful run rather than 5s after the last trigger fired to start a run.
 
-### On Demand Expiration
+## On Demand Expiration
 
 A record contains an internal touch time and TTL associated with them, and these values do not change unless explicitly triggered by a Cachex call. This means that we have access to these values when we pull back a key, allowing us to very easily check for key expiry on retrieval before returning it to the user. If we check this at retrieval time and the record is expired, we would actually fire off a deletion at that time before returning `nil` to the user.
 

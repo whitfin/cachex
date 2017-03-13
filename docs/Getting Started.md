@@ -1,6 +1,6 @@
 # Getting Started
 
-### Starting Your Cache
+## Starting Your Cache
 
 To start a cache you can use either `start/3` or `start_link/3`, and in general you should place it into your Supervision trees for fault tolerance. The first argument is the name of the cache and defines how you will communicate with your cache.
 
@@ -27,7 +27,7 @@ The second and third arguments are both optional and represent cache and server 
 |   transactions   |  `true` or `false` |             Whether to turn on transactions at cache start.             |
 |   ttl_interval   |     milliseconds   |          The frequency the Janitor process runs at (see below).         |
 
-### Main Interface
+## Main Interface
 
 The Cachex interface follows a specific standard to make it easier to predict and more user friendly. All calls should follow the pattern of having the cache argument first, followed by any required arguments and ending with an optional list of options (even if no options are currently used). All calls should result in a value in the format of `{ status, result }` where `status` is usually `:ok` or `:error` (however this differs depending on the call). The `result` can basically be anything, as there are a number of custom controlled return values available inside Cachex.
 
