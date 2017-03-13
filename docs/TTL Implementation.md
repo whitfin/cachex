@@ -1,0 +1,26 @@
+# TTL Implementation
+
+Cachex implements several different ways of working with key expirations, each operating in different ways with different behaviour. The two main techniques being currently used are the background TTL loop (i.e. the `Janitor`) and on-demand key expiration. Alone these two techniques aren't sufficient to provide an efficient system with a consistent result, but together they ensure the realiability of your cache as well as ensuring correctness. Having said this it should be noted that there are cases where you may wish to use only one, as each technique is sufficient alone in specific scenarios. By default Cachex opts for a combination of both in order to ensure consistency to reduce surprises for the user.
+
+### Janitor Processes
+
+The Janitor is a background process which will purge the internal tables every so often. The Janitor operates using a full-table sweep of the records to ensure nothing is missed, and so it runs somewhat less frequently - by default only every few seconds. This interval can be controlled by the user, and a Janitor process exists on a per-cache basis (so that each cache doesn't have an interleaved dependency).
+
+As it stands the Janitor is pretty well optimized as most expense is handed over to the ETS layer; it can currently check and purge 500,000 expired keys in around a second (where the removal takes the most time, the check is very fast). Keep in mind that the frequency of the Janitor execution affects the memory usage held by expired keys; a typical use case is probably running the Janitor every few seconds, which is pretty much the default. In a production application I know of using Cachex, Janitors have been running every 3 seconds for the last year and there has never been any noticeable slowdown.
+
+There are several rules to take note of when setting up the Janitor interval, as it's not enabled by default (most Cachex features are opt-in):
+
+- If you have `default_ttl` set in the cache options and you have not set `ttl_interval` the Janitor will default to running every N seconds. This is to avoid people forgetting to set it or simply being unaware that it's not running by default.
+- If you set `ttl_interval` to `-1` it is disabled entirely - even if you have a `default_ttl` set. This means you will be solely reliant on the on-demand expiration policy.
+- If you set `ttl_interval` to `true` it behaves the same way as if you had set a `default_ttl`; it will set the Janitor to run every N seconds.
+- If you set `ttl_interval` to any numeric value above `0` it will run on this schedule (this value is in milliseconds).
+
+Please note that this is rolling interval that is set to trigger after completion of a run, meaning that if you schedule a Janitor every 5s it will be 5s after a successful run rather than 5s after the last trigger fired to start a run.
+
+### On Demand Expiration
+
+A record contains an internal touch time and TTL associated with them, and these values do not change unless explicitly triggered by a Cachex call. This means that we have access to these values when we pull back a key, allowing us to very easily check for key expiry on retrieval before returning it to the user. If we check this at retrieval time and the record is expired, we would actually fire off a deletion at that time before returning `nil` to the user.
+
+The advantage here is that if your Janitor hasn't run recently or is disabled completely, you can still never retrieve an expired key. This in turn allows the Janitor to run less frequently as you don't have to be as worried about stale values potentially coming back in cache calls. Naturally this technique cannot stand on it's own legs as it only evicts on key retrieval. If you never touch a record again, it would never be expired and thus your cache would just keep growing. It is for this reason that the Janitor is enabled by default when a TTL is set to protect the user from memory errors in their application.
+
+There are certain situations when you don't care about the consistency of expirations, only that they expire at some point. For this reason you can disable on-demand expiration as of `v0.10.0` in order to remove the (extremely minimal) overhead of checking expirations on read which can be valuable in a cache where reads are of extremely high volume. To disable you can set the `:disable_ode` option to be `true` at cache start. Another big advantage of disabling ODE is that the execution time of any given read operation is more predictable due to avoiding the case where some reads may also need to evict a key.
