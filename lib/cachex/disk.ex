@@ -1,10 +1,9 @@
 defmodule Cachex.Disk do
-  @moduledoc """
-  This module contains interaction with disk for serializing terms directly to
-  a given file path. This is mainly used for backing up a cache to disk in order
-  to be able to export a cache to another instance. Writes can have a compression
-  attached and will add basic compression by default.
-  """
+  @moduledoc false
+  # This module contains interaction with disk for serializing terms directly to
+  # a given file path. This is mainly used for backing up a cache to disk in order
+  # to be able to export a cache to another instance. Writes can have a compression
+  # attached and will add basic compression by default.
 
   # we need constants for errors
   use Cachex.Constants
