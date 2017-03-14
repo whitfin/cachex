@@ -13,9 +13,7 @@ defmodule Cachex.Janitor do
   alias Cachex.Hook
   alias Cachex.LockManager
   alias Cachex.State
-
-  # import utils for convenience
-  import Cachex.Util
+  alias Cachex.Util
 
   # define our struct
   defstruct cache: nil,         # the name of the cache
@@ -61,7 +59,7 @@ defmodule Cachex.Janitor do
   to be removed, and then ETS deletes them as it goes.
   """
   def handle_info(:ttl_check, %__MODULE__{ cache: cache } = state) do
-    start_time = now()
+    start_time = Util.now()
 
     { duration, result } = :timer.tc(fn ->
       purge_records(cache)
@@ -91,7 +89,7 @@ defmodule Cachex.Janitor do
   end
   def purge_records(%State{ cache: cache } = state) do
     LockManager.transaction(state, [ ], fn ->
-      { :ok, :ets.select_delete(cache, retrieve_expired_rows(true)) }
+      { :ok, :ets.select_delete(cache, Util.retrieve_expired_rows(true)) }
     end)
   end
 

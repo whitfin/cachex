@@ -30,7 +30,7 @@ defmodule Cachex.Util do
   """
   def bytes_to_readable(size, sibs \\ @sibs)
   def bytes_to_readable(size, [ _, next |tail ]) when size >= 1024,
-  do: bytes_to_readable(size / 1024, [ next | tail ])
+    do: bytes_to_readable(size / 1024, [ next | tail ])
   def bytes_to_readable(size, [ head|_ ]) do
     "~.2f ~s"
     |> :io_lib.format([size / 1, head])
@@ -93,7 +93,7 @@ defmodule Cachex.Util do
   def get_opt(options, key, condition, default \\ nil) do
     opt_transform(options, key, fn(val) ->
       try do
-        condition.(val) && val || default
+        if condition.(val), do: val, else: default
       rescue
         _ -> default
       end
@@ -104,7 +104,7 @@ defmodule Cachex.Util do
   Small utility to figure out if a document has expired based on the last touched
   time and the TTL of the document.
   """
-  def has_expired?(%Cachex.State{ disable_ode: true }, _touched, _ttl),
+  def has_expired?(%Cachex.State{ ode: false }, _touched, _ttl),
     do: false
   def has_expired?(_state, touched, ttl),
     do: has_expired?(touched, ttl)
@@ -141,9 +141,12 @@ defmodule Cachex.Util do
   Normalizes a commit result to determine whether we're going to signal to
   commit the changes to the cache, or simply ignore the changes and return.
   """
-  def normalize_commit({ :commit, _val } = val), do: val
-  def normalize_commit({ :ignore, _val } = val), do: val
-  def normalize_commit(val), do: { :commit, val }
+  def normalize_commit({ :commit, _val } = val),
+    do: val
+  def normalize_commit({ :ignore, _val } = val),
+    do: val
+  def normalize_commit(val),
+    do: { :commit, val }
 
   @doc """
   Consistency wrapper around current time in millis.
@@ -218,10 +221,15 @@ defmodule Cachex.Util do
     |> Enum.map(&do_field_normalize/1)
     |> List.to_tuple
   end
-  defp do_field_normalize(:key), do: :"$1"
-  defp do_field_normalize(:value), do: :"$4"
-  defp do_field_normalize(:touched), do: :"$2"
-  defp do_field_normalize(:ttl), do: :"$3"
-  defp do_field_normalize(field), do: field
+  defp do_field_normalize(:key),
+    do: :"$1"
+  defp do_field_normalize(:value),
+    do: :"$4"
+  defp do_field_normalize(:touched),
+    do: :"$2"
+  defp do_field_normalize(:ttl),
+    do: :"$3"
+  defp do_field_normalize(field),
+    do: field
 
 end

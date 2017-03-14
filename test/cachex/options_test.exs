@@ -65,24 +65,6 @@ defmodule Cachex.OptionsTest do
     assert(results6 == { :error, :invalid_command })
   end
 
-  # On-Demand expiration can be disabled, and so we have to parse out whether the
-  # user has chosen to disable it or not. This is simply checking for a truthy
-  # value provided aginst disabling the expiration.
-  test "parsing :disable_ode flags" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # parse our values as options
-    { :ok, state1 } = Cachex.Options.parse(name, [ disable_ode:  true ])
-    { :ok, state2 } = Cachex.Options.parse(name, [ disable_ode: false ])
-    { :ok, state3 } = Cachex.Options.parse(name, [ ])
-
-    # the first one should be truthy, and the latter two falsey
-    assert(state1.disable_ode == true)
-    assert(state2.disable_ode == false)
-    assert(state3.disable_ode == false)
-  end
-
   # This test ensures that custom ETS options can be passed through to the ETS
   # table. We need to check that if the value is not a list, we use defaults. We
   # also verify that read/write concurrency is true unless explicitly disabled.
@@ -246,6 +228,24 @@ defmodule Cachex.OptionsTest do
     assert(state4.limit == default)
     assert(state3.post_hooks == [])
     assert(state4.post_hooks == [])
+  end
+
+  # On-Demand expiration can be disabled, and so we have to parse out whether the
+  # user has chosen to disable it or not. This is simply checking for a truthy
+  # value provided aginst disabling the expiration.
+  test "parsing :ode flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # parse our values as options
+    { :ok, state1 } = Cachex.Options.parse(name, [ ode: false ])
+    { :ok, state2 } = Cachex.Options.parse(name, [ ode:  true ])
+    { :ok, state3 } = Cachex.Options.parse(name, [ ])
+
+    # the first one should be truthy, and the latter two falsey
+    assert(state1.ode == false)
+    assert(state2.ode ==  true)
+    assert(state3.ode ==  true)
   end
 
   # This test will verify the ability to record stats in a State. This option
