@@ -30,6 +30,7 @@ defmodule Cachex.Options do
          { :ok,  hook_result } <- setup_hooks(cache, options, limit_result),
          { :ok, trans_result } <- setup_transactions(cache, options),
          { :ok,    fb_result } <- setup_fallbacks(cache, options),
+         { :ok,   ode_result } <- setup_ode(cache, options),
          { :ok,   ttl_result } <- setup_ttl_components(cache, options)
       do
         { pre_hooks, post_hooks } = hook_result
@@ -40,12 +41,12 @@ defmodule Cachex.Options do
           "cache": cache,
           "commands": cmd_result,
           "default_ttl": default_ttl,
-          "disable_ode": !!options[:disable_ode],
           "ets_opts": ets_result,
           "fallback": fb_result,
           "janitor": janitor,
           "limit": limit_result,
           "manager": manager,
+          "ode": ode_result,
           "pre_hooks": pre_hooks,
           "post_hooks": post_hooks,
           "transactions": transactional,
@@ -56,7 +57,7 @@ defmodule Cachex.Options do
       end
   end
   def parse(cache, _options),
-  do: parse(cache, [])
+    do: parse(cache, [])
 
   # Parses out any custom commands to be used against invocations. We delegate
   # most of the parsing to the Commands module, here we just validate that we
@@ -134,6 +135,12 @@ defmodule Cachex.Options do
     options
     |> Keyword.get(:limit)
     |> Limit.parse
+    |> Util.wrap(:ok)
+  end
+
+  defp setup_ode(_cache, options) do
+    options
+    |> Util.get_opt(:ode, &is_boolean/1, true)
     |> Util.wrap(:ok)
   end
 

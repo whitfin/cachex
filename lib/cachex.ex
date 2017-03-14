@@ -94,13 +94,6 @@ defmodule Cachex do
 
           iex> Cachex.start_link(:my_cache, [ default_ttl: :timer.seconds(1) ])
 
-    * `:disable_ode` -  If true, on-demand expiration will be disabled. Keys will
-      only be removed by Janitor processes, or by calling `purge/2` directly. Useful
-      in case you have a Janitor running and don't want potential deletes to impact
-      your reads.
-
-          iex> Cachex.start_link(:my_cache, [ disable_ode: true ])
-
     * `:ets_opts` - A list of options to pass to the ETS table initialization.
 
           iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
@@ -156,6 +149,13 @@ defmodule Cachex do
 
           iex> limit = %Cachex.Limit{ limit: 500, reclaim: 0.1 } # 10%
           iex> Cachex.start_link(:my_cache, [ limit: limit ])
+
+    * `:ode` -  If false, on-demand expiration will be disabled. Keys will
+      only be removed by Janitor processes, or by calling `purge/2` directly. Useful
+      in case you have a Janitor running and don't want potential deletes to impact
+      your reads. Defaults to `true`.
+
+          iex> Cachex.start_link(:my_cache, [ ode: false ])
 
     * `:record_stats` - Whether you wish this cache to record usage statistics or
       not. This has only minor overhead due to being implemented as an asynchronous
@@ -791,11 +791,12 @@ defmodule Cachex do
 
       iex> Cachex.inspect(:my_cache, :state)
       {:ok,
-       %Cachex.State{cache: :my_cache, default_ttl: nil, disable_ode: false,
+       %Cachex.State{cache: :my_cache, commands: %{}, default_ttl: nil,
         ets_opts: [read_concurrency: true, write_concurrency: true],
-        fallback: {nil, nil}, janitor: :my_cache_janitor,
+        fallback: %Cachex.Fallback{action: nil, state: nil},
+        janitor: :my_cache_janitor,
         limit: %Cachex.Limit{limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1},
-        manager: :my_cache_manager, post_hooks: [], pre_hooks: [],
+        manager: :my_cache_manager, ode: true, post_hooks: [], pre_hooks: [],
         transactions: false, ttl_interval: nil}}
 
   """

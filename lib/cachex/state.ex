@@ -21,13 +21,13 @@ defmodule Cachex.State do
   # internal state struct
   defstruct cache: nil,             # the name of the cache
             commands: %{},          # any custom commands attached to the cache
-            disable_ode: false,     # whether we disable on-demand expiration
             ets_opts: [],           # any options to give to ETS
             default_ttl: nil,       # any default ttl values to use
             fallback: %Fallback{},  # the default fallback implementation
             janitor: nil,           # the name of the janitor attached (if any)
             limit: %Limit{},        # any limit to apply to the cache
             manager: nil,           # the name of the manager attached
+            ode: true,              # whether we enable on-demand expiration
             pre_hooks: [],          # any pre hooks to attach
             post_hooks: [],         # any post hooks to attach
             transactions: false,    # whether to enable transactions

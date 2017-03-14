@@ -9,7 +9,9 @@ otp_release:
 before_install:
   - mix local.rebar --force
 script:
-  - mix credo --all --format=oneline && mix coveralls.travis --trace
+  - mix credo --all --format=oneline
+  - mix coveralls.travis --trace
+  - mix bench
 branches:
   only:
     - master
