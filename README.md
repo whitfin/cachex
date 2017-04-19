@@ -50,19 +50,15 @@ As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the
 
   1. Add cachex to your list of dependencies in `mix.exs`:
 
-    ```elixir
     def deps do
       [{:cachex, "~> 2.1"}]
     end
-    ```
 
   2. Ensure cachex is started before your application:
 
-    ```elixir
     def application do
       [applications: [:cachex]]
     end
-    ```
 
 ## Usage
 
