@@ -202,7 +202,7 @@ defmodule Cachex.Util do
 
   # Executes a fallback based on the provided state. If the state is nil, then
   # we don't pass a state - otherwise we pass the state as the second argument.
-  defp do_fallback(nil, key, fun),
+  defp do_fallback(state, key, fun) when is_nil(state) or is_function(fun, 1),
     do: fun.(key)
   defp do_fallback(state, key, fun),
     do: fun.(key, state)

@@ -117,6 +117,11 @@ defmodule Cachex.UtilTest do
       { :commit, String.reverse(x) }
     end)
 
+    # retrieve a missing key ignoring a fallback state
+    result8 = Cachex.Util.get_fallback(state3, "key", fn(x) ->
+      { :commit, String.reverse(x) }
+    end)
+
     # custom and default fallbacks should return successfully
     assert(result1 == { :commit, "yek" })
     assert(result2 == { :commit, "yek" })
@@ -131,6 +136,7 @@ defmodule Cachex.UtilTest do
 
     # custom states should function successfully
     assert(result7 == { :commit, "yek" })
+    assert(result8 == { :commit, "yek" })
 
     # verify invalid arity fallbacks crash appropriately
     assert_raise(BadArityError, fn ->
