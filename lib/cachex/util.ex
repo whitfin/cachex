@@ -65,19 +65,13 @@ defmodule Cachex.Util do
     # pluck out the default fallback options
     %{ state: fb_state, action: fb_def } = fall
 
-    # determine state length
-    fb_len = case fb_state do
-      nil -> 1
-      _na -> 2
-    end
-
     cond do
       # valid provided fallback
-      is_function(fb_fun, fb_len) ->
+      is_function(fb_fun) ->
         fb_state |> do_fallback(key, fb_fun) |> normalize_commit
 
       # valid default fallback
-      is_function(fb_def, fb_len) ->
+      is_function(fb_def) ->
         fb_state |> do_fallback(key, fb_def) |> normalize_commit
 
       # no fallback
