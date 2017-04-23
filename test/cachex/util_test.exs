@@ -83,7 +83,7 @@ defmodule Cachex.UtilTest do
   test "getting a fallback value" do
     # define fallbacks
     fallback1 = %Cachex.Fallback{ action: &String.reverse/1 }
-    fallback2 = %Cachex.Fallback{ state:  true }
+    fallback2 = %Cachex.Fallback{ state: true }
 
     # define a state with and without a default fallback
     state1 = %Cachex.State{ }
@@ -112,11 +112,13 @@ defmodule Cachex.UtilTest do
     # retrieve a missing key with no fallback and a custom default
     result6 = Cachex.Util.get_fallback(state1, "key", nil, 10)
 
-    # retrieve a missing key with an invalid fallback arity
-    result7 = Cachex.Util.get_fallback(state1, "key", &String.split/3)
-
     # retrieve a missing key with a fallback state
-    result8 = Cachex.Util.get_fallback(state3, "key", fn(x, true) ->
+    result7 = Cachex.Util.get_fallback(state3, "key", fn(x, true) ->
+      { :commit, String.reverse(x) }
+    end)
+
+    # retrieve a missing key ignoring a fallback state
+    result8 = Cachex.Util.get_fallback(state3, "key", fn(x) ->
       { :commit, String.reverse(x) }
     end)
 
@@ -132,11 +134,14 @@ defmodule Cachex.UtilTest do
     # overloaded default should be returned
     assert(result6 == { :default, 10 })
 
-    # invalid functions should skip to returning the default
-    assert(result7 == { :default, nil })
-
     # custom states should function successfully
+    assert(result7 == { :commit, "yek" })
     assert(result8 == { :commit, "yek" })
+
+    # verify invalid arity fallbacks crash appropriately
+    assert_raise(BadArityError, fn ->
+      Cachex.Util.get_fallback(state1, "key", &String.split/3)
+    end)
   end
 
   # This test ensures the integrity of the basic option parser provided for use
