@@ -76,7 +76,7 @@ defmodule Cachex.Mixfile do
       # Local dependencies
       { :benchfella,   "~> 0.3",  optional: true, only: [ :dev, :test ] },
       { :bmark,        "~> 1.0",  optional: true, only: [ :dev, :test ] },
-      { :credo,        "~> 0.6",  optional: true, only: [ :dev, :test ] },
+      { :credo,        "~> 0.8",  optional: true, only: [ :dev, :test ] },
       { :ex_doc,       "~> 0.15", optional: true, only: [ :dev, :test ] },
       { :excoveralls,  "~> 0.6",  optional: true, only: [ :dev, :test ] },
       { :exprof,       "~> 0.2",  optional: true, only: [ :dev, :test ] }

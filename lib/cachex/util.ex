@@ -4,7 +4,7 @@ defmodule Cachex.Util do
   # to do with response formatting and generally just common functions.
 
   # memory size suffixes
-  @sibs ["B","KiB","MiB","GiB","TiB"]
+  @sibs ["B", "KiB", "MiB", "GiB", "TiB"]
 
   # tags which allow Set actions
   @stgs [ :missing, :new ]
