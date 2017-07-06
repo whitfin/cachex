@@ -38,19 +38,19 @@ defmodule Cachex.Options do
         { default_ttl, ttl_interval, janitor } = ttl_result
 
         state = %Cachex.State{
-          "cache": cache,
-          "commands": cmd_result,
-          "default_ttl": default_ttl,
-          "ets_opts": ets_result,
-          "fallback": fb_result,
-          "janitor": janitor,
-          "limit": limit_result,
-          "manager": manager,
-          "ode": ode_result,
-          "pre_hooks": pre_hooks,
-          "post_hooks": post_hooks,
-          "transactions": transactional,
-          "ttl_interval": ttl_interval
+          cache: cache,
+          commands: cmd_result,
+          default_ttl: default_ttl,
+          ets_opts: ets_result,
+          fallback: fb_result,
+          janitor: janitor,
+          limit: limit_result,
+          manager: manager,
+          ode: ode_result,
+          pre_hooks: pre_hooks,
+          post_hooks: post_hooks,
+          transactions: transactional,
+          ttl_interval: ttl_interval
         }
 
         { :ok, state }
@@ -138,6 +138,8 @@ defmodule Cachex.Options do
     |> Util.wrap(:ok)
   end
 
+  # Parses out whether the user wishes to disable on-demand expirations or not. It
+  # can be disabled by setting the `:ode` flag to `false`. Defaults to `true`.
   defp setup_ode(_cache, options) do
     options
     |> Util.get_opt(:ode, &is_boolean/1, true)
@@ -163,17 +165,15 @@ defmodule Cachex.Options do
       is_integer(val) and val > 0
     end)
 
-    ttl_interval = Util.get_opt(options, :ttl_interval, fn(val) ->
-      is_integer(val) and val >= -1
-    end)
+    ttl_interval = Util.get_opt(options, :ttl_interval, &is_integer/1)
 
-    opts = case ttl_interval do
-      nil when default_ttl != nil ->
-        { default_ttl, :timer.seconds(3), janitor_name }
-      val when val > -1 ->
-        { default_ttl, val, janitor_name }
-      _na ->
+    opts = cond do
+      ttl_interval == -1 ->
         { default_ttl, nil, nil }
+      is_nil(ttl_interval) ->
+        { default_ttl, :timer.seconds(3), janitor_name }
+      true ->
+        { default_ttl, ttl_interval, janitor_name }
     end
 
     { :ok, opts }
