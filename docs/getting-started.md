@@ -25,7 +25,7 @@ The second and third arguments are both optional and represent cache and server 
 |        ode       |  `true` or `false` |  Whether or not to enable on-demand expirations when reading back keys. |
 |   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
 |   transactions   |  `true` or `false` |             Whether to turn on transactions at cache start.             |
-|   ttl_interval   |     milliseconds   |          The frequency the Janitor process runs at (see below).         |
+|   ttl_interval   |     milliseconds   |                The frequency the Janitor process runs at.               |
 
 ## Main Interface
 

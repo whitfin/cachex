@@ -327,17 +327,17 @@ defmodule Cachex.OptionsTest do
     assert(state4.default_ttl == nil)
     assert(state4.ttl_interval == 500)
 
-    # the fifth state should have both disabled
+    # the fifth state should have ttl_interval enabled
     assert(state5.default_ttl == nil)
-    assert(state5.ttl_interval == nil)
+    assert(state5.ttl_interval == 3000)
 
-    # the sixth state should have both disabled
+    # the sixth state should have ttl_interval enabled
     assert(state6.default_ttl == nil)
-    assert(state6.ttl_interval == nil)
+    assert(state6.ttl_interval == 3000)
 
-    # the seventh state should have both disabled
+    # the seventh state should have ttl_interval enabled
     assert(state7.default_ttl == nil)
-    assert(state7.ttl_interval == nil)
+    assert(state7.ttl_interval == 3000)
 
     # the eight state should have both disabled
     assert(state8.default_ttl == nil)

@@ -45,8 +45,8 @@ defmodule Cachex.Actions.InspectTest do
   # error is returned if there is no Janitor process started for the cache.
   test "inspecting janitor metadata" do
     # create a cache with no janitor and one with
-    cache1 = Helper.create_cache()
-    cache2 = Helper.create_cache([ ttl_interval: 1 ])
+    cache1 = Helper.create_cache([ ttl_interval: -1 ])
+    cache2 = Helper.create_cache([ ttl_interval:  1 ])
 
     # let the janitor run
     :timer.sleep(2)
