@@ -27,7 +27,7 @@ defmodule CachexTest do
     end)
 
     # wait for spawn to end
-    :timer.sleep(5)
+    :timer.sleep(15)
 
     # process should've died
     assert(Process.whereis(name2) == nil)

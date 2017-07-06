@@ -27,7 +27,7 @@ defmodule Cachex.Actions.ResetTest do
     stats1 = Cachex.stats!(cache1)
 
     # verify the stats
-    assert_in_delta(stats1.creationDate, ctime1, 5)
+    assert_in_delta(stats1.creationDate, ctime1, 6)
 
     # ensure the cache is not empty
     refute(Cachex."empty?!"(cache1))
@@ -55,7 +55,7 @@ defmodule Cachex.Actions.ResetTest do
     stats2 = Cachex.stats!(cache1)
 
     # verify they reset properly
-    assert_in_delta(stats2.creationDate, ctime2, 5)
+    assert_in_delta(stats2.creationDate, ctime2, 6)
   end
 
   # This test ensures that we can reset a cache without touching any of the hooks
