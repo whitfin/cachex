@@ -74,12 +74,21 @@ defmodule Cachex.Mixfile do
       # Production dependencies
       { :eternal, "~> 1.1" },
       # Local dependencies
-      { :benchfella,   "~> 0.3",  optional: true, only: [ :dev, :test ] },
-      { :bmark,        "~> 1.0",  optional: true, only: [ :dev, :test ] },
-      { :credo,        "~> 0.8",  optional: true, only: [ :dev, :test ] },
-      { :ex_doc,       "~> 0.15", optional: true, only: [ :dev, :test ] },
-      { :excoveralls,  "~> 0.7",  optional: true, only: [ :dev, :test ] },
-      { :exprof,       "~> 0.2",  optional: true, only: [ :dev, :test ] }
+      { :benchfella,  "~> 0.3", optional: true, only: [ :dev, :test ] },
+      { :bmark,       "~> 1.0", optional: true, only: [ :dev, :test ] },
+      { :credo,       "~> 0.8", optional: true, only: [ :dev, :test ] },
+      { :ex_doc,      ex_doc(), optional: true, only: [ :dev, :test ] },
+      { :excoveralls, "~> 0.7", optional: true, only: [ :dev, :test ] },
+      { :exprof,      "~> 0.2", optional: true, only: [ :dev, :test ] }
     ]
+  end
+
+  # Determine an :ex_doc version compatible with old Elixir versions,
+  # as it's incompatible with Elixir v1.2 from v0.16 onwards.
+  defp ex_doc do
+    case Version.compare(System.version(), "1.3.0") do
+      :lt ->  "~> 0.15"
+      :gt ->  "~> 0.16"
+    end
   end
 end

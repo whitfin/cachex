@@ -16,6 +16,7 @@ matrix:
   - elixir: 1.2.6
     otp_release: 20.0
 before_install:
+  - rm mix.lock
   - mix local.rebar --force
 script:
   - mix credo --all --format=oneline
