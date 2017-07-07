@@ -87,7 +87,7 @@ defmodule Cachex.Mixfile do
   # as it's incompatible with Elixir v1.2 from v0.16 onwards.
   defp ex_doc do
     case Version.compare(System.version(), "1.3.0") do
-      :lt ->  "~> 0.15"
+      :lt ->   "0.14.5"
       :gt ->  "~> 0.16"
     end
   end
