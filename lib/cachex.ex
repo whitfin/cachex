@@ -771,7 +771,7 @@ defmodule Cachex do
       iex> Cachex.inspect(:my_cache, { :expired, :count })
       { :ok, 0 }
 
-      iex> Cachex.inspect(:my_cache, { :expired, :count })
+      iex> Cachex.inspect(:my_cache, { :expired, :keys })
       { :ok, [ ] }
 
       iex> Cachex.inspect(:my_cache, { :janitor, :last })
