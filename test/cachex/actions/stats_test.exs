@@ -33,7 +33,6 @@ defmodule Cachex.Actions.StatsTest do
     assert(stats1.hitRate == 100)
     assert(stats1.missRate == 0)
     assert(stats1.opCount == 2)
-    assert(stats1.requestCount == 1)
     assert(stats1.setCount == 1)
 
     # verify the second returns the global entries under a global key
@@ -134,8 +133,7 @@ defmodule Cachex.Actions.StatsTest do
       hitRate: 0.0,
       missCount: 1,
       missRate: 100.0,
-      opCount: 1,
-      requestCount: 1
+      opCount: 1
     })
 
     # verify a 100% hit rate for cache2
@@ -145,7 +143,6 @@ defmodule Cachex.Actions.StatsTest do
       missCount: 0,
       missRate: 0.0,
       opCount: 2,
-      requestCount: 1,
       setCount: 1
     })
 
@@ -156,7 +153,6 @@ defmodule Cachex.Actions.StatsTest do
       missCount: 1,
       missRate: 50.0,
       opCount: 3,
-      requestCount: 2,
       setCount: 1
     })
 
@@ -168,7 +164,6 @@ defmodule Cachex.Actions.StatsTest do
       missCount: 1,
       missRate: 100.0,
       opCount: 2,
-      requestCount: 1,
       setCount: 1
     })
   end

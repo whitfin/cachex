@@ -138,8 +138,11 @@ defmodule Cachex.Stats do
 
   # Converts the result of a request into the type of count it should increment
   # in the global statistics namespace.
-  defp normalize_status(:ok), do: [ :hitCount ]
-  defp normalize_status(:missing), do: [ :missCount ]
-  defp normalize_status(:loaded), do: [ :missCount, :loadCount ]
+  defp normalize_status(:ok),
+    do: [ :hitCount ]
+  defp normalize_status(:missing),
+    do: [ :missCount ]
+  defp normalize_status(:loaded),
+    do: [ :missCount, :loadCount ]
 
 end

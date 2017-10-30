@@ -88,22 +88,19 @@ defmodule Cachex.Actions.Stats do
   # and miss rates, as well as counts of hits and misses. This has to be defined
   # as separate functions in order to handle potential division by 0. All rates
   # will always be floats to ensure consistency (even when they are whole numbers).
-  defp generate_rates(reqs, 0, misses), do: %{
-    requestCount: reqs,
+  defp generate_rates(_reqs, 0, misses), do: %{
     hitCount: 0,
     hitRate: 0.0,
     missCount: misses,
     missRate: 100.0
   }
-  defp generate_rates(reqs, hits, 0), do: %{
-    requestCount: reqs,
+  defp generate_rates(_reqs, hits, 0), do: %{
     hitCount: hits,
     hitRate: 100.0,
     missCount: 0,
     missRate: 0.0
   }
   defp generate_rates(reqs, hits, misses), do: %{
-    requestCount: reqs,
     hitCount: hits,
     hitRate: (hits / reqs) * 100,
     missCount: misses,

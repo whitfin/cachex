@@ -1,20 +1,14 @@
 language: elixir
 elixir:
+  - 1.5.2
   - 1.4.5
-  - 1.3.4
-  - 1.2.6
 otp_release:
-  - 20.0
+  - 20.1
   - 19.3
   - 18.3
-env:
-  - MIX_ENV=test
-matrix:
-  exclude:
-  - elixir: 1.3.4
-    otp_release: 20.0
-  - elixir: 1.2.6
-    otp_release: 20.0
+branches:
+  only:
+  - master
 before_install:
   - rm mix.lock
   - mix local.rebar --force
@@ -22,6 +16,5 @@ script:
   - mix credo --all --format=oneline
   - mix coveralls.travis --trace
   - mix bench
-branches:
-  only:
-    - master
+env:
+  - MIX_ENV=test
