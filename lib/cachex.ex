@@ -25,9 +25,8 @@ defmodule Cachex do
   example usage.
   """
 
-  # use Macros and Supervisor
+  # add all use clauses
   use Cachex.Constants
-  use Cachex.Macros
   use Supervisor
 
   # add some aliases
@@ -40,7 +39,8 @@ defmodule Cachex do
   alias Cachex.Util
   alias Cachex.Util.Names
 
-  # require state macros
+  # import util macros
+  import Cachex.Macros
   require Cachex.State
 
   # avoid inspect clashes

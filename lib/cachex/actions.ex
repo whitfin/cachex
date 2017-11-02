@@ -13,7 +13,6 @@ defmodule Cachex.Actions do
 
   # add some aliases
   alias Cachex.Hook
-  alias Cachex.Macros
   alias Cachex.State
   alias Cachex.Util
 
@@ -29,14 +28,7 @@ defmodule Cachex.Actions do
   arity. This is because it makes little sense to do `Cachex.Actions.Ttl.ttl()`
   for example.
   """
-  defmacro defaction(head, do: body) do
-    { func_name, _cntx, arguments } = Macros.find_head(head)
-    [ _state | args_without_state ] = arguments
-
-    default_msg = quote do
-      { unquote(func_name), [ unquote_splicing(args_without_state) ] }
-    end
-
+  defmacro defaction({ name, _line, [ _state | stateless_args ] = arguments }, do: body) do
     quote do
       def execute(unquote_splicing(arguments)) do
         local_opts  = var!(options)
@@ -45,8 +37,10 @@ defmodule Cachex.Actions do
         notify = Keyword.get(local_opts, :notify, true)
 
         message = notify && case local_opts[:via] do
-          msg when is_tuple(msg) -> msg
-          _na -> unquote(default_msg)
+          msg when not is_tuple(msg) ->
+            { unquote(name), [ unquote_splicing(stateless_args) ] }
+          msg ->
+            msg
         end
 
         notify && Hook.notify(local_state.pre_hooks, message, nil)

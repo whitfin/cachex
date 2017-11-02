@@ -24,5 +24,4 @@ defmodule Cachex.Constants do
       @error_unreachable_file   { :error, :unreachable_file }
     end
   end
-
 end

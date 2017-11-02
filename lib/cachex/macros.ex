@@ -11,42 +11,38 @@ defmodule Cachex.Macros do
   # functions will throw any errors, and return raw results.
 
   # add various aliases
+  alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Util
 
   @doc """
-  Fetches the name and arguments from a function head and returns them inside a
-  tuple.
-  """
-  def find_head({ :when, _, [ head | _ ] }), do: head
-  def find_head(head), do: head
-
-  @doc """
   Trim all defaults from a set of arguments.
-
-  This is requried in case we want to pass arguments through to another function.
   """
-  def trim_defaults(args) do
-    Enum.map(args, fn(arg) ->
-      case elem(arg, 0) do
-        :\\ ->
-          arg
-          |> Util.last_of_tuple
-          |> List.first
-        _at ->
-          arg
-      end
+  @spec trim_defaults(Macro.t) :: Macro.t
+  def trim_defaults(arguments) do
+    Enum.map(arguments, fn
+      ({ :\\, _, [ arg | _ ] }) -> arg
+      (arg) -> arg
     end)
   end
+
+  @doc """
+  Retrieves the name, arguments and optional guards for a definition.
+  """
+  @spec unpack_head(Macro.t) :: { atom, Macro.t, Macro.t | nil }
+  def unpack_head({ :when, _, [ { name, _, arguments } | [ condition ] ] }),
+    do: { name, arguments, condition }
+  def unpack_head({ name, _, arguments }),
+    do: { name, arguments, nil }
 
   @doc """
   Defines both a safe and unsafe version of an interface function, the unsafe
   version simply unwrapping the results of the safe version.
   """
   defmacro defwrap(head, do: body) do
-    { func_name, _ctx, arguments } = find_head(head)
+    { name, arguments, _condition } = unpack_head(head)
 
-    explicit_head  = gen_unsafe(head)
+    explicit_name  = Util.atom_append(name, "!")
     sanitized_args = trim_defaults(arguments)
 
     quote do
@@ -55,10 +51,10 @@ defmodule Cachex.Macros do
       end
 
       @doc false
-      def unquote(explicit_head) do
-        case unquote(func_name)(unquote_splicing(sanitized_args)) do
+      def unquote(explicit_name)(unquote_splicing(arguments)) do
+        case unquote(name)(unquote_splicing(sanitized_args)) do
           { :error, value } when is_atom(value) ->
-            raise ExecutionError, message: Cachex.Errors.long_form(value)
+            raise ExecutionError, message: Errors.long_form(value)
           { :error, value } when is_binary(value) ->
             raise ExecutionError, message: value
           { _state, value } ->
@@ -67,19 +63,4 @@ defmodule Cachex.Macros do
       end
     end
   end
-
-  # allow the "use" syntax
-  defmacro __using__(_opts) do
-    quote do
-      import unquote(__MODULE__)
-    end
-  end
-
-  # Converts various function input to an unsafe version by adding a trailing
-  # "!" to the function name.
-  defp gen_unsafe({ :when, ctx, [ head | tail ] }),
-    do: { :when, ctx, [ gen_unsafe(head) | tail ]}
-  defp gen_unsafe({ name, ctx, args }),
-    do: { Util.atom_append(name, "!"), ctx, args }
-
 end

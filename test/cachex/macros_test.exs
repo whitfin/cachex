@@ -40,43 +40,74 @@ defmodule Cachex.MacrosTest do
     assert(result5 == "key")
   end
 
-  # This test ensures that we can retrieve a two element Tuple from a function
+  # This test ensures that we can retrieve a three element Tuple from a function
   # head AST, regardless of whether the function head has guard clauses or not.
-  # In the first case, it should stay the same, but the second should strip the
-  # outer when clauses and guards.
   test "retrieving a functions name and arguments" do
     # define a function head AST
     head1 = {
-      :get,
-      [ line: 234 ],
+      :inspect,
+      [ line: 1151 ],
       [
-        { :cache, [ line: 234 ], nil },
-        { :key,   [ line: 234 ], nil },
-        { :\\,    [ line: 234 ], [ { :options, [ line: 234 ], nil }, [ ] ]  }
+        { :cache,   [ line: 1151 ], nil },
+        { :options, [ line: 1151 ], nil }
       ]
     }
 
     # define a function head AST with a when clause
     head2 = {
       :when,
-      [ line: 234 ],
+      [ line: 1151 ],
       [
-        head1,
         {
-          :is_list,
-          [ line: 234 ],
-          [ { :options, [ line: 234 ], nil } ]
+          :inspect,
+          [ line: 1151 ],
+          [
+            { :cache,   [ line: 1151 ], nil },
+            { :options, [ line: 1151 ], nil }
+          ]
+        },
+        { :is_list, [ line: 1151 ], [ { :options, [ line: 1151 ], nil } ] }
+      ]
+    }
+
+    # define a function head AST with a multi when clause
+    head3 = {
+      :when,
+      [ line: 1151 ],
+      [
+        {
+          :inspect,
+          [ line: 1151 ],
+          [
+            { :cache,   [ line: 1151 ], nil },
+            { :options, [ line: 1151 ], nil }
+          ]
+        },
+        {
+          :and,
+          [ line: 1151 ],
+          [
+            { :is_list, [ line: 1151 ], [ { :options, [ line: 1151 ], nil } ] },
+            { :is_list, [ line: 1151 ], [ { :options, [ line: 1151 ], nil } ] }
+          ]
         }
       ]
     }
 
     # retrieve the name and arguments for each head
-    result1 = Cachex.Macros.find_head(head1)
-    result2 = Cachex.Macros.find_head(head2)
+    result1 = Cachex.Macros.unpack_head(head1)
+    result2 = Cachex.Macros.unpack_head(head2)
+    result3 = Cachex.Macros.unpack_head(head3)
+
+    # grab subsections of the expected AST
+    { _, _, expected_arguments } = head1
+    { _, _, [ _, expected_conditions1 ] } = head2
+    { _, _, [ _, expected_conditions2 ] } = head3
 
     # both should equal the base AST
-    assert(result1 == head1)
-    assert(result2 == head1)
+    assert(result1 == { :inspect, expected_arguments, nil })
+    assert(result2 == { :inspect, expected_arguments, expected_conditions1 })
+    assert(result3 == { :inspect, expected_arguments, expected_conditions2 })
   end
 
   # This test ensures that we can correctly strip any default clauses from a set
