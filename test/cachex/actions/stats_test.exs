@@ -113,7 +113,7 @@ defmodule Cachex.Actions.StatsTest do
     { :missing, nil } = Cachex.get(cache3, 2)
 
     # set cache4 to have some loads
-    { :loaded, 1 } = Cachex.get(cache4, 1, fallback: &(&1))
+    { :commit, 1 } = Cachex.fetch(cache4, 1, &(&1))
 
     # retrieve all cache rates
     stats2 = Cachex.stats!(cache1)

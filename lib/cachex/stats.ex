@@ -46,12 +46,6 @@ defmodule Cachex.Stats do
     end
   end
 
-  # Retrieving a value will increment the global stats to represent whether the
-  # key existed, was missing, or was loaded.
-  defp process_action(:get, { status, _value }) do
-    [ { :get, status, 1 }, { :global, normalize_status(status), 1 } ]
-  end
-
   # Purging receives the number of keys removed from the cache, so we use this
   # number to increment the exiredCount in the global namespace.
   defp process_action(:purge, { _status, value }) do
@@ -95,6 +89,12 @@ defmodule Cachex.Stats do
     else
       []
     end
+  end
+
+  # Retrieving a value will increment the global stats to represent whether the
+  # key existed, was missing, or was loaded.
+  defp process_action(action, { status, _value }) when action in [ :get, :fetch ] do
+    [ { :get, status, 1 }, { :global, normalize_status(status), 1 } ]
   end
 
   # Both the get_and_update and increment calls do either an update or a set depending on whether
@@ -142,7 +142,6 @@ defmodule Cachex.Stats do
     do: [ :hitCount ]
   defp normalize_status(:missing),
     do: [ :missCount ]
-  defp normalize_status(:loaded),
+  defp normalize_status(status) when status in [ :commit, :ignore ],
     do: [ :missCount, :loadCount ]
-
 end

@@ -28,8 +28,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   to update the existing record.
 
   The actions accepted here are those accepted by the `:get` actions, as none
-  are used internally and all are forwarded through. This means that this function
-  will support fallback values.
+  are used internally and all are forwarded through.
   """
   defaction get_and_update(%State{ } = state, key, update_fun, options) do
     LockManager.transaction(state, [ key ], fn ->
@@ -54,5 +53,4 @@ defmodule Cachex.Actions.GetAndUpdate do
 
     { status, tempv }
   end
-
 end

@@ -14,9 +14,9 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     # set some keys in the cache
     { :ok, true } = Cachex.set(cache, 1, 1)
     { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
-    { :ok, true } = Cachex.set(cache, 5, 5, ttl: 1000)
+    { :ok, true } = Cachex.set(cache, 4, 4, ttl: 1000)
+    { :ok, true } = Cachex.set(cache, 5, 5)
     { :ok, true } = Cachex.set(cache, 6, 6)
-    { :ok, true } = Cachex.set(cache, 7, 7)
 
     # wait for the TTL to pass
     :timer.sleep(25)
@@ -31,25 +31,17 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     # update a missing key
     result3 = Cachex.get_and_update(cache, 3, &to_string/1)
 
-    # define the fallback options
-    fb_opts = [ fallback: fn(key) ->
-      "_#{key}_"
-    end ]
+    # update the fourth value
+    result4 = Cachex.get_and_update(cache, 4, &to_string/1)
 
-    # update a fallback key
-    result4 = Cachex.get_and_update(cache, 4, &to_string/1, fb_opts)
-
-    # update the fifth value
-    result5 = Cachex.get_and_update(cache, 5, &to_string/1)
-
-    # update the sixth value (but with no commit)
-    result6 = Cachex.get_and_update(cache, 6, fn(_) ->
-      { :ignore, "7" }
+    # update the fifth value (but with no commit)
+    result5 = Cachex.get_and_update(cache, 5, fn(_) ->
+      { :ignore, "5" }
     end)
 
-    # update the seventh value (with a commit)
-    result7 = Cachex.get_and_update(cache, 7, fn(_) ->
-      { :commit, "7" }
+    # update the sixth value (with a commit)
+    result6 = Cachex.get_and_update(cache, 6, fn(_) ->
+      { :commit, "6" }
     end)
 
     # verify the first key is retrieved
@@ -59,24 +51,20 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert(result2 == { :missing, "" })
     assert(result3 == { :missing, "" })
 
-    # verify the fourth key uses the fallback
-    assert(result4 == { :loaded, "_4_" })
+    # verify the fourth result
+    assert(result4 == { :ok, "4" })
 
-    # verify the fifth result
+    # verify the fifth and sixth results
     assert(result5 == { :ok, "5" })
-
-    # verify the sixth and seventh results
-    assert(result6 == { :ok, "7" })
-    assert(result7 == { :ok, "7" })
+    assert(result6 == { :ok, "6" })
 
     # assert we receive valid notifications
     assert_receive({ { :get_and_update, [ 1, _to_string, [ ] ] }, ^result1 })
     assert_receive({ { :get_and_update, [ 2, _to_string, [ ] ] }, ^result2 })
     assert_receive({ { :get_and_update, [ 3, _to_string, [ ] ] }, ^result3 })
-    assert_receive({ { :get_and_update, [ 4, _to_string, ^fb_opts ] }, ^result4 })
-    assert_receive({ { :get_and_update, [ 5, _to_string, [ ] ] }, ^result5 })
+    assert_receive({ { :get_and_update, [ 4, _to_string, [ ] ] }, ^result4 })
+    assert_receive({ { :get_and_update, [ 5, _my_functs, [ ] ] }, ^result5 })
     assert_receive({ { :get_and_update, [ 6, _my_functs, [ ] ] }, ^result6 })
-    assert_receive({ { :get_and_update, [ 7, _my_functs, [ ] ] }, ^result7 })
 
     # check we received valid purge actions for the TTL
     assert_receive({ { :purge, [[]] }, { :ok, 1 } })
@@ -88,21 +76,19 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     value4 = Cachex.get(cache, 4)
     value5 = Cachex.get(cache, 5)
     value6 = Cachex.get(cache, 6)
-    value7 = Cachex.get(cache, 7)
 
     # all should now have values
     assert(value1 == { :ok, "1" })
     assert(value2 == { :ok, "" })
     assert(value3 == { :ok, "" })
-    assert(value4 == { :ok, "_4_" })
-    assert(value5 == { :ok, "5" })
+    assert(value4 == { :ok, "4" })
 
     # verify the commit tags
-    assert(value6 == { :ok, 6 })
-    assert(value7 == { :ok, "7" })
+    assert(value5 == { :ok, 5 })
+    assert(value6 == { :ok, "6" })
 
     # check the TTL on the last key
-    ttl1 = Cachex.ttl!(cache, 5)
+    ttl1 = Cachex.ttl!(cache, 4)
 
     # TTL should be maintained
     assert_in_delta(ttl1, 965, 11)

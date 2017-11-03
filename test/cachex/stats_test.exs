@@ -99,7 +99,8 @@ defmodule Cachex.StatsTest do
     # define our results
     payload1 = { :ok, "values" }
     payload2 = { :missing, nil }
-    payload3 = { :loaded, "na" }
+    payload3 = { :commit, "na" }
+    payload4 = { :ignore, "na" }
 
     # register the first payload
     results1 = Cachex.Stats.register(:get, payload1, stats)
@@ -110,18 +111,22 @@ defmodule Cachex.StatsTest do
     # register the third payload
     results3 = Cachex.Stats.register(:get, payload3, results2)
 
+    # register the fourth payload
+    results4 = Cachex.Stats.register(:get, payload4, results3)
+
     # verify the combined results
-    assert(results3 == %{
+    assert(results4 == %{
       get: %{
-        loaded: 1,
+        commit: 1,
+        ignore: 1,
         missing: 1,
         ok: 1
       },
       global: %{
         hitCount: 1,
-        loadCount: 1,
-        missCount: 2,
-        opCount: 3
+        loadCount: 2,
+        missCount: 3,
+        opCount: 4
       }
     })
   end
