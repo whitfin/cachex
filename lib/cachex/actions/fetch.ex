@@ -1,4 +1,9 @@
 defmodule Cachex.Actions.Fetch do
+  @moduledoc false
+  # This module provides the implementation for the Fetch action, which is in charge
+  # of retrieving values from the cache by key. If the record has expired, it is
+  # purged on read. If the record is missing, we use fallback functions to populate
+  # a new value in the cache.
 
   # we need our imports
   use Cachex.Actions
@@ -39,6 +44,6 @@ defmodule Cachex.Actions.Fetch do
     result
   end
 
-  defp is_notify_opt?({ :notify, _value }),do: true
+  defp is_notify_opt?({ :notify, _value }), do: true
   defp is_notify_opt?({ _option, _value }), do: false
 end
