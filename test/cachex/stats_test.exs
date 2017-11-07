@@ -89,9 +89,8 @@ defmodule Cachex.StatsTest do
     })
   end
 
-  # Retrieving a key will increment the hit/miss/load counts based on whether the
-  # key was in the cache, missing, or loaded via a fallback. Note that a fallback
-  # will also increment the miss count (as a key must miss in order to fall back).
+  # Retrieving a key will increment the hit/miss counts
+  # based on whether the key was in the cache.
   test "registering get actions" do
     # create our base stats
     stats = %{ }
@@ -99,7 +98,6 @@ defmodule Cachex.StatsTest do
     # define our results
     payload1 = { :ok, "values" }
     payload2 = { :missing, nil }
-    payload3 = { :loaded, "na" }
 
     # register the first payload
     results1 = Cachex.Stats.register(:get, payload1, stats)
@@ -107,21 +105,59 @@ defmodule Cachex.StatsTest do
     # register the second payload
     results2 = Cachex.Stats.register(:get, payload2, results1)
 
-    # register the third payload
-    results3 = Cachex.Stats.register(:get, payload3, results2)
-
     # verify the combined results
-    assert(results3 == %{
+    assert(results2 == %{
       get: %{
-        loaded: 1,
         missing: 1,
         ok: 1
       },
       global: %{
         hitCount: 1,
-        loadCount: 1,
-        missCount: 2,
-        opCount: 3
+        missCount: 1,
+        opCount: 2
+      }
+    })
+  end
+
+  # Retrieving a key will increment the hit/miss/load counts based on whether the
+  # key was in the cache, missing, or loaded via a fallback. Note that a fallback
+  # will also increment the miss count (as a key must miss in order to fall back).
+  test "registering fetch actions" do
+    # create our base stats
+    stats = %{ }
+
+    # define our results
+    payload1 = { :ok, "values" }
+    payload2 = { :missing, nil }
+    payload3 = { :commit, "na" }
+    payload4 = { :ignore, "na" }
+
+    # register the first payload
+    results1 = Cachex.Stats.register(:fetch, payload1, stats)
+
+    # register the second payload
+    results2 = Cachex.Stats.register(:fetch, payload2, results1)
+
+    # register the third payload
+    results3 = Cachex.Stats.register(:fetch, payload3, results2)
+
+    # register the fourth payload
+    results4 = Cachex.Stats.register(:fetch, payload4, results3)
+
+    # verify the combined results
+    assert(results4 == %{
+      fetch: %{
+        commit: 1,
+        ignore: 1,
+        missing: 1,
+        ok: 1
+      },
+      global: %{
+        hitCount: 1,
+        loadCount: 2,
+        missCount: 3,
+        opCount: 4,
+        setCount: 1
       }
     })
   end
@@ -256,23 +292,17 @@ defmodule Cachex.StatsTest do
     payload1 = { :ok, true }
     payload2 = { :missing, false }
 
-    # define registration actions
-    register = fn(key, payload, acc) ->
-      # register the payload
-      Cachex.Stats.register(key, payload, acc)
-    end
-
     # register the results
-    new_stats = register.(:expire,    payload1,  stats)
-    new_stats = register.(:expire,    payload2,  new_stats)
-    new_stats = register.(:expire_at, payload1,  new_stats)
-    new_stats = register.(:expire_at, payload2,  new_stats)
-    new_stats = register.(:persist,   payload1,  new_stats)
-    new_stats = register.(:persist,   payload2,  new_stats)
-    new_stats = register.(:refresh,   payload1,  new_stats)
-    new_stats = register.(:refresh,   payload2,  new_stats)
-    new_stats = register.(:update,    payload1,  new_stats)
-    new_stats = register.(:update,    payload2, new_stats)
+    new_stats = Cachex.Stats.register(:expire,    payload1,  stats)
+    new_stats = Cachex.Stats.register(:expire,    payload2,  new_stats)
+    new_stats = Cachex.Stats.register(:expire_at, payload1,  new_stats)
+    new_stats = Cachex.Stats.register(:expire_at, payload2,  new_stats)
+    new_stats = Cachex.Stats.register(:persist,   payload1,  new_stats)
+    new_stats = Cachex.Stats.register(:persist,   payload2,  new_stats)
+    new_stats = Cachex.Stats.register(:refresh,   payload1,  new_stats)
+    new_stats = Cachex.Stats.register(:refresh,   payload2,  new_stats)
+    new_stats = Cachex.Stats.register(:update,    payload1,  new_stats)
+    new_stats = Cachex.Stats.register(:update,    payload2,  new_stats)
 
     # verify the combined results
     assert(new_stats == %{
@@ -315,19 +345,11 @@ defmodule Cachex.StatsTest do
     payload1 = { :ok, true }
     payload2 = { :missing, false }
 
-    # define registration actions
-    register = fn(key, payload, acc) ->
-      # register the payload
-      Cachex.Stats.register(key, payload, acc)
-    end
-
     # register the results
-    new_stats = register.(:get_and_update, payload1, stats)
-    new_stats = register.(:get_and_update, payload2, new_stats)
-    new_stats = register.(:incr, payload1, new_stats)
-    new_stats = register.(:incr, payload2, new_stats)
-    new_stats = register.(:decr, payload1, new_stats)
-    new_stats = register.(:decr, payload2, new_stats)
+    new_stats = Cachex.Stats.register(:incr, payload1, stats)
+    new_stats = Cachex.Stats.register(:incr, payload2, new_stats)
+    new_stats = Cachex.Stats.register(:decr, payload1, new_stats)
+    new_stats = Cachex.Stats.register(:decr, payload2, new_stats)
 
     # verify the combined results
     assert(new_stats == %{
@@ -339,14 +361,10 @@ defmodule Cachex.StatsTest do
         ok: 1,
         missing: 1
       },
-      get_and_update: %{
-        ok: 1,
-        missing: 1
-      },
       global: %{
-        opCount: 6,
-        setCount: 3,
-        updateCount: 3
+        opCount: 4,
+        setCount: 2,
+        updateCount: 2
       }
     })
   end

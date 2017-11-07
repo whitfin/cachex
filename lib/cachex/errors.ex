@@ -4,6 +4,23 @@ defmodule Cachex.Errors do
   # message to their long (non-atom) form. Used to allow functions to return short
   # errors such as `{ :error, :short_name }` and have them converted after the
   # fact, rather than bloating actions with potentially large error messages.
+  @doc false
+  defmacro __using__(_) do
+    quote do
+      @error_invalid_command    { :error, :invalid_command }
+      @error_invalid_fallback   { :error, :invalid_fallback }
+      @error_invalid_hook       { :error, :invalid_hook }
+      @error_invalid_match      { :error, :invalid_match }
+      @error_invalid_name       { :error, :invalid_name }
+      @error_invalid_option     { :error, :invalid_option }
+      @error_janitor_disabled   { :error, :janitor_disabled }
+      @error_no_cache           { :error, :no_cache }
+      @error_non_numeric_value  { :error, :non_numeric_value }
+      @error_not_started        { :error, :not_started }
+      @error_stats_disabled     { :error, :stats_disabled }
+      @error_unreachable_file   { :error, :unreachable_file }
+    end
+  end
 
   @doc """
   Converts an error identifier to it's longer form.
@@ -18,6 +35,8 @@ defmodule Cachex.Errors do
     do: "Invalid command definition provided"
   def long_form(:invalid_hook),
     do: "Invalid hook definition provided"
+  def long_form(:invalid_fallback),
+    do: "Invalid fallback function provided"
   def long_form(:invalid_match),
     do: "Invalid match specification provided"
   def long_form(:invalid_name),
@@ -36,5 +55,4 @@ defmodule Cachex.Errors do
     do: "Stats are not enabled for the specified cache"
   def long_form(:unreachable_file),
     do: "Unable to access provided file path"
-
 end

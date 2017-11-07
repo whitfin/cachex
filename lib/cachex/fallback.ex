@@ -26,5 +26,4 @@ defmodule Cachex.Fallback do
     }
   def parse(_options),
     do: %__MODULE__{ }
-
 end

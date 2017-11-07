@@ -267,12 +267,6 @@ defmodule Cachex do
   @doc """
   Retrieves a value from the cache using a given key.
 
-  ## Options
-
-    * `:fallback` - a fallback function for multi-layered caches, overriding any
-      default fallback functions. The value returned by this fallback is placed
-      in the cache against the provided key, before being returned to the user.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
@@ -281,9 +275,6 @@ defmodule Cachex do
 
       iex> Cachex.get(:my_cache, "missing_key")
       { :missing, nil }
-
-      iex> Cachex.get(:my_cache, "missing_key", fallback: &String.reverse/1)
-      { :loaded, "yek_gnissim" }
 
   """
   @spec get(cache, any, Keyword.t) :: { status | :loaded, any }
@@ -304,20 +295,11 @@ defmodule Cachex do
   the call but is not written to the cache. You can use this to abandon writes
   which began eagerly (for example if a key is actually missing).
 
-  ## Options
-
-    * `:fallback` - a fallback function for multi-layered caches, overriding any
-      default fallback functions. The value returned by this fallback is passed
-      into the update function.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", [2])
       iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
       { :ok, [1, 2] }
-
-      iex> Cachex.get_and_update(:my_cache, "missing_key", &(["value"|&1]), fallback: &String.reverse/1)
-      { :loaded, [ "value", "yek_gnissim" ] }
 
       iex> Cachex.get_and_update(:my_cache, "missing_key", fn
       ...>   (nil) -> { :ignore, nil }
@@ -675,6 +657,40 @@ defmodule Cachex do
   when is_number(timestamp) and is_list(options) do
     via_opts = via({ :expire_at, [ key, timestamp, options ] }, options)
     expire(cache, key, timestamp - Util.now(), via_opts)
+  end
+
+  @doc """
+  Fetches a value from the cache, executing the fallback on cache miss.
+
+  If the fallback is executed, the return value will be placed in the cache. You
+  should use a return value of `{ :ignore, value }` to avoid writing to the cache.
+  This can be used to abandon writes if required.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.fetch(:my_cache, "key", fn(key) ->
+      ...>   { :commit, String.reverse(key) }
+      ...> end)
+      { :ok, "value" }
+
+      iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
+      ...>   { :ignore, String.reverse(key) }
+      ...> end)
+      { :ignore, "yek_gnissim" }
+
+      iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
+      ...>   { :commit, String.reverse(key) }
+      ...> end)
+      { :commit, "yek_gnissim" }
+
+  """
+  @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
+  defwrap fetch(cache, key, fallback, options \\ [])
+  when is_function(fallback) and is_list(options) do
+    State.enforce(cache, state) do
+      Actions.Fetch.execute(state, key, fallback, options)
+    end
   end
 
   @doc """
