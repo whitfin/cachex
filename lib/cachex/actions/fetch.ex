@@ -43,10 +43,10 @@ defmodule Cachex.Actions.Fetch do
   # Handles the result of a fallback commit. If it's tagged with the :commit flag,
   # the value is persisted through to the backing table, otherwise the result is
   # returned as-is (i.e. no persistence and without any extra modifications).
-  defp handle_commit({ :ignore, _val } = result, _state, _key),
-    do: result
-  defp handle_commit({ :commit, val } = result, state, key) do
-    Set.execute(state, key, val, @notify_false)
+  defp handle_commit(result, state, key) do
+    with { :commit, val } <- result do
+      Set.execute(state, key, val, @notify_false)
+    end
     result
   end
 end
