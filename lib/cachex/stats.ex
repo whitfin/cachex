@@ -91,15 +91,14 @@ defmodule Cachex.Stats do
     end
   end
 
-  # Retrieving a value will increment the global stats to represent whether the
-  # key existed, was missing, or was loaded.
+  # Retriving a value will update the global stats to represent whether the key existed or not.
   defp process_action(action, { status, _value }) when action in [ :get, :fetch ] do
-    [ { :get, status, 1 }, { :global, normalize_status(status), 1 } ]
+    [ { action, status, 1 }, { :global, normalize_status(status), 1 } ]
   end
 
   # Both the get_and_update and increment calls do either an update or a set depending on whether
   # the key existed in the cache before the operation.
-  defp process_action(action, { status, _value }) when action in [ :get_and_update, :decr, :incr ] do
+  defp process_action(action, { status, _value }) when action in [ :decr, :incr ] do
     [ { action, status, 1 }, { :global, status == :ok && :updateCount || :setCount, 1 } ]
   end
 
@@ -142,6 +141,8 @@ defmodule Cachex.Stats do
     do: [ :hitCount ]
   defp normalize_status(:missing),
     do: [ :missCount ]
-  defp normalize_status(status) when status in [ :commit, :ignore ],
+  defp normalize_status(:commit),
+    do: [ :missCount, :loadCount, :setCount ]
+  defp normalize_status(:ignore),
     do: [ :missCount, :loadCount ]
 end

@@ -58,29 +58,6 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Retrieves a fallback value for a given key, using either the provided function
-  or using the default fallback implementation.
-  """
-  def get_fallback(%Cachex.State{ fallback: fall }, key, fb_fun, default \\ nil) do
-    # pluck out the default fallback options
-    %{ state: fb_state, action: fb_def } = fall
-
-    cond do
-      # valid provided fallback
-      is_function(fb_fun) ->
-        fb_state |> do_fallback(key, fb_fun) |> normalize_commit
-
-      # valid default fallback
-      is_function(fb_def) ->
-        fb_state |> do_fallback(key, fb_def) |> normalize_commit
-
-      # no fallback
-      true ->
-        { :default, default }
-    end
-  end
-
-  @doc """
   Pulls a value from a set of options. If the value satisfies the condition passed
   in, we return it. Otherwise we return a default value.
   """
@@ -199,13 +176,6 @@ defmodule Cachex.Util do
     do: Cachex.Actions.Set
   def write_mod(_tag),
     do: Cachex.Actions.Update
-
-  # Executes a fallback based on the provided state. If the state is nil, then
-  # we don't pass a state - otherwise we pass the state as the second argument.
-  defp do_fallback(state, key, fun) when is_nil(state) or is_function(fun, 1),
-    do: fun.(key)
-  defp do_fallback(state, key, fun),
-    do: fun.(key, state)
 
   # Used to normalize some quick select syntax to valid Erlang handles. Used when
   # creating match specifications instead of having `$` atoms everywhere.

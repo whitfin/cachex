@@ -267,12 +267,6 @@ defmodule Cachex do
   @doc """
   Retrieves a value from the cache using a given key.
 
-  ## Options
-
-    * `:fallback` - whether or not to disable any default fallback execution on
-      this call. This will default to true, which means that fallbacks can be
-      executed as needed.
-
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
@@ -300,12 +294,6 @@ defmodule Cachex do
   you return a Tuple of the form `{ :ignore, value }`, the value is returned from
   the call but is not written to the cache. You can use this to abandon writes
   which began eagerly (for example if a key is actually missing).
-
-  ## Options
-
-    * `:fallback` - whether or not to disable any default fallback execution on
-      this call. This will default to true, which means that fallbacks can be
-      executed as needed.
 
   ## Examples
 

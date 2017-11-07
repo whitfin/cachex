@@ -163,7 +163,7 @@ defmodule Cachex.Actions.StatsTest do
       loadCount: 1,
       missCount: 1,
       missRate: 100.0,
-      opCount: 2,
+      opCount: 1,
       setCount: 1
     })
   end

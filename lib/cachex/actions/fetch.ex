@@ -9,20 +9,17 @@ defmodule Cachex.Actions.Fetch do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.Actions
+  alias Cachex.Actions.Get
   alias Cachex.Actions.Set
   alias Cachex.State
   alias Cachex.Util
 
   defaction fetch(%State{ } = state, key, fallback, options) do
-    case Actions.read(state, key) do
-      { ^key, _touched, _ttl, value } ->
-        { :ok, value }
-      _missing ->
-        state
-        |> handle_fallback(fallback, key)
-        |> Util.normalize_commit
-        |> handle_commit(state, key, options)
+    with { :missing, nil } <- Get.execute(state, key, @notify_false) do
+      state
+      |> handle_fallback(fallback, key)
+      |> Util.normalize_commit
+      |> handle_commit(state, key)
     end
   end
 
@@ -31,19 +28,10 @@ defmodule Cachex.Actions.Fetch do
   defp handle_fallback(%State{ fallback: %{ state: state } }, fallback, key),
     do: fallback.(key, state)
 
-  defp handle_commit({ :ignore, _val } = result, _state, _key, _options),
+  defp handle_commit({ :ignore, _val } = result, _state, _key),
     do: result
-  defp handle_commit({ :commit, val } = result, state, key, options) do
-    opts =
-      options
-      |> Enum.find([], &is_notify_opt?/1)
-      |> List.wrap
-
-    Set.execute(state, key, val, opts)
-
+  defp handle_commit({ :commit, val } = result, state, key) do
+    Set.execute(state, key, val, @notify_false)
     result
   end
-
-  defp is_notify_opt?({ :notify, _value }), do: true
-  defp is_notify_opt?({ _option, _value }), do: false
 end

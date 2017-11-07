@@ -26,13 +26,10 @@ defmodule Cachex.Actions.GetAndUpdate do
   If the key is not returned by the call to `:get`, then we have to set the new
   value in the cache directly. If it does exist, then we use the update actions
   to update the existing record.
-
-  The actions accepted here are those accepted by the `:get` actions, as none
-  are used internally and all are forwarded through.
   """
   defaction get_and_update(%State{ } = state, key, update_fun, options) do
     LockManager.transaction(state, [ key ], fn ->
-      { status, value } = Get.execute(state, key, @notify_false ++ options)
+      { status, value } = Get.execute(state, key, @notify_false)
 
       value
       |> update_fun.()
