@@ -170,9 +170,9 @@ defmodule Cachex.OptionsTest do
     { :ok, state2 } = Cachex.Options.parse(name, [ hooks: pre_hook ])
 
     # parse out invalid hook combinations
-    { :ok, state3 } = Cachex.Options.parse(name, [ hooks: "[hooks]" ])
-    { :ok, state4 } = Cachex.Options.parse(name, [ ])
-    { :error, msg } = Cachex.Options.parse(name, [ hooks: %Cachex.Hook{ module: Missing }])
+    { :ok,  state3 } = Cachex.Options.parse(name, [ ])
+    { :error,  msg } = Cachex.Options.parse(name, [ hooks: "[hooks]" ])
+    { :error, ^msg } = Cachex.Options.parse(name, [ hooks: %Cachex.Hook{ module: Missing }])
 
     # check the hook groupings for the first state
     assert(state1.pre_hooks == [ pre_hook ])
@@ -182,15 +182,11 @@ defmodule Cachex.OptionsTest do
     assert(state2.pre_hooks == [ pre_hook ])
     assert(state2.post_hooks == [ ])
 
-    # check the third and fourth states use pre_hook defaults
+    # check the third state uses hook defaults
     assert(state3.pre_hooks == [ ])
-    assert(state4.pre_hooks == [ ])
-
-    # check the third and fourth states use post_hook defaults
     assert(state3.post_hooks == [ ])
-    assert(state4.post_hooks == [ ])
 
-    # check the fifth state returns an error
+    # check the invalid hook message
     assert(msg == :invalid_hook)
   end
 

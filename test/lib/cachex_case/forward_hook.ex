@@ -11,9 +11,11 @@ defmodule CachexCase.ForwardHook do
   @doc false
   # This provides a simple creation interface for a forwarding hook, by defining
   # default options and allowing the caller to override as needed (or not at all).
-  def create(opts \\ %{ }) do
-    %Cachex.Hook{ struct(Cachex.Hook, opts) | args: self(), module: __MODULE__ }
-  end
+  def create(opts \\ %{ }),
+    do: %Cachex.Hook{ struct(Cachex.Hook, opts) |
+      args: self(),
+      module: __MODULE__
+    }
 
   @doc false
   # Forwards the received message on to the test process, and simply returns the

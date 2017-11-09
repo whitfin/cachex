@@ -107,15 +107,20 @@ defmodule Cachex.Options do
       ]
     }
 
-    hooks_list =
+    hooks_opts =
       options
       |> Keyword.get(:hooks, [])
       |> List.wrap
 
-    hooks =
+    hooks_list =
       limit
       |> Limit.to_hooks
-      |> List.insert_at(0, stats_hook)
+      |> Enum.concat(hooks_opts)
+
+    hooks =
+      stats_hook
+      |> Kernel.||([])
+      |> List.wrap
       |> Enum.concat(hooks_list)
 
     with { :ok, hooks } <- Hook.validate(hooks) do

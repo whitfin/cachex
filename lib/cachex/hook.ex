@@ -66,7 +66,7 @@ defmodule Cachex.Hook do
   duplication of code here (it's not hit often).
   """
   def group_by_type(hooks, type) when type in [ :pre, :post ],
-  do: group_by_type(hooks)[type]
+    do: group_by_type(hooks)[type]
 
   @doc """
   Notifies a listener of the passed in data.
@@ -81,7 +81,8 @@ defmodule Cachex.Hook do
     do_notify(hook, { action, result })
     notify(tail, action, result)
   end
-  def notify([], _action, _result), do: true
+  def notify([], _action, _result),
+    do: true
 
   # Internal emission, used to define whether we send using an async request or
   # not. We also determine whether to pass the results back at this point or not.
@@ -100,9 +101,8 @@ defmodule Cachex.Hook do
   @doc """
   Generates a Supervisor specification for a hook.
   """
-  def spec(%__MODULE__{ module: mod, args: args, server_args: opts }) do
-    Spec.worker(GenServer, [ mod, args, opts ], [ id: mod ])
-  end
+  def spec(%__MODULE__{ module: mod, args: args, server_args: opts }),
+    do: Spec.worker(GenServer, [ mod, args, opts ], [ id: mod ])
 
   @doc """
   Validates a set of Hooks.
@@ -129,8 +129,8 @@ defmodule Cachex.Hook do
       _ -> @error_invalid_hook
     end
   end
-  defp do_validate([ _invalid | rest ], acc),
-    do: do_validate(rest, acc)
+  defp do_validate([ _invalid | _rest ], _acc),
+    do: @error_invalid_hook
   defp do_validate([ ], acc),
     do: { :ok, Enum.reverse(acc) }
 
