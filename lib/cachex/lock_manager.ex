@@ -68,5 +68,4 @@ defmodule Cachex.LockManager do
   defp safe_exec(fun, to_exec) do
     transaction?() && fun.() || to_exec.()
   end
-
 end
