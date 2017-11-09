@@ -201,4 +201,49 @@ defmodule CachexTest do
     assert(reason2 == :no_cache)
   end
 
+  # This tests ensures that we provide delegate functions for Cachex functions
+  # which unwrap errors automatically. We do this by creating a definition for
+  # the @unsafe attribute which will bind the function at compile time.
+  test "generating unsafe function delegates" do
+    # grab all exported definitions
+    definitions =
+      :functions
+      |> Cachex.__info__
+      |> Keyword.drop([ :child_spec, :init, :start, :start_link ])
+
+    # verify the size to cause errors on addition/removal
+    assert(length(definitions) == 122)
+
+    # validate all definitions
+    for { name, arity } <- definitions do
+      # create name as string
+      name_st = "#{name}"
+
+      # generate the new definition
+      inverse =
+        if String.ends_with?(name_st, "!") do
+          :"#{String.trim_trailing(name_st, "!")}"
+        else
+          :"#{name_st}!"
+        end
+
+      # ensure the definitions contains the inverse
+      assert({ inverse, arity } in definitions)
+    end
+
+    # create a basic test cache
+    cache = Helper.create_cache()
+
+    # validate an unsafe call to test handling
+    assert_raise(Cachex.ExecutionError, fn ->
+      Cachex.get!(:missing_cache, "key")
+    end)
+
+    # validate an unsafe call to test handling
+    assert_raise(Cachex.ExecutionError, fn ->
+      Cachex.transaction!(cache, [ "key" ], fn(_key) ->
+        raise RuntimeError, message: "Ding dong! The witch is dead!"
+      end)
+    end)
+  end
 end

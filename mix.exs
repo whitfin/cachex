@@ -2,7 +2,7 @@ defmodule Cachex.Mixfile do
   use Mix.Project
 
   @url_docs "http://hexdocs.pm/cachex"
-  @url_github "https://github.com/zackehh/cachex"
+  @url_github "https://github.com/whitfin/cachex"
 
   def project do
     [
@@ -76,6 +76,7 @@ defmodule Cachex.Mixfile do
     [
       # Production dependencies
       { :eternal, "~> 1.1" },
+      { :unsafe,  "~> 1.0" },
       # Local dependencies
       { :benchfella,  "~> 0.3",  optional: true, only: [ :dev, :test ] },
       { :bmark,       "~> 1.0",  optional: true, only: [ :dev, :test ] },

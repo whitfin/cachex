@@ -1,45 +1,6 @@
 defmodule Cachex.MacrosTest do
   use CachexCase
 
-  # This tests ensures that we provide delegate functions for Cachex functions
-  # which unwrap errors automatically. We do this by creating a `defwrap` function
-  # in this module and calling it with a combination of arguments which cause both
-  # valid results and errors. We also make sure that we test default arguments
-  # and guard clauses against this macro to ensure that we don't hit errors there.
-  test "generating unsafe function delegates" do
-    # execute safe tests
-    result1 = my_func("key")
-    result2 = my_func("key", "error")
-    result3 = my_func!("key")
-
-    # first two should be wrapped
-    assert(result1 == { :ok, "key" })
-    assert(result2 == { :error, "error" })
-
-    # the third should be unwrapped
-    assert(result3 == "key")
-
-    # ensure unsafe errors are thrown
-    assert_raise(Cachex.ExecutionError, "this is my error", fn ->
-      my_func!("key", "this is my error")
-    end)
-
-    # ensure unsafe errors are normalized
-    assert_raise(Cachex.ExecutionError, Cachex.Errors.long_form(:no_cache), fn ->
-      my_func!("key", :no_cache)
-    end)
-
-    # ensure that guard clauses also work
-    result4 = my_func_with_guard("key")
-    result5 = my_func_with_guard!("key")
-
-    # first should be wrapped
-    assert(result4 == { :ok, "key" })
-
-    # second should be unwrapped
-    assert(result5 == "key")
-  end
-
   # This test ensures that we can retrieve a three element Tuple from a function
   # head AST, regardless of whether the function head has guard clauses or not.
   test "retrieving a functions name and arguments" do
@@ -134,19 +95,4 @@ defmodule Cachex.MacrosTest do
       { :bonuses, [ line: 234 ], nil }
     ])
   end
-
-  # This function tests the defwrap macro whilst using default arguments.
-  defwrap my_func(key, err \\ false) do
-    if err do
-      { :error, err }
-    else
-      { :ok, key }
-    end
-  end
-
-  # This function tests the defwrap macro whilst using guard clases.
-  defwrap my_func_with_guard(key) when is_binary(key) do
-    { :ok, key }
-  end
-
 end
