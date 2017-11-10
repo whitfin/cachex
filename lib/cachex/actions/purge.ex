@@ -8,8 +8,9 @@ defmodule Cachex.Actions.Purge do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.Janitor
+  alias Cachex.Services
   alias Cachex.State
+  alias Services.Janitor
 
   @doc """
   Purges all expired records from the cache.
@@ -24,5 +25,4 @@ defmodule Cachex.Actions.Purge do
   defaction purge(%State{ cache: cache } = state, options) do
     Janitor.purge_records(cache)
   end
-
 end

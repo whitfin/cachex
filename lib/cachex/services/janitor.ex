@@ -1,4 +1,4 @@
-defmodule Cachex.Janitor do
+defmodule Cachex.Services.Janitor do
   @moduledoc false
   # The main TTL cleanup for Cachex, providing a very basic task scheduler to
   # repeatedly cleanup the cache table for all records which have expired. This
@@ -27,9 +27,8 @@ defmodule Cachex.Janitor do
   All options are passed throught to the initialization function, and the GenServer
   options are passed straight to GenServer to deal with.
   """
-  def start_link(%State{ } = state, server_opts) when is_list(server_opts) do
-    GenServer.start_link(__MODULE__, state, server_opts)
-  end
+  def start_link(%State{ } = state, server_opts) when is_list(server_opts),
+    do: GenServer.start_link(__MODULE__, state, server_opts)
 
   @doc """
   Main initialization phase of a janitor.
@@ -48,9 +47,8 @@ defmodule Cachex.Janitor do
   @doc """
   Returns the last metadata for this Janitor.
   """
-  def handle_call(:last, _ctx, %__MODULE__{ last: last } = state) do
-    { :reply, last, state }
-  end
+  def handle_call(:last, _ctx, %__MODULE__{ last: last } = state),
+    do: { :reply, last, state }
 
   @doc """
   Runs a TTL check and eviction against the backing ETS table.
@@ -99,7 +97,8 @@ defmodule Cachex.Janitor do
     Hook.broadcast(state.cache, { :purge, [ [] ] }, result)
     state
   end
-  defp update_evictions(_other, state), do: state
+  defp update_evictions(_other, state),
+    do: state
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.

@@ -38,9 +38,9 @@ defmodule Cachex do
   alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Hook
-  alias Cachex.Janitor
   alias Cachex.LockManager
   alias Cachex.Options
+  alias Cachex.Services
   alias Cachex.State
   alias Cachex.Util
   alias Cachex.Util.Names
@@ -277,11 +277,8 @@ defmodule Cachex do
       |> Enum.concat(post)
       |> Enum.map(&Hook.spec/1)
 
-    ttl_workers = if state.ttl_interval do
-      [ worker(Janitor, [ state, [ name: state.janitor ] ]) ]
-    end
-
     children = [
+      Services.cache_spec(state),
       [
         worker(Eternal, [
           state.cache,
@@ -293,8 +290,7 @@ defmodule Cachex do
         ]),
         worker(LockManager.Server, [ state.cache ])
       ],
-      hook_spec,
-      ttl_workers || []
+      hook_spec
     ]
 
     State.set(state.cache, state)

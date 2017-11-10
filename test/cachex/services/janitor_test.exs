@@ -1,4 +1,4 @@
-defmodule Cachex.JanitorTest do
+defmodule Cachex.Services.JanitorTest do
   use CachexCase
 
   # The Janitor module provides a public function for use by external processes
@@ -13,7 +13,7 @@ defmodule Cachex.JanitorTest do
     { :ok, true } = Cachex.set(cache, "key", "value", ttl: 25)
 
     # purge before the entry expires
-    purge1 = Cachex.Janitor.purge_records(cache)
+    purge1 = Cachex.Services.Janitor.purge_records(cache)
 
     # verify that the purge removed nothing
     assert(purge1 == { :ok, 0 })
@@ -22,7 +22,7 @@ defmodule Cachex.JanitorTest do
     :timer.sleep(50)
 
     # purge after the entry expires
-    purge2 = Cachex.Janitor.purge_records(cache)
+    purge2 = Cachex.Services.Janitor.purge_records(cache)
 
     # verify that the purge removed the key
     assert(purge2 == { :ok, 1 })
