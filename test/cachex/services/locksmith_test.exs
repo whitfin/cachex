@@ -1,9 +1,9 @@
-defmodule Cachex.LockManagerTest do
+defmodule Cachex.Services.LocksmithTest do
   use CachexCase
 
   # This test verifies that we can detect when we're running inside a transactional
   # context within a process. This is used to automatically detect nested transactions
-  # and should be false when run outside of the LockManager server, otherwise true.
+  # and should be false when run outside of the Locksmith server, otherwise true.
   test "detecting a transactional context" do
     # start a new cache
     cache = Helper.create_cache()
@@ -12,12 +12,12 @@ defmodule Cachex.LockManagerTest do
     state = Cachex.State.get(cache)
 
     # check transaction status from inside of a transaction
-    transaction1 = Cachex.LockManager.transaction(state, [], fn ->
-      Cachex.LockManager.transaction?()
+    transaction1 = Services.Locksmith.transaction(state, [], fn ->
+      Services.Locksmith.transaction?()
     end)
 
     # check transaction status from outside of a transaction
-    transaction2 = Cachex.LockManager.transaction?()
+    transaction2 = Services.Locksmith.transaction?()
 
     # the first should be true, latter be false
     assert(transaction1 == true)
@@ -38,11 +38,11 @@ defmodule Cachex.LockManagerTest do
     state2 = Cachex.State.get(cache2)
 
     # our write action
-    write = &Cachex.LockManager.transaction?/0
+    write = &Services.Locksmith.transaction?/0
 
     # execute writes against unlocked keys
-    write1 = Cachex.LockManager.write(state1, "key", write)
-    write2 = Cachex.LockManager.write(state2, "key", write)
+    write1 = Services.Locksmith.write(state1, "key", write)
+    write2 = Services.Locksmith.write(state2, "key", write)
 
     # neither should be transactional
     assert(write1 == false)
@@ -69,7 +69,7 @@ defmodule Cachex.LockManagerTest do
     # 50ms before incrementing the same key by 1.
     transaction = fn(state) ->
       spawn(fn ->
-        Cachex.LockManager.transaction(state, [ "key" ], fn ->
+        Services.Locksmith.transaction(state, [ "key" ], fn ->
           :timer.sleep(50)
           Cachex.incr(state, "key")
         end)
@@ -87,10 +87,10 @@ defmodule Cachex.LockManagerTest do
     # value after incrementing as well as whether the write took place in a
     # transaction, this demonstrating the key locking.
     write = fn(state) ->
-      Cachex.LockManager.write(state, "key", fn ->
+      Services.Locksmith.write(state, "key", fn ->
         {
           Cachex.incr!(state, "key"),
-          Cachex.LockManager.transaction?()
+          Services.Locksmith.transaction?()
         }
       end)
     end
@@ -118,7 +118,7 @@ defmodule Cachex.LockManagerTest do
     state = Cachex.State.get(cache)
 
     # execute a crashing transaction
-    result = Cachex.LockManager.transaction(state, [ ], fn ->
+    result = Services.Locksmith.transaction(state, [ ], fn ->
       raise ArgumentError, message: "oh dear"
     end)
 
@@ -126,33 +126,32 @@ defmodule Cachex.LockManagerTest do
     assert(result == { :error, "oh dear" })
   end
 
-  # The LockManager provides a `set_transaction/1` function to set the current
+  # The Locksmith provides a `transactional/1` function to set the current
   # process as transactional. This test just makes sure that this sets the flag
   # correctly between true/false.
   test "setting a transactional context" do
     # check that the current process is unset
-    is_transaction1 = Process.get(:transactional)
+    is_transaction1 = Process.get(:cachex_transaction)
 
     # ensure unsert
     assert(is_transaction1 == nil)
 
     # set the value to true
-    true = Cachex.LockManager.set_transaction(true)
+    Services.Locksmith.start_transaction()
 
     # check that the current process is true
-    is_transaction2 = Process.get(:transactional)
+    is_transaction2 = Process.get(:cachex_transaction)
 
     # ensure set to true
     assert(is_transaction2 == true)
 
     # set the value to false
-    false = Cachex.LockManager.set_transaction(false)
+    Services.Locksmith.stop_transaction()
 
     # check that the current process is false
-    is_transaction3 = Process.get(:transactional)
+    is_transaction3 = Process.get(:cachex_transaction)
 
     # ensure set to false
     assert(is_transaction3 == false)
   end
-
 end

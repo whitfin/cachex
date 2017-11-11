@@ -23,5 +23,4 @@ defmodule Cachex.Actions.Size do
   defaction size(%State{ cache: cache } = state, options) do
     { :ok, :ets.info(cache, :size) }
   end
-
 end

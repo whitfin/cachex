@@ -34,7 +34,7 @@ defmodule Cachex.Options do
          { :ok,   ttl_result } <- setup_ttl_components(cache, options)
       do
         { pre_hooks, post_hooks } = hook_result
-        { transactional, manager } = trans_result
+        { transactional, locksmith } = trans_result
         { default_ttl, ttl_interval, janitor } = ttl_result
 
         state = %Cachex.State{
@@ -45,7 +45,7 @@ defmodule Cachex.Options do
           fallback: fb_result,
           janitor: janitor,
           limit: limit_result,
-          manager: manager,
+          locksmith: locksmith,
           ode: ode_result,
           pre_hooks: pre_hooks,
           post_hooks: post_hooks,
@@ -156,7 +156,7 @@ defmodule Cachex.Options do
   defp setup_transactions(cache, options) do
     trans_opts = {
       Util.get_opt(options, :transactions, &is_boolean/1, false),
-      Names.manager(cache)
+      Names.locksmith(cache)
     }
     { :ok, trans_opts }
   end

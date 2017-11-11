@@ -28,5 +28,4 @@ defmodule Cachex.Actions.Keys do
 
     { :ok, klist }
   end
-
 end

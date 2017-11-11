@@ -38,7 +38,6 @@ defmodule Cachex do
   alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Hook
-  alias Cachex.LockManager
   alias Cachex.Options
   alias Cachex.Services
   alias Cachex.State
@@ -287,8 +286,7 @@ defmodule Cachex do
             name: Names.eternal(state.cache),
             quiet: true
           ]
-        ]),
-        worker(LockManager.Server, [ state.cache ])
+        ])
       ],
       hook_spec
     ]

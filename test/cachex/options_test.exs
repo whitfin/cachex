@@ -268,7 +268,7 @@ defmodule Cachex.OptionsTest do
   # This test will verify the parsing of transactions flags to determine whether
   # a cache has them enabled or disabled. This is simply checking whether the flag
   # is set to true or false, and the default. We also verify that the transaction
-  # manager has its name set inside the returned state.
+  # locksmith has its name set inside the returned state.
   test "parsing :transactions flags" do
     # grab a cache name
     name = Helper.create_name()
@@ -283,10 +283,10 @@ defmodule Cachex.OptionsTest do
     assert(state2.transactions == false)
     assert(state3.transactions == false)
 
-    # we also need to make sure they all have the manager name
-    assert(state1.manager == Cachex.Util.Names.manager(name))
-    assert(state2.manager == Cachex.Util.Names.manager(name))
-    assert(state3.manager == Cachex.Util.Names.manager(name))
+    # we also need to make sure they all have the locksmith name
+    assert(state1.locksmith == Cachex.Util.Names.locksmith(name))
+    assert(state2.locksmith == Cachex.Util.Names.locksmith(name))
+    assert(state3.locksmith == Cachex.Util.Names.locksmith(name))
   end
 
   # This test verifies the parsing of TTL related flags. We have to test various

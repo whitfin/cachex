@@ -26,7 +26,7 @@ defmodule Cachex.State do
             fallback: %Fallback{},  # the default fallback implementation
             janitor: nil,           # the name of the janitor attached (if any)
             limit: %Limit{},        # any limit to apply to the cache
-            manager: nil,           # the name of the manager attached
+            locksmith: nil,         # the name of the locksmith queue attached
             ode: true,              # whether we enable on-demand expiration
             pre_hooks: [],          # any pre hooks to attach
             post_hooks: [],         # any post hooks to attach

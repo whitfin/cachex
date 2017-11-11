@@ -11,7 +11,7 @@ defmodule Cachex.Services.Janitor do
 
   # add some aliases
   alias Cachex.Hook
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -86,7 +86,7 @@ defmodule Cachex.Services.Janitor do
     end
   end
   def purge_records(%State{ cache: cache } = state) do
-    LockManager.transaction(state, [ ], fn ->
+    Locksmith.transaction(state, [ ], fn ->
       { :ok, :ets.select_delete(cache, Util.retrieve_expired_rows(true)) }
     end)
   end
@@ -118,5 +118,4 @@ defmodule Cachex.Services.Janitor do
     }
     %__MODULE__{ state | last: new_last }
   end
-
 end

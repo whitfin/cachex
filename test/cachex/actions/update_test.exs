@@ -56,5 +56,4 @@ defmodule Cachex.Actions.UpdateTest do
     assert(update1 == { :missing, false })
     assert(update2 == { :missing, false })
   end
-
 end

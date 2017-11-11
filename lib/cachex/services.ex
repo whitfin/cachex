@@ -8,7 +8,6 @@ defmodule Cachex.Services do
   # what exists against a cache and what doesn't.
 
   # add some aliases
-  alias Cachex.LockManager
   alias Cachex.Services
   alias Cachex.State
   alias Supervisor.Spec
@@ -26,7 +25,7 @@ defmodule Cachex.Services do
   def app_spec,
     do: [
       supervisor(State, []),
-      supervisor(LockManager.Table, [])
+      supervisor(Services.Locksmith, [])
     ]
 
   @doc """
@@ -35,9 +34,12 @@ defmodule Cachex.Services do
   This is used to set up the supervision tree on a cache by cache basis,
   rather than embedding all of this logic into the parent module.
   """
-  @spec cache_spec(Cachex.cache) :: [ Spec.spec ]
-  def cache_spec(cache),
-    do: janitor_spec(cache)
+  @spec cache_spec(State.t) :: [ Spec.spec ]
+  def cache_spec(state) do
+    []
+    |> Enum.concat(janitor_spec(state))
+    |> Enum.concat(locksmith_spec(state))
+  end
 
   # Creates any required specifications for the Janitor services running
   # along a cache instance. This can be an empty list if the interval set
@@ -46,4 +48,10 @@ defmodule Cachex.Services do
     do: []
   defp janitor_spec(%State{ janitor: janitor } = state),
     do: [ worker(Services.Janitor, [ state, [ name: janitor ] ]) ]
+
+  # Creates any required specifications for the Locksmith services running
+  # alongside a cache instance. This will create a queue instance for any
+  # transactions executed; it does not start the global Locksmith table.
+  defp locksmith_spec(%State{ } = state),
+    do: [ worker(Services.Locksmith.Queue, [ state ]) ]
 end

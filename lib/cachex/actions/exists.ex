@@ -33,5 +33,4 @@ defmodule Cachex.Actions.Exists do
     do: { :ok, true }
   defp handle_record(_missing),
     do: { :ok, false }
-
 end

@@ -3,9 +3,9 @@ defmodule Cachex.Application do
   use Application
 
   @moduledoc false
-  # Application callback to start any needed resources. Currently we just start
-  # the State manager (which has ETS tables stored internally), and we start
-  # the LockManager table (which is global to all caches).
+  # Application callback to start any needed resources. We start all
+  # needed services using the services module, rather than hardcoding
+  # any logic into this application module.
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications

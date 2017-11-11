@@ -94,5 +94,4 @@ defmodule Cachex.Services.JanitorTest do
     # ensure we receive(d) the hook notification
     assert_receive({ { :purge, [[]] }, { :ok, 1 } })
   end
-
 end

@@ -8,6 +8,7 @@ defmodule CachexCase do
       alias CachexCase.ExecuteHook
       alias CachexCase.ForwardHook
       alias CachexCase.Helper
+      alias Cachex.Services
 
       import Cachex.Macros
       import ExUnit.CaptureLog

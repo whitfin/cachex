@@ -28,5 +28,4 @@ defmodule Cachex.Actions.TtlTest do
     # the third should return a missing value
     assert(ttl3 == { :missing, nil })
   end
-
 end

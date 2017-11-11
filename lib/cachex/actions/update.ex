@@ -9,7 +9,7 @@ defmodule Cachex.Actions.Update do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
 
   @doc """
@@ -26,9 +26,8 @@ defmodule Cachex.Actions.Update do
   proofing.
   """
   defaction update(%State{ } = state, key, value, options) do
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       Actions.update(state, key, [{ 4, value }])
     end)
   end
-
 end

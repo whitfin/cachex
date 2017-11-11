@@ -35,7 +35,8 @@ defmodule Cachex.Actions.Empty do
   # Handles the casting of the size values back into booleans. If the size is
   # more than 0, we return false. If it's 0, we return true. There will never
   # be anything accepted below 0, so we don't need to worry about it.
-  defp handle_size({ :ok, 0 }), do: { :ok, true }
-  defp handle_size(_other_val), do: { :ok, false }
-
+  defp handle_size({ :ok, 0 }),
+    do: { :ok, true }
+  defp handle_size(_other_val),
+    do: { :ok, false }
 end

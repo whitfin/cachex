@@ -11,7 +11,7 @@ defmodule Cachex.Actions.Take do
 
   # add some aliases
   alias Cachex.Hook
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -29,7 +29,7 @@ defmodule Cachex.Actions.Take do
   proofing.
   """
   defaction take(%State{ cache: cache } = state, key, options) do
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       cache
       |> :ets.take(key)
       |> handle_take(state)
@@ -49,8 +49,6 @@ defmodule Cachex.Actions.Take do
       { :ok, value }
     end
   end
-  defp handle_take(_missing, _state) do
-    { :missing, nil }
-  end
-
+  defp handle_take(_missing, _state),
+    do: { :missing, nil }
 end

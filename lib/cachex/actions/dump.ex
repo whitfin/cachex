@@ -31,5 +31,4 @@ defmodule Cachex.Actions.Dump do
     |> :ets.tab2list
     |> Disk.write(path, options)
   end
-
 end

@@ -6,33 +6,28 @@ defmodule Cachex.Util.Names do
   # component in the same way. We compile the suffixes just because they should
   # be seen as constants.
 
-  # add an alias
-  import Cachex.Util
-
-  # our component suffixes
-  @eternal_suffix "_eternal"
-  @janitor_suffix "_janitor"
-  @manager_suffix "_manager"
-  @stats_suffix   "_stats"
-
   @doc """
   Generates a component name for a Cachex Eternal table.
   """
-  def eternal(name), do: atom_append(name, @eternal_suffix)
+  def eternal(name),
+    do: :"#{name}_eternal"
 
   @doc """
   Generates a component name for a Cachex Janitor process.
   """
-  def janitor(name), do: atom_append(name, @janitor_suffix)
+  def janitor(name),
+    do: :"#{name}_janitor"
 
   @doc """
-  Generates a component name for a Cachex Manager process.
+  Generates a component name for a Cachex Locksmith process.
   """
-  def manager(name), do: atom_append(name, @manager_suffix)
+  def locksmith(name),
+    do: :"#{name}_locksmith"
 
   @doc """
   Generates a component name for a Cachex Stats process.
   """
-  def stats(name), do: atom_append(name, @stats_suffix)
+  def stats(name),
+    do: :"#{name}_stats"
 
 end

@@ -11,7 +11,7 @@ defmodule Cachex.Actions.Refresh do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -25,9 +25,8 @@ defmodule Cachex.Actions.Refresh do
   working on the same keys during execution.
   """
   defaction refresh(%State{ } = state, key, options) do
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       Actions.update(state, key, [{ 2, Util.now() }])
     end)
   end
-
 end

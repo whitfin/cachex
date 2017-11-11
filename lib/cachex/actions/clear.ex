@@ -9,7 +9,7 @@ defmodule Cachex.Actions.Clear do
 
   # add some aliases
   alias Cachex.Actions.Size
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
 
   @doc """
@@ -23,7 +23,7 @@ defmodule Cachex.Actions.Clear do
   proofing.
   """
   defaction clear(%State{ cache: cache } = state, options) do
-    LockManager.transaction(state, [], fn ->
+    Locksmith.transaction(state, [], fn ->
       evicted =
         state
         |> Size.execute(@notify_false)
@@ -37,7 +37,8 @@ defmodule Cachex.Actions.Clear do
 
   # Handles the result of the size call and transforms the result into something
   # we can safely return to the user to represent how many items were cleared.
-  defp handle_evicted({ :ok, _size } = res), do: res
-  defp handle_evicted(_other_result), do: { :ok, 0 }
-
+  defp handle_evicted({ :ok, _size } = res),
+    do: res
+  defp handle_evicted(_other_result),
+    do: { :ok, 0 }
 end
