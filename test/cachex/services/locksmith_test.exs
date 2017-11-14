@@ -126,6 +126,52 @@ defmodule Cachex.Services.LocksmithTest do
     assert(result == { :error, "oh dear" })
   end
 
+  # Locking items should only be possible if the item is not already locked,
+  # so we need to verify that this behaviour holds (otherwise we risk not
+  # being covered in case of race conditions on locks).
+  test "locking items in a table" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # retrieve the state for our cache
+    state = Cachex.State.get(cache)
+
+    # lock some keys in the cache
+    true = Services.Locksmith.lock(state, [ "key1", "key2" ])
+
+    # verify that both keys are now locked
+    locked1 = Services.Locksmith.locked(state)
+    assert(Enum.sort(locked1) == [ "key1", "key2" ])
+
+    # locking the same keys should not work
+    false = Services.Locksmith.lock(state, [ "key1" ])
+
+    # verify that both keys are still locked
+    locked2 = Services.Locksmith.locked(state)
+    assert(Enum.sort(locked2) == [ "key1", "key2" ])
+
+    # no keys should be locked if any are locked
+    false = Services.Locksmith.lock(state, [ "key2", "key3" ])
+
+    # verify that key3 was not added to the lock
+    locked3 = Services.Locksmith.locked(state)
+    assert(Enum.sort(locked3) == [ "key1", "key2" ])
+
+    # unlock the second key
+    true = Services.Locksmith.unlock(state, [ "key2" ])
+
+    # verify that only one key is now locked
+    locked4 = Services.Locksmith.locked(state)
+    assert(Enum.sort(locked4) == [ "key1" ])
+
+    # this call should now correctly lock both keys
+    true = Services.Locksmith.lock(state, [ "key2", "key3" ])
+
+    # verify that key3 was now added to the lock
+    locked5 = Services.Locksmith.locked(state)
+    assert(Enum.sort(locked5) == [ "key1", "key2", "key3" ])
+  end
+
   # The Locksmith provides a `transactional/1` function to set the current
   # process as transactional. This test just makes sure that this sets the flag
   # correctly between true/false.

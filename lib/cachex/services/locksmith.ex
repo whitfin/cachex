@@ -52,6 +52,13 @@ defmodule Cachex.Services.Locksmith do
   end
 
   @doc """
+  Returns the list of locked keys for a cache.
+  """
+  @spec locked(State.t) :: [ any ]
+  def locked(%State{ cache: cache }),
+    do: :ets.select(@lock_table, [ { { { cache, :"$1" }, :_ }, [], [ :"$1" ] } ])
+
+  @doc """
   Carries out a cache transaction.
 
   This will lock the required keys before executing the provided function. Once

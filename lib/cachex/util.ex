@@ -159,7 +159,8 @@ defmodule Cachex.Util do
   Wraps a value inside a Tuple with a given tag as first element. This is just a
   convenience function for pipelines.
   """
-  def wrap(val, tag), do: { tag, val }
+  def wrap(val, tag),
+    do: { tag, val }
 
   @doc """
   Finds the module to use for a write action based on the provided tag.

@@ -16,7 +16,7 @@ defmodule Cachex.Services.JanitorTest do
     { :ok, true } = Cachex.set(state, "key", "value", ttl: 25)
 
     # purge before the entry expires
-    purge1 = Cachex.Services.Janitor.purge_records(state)
+    purge1 = Services.Janitor.purge_records(state)
 
     # verify that the purge removed nothing
     assert(purge1 == { :ok, 0 })
@@ -25,7 +25,7 @@ defmodule Cachex.Services.JanitorTest do
     :timer.sleep(50)
 
     # purge after the entry expires
-    purge2 = Cachex.Services.Janitor.purge_records(state)
+    purge2 = Services.Janitor.purge_records(state)
 
     # verify that the purge removed the key
     assert(purge2 == { :ok, 1 })
