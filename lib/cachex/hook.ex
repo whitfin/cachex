@@ -9,10 +9,6 @@ defmodule Cachex.Hook do
   # use our constants
   use Cachex.Constants
 
-  # add some aliases
-  alias Cachex.State
-  alias Supervisor.Spec
-
   # define our opaque type
   @opaque t :: %__MODULE__{ }
 
@@ -27,130 +23,29 @@ defmodule Cachex.Hook do
             type: :post         # whether the hook runs before or after the action
 
   @doc """
-  Broadcasts a custom message to all attached post hooks.
-
-  This exists because there are a number of processes which need to submit their
-  values into the hooks, but don't have their own state or an outdated state.
-
-  It only makes sense to send to post_hooks because at this point the action has
-  already taken effect on the cache.
+  This implementation is the same as `handle_notify/2`, except we also provide
+  the results of the action as the second argument. This is only called if the
+  `results` key is set to a truthy value inside your Cachex.Hook struct.
   """
-  def broadcast(cache, action, result) when is_atom(cache) do
-    case State.get(cache) do
-      nil -> false
-      val -> notify(val.post_hooks, action, result)
-    end
-  end
-
-  @doc """
-  Groups hooks by their execution type (pre/post).
-
-  We use this to separate the execution phases in order to achieve a smaller
-  iteration at later stages of execution (it saves a microsecond or so).
-  """
-  def group_by_type(hooks) do
-    hooks
-    |> List.wrap
-    |> Enum.group_by(fn
-        (%__MODULE__{ "type": type }) -> type
-        (_) -> nil
-       end)
-    |> Map.put_new(:pre, [])
-    |> Map.put_new(:post, [])
-  end
-
-  @doc """
-  Groups hooks by a given execution type.
-
-  Internally we just use `group_by_type/1` and pluck the required type to avoid
-  duplication of code here (it's not hit often).
-  """
-  def group_by_type(hooks, type) when type in [ :pre, :post ],
-    do: group_by_type(hooks)[type]
-
-  @doc """
-  Notifies a listener of the passed in data.
-
-  If the data is a list, we convert it to a tuple in order to make it easier to
-  pattern match against. We accept a list of listeners in order to allow for
-  multiple (plugin style) listeners. Initially had the empty clause at the top
-  but this way is better (at the very worst it's the same performance).
-  """
-  def notify(hooks, action, result \\ nil)
-  def notify([hook|tail], action, result) do
-    do_notify(hook, { action, result })
-    notify(tail, action, result)
-  end
-  def notify([], _action, _result),
-    do: true
-
-  # Internal emission, used to define whether we send using an async request or
-  # not. We also determine whether to pass the results back at this point or not.
-  # This only happens for post-hooks, and if the results have been requested. We
-  # skip the overhead in GenEvent and go straight to `send/2` to gain all speed
-  # possible here.
-  defp do_notify(%__MODULE__{ ref: nil }, _event),
-    do: nil
-  defp do_notify(%__MODULE__{ async: true, ref: ref }, event),
-    do: GenServer.cast(ref, { :cachex_notify, event })
-  defp do_notify(%__MODULE__{ max_timeout: nil, ref: ref }, event),
-    do: GenServer.call(ref, { :cachex_notify, event }, :infinity)
-  defp do_notify(%__MODULE__{ max_timeout: val, ref: ref }, event),
-    do: GenServer.call(ref, { :cachex_notify, event, val }, :infinity)
-
-  @doc """
-  Generates a Supervisor specification for a hook.
-  """
-  def spec(%__MODULE__{ module: mod, args: args, server_args: opts }),
-    do: Spec.worker(GenServer, [ mod, args, opts ], [ id: mod ])
-
-  @doc """
-  Validates a set of Hooks.
-
-  On successful validation, this returns a list of valid hooks against a Tuple
-  tagged as ok. If any of the hooks are invalid, we halt and return an error in
-  order to indicate the error to the user.
-  """
-  def validate(hooks) do
-    hooks
-    |> List.wrap
-    |> do_validate([])
-  end
-
-  # Validates a list of Hooks. If a hook has a valid module backing it, it is
-  # treated as valid (any crashes following are down to the user at that point).
-  # If not, we return an error to halt the validation. To check for a valid module,
-  # we just try to call `__info__/1` on the module.
-  defp do_validate([ %__MODULE__{ module: mod } = hook | rest ], acc) do
-    try do
-      mod.__info__(:module)
-      do_validate(rest, [ hook | acc ])
-    rescue
-      _ -> @error_invalid_hook
-    end
-  end
-  defp do_validate([ _invalid | _rest ], _acc),
-    do: @error_invalid_hook
-  defp do_validate([ ], acc),
-    do: { :ok, Enum.reverse(acc) }
+  @callback handle_notify(tuple, tuple, any) :: { :ok, any }
 
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      # inherit GenEvent
+      # inherit server
       use GenServer
 
       # force the Hook behaviours
-      @behaviour Cachex.Hook.Behaviour
+      @behaviour Cachex.Hook
 
       @doc false
       def init(args) do
-        {:ok, args}
+        { :ok, args }
       end
 
       @doc false
-      def handle_notify(event, results, state) do
-        {:ok, state}
+      def handle_notify(event, result, state) do
+        { :ok, state }
       end
 
       @doc false
@@ -196,4 +91,32 @@ defmodule Cachex.Hook do
     end
   end
 
+  @doc """
+  Validates a set of Hooks.
+
+  On successful validation, this returns a list of valid hooks against a Tuple
+  tagged as ok. If any of the hooks are invalid, we halt and return an error in
+  order to indicate the error to the user.
+  """
+  def validate(hooks) when is_list(hooks),
+    do: do_validate(hooks, [])
+  def validate(hook),
+    do: do_validate([ hook ], [])
+
+  # Validates a list of Hooks. If a hook has a valid module backing it, it is
+  # treated as valid (any crashes following are down to the user at that point).
+  # If not, we return an error to halt the validation. To check for a valid module,
+  # we just try to call `__info__/1` on the module.
+  defp do_validate([ %__MODULE__{ module: mod } = hook | rest ], acc) do
+    try do
+      mod.__info__(:module)
+      do_validate(rest, [ hook | acc ])
+    rescue
+      _ -> @error_invalid_hook
+    end
+  end
+  defp do_validate([ _invalid | _rest ], _acc),
+    do: @error_invalid_hook
+  defp do_validate([ ], acc),
+    do: { :ok, Enum.reverse(acc) }
 end

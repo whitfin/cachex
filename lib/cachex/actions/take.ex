@@ -10,10 +10,13 @@ defmodule Cachex.Actions.Take do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.Hook
-  alias Cachex.LockManager
+  alias Cachex.Services
   alias Cachex.State
   alias Cachex.Util
+
+  # add services
+  alias Services.Informant
+  alias Services.Locksmith
 
   @doc """
   Takes a given item from the cache.
@@ -29,7 +32,7 @@ defmodule Cachex.Actions.Take do
   proofing.
   """
   defaction take(%State{ cache: cache } = state, key, options) do
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       cache
       |> :ets.take(key)
       |> handle_take(state)
@@ -41,16 +44,15 @@ defmodule Cachex.Actions.Take do
   # make clear that it was correctly evicted (we don't have to remove it because
   # taking it from the cache removes it). If no value comes back, we just jump
   # to returning a missing result and a nil value.
-  defp handle_take([{ _key, touched, ttl, value }], %State{ cache: cache } = state) do
-    if Util.has_expired?(state, touched, ttl) do
-      Hook.broadcast(cache, @purge_override_call, @purge_override_result)
-      { :missing, nil }
-    else
-      { :ok, value }
+  defp handle_take([{ _key, touched, ttl, value }], %State{ } = state) do
+    case Util.has_expired?(state, touched, ttl) do
+      false ->
+        { :ok, value }
+      true ->
+        Informant.broadcast(state, @purge_override_call, @purge_override_result)
+        { :missing, nil }
     end
   end
-  defp handle_take(_missing, _state) do
-    { :missing, nil }
-  end
-
+  defp handle_take(_missing, _state),
+    do: { :missing, nil }
 end

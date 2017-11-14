@@ -1,16 +1,6 @@
 defmodule Cachex.UtilTest do
   use CachexCase
 
-  # This test ensures that `Cachex.Util.append_atom/2` can append a binary to the
-  # end of an atom and successfully convert the result back into an atom.
-  test "appending a string to an atom" do
-    # convert :base to have a suffix "_name"
-    base_name = Cachex.Util.atom_append(:base, "_name")
-
-    # we should have a result of :base_name
-    assert(base_name == :base_name)
-  end
-
   # This test ensures that we have an appropriate result when convering a number
   # of bytes to a human readable format. The function can recursively handle any
   # magnitude up to a TiB, so we need to make sure we test each level. Note that

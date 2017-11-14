@@ -46,7 +46,7 @@ defmodule Cachex.Actions.TransactionTest do
 
     # ensure a new transaction executes normally
     result2 = Cachex.transaction(cache, [ ], fn(_state) ->
-      Cachex.LockManager.transaction?()
+      Cachex.Services.Locksmith.transaction?()
     end)
 
     # verify the results are correct
@@ -76,5 +76,4 @@ defmodule Cachex.Actions.TransactionTest do
     # verify transactions are now enabled
     assert(state2.transactions == true)
   end
-
 end

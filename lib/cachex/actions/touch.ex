@@ -11,7 +11,7 @@ defmodule Cachex.Actions.Touch do
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Actions.Ttl
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -32,7 +32,7 @@ defmodule Cachex.Actions.Touch do
   proofing.
   """
   defaction touch(%State{ } = state, key, options) do
-    LockManager.transaction(state, [ key ], fn ->
+    Locksmith.transaction(state, [ key ], fn ->
       state
       |> Ttl.execute(key, @notify_false)
       |> handle_ttl(state, key)
@@ -45,14 +45,10 @@ defmodule Cachex.Actions.Touch do
   # also update the TTL to the time remaining (so there is no change in TTL when
   # the touch time changes). If the TTL returns missing we just return a false
   # to the use to signify that the key was not touched because it was missing.
-  defp handle_ttl({ :ok, nil }, state, key) do
-    Actions.update(state, key, [{ 2, Util.now() }])
-  end
-  defp handle_ttl({ :ok, val }, state, key) do
-    Actions.update(state, key, [{ 2, Util.now() }, { 3, val }])
-  end
-  defp handle_ttl({ :missing, nil }, _state, _key) do
-    { :missing, false }
-  end
-
+  defp handle_ttl({ :ok, nil }, state, key),
+    do: Actions.update(state, key, [{ 2, Util.now() }])
+  defp handle_ttl({ :ok, val }, state, key),
+    do: Actions.update(state, key, [{ 2, Util.now() }, { 3, val }])
+  defp handle_ttl({ :missing, nil }, _state, _key),
+    do: { :missing, false }
 end

@@ -10,8 +10,8 @@ defmodule Cachex.Actions.Set do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.LockManager
   alias Cachex.Record
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -27,9 +27,8 @@ defmodule Cachex.Actions.Set do
     ttlval = Util.get_opt(options, :ttl, &is_integer/1)
     record = Record.create(state, key, value, ttlval)
 
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       Actions.write(state, record)
     end)
   end
-
 end

@@ -17,8 +17,11 @@ defmodule Cachex.Policy.LRW do
   use Cachex.Hook
 
   # add internal aliases
-  alias Cachex.Hook
+  alias Cachex.Services
   alias Cachex.Util
+
+  # alias any services
+  alias Services.Informant
 
   # store a list of actions which add items to the cache, as we only need to then
   # operate on these actions - this allows us to optimize and avoid checking size
@@ -36,9 +39,8 @@ defmodule Cachex.Policy.LRW do
 
   We store a state of the maximum size, and a calculated number to trim to.
   """
-  def init({ max_size, trim_bound }) do
-    { :ok, { max_size, round(max_size * trim_bound), nil } }
-  end
+  def init({ max_size, trim_bound }),
+    do: { :ok, { max_size, round(max_size * trim_bound), nil } }
 
   @doc """
   Checks and enforces the bounds of the cache as needed.
@@ -61,9 +63,8 @@ defmodule Cachex.Policy.LRW do
   This worker is then used going forward for any cache calls to avoid the overhead
   of looking up the state. Again an optimization.
   """
-  def handle_info({ :provision, { :worker, worker } }, { max_size, trim_bound, _worker }) do
-    { :noreply, { max_size, trim_bound, worker } }
-  end
+  def handle_info({ :provision, { :worker, worker } }, { max_size, trim_bound, _worker }),
+    do: { :noreply, { max_size, trim_bound, worker } }
 
   # Suggest stepping through this pipeline a function at a time and reading the
   # associated comments. This pipeline controls the trimming of the cache to fit
@@ -103,17 +104,15 @@ defmodule Cachex.Policy.LRW do
   # size, the reclaim bound, and the current size of the cache. A positive result
   # from this function means we need to carry out evictions, whereas a negative
   # means that the cache is currently underpopulated.
-  defp calculate_reclaim(current_size, max_size, reclaim_bound) do
-    (max_size - reclaim_bound - current_size) * -1
-  end
+  defp calculate_reclaim(current_size, max_size, reclaim_bound),
+    do: (max_size - reclaim_bound - current_size) * -1
 
   # Calculates the purge offset of the cache. Basically this means that if the
   # cache is overpopulated, we would trigger a Janitor purge to see if it brings
   # us back under the cache limit. The resulting amount to remove is then returned.
   # Again, a positive result means that we still have evictions to carry out.
-  defp calculate_poffset(reclaim_space, state) when reclaim_space > 0 do
-    reclaim_space - Cachex.purge!(state)
-  end
+  defp calculate_poffset(reclaim_space, state) when reclaim_space > 0,
+    do: reclaim_space - Cachex.purge!(state)
 
   # This is the cuts of the cache trimming. If the provided offset is negative,
   # it means that the cache is within the maximum size and so we just pass through
@@ -134,9 +133,8 @@ defmodule Cachex.Policy.LRW do
 
     offset
   end
-  defp erase_lower_bound(offset, _state) do
-    offset
-  end
+  defp erase_lower_bound(offset, _state),
+    do: offset
 
   # This function erases a QLC cursor by taking in a provided cursor and removing
   # the first N elements from the cursor. Removals are done in batches according
@@ -175,11 +173,8 @@ defmodule Cachex.Policy.LRW do
   # based on size and not on TTL. The evictions done during the purge earlier in
   # the pipeline are reported separately and we're only reporting the delta at this
   # point in time.
-  defp notify_worker(offset, state) when offset > 0 do
-    Hook.notify(state.post_hooks, { :clear, [[]] }, { :ok, offset })
-  end
-  defp notify_worker(_offset, _state) do
-    { :ok, 0 }
-  end
-
+  defp notify_worker(offset, state) when offset > 0,
+    do: Informant.broadcast(state, { :clear, [[]] }, { :ok, offset })
+  defp notify_worker(_offset, _state),
+    do: { :ok, 0 }
 end

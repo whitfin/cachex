@@ -10,10 +10,10 @@ defmodule Cachex.Util.NamesTest do
 
     # generate possible combinations
     components = [
-      eternal: "#{name}_eternal",
-      janitor: "#{name}_janitor",
-      manager: "#{name}_manager",
-      stats:   "#{name}_stats"
+      eternal:   "#{name}_eternal",
+      janitor:   "#{name}_janitor",
+      locksmith: "#{name}_locksmith",
+      stats:     "#{name}_stats"
     ]
 
     # retrieve the errors length
@@ -48,5 +48,4 @@ defmodule Cachex.Util.NamesTest do
       validate.(component, expected)
     end
   end
-
 end

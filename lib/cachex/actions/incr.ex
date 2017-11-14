@@ -9,8 +9,8 @@ defmodule Cachex.Actions.Incr do
 
   # add some aliases
   alias Cachex.Actions.Exists
-  alias Cachex.LockManager
   alias Cachex.Record
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -27,12 +27,12 @@ defmodule Cachex.Actions.Incr do
   the write chain.
   """
   defaction incr(%State{ cache: cache } = state, key, options) do
-    amount  = parse_opt(options, :amount,  1)
-    initial = parse_opt(options, :initial, 0)
+    amount  = Util.get_opt(options,  :amount, &is_integer/1, 1)
+    initial = Util.get_opt(options, :initial, &is_integer/1, 0)
 
     default = Record.create(state, key, initial)
 
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       existed = Exists.execute(state, key, @notify_false)
 
       try do
@@ -52,11 +52,4 @@ defmodule Cachex.Actions.Incr do
     do: { :ok, val }
   defp handle_existed(val, { :ok, false }),
     do: { :missing, val }
-
-  # Parses an integer option out of the options list. This is just here because
-  # it makes the parsing of `amount` and `initial` a little more readable.
-  defp parse_opt(opts, key, default) do
-    Util.get_opt(opts, key, &is_integer/1, default)
-  end
-
 end

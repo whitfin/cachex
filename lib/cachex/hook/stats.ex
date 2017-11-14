@@ -18,9 +18,8 @@ defmodule Cachex.Hook.Stats do
   We set a `:creationDate` field inside the `:meta` sub-Map to contain the date
   that the statistics were first created.
   """
-  def init(_options \\ []) do
-    { :ok, %{ meta: %{ creationDate: Util.now() } } }
-  end
+  def init(_options \\ []),
+    do: { :ok, %{ meta: %{ creationDate: Util.now() } } }
 
   @doc """
   Registers actions against the stats container.
@@ -38,15 +37,12 @@ defmodule Cachex.Hook.Stats do
   @doc """
   Returns the current stats container to the calling process.
   """
-  def handle_call(:retrieve, _ctx, stats) do
-    { :reply, stats, stats }
-  end
+  def handle_call(:retrieve, _ctx, stats),
+    do: { :reply, stats, stats }
 
   @doc """
   Retrieves the current stats container from the Stats process.
   """
-  def retrieve(ref) do
-    GenServer.call(ref, :retrieve)
-  end
-
+  def retrieve(ref),
+    do: GenServer.call(ref, :retrieve)
 end

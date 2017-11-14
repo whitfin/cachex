@@ -11,7 +11,7 @@ defmodule Cachex.Actions.Reset do
   # add some aliases
   alias Cachex.Actions.Clear
   alias Cachex.Hook
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
 
   @doc """
@@ -25,7 +25,7 @@ defmodule Cachex.Actions.Reset do
   evident that a reset happened when you see that your hook has reinitialized.
   """
   def execute(%State{ } = state, options) do
-    LockManager.transaction(state, [ ], fn ->
+    Locksmith.transaction(state, [ ], fn ->
       only =
         options
         |> Keyword.get(:only, [ :cache, :hooks ])
@@ -78,16 +78,13 @@ defmodule Cachex.Actions.Reset do
 
   # This function determines if a hook should be reset. It should only be reset
   # if it exists inside the set of hooks to reset.
-  defp should_reset?(%Hook{ module: mod }, hook_set) do
-    MapSet.member?(hook_set, mod)
-  end
+  defp should_reset?(%Hook{ module: mod }, hook_set),
+    do: MapSet.member?(hook_set, mod)
 
   # Notifies a hook of the reset. This simply forwards the hook arguments to the
   # hook alongside a reset message to signal that the hook needs to reinitialize.
   # There is a listener built into the server implementation backing hooks which
   # will handle this automatically, so there's nothing more we need to do.
-  defp notify_reset(%Hook{ args: args, ref: ref }) do
-    GenServer.cast(ref, { :cachex_reset, args })
-  end
-
+  defp notify_reset(%Hook{ args: args, ref: ref }) ,
+    do: GenServer.cast(ref, { :cachex_reset, args })
 end

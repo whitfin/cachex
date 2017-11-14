@@ -11,7 +11,7 @@ defmodule Cachex.Actions.Invoke do
 
   # add some aliases
   alias Cachex.Actions.Get
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -45,8 +45,8 @@ defmodule Cachex.Actions.Invoke do
   # consistency, before retrieving the value of the key. This value is then passed
   # through to the command and the return value is used to dictate the new value
   # to be written to the cache, as well as the value to return.
-  defp do_invoke({ :modify, fun }, state, key)  when is_function(fun, 1) do
-    LockManager.transaction(state, [ key ], fn ->
+  defp do_invoke({ :modify, fun }, %State{ } = state, key) when is_function(fun, 1) do
+    Locksmith.transaction(state, [ key ], fn ->
       { status, value } = Get.execute(state, key, @notify_false)
       { return, tempv } = fun.(value)
 
@@ -60,6 +60,6 @@ defmodule Cachex.Actions.Invoke do
 
   # Carries out an invocation. If the command retrieved is invalid, we just pass
   # an error back to the caller instead of trying to do anything too clever.
-  defp do_invoke(_cmd, _state, _key), do: @error_invalid_command
-
+  defp do_invoke(_cmd, _state, _key),
+    do: @error_invalid_command
 end

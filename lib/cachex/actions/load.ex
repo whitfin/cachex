@@ -30,5 +30,4 @@ defmodule Cachex.Actions.Load do
       { :ok, :ets.insert(cache, terms) }
     end
   end
-
 end

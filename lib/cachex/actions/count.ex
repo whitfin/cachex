@@ -27,5 +27,4 @@ defmodule Cachex.Actions.Count do
 
     { :ok, count }
   end
-
 end

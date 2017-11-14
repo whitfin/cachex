@@ -39,5 +39,4 @@ defmodule Cachex.Actions.Ttl do
     do: { :ok, touched + ttl - Util.now() }
   defp handle_record(_missing),
     do: { :missing, nil }
-
 end

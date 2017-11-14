@@ -8,7 +8,7 @@ defmodule Cachex.Actions.Del do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
 
   @doc """
@@ -18,16 +18,15 @@ defmodule Cachex.Actions.Del do
   of whether the key existed in the cache previously, it is guaranteed to not
   exist any longer.
 
-  We execute the delete calls under a LockManager context to ensure that we're
+  We execute the delete calls under a Locksmith context to ensure that we're
   respective of any Transaction locks currently being held against the key.
 
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
   defaction del(%State{ cache: cache } = state, key, options) do
-    LockManager.write(state, key, fn ->
+    Locksmith.write(state, key, fn ->
       { :ok, :ets.delete(cache, key) }
     end)
   end
-
 end

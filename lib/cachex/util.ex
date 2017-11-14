@@ -10,12 +10,6 @@ defmodule Cachex.Util do
   @stgs [ :missing, :new ]
 
   @doc """
-  Appends a string to an atom and returns as an atom.
-  """
-  def atom_append(atom, suffix),
-  do: String.to_atom("#{atom}#{suffix}")
-
-  @doc """
   Converts a number of memory bytes to a binary representation.
 
   Several things to note here:
@@ -122,7 +116,8 @@ defmodule Cachex.Util do
   @doc """
   Consistency wrapper around current time in millis.
   """
-  def now, do: :os.system_time(1000)
+  def now,
+    do: :os.system_time(1000)
 
   @doc """
   Transforms an option value from inside a Keyword list using a provided transformer.
@@ -164,7 +159,8 @@ defmodule Cachex.Util do
   Wraps a value inside a Tuple with a given tag as first element. This is just a
   convenience function for pipelines.
   """
-  def wrap(val, tag), do: { tag, val }
+  def wrap(val, tag),
+    do: { tag, val }
 
   @doc """
   Finds the module to use for a write action based on the provided tag.
@@ -195,5 +191,4 @@ defmodule Cachex.Util do
     do: :"$3"
   defp do_field_normalize(field),
     do: field
-
 end

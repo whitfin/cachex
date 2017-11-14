@@ -29,7 +29,8 @@ defmodule Cachex.Actions.Inspect do
   options so we call a private function named `inspect/2`, and each option is
   documented individually.
   """
-  def execute(state, option), do: inspect(state, option)
+  def execute(state, option),
+    do: inspect(state, option)
 
   # Returns the number of expired documents which currently live inside the cache
   # (i.e. those which will be removed if a Janitor purge executes). We do this
@@ -80,9 +81,8 @@ defmodule Cachex.Actions.Inspect do
   # Retrieves the current word count of the underlying ETS table backing the cache
   # and returns it in an ok Tuple. It is unlikely the user will ever need this,
   # but the other memory inspections use it so it doesn't hurt to expose it anyway.
-  defp inspect(%State{ cache: cache }, { :memory, :words }) do
-    { :ok, :ets.info(cache, :memory) }
-  end
+  defp inspect(%State{ cache: cache }, { :memory, :words }),
+    do: { :ok, :ets.info(cache, :memory) }
 
   # Retrieves a raw record from the cache, specified by the provided key. This
   # is useful when you need access to a record which may have expired. If the
@@ -97,11 +97,10 @@ defmodule Cachex.Actions.Inspect do
   # Simply returns the current state of the cache. This is easy enough to get
   # through other methods, but it's available here to refer to as the "best"
   # way for a consumer to do so (someone who isn't developing Cachex).
-  defp inspect(%State{ cache: cache }, :state) do
-    { :ok, State.get(cache) }
-  end
+  defp inspect(%State{ cache: cache }, :state),
+    do: { :ok, State.get(cache) }
 
   # This is just a catch all to tell the user they asked for an invalid option.
-  defp inspect(_cache, _option), do: @error_invalid_option
-
+  defp inspect(_cache, _option),
+    do: @error_invalid_option
 end

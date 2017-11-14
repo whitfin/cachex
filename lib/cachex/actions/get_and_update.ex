@@ -11,7 +11,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   alias Cachex.Actions.Get
 
   # add other aliases
-  alias Cachex.LockManager
+  alias Cachex.Services.Locksmith
   alias Cachex.State
   alias Cachex.Util
 
@@ -28,7 +28,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   to update the existing record.
   """
   defaction get_and_update(%State{ } = state, key, update_fun, options) do
-    LockManager.transaction(state, [ key ], fn ->
+    Locksmith.transaction(state, [ key ], fn ->
       { status, value } = Get.execute(state, key, @notify_false)
 
       value

@@ -22,9 +22,8 @@ defmodule Cachex.Stats do
 
   # Clearing a cache returns the number of entries removed, so we update both the
   # total cleared as well as the global eviction count.
-  defp process_action(:clear, { _status, value }) do
-    [ { :clear, :total, value }, { :global, :evictionCount, value } ]
-  end
+  defp process_action(:clear, { _status, value }),
+    do: [ { :clear, :total, value }, { :global, :evictionCount, value } ]
 
   # Deleting a key should increment the delete count by 1 and the global eviction
   # count by 1.
@@ -48,9 +47,8 @@ defmodule Cachex.Stats do
 
   # Purging receives the number of keys removed from the cache, so we use this
   # number to increment the exiredCount in the global namespace.
-  defp process_action(:purge, { _status, value }) do
-    [ { :purge, :total, value }, { :global, :expiredCount, value } ]
-  end
+  defp process_action(:purge, { _status, value }),
+    do: [ { :purge, :total, value }, { :global, :expiredCount, value } ]
 
   # Sets always update the global namespace and the setCount key.
   defp process_action(:set, { _status, value }) do
@@ -92,15 +90,13 @@ defmodule Cachex.Stats do
   end
 
   # Retriving a value will update the global stats to represent whether the key existed or not.
-  defp process_action(action, { status, _value }) when action in [ :get, :fetch ] do
-    [ { action, status, 1 }, { :global, normalize_status(status), 1 } ]
-  end
+  defp process_action(action, { status, _value }) when action in [ :get, :fetch ],
+    do: [ { action, status, 1 }, { :global, normalize_status(status), 1 } ]
 
   # Both the get_and_update and increment calls do either an update or a set depending on whether
   # the key existed in the cache before the operation.
-  defp process_action(action, { status, _value }) when action in [ :decr, :incr ] do
-    [ { action, status, 1 }, { :global, status == :ok && :updateCount || :setCount, 1 } ]
-  end
+  defp process_action(action, { status, _value }) when action in [ :decr, :incr ],
+    do: [ { action, status, 1 }, { :global, status == :ok && :updateCount || :setCount, 1 } ]
 
   # Any TTL based changes just carry out updates inside the cache, so we increment the update count
   # in the global namespace.
@@ -113,16 +109,14 @@ defmodule Cachex.Stats do
   end
 
   # Catch all stats should simply increment the call count by 1.
-  defp process_action(action, _result) do
-    [ { action, :calls, 1 } ]
-  end
+  defp process_action(action, _result),
+    do: [ { action, :calls, 1 } ]
 
   # Increments a given set of statistics by a given amount. If the amount is not
   # provided, we default to a value of 1. We accept a list of fields to work with
   # as it's not unusual for an action to increment various fields at the same time.
-  defp increment({ action, fields, amount }, stats) do
-    increment(stats, action, List.wrap(fields), amount)
-  end
+  defp increment({ action, fields, amount }, stats),
+    do: increment(stats, action, List.wrap(fields), amount)
   defp increment(stats, action, fields, amount \\ 1) do
     { _, updated_stats } = Map.get_and_update(stats, action, fn(inner_stats) ->
       action_stats =
