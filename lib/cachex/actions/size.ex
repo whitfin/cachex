@@ -8,7 +8,7 @@ defmodule Cachex.Actions.Size do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.State
+  alias Cachex.Cache
 
   @doc """
   Retrieve the size of the cache.
@@ -20,7 +20,6 @@ defmodule Cachex.Actions.Size do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction size(%State{ cache: cache } = state, options) do
-    { :ok, :ets.info(cache, :size) }
-  end
+  defaction size(%Cache{ name: name } = cache, options),
+    do: { :ok, :ets.info(name, :size) }
 end

@@ -10,7 +10,7 @@ defmodule Cachex.Services.JanitorTest do
     cache = Helper.create_cache()
 
     # fetch the state
-    state = Cachex.State.get(cache)
+    state = Cachex.Cache.get(cache)
 
     # add a new cache entry
     { :ok, true } = Cachex.set(state, "key", "value", ttl: 25)
@@ -57,7 +57,7 @@ defmodule Cachex.Services.JanitorTest do
     cache = Helper.create_cache([ hooks: hooks, ttl_interval: ttl_interval ])
 
     # retrieve the cache state
-    state = Cachex.State.get(cache)
+    state = Cachex.Cache.get(cache)
 
     # add a new cache entry
     { :ok, true } = Cachex.set(cache, "key", "value", ttl: ttl_value)

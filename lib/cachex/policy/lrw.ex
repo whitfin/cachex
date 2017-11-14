@@ -17,6 +17,7 @@ defmodule Cachex.Policy.LRW do
   use Cachex.Hook
 
   # add internal aliases
+  alias Cachex.Cache
   alias Cachex.Services
   alias Cachex.Util
 
@@ -87,16 +88,16 @@ defmodule Cachex.Policy.LRW do
   # size as an optimization to speed up message processing when no evictions need
   # to happen. This is a slight speed boost, but it's noticeable - tests will fail
   # intermittently if this is not checked in this way.
-  defp enforce_bounds({ max_size, reclaim_bound, state }) do
-    case Cachex.size!(state, [ notify: false ]) do
+  defp enforce_bounds({ max_size, reclaim_bound, cache }) do
+    case Cachex.size!(cache, [ notify: false ]) do
       cache_size when cache_size <= max_size ->
-        notify_worker(0, state)
+        notify_worker(0, cache)
       cache_size ->
         cache_size
         |> calculate_reclaim(max_size, reclaim_bound)
-        |> calculate_poffset(state)
-        |> erase_lower_bound(state)
-        |> notify_worker(state)
+        |> calculate_poffset(cache)
+        |> erase_lower_bound(cache)
+        |> notify_worker(cache)
     end
   end
 
@@ -111,8 +112,8 @@ defmodule Cachex.Policy.LRW do
   # cache is overpopulated, we would trigger a Janitor purge to see if it brings
   # us back under the cache limit. The resulting amount to remove is then returned.
   # Again, a positive result means that we still have evictions to carry out.
-  defp calculate_poffset(reclaim_space, state) when reclaim_space > 0,
-    do: reclaim_space - Cachex.purge!(state)
+  defp calculate_poffset(reclaim_space, cache) when reclaim_space > 0,
+    do: reclaim_space - Cachex.purge!(cache)
 
   # This is the cuts of the cache trimming. If the provided offset is negative,
   # it means that the cache is within the maximum size and so we just pass through
@@ -124,12 +125,12 @@ defmodule Cachex.Policy.LRW do
   # it comes to removing the document, and the touch time is used to determine
   # the sorted order required for implementing LRW. We transform this sort using
   # a QLC cursor and pass it through to `erase_cursor/3` to delete.
-  defp erase_lower_bound(offset, %{ cache: cache }) when offset > 0 do
-    cache
+  defp erase_lower_bound(offset, %Cache{ name: name }) when offset > 0 do
+    name
     |> :ets.table([ traverse: { :select, @qlc_match } ])
     |> :qlc.sort([ order: fn({ _k1, t1 }, { _k2, t2  }) -> t1 < t2 end ])
     |> :qlc.cursor
-    |> erase_cursor(cache, offset)
+    |> erase_cursor(name, offset)
 
     offset
   end

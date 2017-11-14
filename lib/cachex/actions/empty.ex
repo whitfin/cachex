@@ -9,8 +9,8 @@ defmodule Cachex.Actions.Empty do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Actions.Size
-  alias Cachex.State
 
   @doc """
   Checks whether the cache contains any records.
@@ -26,8 +26,8 @@ defmodule Cachex.Actions.Empty do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction empty?(%State{ } = state, options) do
-    state
+  defaction empty?(%Cache{ } = cache, options) do
+    cache
     |> Size.execute(@notify_false)
     |> handle_size
   end

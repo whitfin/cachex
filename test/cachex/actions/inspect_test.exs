@@ -133,11 +133,11 @@ defmodule Cachex.Actions.InspectTest do
     cache = Helper.create_cache()
 
     # retrieve the cache state
-    state1 = Cachex.State.get(cache)
+    state1 = Cachex.Cache.get(cache)
 
     # update the state to have a different setting
-    state2 = Cachex.State.update(cache, fn(state) ->
-      %Cachex.State{ state | transactions: true }
+    state2 = Cachex.Cache.update(cache, fn(state) ->
+      %Cachex.Cache{ state | transactions: true }
     end)
 
     # retrieve the state via inspection

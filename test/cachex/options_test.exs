@@ -11,7 +11,7 @@ defmodule Cachex.OptionsTest do
     { :ok, state } = Cachex.Options.parse(name, [])
 
     # assert the name is added
-    assert(state.cache == name)
+    assert(state.name == name)
   end
 
   # This test makes sure that we can correctly parse out commands which are to
@@ -150,7 +150,7 @@ defmodule Cachex.OptionsTest do
 
   # This test will ensure that we can parse Hook values successfully. Hooks can
   # be provided as either a List or a single Hook. We also need to check that
-  # Hooks are grouped into the correct pre/post groups inside the State.
+  # Hooks are grouped into the correct pre/post groups inside the state.
   test "parsing :hooks flags" do
     # grab a cache name
     name = Helper.create_name()
@@ -191,7 +191,7 @@ defmodule Cachex.OptionsTest do
   end
 
   # This test ensures that the max size options can be correctly parsed. Parsing
-  # this flag will set the Limit field inside the returned State, so it needs to
+  # this flag will set the Limit field inside the returned state, so it needs to
   # be checked. It will also add any Limit hooks to the hooks list, so this needs
   # to also be verified within this test.
   test "parsing :limit flags" do
@@ -244,7 +244,7 @@ defmodule Cachex.OptionsTest do
     assert(state3.ode ==  true)
   end
 
-  # This test will verify the ability to record stats in a State. This option
+  # This test will verify the ability to record stats in a state. This option
   # will just add the Cachex Stats hook to the list of hooks inside the cache.
   # We just need to verify that the hook is added after being parsed.
   test "parsing :record_stats flags" do

@@ -6,8 +6,8 @@ defmodule Cachex.Actions.Transaction do
   # little bit of massaging.
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.State
 
   @doc """
   Executes a Transaction against the cache.
@@ -20,9 +20,9 @@ defmodule Cachex.Actions.Transaction do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  def execute(%State{ } = state, keys, operation, _options) do
-    Locksmith.transaction(state, keys, fn ->
-      { :ok, operation.(state) }
+  def execute(%Cache{ } = cache, keys, operation, _options) do
+    Locksmith.transaction(cache, keys, fn ->
+      { :ok, operation.(cache) }
     end)
   end
 end

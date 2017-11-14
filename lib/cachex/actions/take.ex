@@ -10,8 +10,8 @@ defmodule Cachex.Actions.Take do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Services
-  alias Cachex.State
   alias Cachex.Util
 
   # add services
@@ -31,11 +31,11 @@ defmodule Cachex.Actions.Take do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction take(%State{ cache: cache } = state, key, options) do
-    Locksmith.write(state, key, fn ->
-      cache
+  defaction take(%Cache{ name: name } = cache, key, options) do
+    Locksmith.write(cache, key, fn ->
+      name
       |> :ets.take(key)
-      |> handle_take(state)
+      |> handle_take(cache)
     end)
   end
 
@@ -44,15 +44,15 @@ defmodule Cachex.Actions.Take do
   # make clear that it was correctly evicted (we don't have to remove it because
   # taking it from the cache removes it). If no value comes back, we just jump
   # to returning a missing result and a nil value.
-  defp handle_take([{ _key, touched, ttl, value }], %State{ } = state) do
-    case Util.has_expired?(state, touched, ttl) do
+  defp handle_take([{ _key, touched, ttl, value }], %Cache{ } = cache) do
+    case Util.has_expired?(cache, touched, ttl) do
       false ->
         { :ok, value }
       true ->
-        Informant.broadcast(state, @purge_override_call, @purge_override_result)
+        Informant.broadcast(cache, @purge_override_call, @purge_override_result)
         { :missing, nil }
     end
   end
-  defp handle_take(_missing, _state),
+  defp handle_take(_missing, _cache),
     do: { :missing, nil }
 end

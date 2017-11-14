@@ -4,7 +4,6 @@ defmodule Cachex.ActionsTest do
   # for our Action macros
   import Cachex.Actions
 
-
   test "carrying out generic read actions" do
     # create a forwarding hook
     hook = ForwardHook.create(%{ results: true })
@@ -13,7 +12,7 @@ defmodule Cachex.ActionsTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # retrieve the state
-    state = Cachex.State.get(cache)
+    state = Cachex.Cache.get(cache)
 
     # write several values
     { :ok, true } = Cachex.set(cache, 1, 1)
@@ -51,7 +50,7 @@ defmodule Cachex.ActionsTest do
     cache = Helper.create_cache()
 
     # retrieve the state
-    state = Cachex.State.get(cache)
+    state = Cachex.Cache.get(cache)
 
     # write some values into the cache
     write1 = Cachex.Actions.write(state, { "key", 1, nil, "value" })
@@ -97,8 +96,8 @@ defmodule Cachex.ActionsTest do
     cache2 = Helper.create_cache([ hooks: [ hook2 ] ])
 
     # get the states for each cache
-    state1 = Cachex.State.get(cache1)
-    state2 = Cachex.State.get(cache2)
+    state1 = Cachex.Cache.get(cache1)
+    state2 = Cachex.Cache.get(cache2)
 
     # execute some actions
     5  = execute(state1, 5, [])
@@ -126,6 +125,6 @@ defmodule Cachex.ActionsTest do
   end
 
   # Use our actions Macro internally as a test example for scoping.
-  defaction test(state, value, options), do: value
-
+  defaction test(cache, value, options),
+    do: value
 end

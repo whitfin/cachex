@@ -1,4 +1,4 @@
-defmodule Cachex.State do
+defmodule Cachex.Cache do
   @moduledoc false
   # This module controls the state of caches being handled by Cachex. This is part
   # of an experiment to see if it's viable to remove the internal GenServer to
@@ -13,13 +13,14 @@ defmodule Cachex.State do
   use Cachex.Constants
 
   # add any aliases
+  alias Cachex.Cache
   alias Cachex.Fallback
   alias Cachex.Hook
   alias Cachex.Limit
   alias Supervisor.Spec
 
   # internal state struct
-  defstruct cache: nil,             # the name of the cache
+  defstruct name: nil,              # the name of the cache
             commands: %{},          # any custom commands attached to the cache
             ets_opts: [],           # any options to give to ETS
             default_ttl: nil,       # any default ttl values to use
@@ -63,13 +64,13 @@ defmodule Cachex.State do
   If the cache cannot be coerced into the given state, a nil value is returned.
   If it can be coerced, the body is unquoted and executed.
   """
-  defmacro enforce(cache, state, do: body) do
+  defmacro enforce(name, cache, do: body) do
     quote do
-      case Cachex.State.ensure(unquote(cache)) do
+      case Cache.ensure(unquote(name)) do
         nil ->
           @error_no_cache
-        unquote(state) ->
-          if :erlang.whereis(unquote(state).cache) != :undefined do
+        unquote(cache) ->
+          if :erlang.whereis(unquote(cache).name) != :undefined do
             unquote(body)
           else
             @error_no_cache
@@ -82,27 +83,27 @@ defmodule Cachex.State do
   Removes a state from the local state table.
   """
   @spec del(atom) :: true
-  def del(cache) when is_atom(cache),
-    do: :ets.delete(@state_table, cache)
+  def del(name) when is_atom(name),
+    do: :ets.delete(@state_table, name)
 
   @doc """
   Ensures a state from a cache name or state.
   """
-  @spec ensure(atom | State.t) :: State.t | nil
-  def ensure(%__MODULE__{ } = state),
-    do: state
-  def ensure(cache) when is_atom(cache),
-    do: get(cache)
+  @spec ensure(atom | Cache.t) :: Cache.t | nil
+  def ensure(%__MODULE__{ } = cache),
+    do: cache
+  def ensure(name) when is_atom(name),
+    do: get(name)
   def ensure(_miss),
     do: nil
 
   @doc """
   Retrieves a state from the local state table, or `nil` if none exists.
   """
-  @spec get(atom) :: State.t | nil
-  def get(cache) do
-    case :ets.lookup(@state_table, cache) do
-      [{ ^cache, state }] ->
+  @spec get(atom) :: Cache.t | nil
+  def get(name) do
+    case :ets.lookup(@state_table, name) do
+      [{ ^name, state }] ->
         state
       _other ->
         nil
@@ -113,15 +114,15 @@ defmodule Cachex.State do
   Determines whether the given cache is provided in the state table.
   """
   @spec member?(atom) :: true | false
-  def member?(cache) when is_atom(cache),
-    do: :ets.member(@state_table, cache)
+  def member?(name) when is_atom(name),
+    do: :ets.member(@state_table, name)
 
   @doc """
   Sets a state in the local state table.
   """
-  @spec set(atom, State.t) :: true
-  def set(cache, %__MODULE__{ } = state) when is_atom(cache),
-    do: :ets.insert(@state_table, { cache, state })
+  @spec set(atom, Cache.t) :: true
+  def set(name, %__MODULE__{ } = cache) when is_atom(name),
+    do: :ets.insert(@state_table, { name, cache })
 
   @doc """
   Determines whether the tables for this module have been setup correctly.
@@ -141,12 +142,12 @@ defmodule Cachex.State do
   Carries out a blocking set of actions against the state table.
   """
   @spec transaction(atom, ( -> any)) :: any
-  def transaction(cache, fun) when is_atom(cache) and is_function(fun, 0) do
-    Agent.get(@transaction_manager, fn(state) ->
+  def transaction(name, fun) when is_atom(name) and is_function(fun, 0) do
+    Agent.get(@transaction_manager, fn(cache) ->
       try do
         fun.()
       rescue
-        _ -> state
+        _ -> cache
       end
     end)
   end
@@ -157,13 +158,13 @@ defmodule Cachex.State do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(atom, State.t | (State.t -> State.t)) :: State.t
-  def update(cache, fun) when is_atom(cache) and is_function(fun, 1) do
-    transaction(cache, fn ->
-      cstate = get(cache)
+  @spec update(atom, Cache.t | (Cache.t -> Cache.t)) :: Cache.t
+  def update(name, fun) when is_atom(name) and is_function(fun, 1) do
+    transaction(name, fn ->
+      cstate = get(name)
       nstate = fun.(cstate)
 
-      set(cache, nstate)
+      set(name, nstate)
 
       nstate.pre_hooks
       |> Enum.concat(nstate.post_hooks)
@@ -173,8 +174,8 @@ defmodule Cachex.State do
       nstate
     end)
   end
-  def update(cache, %__MODULE__{ } = state) when is_atom(cache),
-    do: update(cache, fn _ -> state end)
+  def update(name, %__MODULE__{ } = cache) when is_atom(name),
+    do: update(name, fn _ -> cache end)
 
   # Verifies whether a Hook requires a state worker. If it does, return true
   # otherwise return a false.

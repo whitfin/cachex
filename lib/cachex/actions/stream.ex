@@ -9,7 +9,7 @@ defmodule Cachex.Actions.Stream do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.State
+  alias Cachex.Cache
   alias Cachex.Util
 
   # our test record for testing matches
@@ -32,7 +32,7 @@ defmodule Cachex.Actions.Stream do
   has provided a valid return type. If they haven't, we return an error before
   creating a cursor or the Stream itself.
   """
-  defaction stream(%State{ cache: cache } = state, options) do
+  defaction stream(%Cache{ name: name } = cache, options) do
     spec =
       options
       |> Keyword.get(:of, { { :key, :value } })
@@ -40,24 +40,24 @@ defmodule Cachex.Actions.Stream do
 
     @test
     |> :ets.test_ms(spec)
-    |> handle_test(cache, spec)
+    |> handle_test(name, spec)
   end
 
   # Handles the result of testing the users match spec. If it's invalid we just
   # return an error and halt execution. If it's a valid match, we return a new
   # stream inside an ok Tuple after initializing it with the given spec.
-  defp handle_test({ :ok, _result }, cache, spec),
-    do: { :ok, init_stream(cache, spec) }
-  defp handle_test({ :error, _result }, _cache, _spec),
+  defp handle_test({ :ok, _result }, name, spec),
+    do: { :ok, init_stream(name, spec) }
+  defp handle_test({ :error, _result }, _name, _spec),
     do: @error_invalid_match
 
   # Initializes a Stream resource using an underlying ETS cursor as the resource.
   # Every time more items are requested, we pull another batch of items until the
   # cursor is finished, in which case we halt the Stream and kill the cursor.
-  defp init_stream(cache, spec) do
+  defp init_stream(name, spec) do
     Stream.resource(
       fn ->
-        cache
+        name
         |> :ets.table([ { :traverse, { :select, spec } }])
         |> :qlc.cursor
       end,
@@ -80,6 +80,5 @@ defmodule Cachex.Actions.Stream do
   defp handle_answers([ ], cursor),
     do: { :halt, cursor }
   defp handle_answers(ans, cursor),
-    do: {   ans, cursor }
-
+    do: { ans, cursor }
 end

@@ -9,7 +9,7 @@ defmodule Cachex.Actions.Exists do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.State
+  alias Cachex.Cache
 
   @doc """
   Checks if an item exists in a cache.
@@ -21,8 +21,8 @@ defmodule Cachex.Actions.Exists do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction exists?(%State{ } = state, key, options) do
-    state
+  defaction exists?(%Cache{ } = cache, key, options) do
+    cache
     |> Actions.read(key)
     |> handle_record
   end

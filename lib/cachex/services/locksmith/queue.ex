@@ -17,17 +17,17 @@ defmodule Cachex.Services.Locksmith.Queue do
   log output. This may be configurable in future, but this table will likely
   never cause an issue in the first place (as it handles only basic interactions).
   """
-  def start_link(%Cachex.State{ locksmith: locksmith } = state),
-    do: GenServer.start_link(__MODULE__, state, [ name: locksmith ])
+  def start_link(%Cachex.Cache{ locksmith: locksmith } = cache),
+    do: GenServer.start_link(__MODULE__, cache, [ name: locksmith ])
 
   @doc """
   Sets the current process as transactional and returns the cache as the state.
   """
-  def init(state) do
+  def init(cache) do
     # signal transactional
     start_transaction()
     # cache is state
-    { :ok, state }
+    { :ok, cache }
   end
 
   @doc """
@@ -36,8 +36,8 @@ defmodule Cachex.Services.Locksmith.Queue do
   Because locks are handled sequentially inside this process, this execution can
   guarantee that there are no locks currently set on the table when it fires.
   """
-  def handle_call({ :exec, func }, _ctx, state),
-    do: { :reply, safe_exec(func), state }
+  def handle_call({ :exec, func }, _ctx, cache),
+    do: { :reply, safe_exec(func), cache }
 
   @doc """
   Executes a function in a transactional context.
@@ -47,12 +47,12 @@ defmodule Cachex.Services.Locksmith.Queue do
   writing them, and forcing those processes to queue their writes up inside this
   process.
   """
-  def handle_call({ :transaction, keys, func }, _ctx, state) do
-    true = lock(state, keys)
+  def handle_call({ :transaction, keys, func }, _ctx, cache) do
+    true = lock(cache, keys)
     val  = safe_exec(func)
-    true = unlock(state, keys)
+    true = unlock(cache, keys)
 
-    { :reply, val, state }
+    { :reply, val, cache }
   end
 
   # Simply a wrapper around provided functions to ensure that error handling is

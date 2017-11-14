@@ -8,8 +8,8 @@ defmodule Cachex.Actions.Purge do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Services
-  alias Cachex.State
   alias Services.Janitor
 
   @doc """
@@ -22,7 +22,6 @@ defmodule Cachex.Actions.Purge do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction purge(%State{ } = state, options) do
-    Janitor.purge_records(state)
-  end
+  defaction purge(%Cache{ } = cache, options),
+    do: Janitor.purge_records(cache)
 end

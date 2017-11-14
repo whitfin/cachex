@@ -9,9 +9,9 @@ defmodule Cachex.Actions.Incr do
 
   # add some aliases
   alias Cachex.Actions.Exists
+  alias Cachex.Cache
   alias Cachex.Record
   alias Cachex.Services.Locksmith
-  alias Cachex.State
   alias Cachex.Util
 
   @doc """
@@ -26,17 +26,17 @@ defmodule Cachex.Actions.Incr do
   the call to exists. We try to execute everything possible before blocking
   the write chain.
   """
-  defaction incr(%State{ cache: cache } = state, key, options) do
+  defaction incr(%Cache{ name: name } = cache, key, options) do
     amount  = Util.get_opt(options,  :amount, &is_integer/1, 1)
     initial = Util.get_opt(options, :initial, &is_integer/1, 0)
 
-    default = Record.create(state, key, initial)
+    default = Record.create(cache, key, initial)
 
-    Locksmith.write(state, key, fn ->
-      existed = Exists.execute(state, key, @notify_false)
+    Locksmith.write(cache, key, fn ->
+      existed = Exists.execute(cache, key, @notify_false)
 
       try do
-        cache
+        name
         |> :ets.update_counter(key, { 4, amount }, default)
         |> handle_existed(existed)
       rescue

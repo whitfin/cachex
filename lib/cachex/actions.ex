@@ -12,8 +12,8 @@ defmodule Cachex.Actions do
   use Cachex.Constants
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Services
-  alias Cachex.State
   alias Cachex.Util
 
   # alias services
@@ -31,11 +31,11 @@ defmodule Cachex.Actions do
   arity. This is because it makes little sense to do `Cachex.Actions.Ttl.ttl()`
   for example.
   """
-  defmacro defaction({ name, _line, [ _state | stateless_args ] = arguments }, do: body) do
+  defmacro defaction({ name, _line, [ _cache | stateless_args ] = arguments }, do: body) do
     quote location: :keep do
       def execute(unquote_splicing(arguments)) do
         local_opts  = var!(options)
-        local_state = var!(state)
+        local_state = var!(cache)
 
         notify = Keyword.get(local_opts, :notify, true)
 
@@ -68,11 +68,11 @@ defmodule Cachex.Actions do
   If the key does not exist we return a `nil` value. If the key has expired, we
   delete it from the cache using the `:purge` action as a notification.
   """
-  @spec read(state :: State.t, key :: any) :: Record.t | nil
-  def read(%{ cache: cache } = state, key) do
-    cache
+  @spec read(cache :: Cache.t, key :: any) :: Record.t | nil
+  def read(%Cache{ name: name } = cache, key) do
+    name
     |> :ets.lookup(key)
-    |> handle_read(state)
+    |> handle_read(cache)
   end
 
   @doc """
@@ -82,9 +82,9 @@ defmodule Cachex.Actions do
   two-step get/update from the Worker interface to accomplish the same. We then
   use a reduction to modify the Tuple.
   """
-  @spec update(state :: State.t, key :: any, changes :: [{}]) :: { :ok, true | false }
-  def update(%State{ cache: cache }, key, changes) do
-    cache
+  @spec update(cache :: Cache.t, key :: any, changes :: [{}]) :: { :ok, true | false }
+  def update(%Cache{ name: name }, key, changes) do
+    name
     |> :ets.update_element(key, changes)
     |> handle_update
   end
@@ -93,22 +93,22 @@ defmodule Cachex.Actions do
   Writes a record into the cache, and returns a result signifying whether the
   write was successful or not.
   """
-  @spec write(state :: State.t, record :: Record.t) :: { :ok, true | false }
-  def write(%State{ cache: cache }, record),
-    do: { :ok, :ets.insert(cache, record) }
+  @spec write(cache :: Cache.t, record :: Record.t) :: { :ok, true | false }
+  def write(%Cache{ name: name }, record),
+    do: { :ok, :ets.insert(name, record) }
 
   # Handles the reesult from a read action in order to handle any expirations
   # set against the key. If the key has expired, we purge it immediately to avoid
   # any issues with consistency. If the record is valid, we just return it as is.
-  defp handle_read([{ key, touched, ttl, _value } = record], state) do
-    if Util.has_expired?(state, touched, ttl) do
-      __MODULE__.Del.execute(state, key, @purge_override)
+  defp handle_read([{ key, touched, ttl, _value } = record], cache) do
+    if Util.has_expired?(cache, touched, ttl) do
+      __MODULE__.Del.execute(cache, key, @purge_override)
       nil
     else
       record
     end
   end
-  defp handle_read(_missing, _state),
+  defp handle_read(_missing, _cache),
     do: nil
 
   # Handles an update result, converting a falsey result into a Tuple tagged with

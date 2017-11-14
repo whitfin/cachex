@@ -9,8 +9,8 @@ defmodule Cachex.Actions.Dump do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Disk
-  alias Cachex.State
 
   @doc """
   Dumps a cache to disk at the given location.
@@ -26,8 +26,8 @@ defmodule Cachex.Actions.Dump do
   Passing a 0 compressed flag will disable compression. This is way faster than
   the default compression, but the file size will increase dramatically.
   """
-  defaction dump(%State{ cache: cache } = state, path, options) do
-    cache
+  defaction dump(%Cache{ name: name } = cache, path, options) do
+    name
     |> :ets.tab2list
     |> Disk.write(path, options)
   end

@@ -1,4 +1,4 @@
-defmodule Cachex.StateTest do
+defmodule Cachex.CacheTest do
   use CachexCase
 
   # This test case just covers the addition of a new state into the state table.
@@ -8,19 +8,19 @@ defmodule Cachex.StateTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.State{ cache: name }
+    state = %Cachex.Cache{ name: name }
 
     # set our state in the table
-    Cachex.State.set(name, state)
+    Cachex.Cache.set(name, state)
 
     # ensure that the state exists
-    assert(Cachex.State.member?(name))
+    assert(Cachex.Cache.member?(name))
 
     # remove our state from the table
-    Cachex.State.del(name)
+    Cachex.Cache.del(name)
 
     # ensure the state is gone
-    refute(Cachex.State.member?(name))
+    refute(Cachex.Cache.member?(name))
   end
 
   # Ensures that we receive a state from the input if possible. If we provide a
@@ -31,20 +31,20 @@ defmodule Cachex.StateTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.State{ cache: name }
+    state = %Cachex.Cache{ name: name }
 
     # set our state in the table
-    Cachex.State.set(name, state)
+    Cachex.Cache.set(name, state)
 
     # ensure that the state comes back
-    assert(Cachex.State.ensure(state) === state)
-    assert(Cachex.State.ensure(name) === state)
+    assert(Cachex.Cache.ensure(state) === state)
+    assert(Cachex.Cache.ensure(name) === state)
 
     # remove our state from the table
-    Cachex.State.del(name)
+    Cachex.Cache.del(name)
 
     # ensure the state is gone
-    assert(Cachex.State.ensure(name) == nil)
+    assert(Cachex.Cache.ensure(name) == nil)
   end
 
   # Covers the retrieval of a cache state from inside the table. We just have to
@@ -55,13 +55,13 @@ defmodule Cachex.StateTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.State{ cache: name }
+    state = %Cachex.Cache{ name: name }
 
     # set our state in the table
-    Cachex.State.set(name, state)
+    Cachex.Cache.set(name, state)
 
     # pull back the state from the table
-    result = Cachex.State.get(name)
+    result = Cachex.Cache.get(name)
 
     # ensure nothing has changed
     assert(result == state)
@@ -82,16 +82,16 @@ defmodule Cachex.StateTest do
     name = Helper.create_cache([ hooks: hook ])
 
     # retrieve our state
-    state = Cachex.State.get(name)
+    state = Cachex.Cache.get(name)
 
     # store our updated states
-    update1 = %Cachex.State{ state | default_ttl: 5 }
-    update2 = %Cachex.State{ state | default_ttl: 3 }
+    update1 = %Cachex.Cache{ state | default_ttl: 5 }
+    update2 = %Cachex.Cache{ state | default_ttl: 3 }
 
     # update in parallel with a wait to make sure that writes block and always
     # execute in sequence, regardless of when they actually update
     spawn(fn ->
-      Cachex.State.update(name, fn(_) ->
+      Cachex.Cache.update(name, fn(_) ->
         :timer.sleep(25)
         update1
       end)
@@ -101,7 +101,7 @@ defmodule Cachex.StateTest do
     :timer.sleep(5)
 
     # begin to update our state in advance of the spawned process
-    Cachex.State.update(name, fn(_) ->
+    Cachex.Cache.update(name, fn(_) ->
       update2
     end)
 
@@ -109,7 +109,7 @@ defmodule Cachex.StateTest do
     :timer.sleep(50)
 
     # pull back the state from the table
-    result = Cachex.State.get(name)
+    result = Cachex.Cache.get(name)
 
     # ensure the last call is the new value
     assert(result.default_ttl == 3)
@@ -127,24 +127,23 @@ defmodule Cachex.StateTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.State{ cache: name }
+    state = %Cachex.Cache{ name: name }
 
     # set our state in the table
-    Cachex.State.set(name, state)
+    Cachex.Cache.set(name, state)
 
     # ensure that the state exists
-    assert(Cachex.State.member?(name))
+    assert(Cachex.Cache.member?(name))
 
     # begin a bad update on the table
-    Cachex.State.update(name, fn(_) ->
+    Cachex.Cache.update(name, fn(_) ->
       raise ArgumentError
     end)
 
     # pull back the state from the table
-    result = Cachex.State.get(name)
+    result = Cachex.Cache.get(name)
 
     # ensure that the state has persisted
     assert(result == state)
   end
-
 end

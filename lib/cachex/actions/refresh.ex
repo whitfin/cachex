@@ -11,8 +11,8 @@ defmodule Cachex.Actions.Refresh do
 
   # add some aliases
   alias Cachex.Actions
+  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.State
   alias Cachex.Util
 
   @doc """
@@ -24,9 +24,9 @@ defmodule Cachex.Actions.Refresh do
   We execute inside a lock-aware context to ensure that no other operation is
   working on the same keys during execution.
   """
-  defaction refresh(%State{ } = state, key, options) do
-    Locksmith.write(state, key, fn ->
-      Actions.update(state, key, [{ 2, Util.now() }])
+  defaction refresh(%Cache{ } = cache, key, options) do
+    Locksmith.write(cache, key, fn ->
+      Actions.update(cache, key, [{ 2, Util.now() }])
     end)
   end
 end

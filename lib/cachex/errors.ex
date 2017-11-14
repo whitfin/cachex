@@ -50,7 +50,7 @@ defmodule Cachex.Errors do
   def long_form(:non_numeric_value),
     do: "Attempted arithmetic operations on a non-numeric value"
   def long_form(:not_started),
-    do: "State table not active, have you started the Cachex application?"
+    do: "Cache table not active, have you started the Cachex application?"
   def long_form(:stats_disabled),
     do: "Stats are not enabled for the specified cache"
   def long_form(:unreachable_file),

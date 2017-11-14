@@ -13,7 +13,7 @@ defmodule Cachex.Actions.TouchTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # pull back the state
-    state = Cachex.State.get(cache)
+    state = Cachex.Cache.get(cache)
 
     # add some keys to the cache
     { :ok, true } = Cachex.set(cache, 1, 1)

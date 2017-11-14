@@ -8,7 +8,7 @@ defmodule Cachex.Actions.Count do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.State
+  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -21,9 +21,9 @@ defmodule Cachex.Actions.Count do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction count(%State{ cache: cache } = state, options) do
+  defaction count(%Cache{ name: name } = cache, options) do
     query = Util.retrieve_all_rows(true)
-    count = :ets.select_count(cache, query)
+    count = :ets.select_count(name, query)
 
     { :ok, count }
   end

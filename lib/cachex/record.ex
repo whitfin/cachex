@@ -13,7 +13,7 @@ defmodule Cachex.Record do
   }
 
   # add any aliases
-  alias Cachex.State
+  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -22,6 +22,6 @@ defmodule Cachex.Record do
   If the value passed is nil, then we apply any defaults. Otherwise we add the value
   to the current time (in milliseconds) and return a Tuple for the table.
   """
-  def create(%State{ } = state, key, value, expiration \\ nil),
-    do: { key, Util.now(), expiration || state.default_ttl, value }
+  def create(%Cache{ } = cache, key, value, expiration \\ nil),
+    do: { key, Util.now(), expiration || cache.default_ttl, value }
 end

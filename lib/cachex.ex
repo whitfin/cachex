@@ -35,24 +35,24 @@ defmodule Cachex do
 
   # add some aliases
   alias Cachex.Actions
+  alias Cachex.Cache
   alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Options
   alias Cachex.Services
-  alias Cachex.State
   alias Cachex.Util
 
   # alias any services
   alias Services.Informant
 
   # import util macros
-  require Cachex.State
+  require Cachex.Cache
 
   # avoid inspect clashes
   import Kernel, except: [ inspect: 2 ]
 
   # the cache type
-  @type cache :: atom | State.t
+  @type cache :: atom | Cache.t
 
   # custom status type
   @type status :: :ok | :error | :missing
@@ -224,16 +224,16 @@ defmodule Cachex do
 
   """
   @spec start_link(atom, Keyword.t, Keyword.t) :: { atom, pid }
-  def start_link(cache, options \\ [], server_opts \\ [])
-  def start_link(cache, _options, _server_opts) when not is_atom(cache),
+  def start_link(name, options \\ [], server_opts \\ [])
+  def start_link(name, _options, _server_opts) when not is_atom(name),
     do: @error_invalid_name
-  def start_link(cache, options, server_opts) do
+  def start_link(name, options, server_opts) do
     with { :ok,  true } <- ensure_started(),
-         { :ok,  true } <- ensure_unused(cache),
-         { :ok, state } <- setup_env(cache, options),
-         { :ok,   pid }  = Supervisor.start_link(__MODULE__, state, [ name: cache ] ++ server_opts),
-         { :ok,  link }  = Informant.link(state),
-                ^link   <- State.update(cache, link),
+         { :ok,  true } <- ensure_unused(name),
+         { :ok, cache } <- setup_env(name, options),
+         { :ok,   pid }  = Supervisor.start_link(__MODULE__, cache, [ name: name ] ++ server_opts),
+         { :ok,  link }  = Informant.link(cache),
+                ^link   <- Cache.update(name, link),
      do: { :ok,   pid }
   end
 
@@ -247,8 +247,8 @@ defmodule Cachex do
   Supervision tree.
   """
   @spec start(atom, Keyword.t, Keyword.t) :: { atom, pid }
-  def start(cache, options \\ [], server_opts \\ []) do
-    with { :ok, pid } <- start_link(cache, options, server_opts) do
+  def start(name, options \\ [], server_opts \\ []) do
+    with { :ok, pid } <- start_link(name, options, server_opts) do
       :erlang.unlink(pid) && { :ok, pid }
     end
   end
@@ -258,9 +258,9 @@ defmodule Cachex do
   #
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
-  @spec init(state :: State.t) :: { status, any }
-  def init(%State{ } = state) do
-    state
+  @spec init(cache :: Cache.t) :: { status, any }
+  def init(%Cache{ } = cache) do
+    cache
     |> Services.cache_spec
     |> supervise(strategy: :one_for_one)
   end
@@ -279,9 +279,9 @@ defmodule Cachex do
 
   """
   @spec get(cache, any, Keyword.t) :: { status | :loaded, any }
-  def get(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Get.execute(state, key, options)
+  def get(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Get.execute(cache, key, options)
     end
   end
 
@@ -310,10 +310,10 @@ defmodule Cachex do
 
   """
   @spec get_and_update(cache, any, function, Keyword.t) :: { status | :loaded, any }
-  def get_and_update(cache, key, update_function, options \\ [])
+  def get_and_update(name, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
-    State.enforce(cache, state) do
-      Actions.GetAndUpdate.execute(state, key, update_function, options)
+    Cache.enforce(name, cache) do
+      Actions.GetAndUpdate.execute(cache, key, update_function, options)
     end
   end
 
@@ -341,9 +341,9 @@ defmodule Cachex do
 
   """
   @spec set(cache, any, any, Keyword.t) :: { status, true | false }
-  def set(cache, key, value, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Set.execute(state, key, value, options)
+  def set(name, key, value, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Set.execute(cache, key, value, options)
     end
   end
 
@@ -373,9 +373,9 @@ defmodule Cachex do
 
   """
   @spec update(cache, any, any, Keyword.t) :: { status, any }
-  def update(cache, key, value, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Update.execute(state, key, value, options)
+  def update(name, key, value, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Update.execute(cache, key, value, options)
     end
   end
 
@@ -395,9 +395,9 @@ defmodule Cachex do
 
   """
   @spec del(cache, any, Keyword.t) :: { status, true | false }
-  def del(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Del.execute(state, key, options)
+  def del(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Del.execute(cache, key, options)
     end
   end
 
@@ -419,9 +419,9 @@ defmodule Cachex do
 
   """
   @spec clear(cache, Keyword.t) :: { status, true | false }
-  def clear(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Clear.execute(state, options)
+  def clear(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Clear.execute(cache, options)
     end
   end
 
@@ -442,9 +442,9 @@ defmodule Cachex do
 
   """
   @spec count(cache, Keyword.t) :: { status, number }
-  def count(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Count.execute(state, options)
+  def count(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Count.execute(cache, options)
     end
   end
 
@@ -478,9 +478,9 @@ defmodule Cachex do
 
   """
   @spec decr(cache, any, Keyword.t) :: { status, number }
-  def decr(cache, key, options \\ []) do
+  def decr(name, key, options \\ []) do
     mod_opts = Keyword.update(options, :amount, -1, &(&1 * -1))
-    incr(cache, key, via({ :decr, [ key, options ] }, mod_opts))
+    incr(name, key, via({ :decr, [ key, options ] }, mod_opts))
   end
 
   @doc """
@@ -507,10 +507,10 @@ defmodule Cachex do
 
   """
   @spec dump(cache, binary, Keyword.t) :: { status, any }
-  def dump(cache, path, options \\ [])
+  def dump(name, path, options \\ [])
   when is_binary(path) and is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Dump.execute(state, path, options)
+    Cache.enforce(name, cache) do
+      Actions.Dump.execute(cache, path, options)
     end
   end
 
@@ -535,9 +535,9 @@ defmodule Cachex do
 
   """
   @spec empty?(cache, Keyword.t) :: { status, true | false }
-  def empty?(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Empty.execute(state, options)
+  def empty?(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Empty.execute(cache, options)
     end
   end
 
@@ -565,10 +565,10 @@ defmodule Cachex do
 
   """
   @spec execute(cache, function, Keyword.t) :: { status, any }
-  def execute(cache, operation, options \\ [])
+  def execute(name, operation, options \\ [])
   when is_function(operation, 1) and is_list(options) do
-    State.enforce(cache, state) do
-      operation.(state)
+    Cache.enforce(name, cache) do
+      operation.(cache)
     end
   end
 
@@ -590,9 +590,9 @@ defmodule Cachex do
 
   """
   @spec exists?(cache, any, Keyword.t) :: { status, true | false }
-  def exists?(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Exists.execute(state, key, options)
+  def exists?(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Exists.execute(cache, key, options)
     end
   end
 
@@ -623,10 +623,10 @@ defmodule Cachex do
 
   """
   @spec expire(cache, any, number, Keyword.t) :: { status, true | false }
-  def expire(cache, key, expiration, options \\ [])
+  def expire(name, key, expiration, options \\ [])
   when (expiration == nil or is_number(expiration)) and is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Expire.execute(state, key, expiration, options)
+    Cache.enforce(name, cache) do
+      Actions.Expire.execute(cache, key, expiration, options)
     end
   end
 
@@ -654,10 +654,10 @@ defmodule Cachex do
 
   """
   @spec expire_at(cache, binary, number, Keyword.t) :: { status, true | false }
-  def expire_at(cache, key, timestamp, options \\ [])
+  def expire_at(name, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
     via_opts = via({ :expire_at, [ key, timestamp, options ] }, options)
-    expire(cache, key, timestamp - Util.now(), via_opts)
+    expire(name, key, timestamp - Util.now(), via_opts)
   end
 
   @doc """
@@ -687,10 +687,10 @@ defmodule Cachex do
 
   """
   @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
-  def fetch(cache, key, fallback, options \\ [])
+  def fetch(name, key, fallback, options \\ [])
   when is_function(fallback) and is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Fetch.execute(state, key, fallback, options)
+    Cache.enforce(name, cache) do
+      Actions.Fetch.execute(cache, key, fallback, options)
     end
   end
 
@@ -711,9 +711,9 @@ defmodule Cachex do
 
   """
   @spec keys(cache, Keyword.t) :: { status, [ any ] }
-  def keys(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Keys.execute(state, options)
+  def keys(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Keys.execute(cache, options)
     end
   end
 
@@ -747,9 +747,9 @@ defmodule Cachex do
 
   """
   @spec incr(cache, any, Keyword.t) :: { status, number }
-  def incr(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Incr.execute(state, key, options)
+  def incr(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Incr.execute(cache, key, options)
     end
   end
 
@@ -808,7 +808,7 @@ defmodule Cachex do
 
       iex> Cachex.inspect(:my_cache, :state)
       {:ok,
-       %Cachex.State{cache: :my_cache, commands: %{}, default_ttl: nil,
+       %Cachex.Cache{name: :name, commands: %{}, default_ttl: nil,
         ets_opts: [read_concurrency: true, write_concurrency: true],
         fallback: %Cachex.Fallback{action: nil, state: nil},
         janitor: :my_cache_janitor,
@@ -818,9 +818,9 @@ defmodule Cachex do
 
   """
   @spec inspect(cache, atom | tuple) :: { status, any }
-  def inspect(cache, option) do
-    State.enforce(cache, state) do
-      Actions.Inspect.execute(state, option)
+  def inspect(name, option) do
+    Cache.enforce(name, cache) do
+      Actions.Inspect.execute(cache, option)
     end
   end
 
@@ -841,9 +841,9 @@ defmodule Cachex do
 
   """
   @spec invoke(cache, any, atom, Keyword.t) :: any
-  def invoke(cache, key, cmd, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Invoke.execute(state, key, cmd, options)
+  def invoke(name, key, cmd, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Invoke.execute(cache, key, cmd, options)
     end
   end
 
@@ -863,10 +863,10 @@ defmodule Cachex do
 
   """
   @spec load(cache, binary, Keyword.t) :: { status, any }
-  def load(cache, path, options \\ [])
+  def load(name, path, options \\ [])
   when is_binary(path) and is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Load.execute(state, path, options)
+    Cache.enforce(name, cache) do
+      Actions.Load.execute(cache, path, options)
     end
   end
 
@@ -887,8 +887,8 @@ defmodule Cachex do
 
   """
   @spec persist(cache, any, Keyword.t) :: { status, true | false }
-  def persist(cache, key, options \\ []) when is_list(options),
-  do: expire(cache, key, nil, via({ :persist, [ key, options ] }, options))
+  def persist(name, key, options \\ []) when is_list(options),
+  do: expire(name, key, nil, via({ :persist, [ key, options ] }, options))
 
   @doc """
   Triggers a mass deletion of all expired keys.
@@ -907,9 +907,9 @@ defmodule Cachex do
 
   """
   @spec purge(cache, Keyword.t) :: { status, number }
-  def purge(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Purge.execute(state, options)
+  def purge(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Purge.execute(cache, options)
     end
   end
 
@@ -936,9 +936,9 @@ defmodule Cachex do
 
   """
   @spec refresh(cache, any, Keyword.t) :: { status, true | false }
-  def refresh(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Refresh.execute(state, key, options)
+  def refresh(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Refresh.execute(cache, key, options)
     end
   end
 
@@ -969,9 +969,9 @@ defmodule Cachex do
 
   """
   @spec reset(cache, Keyword.t) :: { status, true }
-  def reset(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Reset.execute(state, options)
+  def reset(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Reset.execute(cache, options)
     end
   end
 
@@ -991,9 +991,9 @@ defmodule Cachex do
 
   """
   @spec size(cache, Keyword.t) :: { status, number }
-  def size(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Size.execute(state, options)
+  def size(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Size.execute(cache, options)
     end
   end
 
@@ -1027,9 +1027,9 @@ defmodule Cachex do
 
   """
   @spec stats(cache, Keyword.t) :: { status, %{ } }
-  def stats(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Stats.execute(state, options)
+  def stats(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Stats.execute(cache, options)
     end
   end
 
@@ -1067,9 +1067,9 @@ defmodule Cachex do
 
   """
   @spec stream(cache, Keyword.t) :: { status, Enumerable.t }
-  def stream(cache, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Stream.execute(state, options)
+  def stream(name, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Stream.execute(cache, options)
     end
   end
 
@@ -1092,9 +1092,9 @@ defmodule Cachex do
 
   """
   @spec take(cache, any, Keyword.t) :: { status, any }
-  def take(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Take.execute(state, key, options)
+  def take(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Take.execute(cache, key, options)
     end
   end
 
@@ -1104,9 +1104,9 @@ defmodule Cachex do
   This is similar to `refresh/3` except that TTLs are maintained.
   """
   @spec touch(cache, any, Keyword.t) :: { status, true | false }
-  def touch(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Touch.execute(state, key, options)
+  def touch(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Touch.execute(cache, key, options)
     end
   end
 
@@ -1139,14 +1139,14 @@ defmodule Cachex do
 
   """
   @spec transaction(cache, [ any ], function, Keyword.t) :: { status, any }
-  def transaction(cache, keys, operation, options \\ [])
+  def transaction(name, keys, operation, options \\ [])
   when is_function(operation, 1) and is_list(keys) and is_list(options) do
-    State.enforce(cache, state) do
-      if state.transactions do
-        Actions.Transaction.execute(state, keys, operation, options)
+    Cache.enforce(name, cache) do
+      if cache.transactions do
+        Actions.Transaction.execute(cache, keys, operation, options)
       else
-        cache
-        |> State.update(&%State{ &1 | transactions: true })
+        name
+        |> Cache.update(&%Cache{ &1 | transactions: true })
         |> Actions.Transaction.execute(keys, operation, options)
       end
     end
@@ -1165,9 +1165,9 @@ defmodule Cachex do
 
   """
   @spec ttl(cache, any, Keyword.t) :: { status, number }
-  def ttl(cache, key, options \\ []) when is_list(options) do
-    State.enforce(cache, state) do
-      Actions.Ttl.execute(state, key, options)
+  def ttl(name, key, options \\ []) when is_list(options) do
+    Cache.enforce(name, cache) do
+      Actions.Ttl.execute(cache, key, options)
     end
   end
 
@@ -1178,7 +1178,7 @@ defmodule Cachex do
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
   defp ensure_started do
-    if State.setup?() do
+    if Cache.setup?() do
       { :ok, true }
     else
       @error_not_started
@@ -1200,11 +1200,11 @@ defmodule Cachex do
   # ready to go. This cannot be done later, as Eternal is started in the tree -
   # meaning that the Supervisor would crash and restart rather than returning
   # an error message explaining what had happened.
-  defp setup_env(cache, options) when is_list(options) do
-    with { :ok, opts } <- Options.parse(cache, options) do
+  defp setup_env(name, options) when is_list(options) do
+    with { :ok, opts } <- Options.parse(name, options) do
       try do
-        :ets.new(cache, [ :named_table | opts.ets_opts ])
-        :ets.delete(cache)
+        :ets.new(name, [ :named_table | opts.ets_opts ])
+        :ets.delete(name)
         { :ok, opts }
       rescue
         _ -> @error_invalid_option
