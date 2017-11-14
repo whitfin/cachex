@@ -10,6 +10,7 @@ defmodule Cachex.Services do
   # add some aliases
   alias Cachex.Services
   alias Cachex.State
+  alias Cachex.Util.Names
   alias Supervisor.Spec
 
   # import supervisor stuff
@@ -35,11 +36,20 @@ defmodule Cachex.Services do
   rather than embedding all of this logic into the parent module.
   """
   @spec cache_spec(State.t) :: [ Spec.spec ]
-  def cache_spec(state) do
+  def cache_spec(%State{ } = state) do
     []
+    |> Enum.concat(table_spec(state))
     |> Enum.concat(janitor_spec(state))
     |> Enum.concat(locksmith_spec(state))
+    |> Enum.concat(informant_spec(state))
   end
+
+  # Creates the required specification for the informant supervisor, which
+  # acts as a parent to all hooks running against a cache. It should be
+  # noted that this might result in no processes if no hooks are connected
+  # to the cache at startup (meaning the supervisor will terminate).
+  defp informant_spec(%State{ } = state),
+    do: [ supervisor(Services.Informant, [ state ]) ]
 
   # Creates any required specifications for the Janitor services running
   # along a cache instance. This can be an empty list if the interval set
@@ -54,4 +64,11 @@ defmodule Cachex.Services do
   # transactions executed; it does not start the global Locksmith table.
   defp locksmith_spec(%State{ } = state),
     do: [ worker(Services.Locksmith.Queue, [ state ]) ]
+
+  # Creates the required specifications for the backing cache table. This
+  # spec should be included before any others in the main parent spec.
+  defp table_spec(%State{ cache: cache, ets_opts: ets_opts }) do
+    server_opts = [ name: Names.eternal(cache), quiet: true ]
+    [ supervisor(Eternal, [ cache, ets_opts, server_opts ]) ]
+  end
 end

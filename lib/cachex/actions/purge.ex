@@ -22,7 +22,7 @@ defmodule Cachex.Actions.Purge do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction purge(%State{ cache: cache } = state, options) do
-    Janitor.purge_records(cache)
+  defaction purge(%State{ } = state, options) do
+    Janitor.purge_records(state)
   end
 end

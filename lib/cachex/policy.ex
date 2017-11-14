@@ -10,6 +10,6 @@ defmodule Cachex.Policy do
   @doc """
   Returns whether a policy is known or not.
   """
-  def valid?(policy), do: policy in @policies
-
+  def valid?(policy),
+    do: policy in @policies
 end

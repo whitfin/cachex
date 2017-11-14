@@ -39,11 +39,10 @@ defmodule Cachex.Limit do
   Limits function as hooks inside a cache (at this point in time), and as such,
   this function is just sugar to do the conversion on a given Limit structure.
   """
-  def to_hooks(%__MODULE__{ limit: nil }) do
-    [ ]
-  end
-  def to_hooks(%__MODULE__{ limit: limit, policy: policy, reclaim: reclaim }) do
-    [
+  def to_hooks(%__MODULE__{ limit: nil }),
+    do: []
+  def to_hooks(%__MODULE__{ limit: limit, policy: policy, reclaim: reclaim }),
+    do: [
       %Cachex.Hook{
         args: { limit, reclaim },
         module: policy,
@@ -51,7 +50,6 @@ defmodule Cachex.Limit do
         type: :post
       }
     ]
-  end
 
   # Internal parser for a Limit to ensure that we don't waste any cycles checking
   # the same constraints multiple times. We apply defaults for any values which
@@ -67,6 +65,6 @@ defmodule Cachex.Limit do
   # Internal value parser which falls back to using defaults in the scenario the
   # provided value is invalid based upon the provided condition.
   defp v_parse(key, val, condition),
-  do: condition.(val) && val || Map.get(%__MODULE__{ }, key)
+    do: condition.(val) && val || Map.get(%__MODULE__{ }, key)
 
 end

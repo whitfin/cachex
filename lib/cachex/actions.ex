@@ -12,9 +12,12 @@ defmodule Cachex.Actions do
   use Cachex.Constants
 
   # add some aliases
-  alias Cachex.Hook
+  alias Cachex.Services
   alias Cachex.State
   alias Cachex.Util
+
+  # alias services
+  alias Services.Informant
 
   @doc """
   This macro provides a base Action template.
@@ -29,7 +32,7 @@ defmodule Cachex.Actions do
   for example.
   """
   defmacro defaction({ name, _line, [ _state | stateless_args ] = arguments }, do: body) do
-    quote do
+    quote location: :keep do
       def execute(unquote_splicing(arguments)) do
         local_opts  = var!(options)
         local_state = var!(state)
@@ -43,13 +46,15 @@ defmodule Cachex.Actions do
             msg
         end
 
-        notify && Hook.notify(local_state.pre_hooks, message, nil)
+        if notify do
+          Informant.broadcast(local_state, message)
+        end
 
         result = (unquote(body))
 
         if notify do
            results = Keyword.get(local_opts, :hook_result, result)
-           Hook.notify(local_state.post_hooks, message, results)
+           Informant.broadcast(local_state, message, results)
         end
 
         result
@@ -89,9 +94,8 @@ defmodule Cachex.Actions do
   write was successful or not.
   """
   @spec write(state :: State.t, record :: Record.t) :: { :ok, true | false }
-  def write(%State{ cache: cache }, record) do
-    { :ok, :ets.insert(cache, record) }
-  end
+  def write(%State{ cache: cache }, record),
+    do: { :ok, :ets.insert(cache, record) }
 
   # Handles the reesult from a read action in order to handle any expirations
   # set against the key. If the key has expired, we purge it immediately to avoid
@@ -104,13 +108,16 @@ defmodule Cachex.Actions do
       record
     end
   end
-  defp handle_read(_missing, _state), do: nil
+  defp handle_read(_missing, _state),
+    do: nil
 
   # Handles an update result, converting a falsey result into a Tuple tagged with
   # the :missing atom. If the result is true, we just return a Tuple tagged with
   # the :ok atom.
-  defp handle_update( true), do: { :ok, true }
-  defp handle_update(false), do: { :missing, false }
+  defp handle_update(true),
+    do: { :ok, true }
+  defp handle_update(false),
+    do: { :missing, false }
 
   @doc false
   defmacro __using__(_) do
@@ -119,5 +126,4 @@ defmodule Cachex.Actions do
       import Cachex.Actions
     end
   end
-
 end

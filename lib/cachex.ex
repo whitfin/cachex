@@ -37,12 +37,13 @@ defmodule Cachex do
   alias Cachex.Actions
   alias Cachex.Errors
   alias Cachex.ExecutionError
-  alias Cachex.Hook
   alias Cachex.Options
   alias Cachex.Services
   alias Cachex.State
   alias Cachex.Util
-  alias Cachex.Util.Names
+
+  # alias any services
+  alias Services.Informant
 
   # import util macros
   require Cachex.State
@@ -230,22 +231,10 @@ defmodule Cachex do
     with { :ok,  true } <- ensure_started(),
          { :ok,  true } <- ensure_unused(cache),
          { :ok, state } <- setup_env(cache, options),
-         { :ok,   pid }  = Supervisor.start_link(__MODULE__, state, [ name: cache ] ++ server_opts)
-      do
-        hlist = Enum.concat(state.pre_hooks, state.post_hooks)
-
-        %{ pre: pre, post: post } =
-          pid
-          |> Supervisor.which_children
-          |> link_hooks(hlist)
-          |> Hook.group_by_type
-
-        State.update(cache, fn(state) ->
-          %State{ state | pre_hooks: pre, post_hooks: post }
-        end)
-
-        { :ok, pid }
-      end
+         { :ok,   pid }  = Supervisor.start_link(__MODULE__, state, [ name: cache ] ++ server_opts),
+         { :ok,  link }  = Informant.link(state),
+                ^link   <- State.update(cache, link),
+     do: { :ok,   pid }
   end
 
   @doc """
@@ -270,31 +259,9 @@ defmodule Cachex do
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
   @spec init(state :: State.t) :: { status, any }
-  def init(%State{ pre_hooks: pre, post_hooks: post } = state) do
-    hook_spec =
-      pre
-      |> Enum.concat(post)
-      |> Enum.map(&Hook.spec/1)
-
-    children = [
-      Services.cache_spec(state),
-      [
-        worker(Eternal, [
-          state.cache,
-          state.ets_opts,
-          [
-            name: Names.eternal(state.cache),
-            quiet: true
-          ]
-        ])
-      ],
-      hook_spec
-    ]
-
-    State.set(state.cache, state)
-
-    children
-    |> Enum.concat
+  def init(%State{ } = state) do
+    state
+    |> Services.cache_spec
     |> supervise(strategy: :one_for_one)
   end
 
@@ -1227,20 +1194,6 @@ defmodule Cachex do
     end
   end
 
-  # Iterates a child spec of a Supervisor and maps the process module names to a
-  # list of Hook structs. Wherever there is a match, the PID of the child is added
-  # to the Hook so that a Hook struct can track where it lives.
-  defp link_hooks(children, hooks) do
-    Enum.map(hooks, fn(%Hook{ module: mod } = hook) ->
-      pid = Enum.find_value(children, fn
-        ({ ^mod, pid, _, _ }) -> pid
-        (_) -> nil
-      end)
-
-      %Hook{ hook | ref: pid }
-   end)
-  end
-
   # Runs through the initial setup for a cache, parsing a list of options into
   # a set of Cachex options, We then try to create a base ETS table to ensure
   # that all options are valid, remove it, and report back that everything is
@@ -1271,6 +1224,6 @@ defmodule Cachex do
     do: value
 
   # Simply adds a "via" param to the options to allow the use of delegates.
-  defp via(module, options), do: [ { :via, module } | options ]
-
+  defp via(module, options),
+    do: [ { :via, module } | options ]
 end

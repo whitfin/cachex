@@ -9,11 +9,14 @@ defmodule Cachex.Services.JanitorTest do
     # create a test cache
     cache = Helper.create_cache()
 
+    # fetch the state
+    state = Cachex.State.get(cache)
+
     # add a new cache entry
-    { :ok, true } = Cachex.set(cache, "key", "value", ttl: 25)
+    { :ok, true } = Cachex.set(state, "key", "value", ttl: 25)
 
     # purge before the entry expires
-    purge1 = Cachex.Services.Janitor.purge_records(cache)
+    purge1 = Cachex.Services.Janitor.purge_records(state)
 
     # verify that the purge removed nothing
     assert(purge1 == { :ok, 0 })
@@ -22,13 +25,13 @@ defmodule Cachex.Services.JanitorTest do
     :timer.sleep(50)
 
     # purge after the entry expires
-    purge2 = Cachex.Services.Janitor.purge_records(cache)
+    purge2 = Cachex.Services.Janitor.purge_records(state)
 
     # verify that the purge removed the key
     assert(purge2 == { :ok, 1 })
 
     # check whether the key exists
-    exists = Cachex.exists?(cache, "key")
+    exists = Cachex.exists?(state, "key")
 
     # verify that the key is gone
     assert(exists == { :ok, false })
@@ -78,18 +81,18 @@ defmodule Cachex.Services.JanitorTest do
     metadata1 = GenServer.call(state.janitor, :last)
 
     # verify the count was updated
-    assert(metadata1.count == 1)
+    assert(metadata1[:count] == 1)
 
     # verify the duration is valid
-    assert(is_integer(metadata1.duration))
+    assert(is_integer(metadata1[:duration]))
 
     # windows will round to nearest millis (0)
-    assert(metadata1.duration >= 0)
+    assert(metadata1[:duration] >= 0)
 
     # verify the start time was set
-    assert(is_integer(metadata1.started))
-    assert(metadata1.started > 0)
-    assert(metadata1.started <= :os.system_time(:milli_seconds))
+    assert(is_integer(metadata1[:started]))
+    assert(metadata1[:started] > 0)
+    assert(metadata1[:started] <= :os.system_time(:milli_seconds))
 
     # ensure we receive(d) the hook notification
     assert_receive({ { :purge, [[]] }, { :ok, 1 } })

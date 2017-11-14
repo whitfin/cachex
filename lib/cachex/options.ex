@@ -124,9 +124,11 @@ defmodule Cachex.Options do
       |> Enum.concat(hooks_list)
 
     with { :ok, hooks } <- Hook.validate(hooks) do
+      types = Enum.group_by(hooks, &Map.get(&1, :type))
+
       groups = {
-        Hook.group_by_type(hooks, :pre),
-        Hook.group_by_type(hooks, :post)
+        Map.get(types,  :pre, []),
+        Map.get(types, :post, [])
       }
 
       { :ok, groups }
@@ -183,5 +185,4 @@ defmodule Cachex.Options do
 
     { :ok, opts }
   end
-
 end

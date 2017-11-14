@@ -10,15 +10,13 @@ defmodule Cachex.Services.Janitor do
   use GenServer
 
   # add some aliases
-  alias Cachex.Hook
-  alias Cachex.Services.Locksmith
+  alias Cachex.Services
   alias Cachex.State
   alias Cachex.Util
 
-  # define our struct
-  defstruct cache: nil,         # the name of the cache
-            interval: nil,      # the interval to check the ttl
-            last: %{}           # information stored about the last run
+  # include services
+  alias Services.Informant
+  alias Services.Locksmith
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -36,19 +34,14 @@ defmodule Cachex.Services.Janitor do
   This will create a stats struct as required and create the initial state for
   this janitor. The state is then passed through for use in the future.
   """
-  def init(%State{ cache: cache, ttl_interval: ttl_interval }) do
-    state = %__MODULE__{
-      cache: cache,
-      interval: ttl_interval
-    }
-    { :ok, schedule_check(state) }
-  end
+  def init(%State{ } = state),
+    do: { :ok, { schedule_check(state), %{ } } }
 
   @doc """
   Returns the last metadata for this Janitor.
   """
-  def handle_call(:last, _ctx, %__MODULE__{ last: last } = state),
-    do: { :reply, last, state }
+  def handle_call(:last, _ctx, { _state, last } = new_state),
+    do: { :reply, last, new_state }
 
   @doc """
   Runs a TTL check and eviction against the backing ETS table.
@@ -56,20 +49,25 @@ defmodule Cachex.Services.Janitor do
   We basically drop to the ETS level and provide a select which only matches docs
   to be removed, and then ETS deletes them as it goes.
   """
-  def handle_info(:ttl_check, %__MODULE__{ cache: cache } = state) do
+  def handle_info(:ttl_check, { %State{ cache: cache }, _last }) do
+    new_states = State.get(cache)
     start_time = Util.now()
 
-    { duration, result } = :timer.tc(fn ->
-      purge_records(cache)
+    { duration, { :ok, count } = result } = :timer.tc(fn ->
+      purge_records(new_states)
     end)
 
-    new_state =
-      result
-      |> update_evictions(state)
-      |> schedule_check
-      |> update_meta(start_time, duration, result)
+    if count > 0 do
+      Informant.broadcast(new_states, { :purge, [ [] ] }, result)
+    end
 
-    { :noreply, new_state }
+    last = %{
+      count: count,
+      duration: duration,
+      started: start_time
+    }
+
+    { :noreply, { schedule_check(new_states), last } }
   end
 
   @doc """
@@ -79,43 +77,17 @@ defmodule Cachex.Services.Janitor do
   This execution happens inside a Transaction to ensure that there are no open
   key locks on the table.
   """
-  def purge_records(cache) when is_atom(cache) do
-    case State.get(cache) do
-      nil -> false
-      val -> purge_records(val)
-    end
-  end
+  @spec purge_records(State.t) :: { :ok, integer }
   def purge_records(%State{ cache: cache } = state) do
     Locksmith.transaction(state, [ ], fn ->
       { :ok, :ets.select_delete(cache, Util.retrieve_expired_rows(true)) }
     end)
   end
 
-  # Broadcasts the number of evictions against this purge in order to notify any
-  # hooks that a purge has just occurred.
-  defp update_evictions({ :ok, evictions } = result, state) when evictions > 0 do
-    Hook.broadcast(state.cache, { :purge, [ [] ] }, result)
-    state
-  end
-  defp update_evictions(_other, state),
-    do: state
-
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(%__MODULE__{ interval: interval } = state) do
-    :erlang.send_after(interval, self(), :ttl_check)
+  defp schedule_check(%State{ ttl_interval: ttl_interval } = state) do
+    :erlang.send_after(ttl_interval, self(), :ttl_check)
     state
-  end
-
-  # Updates the metadata of this cache, keeping track of various things about the
-  # last run sequence. Currently we only keep track of the number of previous
-  # evictions, the duration of the eviction run, and the start time of the run.
-  defp update_meta(state, start_time, duration, { :ok, count }) do
-    new_last = %{
-      count: count,
-      duration: duration,
-      started: start_time
-    }
-    %__MODULE__{ state | last: new_last }
   end
 end

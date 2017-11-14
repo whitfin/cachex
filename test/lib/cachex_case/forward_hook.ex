@@ -32,5 +32,4 @@ defmodule CachexCase.ForwardHook do
     send(proc, msg)
     { :noreply, proc }
   end
-
 end
