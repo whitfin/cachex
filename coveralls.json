@@ -11,7 +11,6 @@
     "^\\s+use\\s+"
   ],
   "custom_stop_words": [
-    "defwrap.+",
     "{ :ok, .+_result } <-"
   ],
   "coverage_options": {

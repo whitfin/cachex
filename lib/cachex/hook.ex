@@ -84,10 +84,7 @@ defmodule Cachex.Hook do
       # Allow overrides of everything *except* the handle_event implementation.
       # We reserve that for internal use in order to make Hook definitions as
       # straightforward as possible.
-      defoverridable [
-        init: 1,
-        handle_notify: 3
-      ]
+      defoverridable [ init: 1, handle_notify: 3 ]
     end
   end
 

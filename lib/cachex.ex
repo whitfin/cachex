@@ -60,37 +60,37 @@ defmodule Cachex do
 
   # generate unsafe definitions
   @unsafe [
-    clear:          [ 1, 2 ],
-    count:          [ 1, 2 ],
-    decr:           [ 2, 3 ],
-    del:            [ 2, 3 ],
-    dump:           [ 2, 3 ],
-    empty?:         [ 1, 2 ],
-    execute:        [ 2, 3 ],
-    exists?:        [ 2, 3 ],
-    expire:         [ 3, 4 ],
-    expire_at:      [ 3, 4 ],
-    fetch:          [ 3, 4 ],
-    get:            [ 2, 3 ],
-    get_and_update: [ 3, 4 ],
-    incr:           [ 2, 3 ],
-    inspect:           [ 2 ],
-    invoke:         [ 3, 4 ],
-    keys:           [ 1, 2 ],
-    load:           [ 2, 3 ],
-    persist:        [ 2, 3 ],
-    purge:          [ 1, 2 ],
-    refresh:        [ 2, 3 ],
-    reset:          [ 1, 2 ],
-    set:            [ 3, 4 ],
-    size:           [ 1, 2 ],
-    stats:          [ 1, 2 ],
-    stream:         [ 1, 2 ],
-    take:           [ 2, 3 ],
-    touch:          [ 2, 3 ],
-    transaction:    [ 3, 4 ],
-    ttl:            [ 2, 3 ],
-    update:         [ 3, 4 ]
+    clear:             [ 1, 2 ],
+    count:             [ 1, 2 ],
+    decr:              [ 2, 3 ],
+    del:               [ 2, 3 ],
+    dump:              [ 2, 3 ],
+    empty?:            [ 1, 2 ],
+    execute:           [ 2, 3 ],
+    exists?:           [ 2, 3 ],
+    expire:            [ 3, 4 ],
+    expire_at:         [ 3, 4 ],
+    fetch:          [ 2, 3, 4 ],
+    get:               [ 2, 3 ],
+    get_and_update:    [ 3, 4 ],
+    incr:              [ 2, 3 ],
+    inspect:              [ 2 ],
+    invoke:            [ 3, 4 ],
+    keys:              [ 1, 2 ],
+    load:              [ 2, 3 ],
+    persist:           [ 2, 3 ],
+    purge:             [ 1, 2 ],
+    refresh:           [ 2, 3 ],
+    reset:             [ 1, 2 ],
+    set:               [ 3, 4 ],
+    size:              [ 1, 2 ],
+    stats:             [ 1, 2 ],
+    stream:            [ 1, 2 ],
+    take:              [ 2, 3 ],
+    touch:             [ 2, 3 ],
+    transaction:       [ 3, 4 ],
+    ttl:               [ 2, 3 ],
+    update:            [ 3, 4 ]
   ]
 
   @doc """
@@ -688,10 +688,14 @@ defmodule Cachex do
 
   """
   @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
-  def fetch(cache, key, fallback, options \\ [])
-  when is_function(fallback) and is_list(options) do
+  def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
-      Actions.Fetch.execute(cache, key, fallback, options)
+      case fallback || cache.fallback.action do
+        val when is_function(val) ->
+          Actions.Fetch.execute(cache, key, val, options)
+        _na ->
+          @error_invalid_fallback
+      end
     end
   end
 
