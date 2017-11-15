@@ -136,8 +136,6 @@ defmodule CachexBench do
     :ok
   end
 
-  defp get_opt(key) do
-    System.get_env(key) == "true"
-  end
-
+  defp get_opt(key),
+    do: System.get_env(key) == "true"
 end

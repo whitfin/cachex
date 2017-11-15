@@ -46,7 +46,7 @@ defmodule Cachex.Limit do
       %Cachex.Hook{
         args: { limit, reclaim },
         module: policy,
-        provide: [ :worker ],
+        provide: [ :cache ],
         type: :post
       }
     ]
@@ -66,5 +66,4 @@ defmodule Cachex.Limit do
   # provided value is invalid based upon the provided condition.
   defp v_parse(key, val, condition),
     do: condition.(val) && val || Map.get(%__MODULE__{ }, key)
-
 end

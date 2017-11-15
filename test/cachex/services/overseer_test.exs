@@ -75,7 +75,7 @@ defmodule Cachex.OverseerTest do
   test "updating a state in the table" do
     # create a hook listener
     hook = ForwardHook.create(%{
-      provide: [ :worker ]
+      provide: [ :cache ]
     })
 
     # start up our cache using the helper
@@ -115,7 +115,7 @@ defmodule Cachex.OverseerTest do
     assert(result.default_ttl == 3)
 
     # now we need to make sure our state was forwarded
-    assert_receive({ :provision, { :worker, ^update2 } })
+    assert_receive({ :provision, { :cache, ^update2 } })
   end
 
   # Because the updates execute inside an Agent, we need to make sure that we

@@ -64,8 +64,8 @@ defmodule Cachex.Policy.LRW do
   This worker is then used going forward for any cache calls to avoid the overhead
   of looking up the state. Again an optimization.
   """
-  def handle_info({ :provision, { :worker, worker } }, { max_size, trim_bound, _worker }),
-    do: { :noreply, { max_size, trim_bound, worker } }
+  def handle_info({ :provision, { :cache, cache } }, { max_size, trim_bound, _cache }),
+    do: { :noreply, { max_size, trim_bound, cache } }
 
   # Suggest stepping through this pipeline a function at a time and reading the
   # associated comments. This pipeline controls the trimming of the cache to fit

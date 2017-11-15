@@ -159,8 +159,8 @@ defmodule Cachex.Services.Overseer do
 
       nstate.pre_hooks
       |> Enum.concat(nstate.post_hooks)
-      |> Enum.filter(&requires_worker?/1)
-      |> Enum.each(&send(&1.ref, { :provision, { :worker, nstate } }))
+      |> Enum.filter(&requires_state?/1)
+      |> Enum.each(&send(&1.ref, { :provision, { :cache, nstate } }))
 
       nstate
     end)
@@ -170,8 +170,8 @@ defmodule Cachex.Services.Overseer do
 
   # Verifies whether a Hook requires a state worker. If it does, return true
   # otherwise return a false.
-  defp requires_worker?(%Hook{ provide: provide }) when is_list(provide),
-    do: :worker in provide
-  defp requires_worker?(_hook),
+  defp requires_state?(%Hook{ provide: provide }) when is_list(provide),
+    do: :cache in provide
+  defp requires_state?(_hook),
     do: false
 end

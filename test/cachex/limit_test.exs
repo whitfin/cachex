@@ -99,7 +99,7 @@ defmodule Cachex.LimitTest do
       %Cachex.Hook{
         args: { 500, 0.1 },
         module: Cachex.Policy.LRW,
-        provide: [ :worker ]
+        provide: [ :cache ]
       }
     ])
   end
