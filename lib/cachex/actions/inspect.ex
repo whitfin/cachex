@@ -10,7 +10,11 @@ defmodule Cachex.Actions.Inspect do
 
   # add any aliases
   alias Cachex.Cache
+  alias Cachex.Services
   alias Cachex.Util
+
+  # add services
+  alias Services.Overseer
 
   # save the inspect function
   import Kernel, except: [ inspect: 2 ]
@@ -98,7 +102,7 @@ defmodule Cachex.Actions.Inspect do
   # through other methods, but it's available here to refer to as the "best"
   # way for a consumer to do so (someone who isn't developing Cachex).
   defp inspect(%Cache{ name: name }, :state),
-    do: { :ok, Cache.get(name) }
+    do: { :ok, Overseer.get(name) }
 
   # This is just a catch all to tell the user they asked for an invalid option.
   defp inspect(_cache, _option),

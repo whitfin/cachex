@@ -14,7 +14,7 @@ defmodule Cachex.Services.Locksmith do
   alias Cachex.Cache
 
   # our constant lock table
-  @lock_table :cachex_locksmith
+  @table_name :cachex_locksmith
 
   @doc """
   Starts an Eternal ETS table to act as a global lock table.
@@ -26,7 +26,7 @@ defmodule Cachex.Services.Locksmith do
   @spec start_link :: GenServer.on_start
   def start_link do
     Eternal.start_link(
-      @lock_table,
+      @table_name,
       [ read_concurrency: true, write_concurrency: true ],
       [ quiet: true ]
     )
@@ -48,7 +48,7 @@ defmodule Cachex.Services.Locksmith do
       |> List.wrap
       |> Enum.map(&({ { name, &1 }, t_proc }))
 
-    :ets.insert_new(@lock_table, writes)
+    :ets.insert_new(@table_name, writes)
   end
 
   @doc """
@@ -56,7 +56,7 @@ defmodule Cachex.Services.Locksmith do
   """
   @spec locked(Cache.t) :: [ any ]
   def locked(%Cache{ name: name }),
-    do: :ets.select(@lock_table, [ { { { name, :"$1" }, :_ }, [], [ :"$1" ] } ])
+    do: :ets.select(@table_name, [ { { { name, :"$1" }, :_ }, [], [ :"$1" ] } ])
 
   @doc """
   Carries out a cache transaction.
@@ -105,7 +105,7 @@ defmodule Cachex.Services.Locksmith do
   def unlock(%Cache{ name: name }, keys) do
     keys
     |> List.wrap
-    |> Enum.all?(&:ets.delete(@lock_table, { name, &1 }))
+    |> Enum.all?(&:ets.delete(@table_name, { name, &1 }))
   end
 
   @doc """
@@ -116,7 +116,7 @@ defmodule Cachex.Services.Locksmith do
   """
   @spec writable?(Cachex.cache, any) :: true | false
   def writable?(%Cache{ name: name }, key) do
-    case :ets.lookup(@lock_table, { name, key }) do
+    case :ets.lookup(@table_name, { name, key }) do
       [{ _key, proc }] ->
         proc == self()
       _else ->

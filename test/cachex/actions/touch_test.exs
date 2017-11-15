@@ -13,7 +13,7 @@ defmodule Cachex.Actions.TouchTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # pull back the state
-    state = Cachex.Cache.get(cache)
+    state = Services.Overseer.get(cache)
 
     # add some keys to the cache
     { :ok, true } = Cachex.set(cache, 1, 1)
@@ -74,5 +74,4 @@ defmodule Cachex.Actions.TouchTest do
     # it should be roughly 945ms left
     assert_in_delta(ttl5, 940, 11)
   end
-
 end

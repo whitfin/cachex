@@ -25,7 +25,7 @@ defmodule Cachex.Services do
   @spec app_spec :: [ Spec.spec ]
   def app_spec,
     do: [
-      supervisor(Cache, []),
+      supervisor(Services.Overseer, []),
       supervisor(Services.Locksmith, [])
     ]
 

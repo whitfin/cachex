@@ -17,6 +17,7 @@ defmodule Cachex.Services.Janitor do
   # include services
   alias Services.Informant
   alias Services.Locksmith
+  alias Services.Overseer
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -50,7 +51,7 @@ defmodule Cachex.Services.Janitor do
   to be removed, and then ETS deletes them as it goes.
   """
   def handle_info(:ttl_check, { %Cache{ name: name }, _last }) do
-    new_caches = Cache.get(name)
+    new_caches = Overseer.get(name)
     start_time = Util.now()
 
     { duration, { :ok, count } = result } = :timer.tc(fn ->
