@@ -8,8 +8,8 @@ defmodule Cachex.Actions.Del do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.State
 
   @doc """
   Removes a given item from the cache.
@@ -24,9 +24,9 @@ defmodule Cachex.Actions.Del do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction del(%State{ cache: cache } = state, key, options) do
-    Locksmith.write(state, key, fn ->
-      { :ok, :ets.delete(cache, key) }
+  defaction del(%Cache{ name: name } = cache, key, options) do
+    Locksmith.write(cache, key, fn ->
+      { :ok, :ets.delete(name, key) }
     end)
   end
 end

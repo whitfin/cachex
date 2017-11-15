@@ -7,12 +7,10 @@ defmodule Cachex.Actions.GetAndUpdate do
   # we need our imports
   use Cachex.Actions
 
-  # add some action aliases
+  # add some aliases
   alias Cachex.Actions.Get
-
-  # add other aliases
+  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.State
   alias Cachex.Util
 
   @doc """
@@ -27,26 +25,26 @@ defmodule Cachex.Actions.GetAndUpdate do
   value in the cache directly. If it does exist, then we use the update actions
   to update the existing record.
   """
-  defaction get_and_update(%State{ } = state, key, update_fun, options) do
-    Locksmith.transaction(state, [ key ], fn ->
-      { status, value } = Get.execute(state, key, @notify_false)
+  defaction get_and_update(%Cache{ } = cache, key, update_fun, options) do
+    Locksmith.transaction(cache, [ key ], fn ->
+      { status, value } = Get.execute(cache, key, @notify_false)
 
       value
       |> update_fun.()
       |> Util.normalize_commit
-      |> handle_commit(state, key, status)
+      |> handle_commit(cache, key, status)
     end)
   end
 
   # Handles a commit Tuple, writing the value to the table only if the Tuple is
   # tagged with `:commit` rather than `:ignore`. The same value is returned either
   # way, just that one does not write to the cache.
-  defp handle_commit({ :ignore, tempv }, _state, _key, status),
+  defp handle_commit({ :ignore, tempv }, _cache, _key, status),
     do: { status, tempv }
-  defp handle_commit({ :commit, tempv }, state, key, status) do
+  defp handle_commit({ :commit, tempv }, cache, key, status) do
     Util
       .write_mod(status)
-      .execute(state, key, tempv, @notify_false)
+      .execute(cache, key, tempv, @notify_false)
 
     { status, tempv }
   end

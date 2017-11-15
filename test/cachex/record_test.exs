@@ -12,8 +12,8 @@ defmodule Cachex.RecordTest do
     val = "val"
 
     # define our states, with and without a default TTL
-    state1 = %Cachex.State{ }
-    state2 = %Cachex.State{ state1 | default_ttl: 1000 }
+    state1 = %Cachex.Cache{ }
+    state2 = %Cachex.Cache{ state1 | default_ttl: 1000 }
 
     # create our three records
     record1 = Cachex.Record.create(state1, key, val)
@@ -46,5 +46,4 @@ defmodule Cachex.RecordTest do
     # the third record has a custom expiry of 2500
     validate.(record3, 2500)
   end
-
 end

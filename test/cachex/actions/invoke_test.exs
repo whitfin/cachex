@@ -87,10 +87,10 @@ defmodule Cachex.Actions.InvokeTest do
     cache = Helper.create_cache()
 
     # retrieve the state
-    state = Cachex.State.get(cache)
+    state = Services.Overseer.get(cache)
 
     # modify the state to have fake commands
-    state = %Cachex.State{ state | commands: %{
+    state = %Cachex.Cache{ state | commands: %{
       fake_mod: { :modify, &({ &1, &2 }) },
       fake_ret: { :return, &({ &1, &2 }) }
     } }
@@ -121,5 +121,4 @@ defmodule Cachex.Actions.InvokeTest do
     do: { List.last(list), :lists.droplast(list) }
   defp rpop([ ] = list),
     do: { nil, list }
-
 end

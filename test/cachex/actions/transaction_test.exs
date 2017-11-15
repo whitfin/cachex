@@ -62,16 +62,16 @@ defmodule Cachex.Actions.TransactionTest do
     cache = Helper.create_cache()
 
     # retrieve the cache state
-    state1 = Cachex.State.get(cache)
+    state1 = Services.Overseer.get(cache)
 
     # verify transactions are disabled
     assert(state1.transactions == false)
 
     # execute a transactions
-    Cachex.transaction(state1.cache, [], &(&1))
+    Cachex.transaction(cache, [], &(&1))
 
     # pull the state back from the cache again
-    state2 = Cachex.State.get(cache)
+    state2 = Services.Overseer.get(cache)
 
     # verify transactions are now enabled
     assert(state2.transactions == true)

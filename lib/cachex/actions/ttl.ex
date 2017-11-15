@@ -10,7 +10,7 @@ defmodule Cachex.Actions.Ttl do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.State
+  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -23,8 +23,8 @@ defmodule Cachex.Actions.Ttl do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction ttl(%State{ } = state, key, options) do
-    state
+  defaction ttl(%Cache{ } = cache, key, options) do
+    cache
     |> Actions.read(key)
     |> handle_record
   end

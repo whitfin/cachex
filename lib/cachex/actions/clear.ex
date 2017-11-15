@@ -8,9 +8,9 @@ defmodule Cachex.Actions.Clear do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Actions.Size
   alias Cachex.Services.Locksmith
-  alias Cachex.State
 
   @doc """
   Clears all items in a cache.
@@ -22,14 +22,14 @@ defmodule Cachex.Actions.Clear do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction clear(%State{ cache: cache } = state, options) do
-    Locksmith.transaction(state, [], fn ->
+  defaction clear(%Cache{ name: name } = cache, options) do
+    Locksmith.transaction(cache, [], fn ->
       evicted =
-        state
+        cache
         |> Size.execute(@notify_false)
         |> handle_evicted
 
-      true = :ets.delete_all_objects(cache)
+      true = :ets.delete_all_objects(name)
 
       evicted
     end)

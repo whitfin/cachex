@@ -10,9 +10,9 @@ defmodule Cachex.Actions.Reset do
 
   # add some aliases
   alias Cachex.Actions.Clear
+  alias Cachex.Cache
   alias Cachex.Hook
   alias Cachex.Services.Locksmith
-  alias Cachex.State
 
   @doc """
   Resets various pieces of a cache.
@@ -24,37 +24,33 @@ defmodule Cachex.Actions.Reset do
   Nothing in here will notify hooks of the reset as it's quite redundant and it's
   evident that a reset happened when you see that your hook has reinitialized.
   """
-  def execute(%State{ } = state, options) do
-    Locksmith.transaction(state, [ ], fn ->
+  def execute(%Cache{ } = cache, options) do
+    Locksmith.transaction(cache, [ ], fn ->
       only =
         options
         |> Keyword.get(:only, [ :cache, :hooks ])
         |> List.wrap
 
-      state
-      |> reset_cache(only)
-      |> reset_hooks(only, options)
+      reset_cache(cache, only)
+      reset_hooks(cache, only, options)
 
       { :ok, true }
     end)
   end
 
   # Handles the resetting of a cache. A cache is only emptied if the cache is set
-  # to be reset. Otherwise we just return the state as-is without modifying the
+  # to be reset. Otherwise we just return the cache as-is without modifying the
   # cache table.
-  defp reset_cache(state, only) do
+  defp reset_cache(cache, only) do
     if :cache in only do
-      Clear.execute(state, @notify_false)
+      Clear.execute(cache, @notify_false)
     end
-    state
   end
 
   # Controls the resetting of any hooks, either all or a subset. We have a small
   # optimization here to detect when we want to reset all hooks, to avoid filtering
   # without cause. We use a MapSet just to avoid the O(N) lookups otherwise.
-  defp reset_hooks(%State{ pre_hooks: [], post_hooks: [] } = state, _only, _opts),
-    do: state
-  defp reset_hooks(%State{ pre_hooks: pre, post_hooks: post } = state, only, opts) do
+  defp reset_hooks(%Cache{ pre_hooks: pre, post_hooks: post }, only, opts) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->
@@ -73,7 +69,6 @@ defmodule Cachex.Actions.Reset do
           |> Enum.each(&notify_reset/1)
       end
     end
-    state
   end
 
   # This function determines if a hook should be reset. It should only be reset

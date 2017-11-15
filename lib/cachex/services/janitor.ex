@@ -10,13 +10,14 @@ defmodule Cachex.Services.Janitor do
   use GenServer
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Services
-  alias Cachex.State
   alias Cachex.Util
 
   # include services
   alias Services.Informant
   alias Services.Locksmith
+  alias Services.Overseer
 
   @doc """
   Simple initialization for use in the main owner process in order to start an
@@ -25,8 +26,8 @@ defmodule Cachex.Services.Janitor do
   All options are passed throught to the initialization function, and the GenServer
   options are passed straight to GenServer to deal with.
   """
-  def start_link(%State{ } = state, server_opts) when is_list(server_opts),
-    do: GenServer.start_link(__MODULE__, state, server_opts)
+  def start_link(%Cache{ } = cache, server_opts) when is_list(server_opts),
+    do: GenServer.start_link(__MODULE__, cache, server_opts)
 
   @doc """
   Main initialization phase of a janitor.
@@ -34,14 +35,14 @@ defmodule Cachex.Services.Janitor do
   This will create a stats struct as required and create the initial state for
   this janitor. The state is then passed through for use in the future.
   """
-  def init(%State{ } = state),
-    do: { :ok, { schedule_check(state), %{ } } }
+  def init(%Cache{ } = cache),
+    do: { :ok, { schedule_check(cache), %{ } } }
 
   @doc """
   Returns the last metadata for this Janitor.
   """
-  def handle_call(:last, _ctx, { _state, last } = new_state),
-    do: { :reply, last, new_state }
+  def handle_call(:last, _ctx, { _cache, last } = state),
+    do: { :reply, last, state }
 
   @doc """
   Runs a TTL check and eviction against the backing ETS table.
@@ -49,16 +50,16 @@ defmodule Cachex.Services.Janitor do
   We basically drop to the ETS level and provide a select which only matches docs
   to be removed, and then ETS deletes them as it goes.
   """
-  def handle_info(:ttl_check, { %State{ cache: cache }, _last }) do
-    new_states = State.get(cache)
+  def handle_info(:ttl_check, { %Cache{ name: name }, _last }) do
+    new_caches = Overseer.get(name)
     start_time = Util.now()
 
     { duration, { :ok, count } = result } = :timer.tc(fn ->
-      purge_records(new_states)
+      purge_records(new_caches)
     end)
 
     if count > 0 do
-      Informant.broadcast(new_states, { :purge, [ [] ] }, result)
+      Informant.broadcast(new_caches, { :purge, [ [] ] }, result)
     end
 
     last = %{
@@ -67,7 +68,7 @@ defmodule Cachex.Services.Janitor do
       started: start_time
     }
 
-    { :noreply, { schedule_check(new_states), last } }
+    { :noreply, { schedule_check(new_caches), last } }
   end
 
   @doc """
@@ -77,17 +78,17 @@ defmodule Cachex.Services.Janitor do
   This execution happens inside a Transaction to ensure that there are no open
   key locks on the table.
   """
-  @spec purge_records(State.t) :: { :ok, integer }
-  def purge_records(%State{ cache: cache } = state) do
-    Locksmith.transaction(state, [ ], fn ->
-      { :ok, :ets.select_delete(cache, Util.retrieve_expired_rows(true)) }
+  @spec purge_records(Cache.t) :: { :ok, integer }
+  def purge_records(%Cache{ name: name } = cache) do
+    Locksmith.transaction(cache, [ ], fn ->
+      { :ok, :ets.select_delete(name, Util.retrieve_expired_rows(true)) }
     end)
   end
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(%State{ ttl_interval: ttl_interval } = state) do
+  defp schedule_check(%Cache{ ttl_interval: ttl_interval } = cache) do
     :erlang.send_after(ttl_interval, self(), :ttl_check)
-    state
+    cache
   end
 end

@@ -8,8 +8,8 @@ defmodule Cachex.Actions.Load do
   use Cachex.Actions
 
   # add some aliases
+  alias Cachex.Cache
   alias Cachex.Disk
-  alias Cachex.State
 
   @doc """
   Loads records into a cache from a given disk location.
@@ -25,9 +25,9 @@ defmodule Cachex.Actions.Load do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction load(%State{ cache: cache } = state, path, options) do
+  defaction load(%Cache{ name: name } = cache, path, options) do
     with { :ok, terms } <- Disk.read(path, options) do
-      { :ok, :ets.insert(cache, terms) }
+      { :ok, :ets.insert(name, terms) }
     end
   end
 end

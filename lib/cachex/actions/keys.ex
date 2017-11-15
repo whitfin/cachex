@@ -9,7 +9,7 @@ defmodule Cachex.Actions.Keys do
   use Cachex.Actions
 
   # add some aliases
-  alias Cachex.State
+  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -22,9 +22,9 @@ defmodule Cachex.Actions.Keys do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction keys(%State{ cache: cache } = state, options) do
+  defaction keys(%Cache{ name: name } = cache, options) do
     query = Util.retrieve_all_rows(:key)
-    klist = :ets.select(cache, query)
+    klist = :ets.select(name, query)
 
     { :ok, klist }
   end

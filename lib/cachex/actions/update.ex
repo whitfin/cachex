@@ -9,8 +9,8 @@ defmodule Cachex.Actions.Update do
 
   # add some aliases
   alias Cachex.Actions
+  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.State
 
   @doc """
   Updates a value inside the cache.
@@ -25,9 +25,9 @@ defmodule Cachex.Actions.Update do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction update(%State{ } = state, key, value, options) do
-    Locksmith.write(state, key, fn ->
-      Actions.update(state, key, [{ 4, value }])
+  defaction update(%Cache{ } = cache, key, value, options) do
+    Locksmith.write(cache, key, fn ->
+      Actions.update(cache, key, [{ 4, value }])
     end)
   end
 end

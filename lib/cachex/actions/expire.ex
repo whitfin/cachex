@@ -11,8 +11,8 @@ defmodule Cachex.Actions.Expire do
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Actions.Del
+  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.State
   alias Cachex.Util
 
   @doc """
@@ -30,17 +30,17 @@ defmodule Cachex.Actions.Expire do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction expire(%State{ } = state, key, expiration, options) do
-    Locksmith.write(state, key, fn ->
-      do_expire(state, key, expiration)
+  defaction expire(%Cache{ } = cache, key, expiration, options) do
+    Locksmith.write(cache, key, fn ->
+      do_expire(cache, key, expiration)
     end)
   end
 
   # Carries out the required actions to control an expiration. If the expiration
   # given is `nil` or a non-negative, we update the record's touch time and TTL.
   # If the value is negative, we immediately remove the record from the cache.
-  defp do_expire(state, key, exp) when exp > -1,
-    do: Actions.update(state, key, [{ 2, Util.now() }, { 3, exp }])
-  defp do_expire(state, key, _exp),
-    do: Del.execute(state, key, @purge_override)
+  defp do_expire(cache, key, exp) when exp > -1,
+    do: Actions.update(cache, key, [{ 2, Util.now() }, { 3, exp }])
+  defp do_expire(cache, key, _exp),
+    do: Del.execute(cache, key, @purge_override)
 end
