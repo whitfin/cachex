@@ -24,8 +24,8 @@ defmodule CachexBench do
     use_trans = get_opt("CACHEX_BENCH_TRANSACTIONS")
 
     if use_trans do
-      Cachex.State.update(:bench_cache, fn(state) ->
-        %Cachex.State{ state | transactions: true }
+      Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
+        %Cachex.Cache{ state | transactions: true }
       end)
     end
 
