@@ -9,7 +9,12 @@ defmodule Cachex.LimitTest do
     limit1 = %Cachex.Limit{ }
 
     # create a comparison
-    limit2 = %Cachex.Limit{ limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1 }
+    limit2 = %Cachex.Limit{
+      limit: nil,
+      policy: Cachex.Policy.LRW,
+      reclaim: 0.1,
+      options: []
+    }
 
     # they should be the same
     assert(limit1 == limit2)
@@ -25,54 +30,52 @@ defmodule Cachex.LimitTest do
     base = %Cachex.Limit{ }
 
     # create a valid limit using all fields
-    limit1 = %Cachex.Limit{ base | limit: 500, reclaim: 0.3 }
+    limit1 = %Cachex.Limit{ base | limit: 500, reclaim: 0.3, options: [ test: true ] }
+    limit2 = %Cachex.Limit{ base | limit: 1 }
+    limit3 = %Cachex.Limit{ base | policy: Cachex.Policy.LRW }
+    limit4 = %Cachex.Limit{ base | reclaim: 0.5 }
+    limit5 = %Cachex.Limit{ base | options: [ test: true ] }
 
-    # create a limit with modified limits
-    limit2 = %Cachex.Limit{ base | limit: -1 }
-    limit3 = %Cachex.Limit{ base | limit:  1 }
+    # create invalid limits to test failure
+    limit6  = %Cachex.Limit{ base | limit: -1 }
+    limit7  = %Cachex.Limit{ base | policy: Cachex.Policy.Nah }
+    limit8  = %Cachex.Limit{ base | reclaim: 0.0 }
+    limit9  = %Cachex.Limit{ base | reclaim: 1.1 }
+    limit10 = %Cachex.Limit{ base | options: true }
 
-    # create a limit with modified policies
-    limit4 = %Cachex.Limit{ base | policy: Cachex.Policy.Nah }
-    limit5 = %Cachex.Limit{ base | policy: Cachex.Policy.LRW }
+    # parse out our valid limits
+    { :ok, result1 } = Cachex.Limit.parse(limit1)
+    { :ok, result2 } = Cachex.Limit.parse(limit2)
+    { :ok, result3 } = Cachex.Limit.parse(limit3)
+    { :ok, result4 } = Cachex.Limit.parse(limit4)
+    { :ok, result5 } = Cachex.Limit.parse(limit5)
 
-    # create limits with modified reclaim bounds
-    limit6 = %Cachex.Limit{ base | reclaim: 0.0 }
-    limit7 = %Cachex.Limit{ base | reclaim: 0.5 }
-    limit8 = %Cachex.Limit{ base | reclaim: 1.1 }
-
-    # parse out our valid limit
-    result1 = Cachex.Limit.parse(limit1)
-
-    # parse out the modified limits
-    result2 = Cachex.Limit.parse(limit2)
-    result3 = Cachex.Limit.parse(limit3)
-
-    # parse out the modified policies
-    result4 = Cachex.Limit.parse(limit4)
-    result5 = Cachex.Limit.parse(limit5)
-
-    # parse out the modified reclaim bounds
-    result6 = Cachex.Limit.parse(limit6)
-    result7 = Cachex.Limit.parse(limit7)
-    result8 = Cachex.Limit.parse(limit8)
+    # parse invalid limits for testing
+    result6  = Cachex.Limit.parse(limit6)
+    result7  = Cachex.Limit.parse(limit7)
+    result8  = Cachex.Limit.parse(limit8)
+    result9  = Cachex.Limit.parse(limit9)
+    result10 = Cachex.Limit.parse(limit10)
 
     # parse out using a numeric literal
-    result9 = Cachex.Limit.parse(500000)
+    { :ok, result11 } = Cachex.Limit.parse(500000)
 
     # verify all the valid limits
     assert(result1 == limit1)
+    assert(result2 == limit2)
     assert(result3 == limit3)
+    assert(result4 == limit4)
     assert(result5 == limit5)
-    assert(result7 == limit7)
-
-    # verify all the invalid limits
-    assert(result2 == base)
-    assert(result4 == base)
-    assert(result6 == base)
-    assert(result8 == base)
 
     # verify the number literal is used as a limit field
-    assert(result9 == %Cachex.Limit{ base | limit: 500000 })
+    assert(result11 == %Cachex.Limit{ base | limit: 500000 })
+
+    # verify the invalid limits fail the parse
+    assert(result6  == { :error, :invalid_limit })
+    assert(result7  == { :error, :invalid_limit })
+    assert(result8  == { :error, :invalid_limit })
+    assert(result9  == { :error, :invalid_limit })
+    assert(result10 == { :error, :invalid_limit })
   end
 
   # This test checks the conversion of Limits into Hooks, simply by passing some
@@ -97,11 +100,10 @@ defmodule Cachex.LimitTest do
     # check the second limit creates a hook
     assert(hooks2 == [
       %Cachex.Hook{
-        args: { 500, 0.1 },
+        args: limit2,
         module: Cachex.Policy.LRW,
         provide: [ :cache ]
       }
     ])
   end
-
 end

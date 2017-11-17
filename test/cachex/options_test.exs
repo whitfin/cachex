@@ -210,8 +210,8 @@ defmodule Cachex.OptionsTest do
     { :ok, state2 } = Cachex.Options.parse(name, [ limit: c_limits ])
 
     # parse options with invalid max_size
-    { :ok, state3 } = Cachex.Options.parse(name, [ limit: "max_size" ])
-    { :ok, state4 } = Cachex.Options.parse(name, [ ])
+    { :ok, state3 } = Cachex.Options.parse(name, [ ])
+           state4   = Cachex.Options.parse(name, [ limit: "max_size" ])
 
     # check the first and second states have limits
     assert(state1.limit == c_limits)
@@ -219,11 +219,12 @@ defmodule Cachex.OptionsTest do
     assert(state1.post_hooks == Cachex.Limit.to_hooks(c_limits))
     assert(state2.post_hooks == Cachex.Limit.to_hooks(c_limits))
 
-    # check the third and fourth states have no limits
+    # check the third has no limits attached
     assert(state3.limit == default)
-    assert(state4.limit == default)
     assert(state3.post_hooks == [])
-    assert(state4.post_hooks == [])
+
+    # check the fourth causes an error
+    assert(state4 == { :error, :invalid_limit })
   end
 
   # On-Demand expiration can be disabled, and so we have to parse out whether the
