@@ -38,7 +38,8 @@ defmodule Cachex.Policy.LRWTest do
     limit = %Cachex.Limit{
       limit: 100,
       policy: Cachex.Policy.LRW,
-      reclaim: 0.75
+      reclaim: 0.75,
+      options: [ batch_size: 25 ]
     }
 
     # create a cache with a max size

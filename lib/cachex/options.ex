@@ -142,7 +142,6 @@ defmodule Cachex.Options do
     options
     |> Keyword.get(:limit)
     |> Limit.parse
-    |> Util.wrap(:ok)
   end
 
   # Parses out whether the user wishes to disable on-demand expirations or not. It

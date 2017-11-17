@@ -10,6 +10,7 @@ defmodule Cachex.Errors do
       @error_invalid_command    { :error, :invalid_command }
       @error_invalid_fallback   { :error, :invalid_fallback }
       @error_invalid_hook       { :error, :invalid_hook }
+      @error_invalid_limit      { :error, :invalid_limit }
       @error_invalid_match      { :error, :invalid_match }
       @error_invalid_name       { :error, :invalid_name }
       @error_invalid_option     { :error, :invalid_option }
@@ -37,6 +38,8 @@ defmodule Cachex.Errors do
     do: "Invalid hook definition provided"
   def long_form(:invalid_fallback),
     do: "Invalid fallback function provided"
+  def long_form(:invalid_limit),
+    do: "Invalid limit fields provided"
   def long_form(:invalid_match),
     do: "Invalid match specification provided"
   def long_form(:invalid_name),

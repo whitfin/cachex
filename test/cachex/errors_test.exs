@@ -8,6 +8,7 @@ defmodule Cachex.ErrorsTest do
     errors = [
       invalid_command:   "Invalid command definition provided",
       invalid_hook:      "Invalid hook definition provided",
+      invalid_limit:     "Invalid limit fields provided",
       invalid_match:     "Invalid match specification provided",
       invalid_name:      "Invalid cache name provided",
       invalid_option:    "Invalid option syntax provided",
@@ -28,5 +29,4 @@ defmodule Cachex.ErrorsTest do
       assert(long_form == msg)
     end
   end
-
 end

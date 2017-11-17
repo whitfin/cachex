@@ -18,6 +18,7 @@ defmodule Cachex.Policy.LRW do
 
   # add internal aliases
   alias Cachex.Cache
+  alias Cachex.Limit
   alias Cachex.Services
   alias Cachex.Util
 
@@ -29,9 +30,6 @@ defmodule Cachex.Policy.LRW do
   # when there's no chance of a size change since the last check
   @additives MapSet.new([ :set, :update, :incr, :get_and_update, :decr ])
 
-  # batch size to delete with
-  @del_count 50
-
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Util.create_match([ { { :"$1", :"$2" } } ], [ ])
 
@@ -40,8 +38,17 @@ defmodule Cachex.Policy.LRW do
 
   We store a state of the maximum size, and a calculated number to trim to.
   """
-  def init({ max_size, trim_bound }),
-    do: { :ok, { max_size, round(max_size * trim_bound), nil } }
+  def init(%Limit{ limit: max_size, reclaim: reclaim, options: options }) do
+    trim_bound = round(max_size * reclaim)
+
+    batch_size =
+      case Keyword.get(options, :batch_size, 100) do
+        val when val < 0 -> 100
+        val -> val
+      end
+
+    { :ok, { max_size, trim_bound, batch_size, nil } }
+  end
 
   @doc """
   Checks and enforces the bounds of the cache as needed.
@@ -64,8 +71,8 @@ defmodule Cachex.Policy.LRW do
   This worker is then used going forward for any cache calls to avoid the overhead
   of looking up the state. Again an optimization.
   """
-  def handle_info({ :provision, { :cache, cache } }, { max_size, trim_bound, _cache }),
-    do: { :noreply, { max_size, trim_bound, cache } }
+  def handle_info({ :provision, { :cache, cache } }, { max_size, reclaim, batch, _cache }),
+    do: { :noreply, { max_size, reclaim, batch, cache } }
 
   # Suggest stepping through this pipeline a function at a time and reading the
   # associated comments. This pipeline controls the trimming of the cache to fit
@@ -88,15 +95,15 @@ defmodule Cachex.Policy.LRW do
   # size as an optimization to speed up message processing when no evictions need
   # to happen. This is a slight speed boost, but it's noticeable - tests will fail
   # intermittently if this is not checked in this way.
-  defp enforce_bounds({ max_size, reclaim_bound, cache }) do
+  defp enforce_bounds({ max_size, reclaim, batch, cache }) do
     case Cachex.size!(cache, [ notify: false ]) do
       cache_size when cache_size <= max_size ->
         notify_worker(0, cache)
       cache_size ->
         cache_size
-        |> calculate_reclaim(max_size, reclaim_bound)
+        |> calculate_reclaim(max_size, reclaim)
         |> calculate_poffset(cache)
-        |> erase_lower_bound(cache)
+        |> erase_lower_bound(cache, batch)
         |> notify_worker(cache)
     end
   end
@@ -125,39 +132,39 @@ defmodule Cachex.Policy.LRW do
   # it comes to removing the document, and the touch time is used to determine
   # the sorted order required for implementing LRW. We transform this sort using
   # a QLC cursor and pass it through to `erase_cursor/3` to delete.
-  defp erase_lower_bound(offset, %Cache{ name: name }) when offset > 0 do
+  defp erase_lower_bound(offset, %Cache{ name: name }, batch_size) when offset > 0 do
     name
     |> :ets.table([ traverse: { :select, @qlc_match } ])
     |> :qlc.sort([ order: fn({ _k1, t1 }, { _k2, t2  }) -> t1 < t2 end ])
     |> :qlc.cursor
-    |> erase_cursor(name, offset)
+    |> erase_cursor(name, offset, batch_size)
 
     offset
   end
-  defp erase_lower_bound(offset, _state),
+  defp erase_lower_bound(offset, _state, _batch_size),
     do: offset
 
   # This function erases a QLC cursor by taking in a provided cursor and removing
   # the first N elements from the cursor. Removals are done in batches according
-  # to the compiled constant @del_count.
+  # to the provided :batch_size option.
   #
   # This is a recursive function as we have to keep track of the number to remove,
   # as the removal is done by calling `erase_batch/3`. At the end of the recursion,
   # we make sure to remove the trailing QLC cursor to avoid leaving it around.
-  defp erase_cursor(cursor, table, remaining) when remaining > @del_count do
-    erase_batch(cursor, table, @del_count)
-    erase_cursor(cursor, table, remaining - @del_count)
+  defp erase_cursor(cursor, table, remainder, batch_size) when remainder > batch_size do
+    erase_batch(cursor, table, batch_size)
+    erase_cursor(cursor, table, remainder - batch_size, batch_size)
   end
-  defp erase_cursor(cursor, table, remaining) do
-    erase_batch(cursor, table, remaining)
+  defp erase_cursor(cursor, table, remainder, _batch_size) do
+    erase_batch(cursor, table, remainder)
     :qlc.delete_cursor(cursor)
   end
 
   # Erases a batch of entries from the table. We pull the next batch of entries
   # from the table and erase them by key. This is not as efficient as using the
   # `:ets.select_delete/2` function but is required due to the cursored sort.
-  defp erase_batch(cursor, table, amount) do
-    for { key, _touched } <- :qlc.next_answers(cursor, amount) do
+  defp erase_batch(cursor, table, batch_size) do
+    for { key, _touched } <- :qlc.next_answers(cursor, batch_size) do
       :ets.delete(table, key)
     end
   end
