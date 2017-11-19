@@ -96,28 +96,22 @@ defmodule Cachex.Options do
   # Stats hook has been requested or not. The returned value is a tuple of pre
   # and post hooks as they're stored separately.
   defp setup_hooks(name, options, limit) do
-    stats_hook = options[:record_stats] && %Hook{
-      module: Cachex.Hook.Stats,
-      server_args: [
-        name: Names.stats(name)
-      ]
-    }
+    stats_hook =
+      options[:stats] == true && %Hook{
+        module: Cachex.Hook.Stats,
+        server_args: [ name: Names.stats(name) ]
+      }
 
     hooks_opts =
       options
       |> Keyword.get(:hooks, [])
       |> List.wrap
 
-    hooks_list =
-      limit
-      |> Limit.to_hooks
-      |> Enum.concat(hooks_opts)
-
-    hooks =
-      stats_hook
-      |> Kernel.||([])
-      |> List.wrap
-      |> Enum.concat(hooks_list)
+    hooks = Enum.concat([
+      List.wrap(stats_hook || []),
+      Limit.to_hooks(limit),
+      hooks_opts
+    ])
 
     with { :ok, hooks } <- Hook.validate(hooks) do
       types = Enum.group_by(hooks, &Map.get(&1, :type))

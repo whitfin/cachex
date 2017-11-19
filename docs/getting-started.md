@@ -23,7 +23,7 @@ The second and third arguments are both optional and represent cache and server 
 |       hooks      |    list of Hooks   |    A list of execution hooks (see below) to listen on cache actions.    |
 |       limit      |  a Limit constuct  |     An integer or Limit struct to define the bounds of this cache.      |
 |        ode       |  `true` or `false` |  Whether or not to enable on-demand expirations when reading back keys. |
-|   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
+|       stats      |  `true` or `false` |            Whether to track statistics for this cache or not.           |
 |   transactions   |  `true` or `false` |             Whether to turn on transactions at cache start.             |
 |   ttl_interval   |     milliseconds   |                The frequency the Janitor process runs at.               |
 

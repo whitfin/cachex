@@ -245,7 +245,7 @@ defmodule Cachex.OptionsTest do
   # This test will verify the ability to record stats in a state. This option
   # will just add the Cachex Stats hook to the list of hooks inside the cache.
   # We just need to verify that the hook is added after being parsed.
-  test "parsing :record_stats flags" do
+  test "parsing :stats flags" do
     # grab a cache name
     name = Helper.create_name()
 
@@ -255,8 +255,8 @@ defmodule Cachex.OptionsTest do
       server_args: [ name: Cachex.Util.Names.stats(name) ]
     }
 
-    # parse the record_stats flags
-    { :ok, state } = Cachex.Options.parse(name, [ record_stats: true ])
+    # parse the stats recording flags
+    { :ok, state } = Cachex.Options.parse(name, [ stats: true ])
 
     # ensure the stats hook has been added
     assert(state.hooks == { [ ], [ hook ] })

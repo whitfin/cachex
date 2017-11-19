@@ -37,7 +37,7 @@ defmodule Cachex.Actions.Stats do
 
   # Uses a stats hook to retrieve pieces of the statistics container from the
   # running stats hook. If no hook is provided, we return an error because the
-  # Stats hook is not running, meaning that record_stats is disabled.
+  # Stats hook is not running, meaning that stats are disabled.
   defp handle_hook(nil, _options),
     do: @error_stats_disabled
   defp handle_hook(%Hook{ ref: ref }, options) do

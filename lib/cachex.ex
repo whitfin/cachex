@@ -198,12 +198,12 @@ defmodule Cachex do
 
           iex> Cachex.start_link(:my_cache, [ ode: false ])
 
-    * `:record_stats` - Whether you wish this cache to record usage statistics or
+    * `:stats` - Whether you wish this cache to record usage statistics or
       not. This has only minor overhead due to being implemented as an asynchronous
       hook (roughly 1µ/op). Stats can be retrieve from a running cache by using
       `Cachex.stats/2`.
 
-          iex> Cachex.start_link(:my_cache, [ record_stats: true ])
+          iex> Cachex.start_link(:my_cache, [ stats: true ])
 
     * `:transactions` - Whether to have transactions and row locking enabled from
       cache startup. Please note that even if this is false, it will be enabled
