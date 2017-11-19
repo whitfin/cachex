@@ -19,12 +19,11 @@ defmodule Cachex.Cache do
             ets_opts: [],           # any options to give to ETS
             default_ttl: nil,       # any default ttl values to use
             fallback: %Fallback{},  # the default fallback implementation
+            hooks: { [], [] },      # any hooks to attach to the cache
             janitor: nil,           # the name of the janitor attached (if any)
             limit: %Limit{},        # any limit to apply to the cache
             locksmith: nil,         # the name of the locksmith queue attached
             ode: true,              # whether we enable on-demand expiration
-            pre_hooks: [],          # any pre hooks to attach
-            post_hooks: [],         # any post hooks to attach
             transactions: false,    # whether to enable transactions
             ttl_interval: nil       # the ttl check interval
 end

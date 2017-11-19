@@ -157,10 +157,12 @@ defmodule Cachex.Services.Overseer do
 
       set(name, nstate)
 
-      nstate.pre_hooks
-      |> Enum.concat(nstate.post_hooks)
-      |> Enum.filter(&requires_state?/1)
-      |> Enum.each(&send(&1.ref, { :provision, { :cache, nstate } }))
+      with { pre_hooks, post_hooks } <- nstate.hooks do
+        pre_hooks
+        |> Enum.concat(post_hooks)
+        |> Enum.filter(&requires_state?/1)
+        |> Enum.each(&send(&1.ref, { :provision, { :cache, nstate } }))
+      end
 
       nstate
     end)

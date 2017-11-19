@@ -50,12 +50,12 @@ defmodule Cachex.Actions.Reset do
   # Controls the resetting of any hooks, either all or a subset. We have a small
   # optimization here to detect when we want to reset all hooks, to avoid filtering
   # without cause. We use a MapSet just to avoid the O(N) lookups otherwise.
-  defp reset_hooks(%Cache{ pre_hooks: pre, post_hooks: post }, only, opts) do
+  defp reset_hooks(%Cache{ hooks: { pre_hooks, post_hooks } }, only, opts) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->
-          pre
-          |> Enum.concat(post)
+          pre_hooks
+          |> Enum.concat(post_hooks)
           |> Enum.each(&notify_reset/1)
         val ->
           hset =
@@ -63,8 +63,8 @@ defmodule Cachex.Actions.Reset do
             |> List.wrap
             |> MapSet.new
 
-          pre
-          |> Enum.concat(post)
+          pre_hooks
+          |> Enum.concat(post_hooks)
           |> Enum.filter(&should_reset?(&1, hset))
           |> Enum.each(&notify_reset/1)
       end

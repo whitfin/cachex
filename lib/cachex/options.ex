@@ -33,27 +33,23 @@ defmodule Cachex.Options do
          { :ok,   ode_result } <- setup_ode(name, options),
          { :ok,   ttl_result } <- setup_ttl_components(name, options)
       do
-        { pre_hooks, post_hooks } = hook_result
         { transactional, locksmith } = trans_result
         { default_ttl, ttl_interval, janitor } = ttl_result
 
-        state = %Cachex.Cache{
+        { :ok, %Cachex.Cache{
           name: name,
           commands: cmd_result,
           default_ttl: default_ttl,
           ets_opts: ets_result,
           fallback: fb_result,
+          hooks: hook_result,
           janitor: janitor,
           limit: limit_result,
           locksmith: locksmith,
           ode: ode_result,
-          pre_hooks: pre_hooks,
-          post_hooks: post_hooks,
           transactions: transactional,
           ttl_interval: ttl_interval
-        }
-
-        { :ok, state }
+        } }
       end
   end
   def parse(name, _options),

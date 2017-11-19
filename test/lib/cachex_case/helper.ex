@@ -41,9 +41,8 @@ defmodule CachexCase.Helper do
   # Triggers a cache to be deleted at the end of the test. We have to pass this
   # through to the TestHelper module as we don't have a valid ExUnit context to
   # be able to define the execution hook correctly.
-  def delete_on_exit(name) do
-    TestHelper.delete_on_exit(name) && name
-  end
+  def delete_on_exit(name),
+    do: TestHelper.delete_on_exit(name) && name
 
   @doc false
   # Flush all messages in the process queue. If there is no message in the mailbox,

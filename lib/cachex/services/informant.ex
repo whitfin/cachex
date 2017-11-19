@@ -19,9 +19,9 @@ defmodule Cachex.Services.Informant do
   the parent supervisor. Otherwise all hooks are added to a supervisor
   to fold out into their own tree.
   """
-  def start_link(%Cache{ pre_hooks: [], post_hooks: [] }),
+  def start_link(%Cache{ hooks: { [], [] } }),
     do: :ignore
-  def start_link(%Cache{ pre_hooks: pre_hooks, post_hooks: post_hooks }) do
+  def start_link(%Cache{ hooks: { pre_hooks, post_hooks } }) do
     pre_hooks
     |> Enum.concat(post_hooks)
     |> Enum.map(&spec/1)
@@ -33,13 +33,13 @@ defmodule Cachex.Services.Informant do
 
   This will send a nil result, as the result does not yet exist.
   """
-  def broadcast(%Cache{ pre_hooks: pre_hooks }, action),
+  def broadcast(%Cache{ hooks: { pre_hooks, _post_hooks } }, action),
     do: notify(pre_hooks, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
-  def broadcast(%Cache{ post_hooks: post_hooks }, action, result),
+  def broadcast(%Cache{ hooks: { _pre_hooks, post_hooks } }, action, result),
     do: notify(post_hooks, action, result)
 
   @doc """
@@ -48,9 +48,9 @@ defmodule Cachex.Services.Informant do
   This is a required post-step as hooks are started independently and
   are not named in a deterministic way.
   """
-  def link(%Cache{ pre_hooks: [], post_hooks: [] } = cache),
+  def link(%Cache{ hooks: { [], [] } } = cache),
     do: { :ok, cache }
-  def link(%Cache{ name: name, pre_hooks: pre_hooks, post_hooks: post_hooks } = cache) do
+  def link(%Cache{ name: name, hooks: { pre_hooks, post_hooks } } = cache) do
     children =
       name
       |> Supervisor.which_children
@@ -60,12 +60,7 @@ defmodule Cachex.Services.Informant do
     link_pre  = attach_hook_pid(pre_hooks,  children)
     link_post = attach_hook_pid(post_hooks, children)
 
-    link_state = %Cache{ cache |
-      pre_hooks: link_pre,
-      post_hooks: link_post
-    }
-
-    { :ok, link_state }
+    { :ok, %Cache{ cache | hooks: { link_pre, link_post } } }
   end
 
   @doc """
