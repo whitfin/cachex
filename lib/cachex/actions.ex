@@ -118,12 +118,4 @@ defmodule Cachex.Actions do
     do: { :ok, true }
   defp handle_update(false),
     do: { :missing, false }
-
-  @doc false
-  defmacro __using__(_) do
-    quote do
-      use Cachex.Constants
-      import Cachex.Actions
-    end
-  end
 end

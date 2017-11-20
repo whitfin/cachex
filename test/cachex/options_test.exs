@@ -175,13 +175,13 @@ defmodule Cachex.OptionsTest do
     { :error, ^msg } = Cachex.Options.parse(name, [ hooks: %Cachex.Hook{ module: Missing }])
 
     # check the hook groupings for the first state
-    assert(state1.hooks == { [ pre_hook ], [ post_hook ] })
+    assert(state1.hooks == hooks(pre: [ pre_hook ], post: [ post_hook ]))
 
     # check the hook groupings in the second state
-    assert(state2.hooks == { [ pre_hook ], [ ] })
+    assert(state2.hooks == hooks(pre: [ pre_hook ], post: [ ]))
 
     # check the third state uses hook defaults
-    assert(state3.hooks == { [ ], [ ] })
+    assert(state3.hooks == hooks())
 
     # check the invalid hook message
     assert(msg == :invalid_hook)
@@ -213,12 +213,12 @@ defmodule Cachex.OptionsTest do
     # check the first and second states have limits
     assert(state1.limit == c_limits)
     assert(state2.limit == c_limits)
-    assert(state1.hooks == { [], Cachex.Limit.to_hooks(c_limits) })
-    assert(state2.hooks == { [], Cachex.Limit.to_hooks(c_limits) })
+    assert(state1.hooks == hooks(pre: [], post: Cachex.Limit.to_hooks(c_limits)))
+    assert(state2.hooks == hooks(pre: [], post: Cachex.Limit.to_hooks(c_limits)))
 
     # check the third has no limits attached
     assert(state3.limit == default)
-    assert(state3.hooks == { [], [] })
+    assert(state3.hooks == hooks(pre: [], post: []))
 
     # check the fourth causes an error
     assert(state4 == { :error, :invalid_limit })
@@ -259,7 +259,7 @@ defmodule Cachex.OptionsTest do
     { :ok, state } = Cachex.Options.parse(name, [ stats: true ])
 
     # ensure the stats hook has been added
-    assert(state.hooks == { [ ], [ hook ] })
+    assert(state.hooks == hooks(pre: [ ], post: [ hook ]))
   end
 
   # This test will verify the parsing of transactions flags to determine whether

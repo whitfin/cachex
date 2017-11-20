@@ -9,7 +9,7 @@ defmodule CachexCase do
       alias CachexCase.Helper
       alias Cachex.Services
 
-      import Cachex.Macros
+      import Cachex.Model
       import ExUnit.CaptureLog
     end
   end

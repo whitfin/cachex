@@ -9,8 +9,8 @@ defmodule Cachex.Services.Overseer do
   # and should only be accessed via this module. The interface is deliberately
   # small in order to reduce potential complexity.
 
-  # require our constants
-  use Cachex.Constants
+  # require our includes
+  import Cachex.Model
 
   # add any aliases
   alias Cachex.Cache
@@ -157,7 +157,7 @@ defmodule Cachex.Services.Overseer do
 
       set(name, nstate)
 
-      with { pre_hooks, post_hooks } <- nstate.hooks do
+      with hooks(pre: pre_hooks, post: post_hooks) <- nstate.hooks do
         pre_hooks
         |> Enum.concat(post_hooks)
         |> Enum.filter(&requires_state?/1)

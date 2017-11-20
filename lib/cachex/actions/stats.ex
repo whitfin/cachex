@@ -8,6 +8,9 @@ defmodule Cachex.Actions.Stats do
   # we need constants
   use Cachex.Constants
 
+  # we need our imports
+  import Cachex.Model
+
   # add some aliases
   alias Cachex.Cache
   alias Cachex.Hook
@@ -22,7 +25,7 @@ defmodule Cachex.Actions.Stats do
   to taken into account, etc.
   """
   @spec execute(Cache.t, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
-  def execute(%Cache{ hooks: { _pre_hooks, post_hooks } }, options) do
+  def execute(%Cache{ hooks: hooks(post: post_hooks) }, options) do
     post_hooks
     |> Enum.find(&find_hook/1)
     |> handle_hook(options)

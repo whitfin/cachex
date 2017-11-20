@@ -30,5 +30,4 @@ defmodule Cachex.Commands do
     do: :ok
   def validate(_inv),
     do: @error_invalid_command
-
 end

@@ -14,6 +14,9 @@ defmodule Cachex.Options do
   alias Cachex.Util
   alias Cachex.Util.Names
 
+  # import models
+  import Cachex.Model
+
   @doc """
   Parses a list of input options to the fields we care about, setting things like
   defaults and verifying types.
@@ -114,14 +117,12 @@ defmodule Cachex.Options do
     ])
 
     with { :ok, hooks } <- Hook.validate(hooks) do
-      types = Enum.group_by(hooks, &Map.get(&1, :type))
+      type = Enum.group_by(hooks, &Map.get(&1, :type))
 
-      groups = {
-        Map.get(types,  :pre, []),
-        Map.get(types, :post, [])
-      }
+      pre  = Map.get(type,  :pre, [])
+      post = Map.get(type, :post, [])
 
-      { :ok, groups }
+      { :ok, hooks(pre: pre, post: post) }
     end
   end
 

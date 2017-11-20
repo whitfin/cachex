@@ -5,8 +5,11 @@ defmodule Cachex.Actions.Reset do
   # because there is no need to notify on reset (as there has been a reset, so it
   # doesn't make sense to always have a reset as the first message).
 
+  # we need our constants
+  use Cachex.Constants
+
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Model
 
   # add some aliases
   alias Cachex.Actions.Clear
@@ -50,7 +53,7 @@ defmodule Cachex.Actions.Reset do
   # Controls the resetting of any hooks, either all or a subset. We have a small
   # optimization here to detect when we want to reset all hooks, to avoid filtering
   # without cause. We use a MapSet just to avoid the O(N) lookups otherwise.
-  defp reset_hooks(%Cache{ hooks: { pre_hooks, post_hooks } }, only, opts) do
+  defp reset_hooks(%Cache{ hooks: hooks(pre: pre_hooks, post: post_hooks) }, only, opts) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->
