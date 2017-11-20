@@ -6,7 +6,8 @@ defmodule Cachex.Actions.Inspect do
   # easier to follow for newcomers.
 
   # we need constants
-  use Cachex.Constants
+  use Cachex.Include,
+    constants: true
 
   # add any aliases
   alias Cachex.Cache

@@ -4,7 +4,8 @@ defmodule Cachex.Options do
   # to avoid accidentally getting mixed field names and values across the library.
 
   # access to constants
-  use Cachex.Constants
+  use Cachex.Include,
+    models: true
 
   # add some aliases
   alias Cachex.Commands
@@ -13,9 +14,6 @@ defmodule Cachex.Options do
   alias Cachex.Limit
   alias Cachex.Util
   alias Cachex.Util.Names
-
-  # import models
-  import Cachex.Model
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like

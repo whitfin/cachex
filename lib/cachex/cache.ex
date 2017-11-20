@@ -7,7 +7,8 @@ defmodule Cachex.Cache do
   # only the name of the cache (to make it convenient for callers).
 
   # import records
-  import Cachex.Model
+  use Cachex.Include,
+    models: true
 
   # add any aliases
   alias Cachex.Fallback

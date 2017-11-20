@@ -6,10 +6,10 @@ defmodule Cachex.Actions.Stats do
   # return them to the user.
 
   # we need constants
-  use Cachex.Constants
-
-  # we need our imports
-  import Cachex.Model
+  use Cachex.Include,
+    constants: true,
+    actions: true,
+    models: true
 
   # add some aliases
   alias Cachex.Cache

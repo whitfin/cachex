@@ -10,7 +10,8 @@ defmodule Cachex.Services.Overseer do
   # small in order to reduce potential complexity.
 
   # require our includes
-  import Cachex.Model
+  use Cachex.Include,
+    models: true
 
   # add any aliases
   alias Cachex.Cache

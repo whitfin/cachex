@@ -9,7 +9,8 @@ defmodule Cachex.Actions do
   # performance.
 
   # we need some constants
-  use Cachex.Constants
+  use Cachex.Include,
+    constants: true
 
   # add some aliases
   alias Cachex.Cache

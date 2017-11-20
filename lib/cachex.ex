@@ -25,9 +25,12 @@ defmodule Cachex do
   example usage.
   """
 
-  # add all use clauses
-  use Cachex.Constants
+  # main supervisor
   use Supervisor
+
+  # add all use clauses
+  use Cachex.Include,
+    constants: true
 
   # allow unsafe generation
   use Unsafe.Generator,

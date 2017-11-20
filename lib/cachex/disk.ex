@@ -6,7 +6,8 @@ defmodule Cachex.Disk do
   # attached and will add basic compression by default.
 
   # we need constants for errors
-  use Cachex.Constants
+  use Cachex.Include,
+    constants: true
 
   # add a Util alias
   alias Cachex.Util

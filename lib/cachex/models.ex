@@ -1,4 +1,4 @@
-defmodule Cachex.Model do
+defmodule Cachex.Models do
   @moduledoc false
   # Model definitions around the Erlang Record syntax.
   import Record

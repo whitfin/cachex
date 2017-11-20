@@ -5,7 +5,9 @@ defmodule Cachex.Actions.GetAndUpdate do
   # that everything runs inside a Transaction to guarantee that the key is locked.
 
   # we need our imports
-  use Cachex.Actions
+  use Cachex.Include,
+    actions: true,
+    constants: true
 
   # add some aliases
   alias Cachex.Actions.Get

@@ -6,10 +6,9 @@ defmodule Cachex.Actions.Reset do
   # doesn't make sense to always have a reset as the first message).
 
   # we need our constants
-  use Cachex.Constants
-
-  # we need our imports
-  import Cachex.Model
+  use Cachex.Include,
+    constants: true,
+    models: true
 
   # add some aliases
   alias Cachex.Actions.Clear

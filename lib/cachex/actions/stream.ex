@@ -6,7 +6,9 @@ defmodule Cachex.Actions.Stream do
   # change in future.
 
   # we need our imports
-  use Cachex.Actions
+  use Cachex.Include,
+    actions: true,
+    constants: true
 
   # add some aliases
   alias Cachex.Cache

@@ -6,7 +6,8 @@ defmodule Cachex.Commands do
   # but just the parsing and validation of provided commands.
 
   # we need our constants
-  use Cachex.Constants
+  use Cachex.Include,
+    constants: true
 
   @doc """
   Parses a Keyword list of commands into a Map of commands.

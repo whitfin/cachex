@@ -7,7 +7,8 @@ defmodule Cachex.Hook do
   # needed.
 
   # use our constants
-  use Cachex.Constants
+  use Cachex.Include,
+    constants: true
 
   # define our opaque type
   @opaque t :: %__MODULE__{ }

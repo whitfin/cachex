@@ -5,7 +5,9 @@ defmodule Cachex.Actions.Incr do
   # values to place inside the cache before incrementing.
 
   # we need our imports
-  use Cachex.Actions
+  use Cachex.Include,
+    actions: true,
+    constants: true
 
   # add some aliases
   alias Cachex.Actions.Exists

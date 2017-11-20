@@ -6,7 +6,9 @@ defmodule Cachex.Actions.Touch do
   # least-recently used cache systems.
 
   # we need our imports
-  use Cachex.Actions
+  use Cachex.Include,
+    actions: true,
+    constants: true
 
   # add some aliases
   alias Cachex.Actions
