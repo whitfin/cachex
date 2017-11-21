@@ -138,10 +138,6 @@ defmodule Cachex do
 
           iex> Cachex.start_link(:my_cache, [ default_ttl: :timer.seconds(1) ])
 
-    * `:ets_opts` - A list of options to pass to the ETS table initialization.
-
-          iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
-
     * `:fallback` - A default fallback implementation to use when dealing with
       multi-layered caches. This function is called with a key which has no value,
       in order to allow loading from a different location.
@@ -817,7 +813,6 @@ defmodule Cachex do
       iex> Cachex.inspect(:my_cache, :state)
       {:ok,
        %Cachex.Cache{name: :name, commands: %{}, default_ttl: nil,
-        ets_opts: [read_concurrency: true, write_concurrency: true],
         fallback: %Cachex.Fallback{action: nil, state: nil},
         janitor: :my_cache_janitor,
         limit: %Cachex.Limit{limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1},
@@ -1211,7 +1206,7 @@ defmodule Cachex do
   defp setup_env(cache, options) when is_list(options) do
     with { :ok, opts } <- Options.parse(cache, options) do
       try do
-        :ets.new(cache, [ :named_table | opts.ets_opts ])
+        :ets.new(cache, [ :named_table | @table_options ])
         :ets.delete(cache)
         { :ok, opts }
       rescue

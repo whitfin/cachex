@@ -10,7 +10,8 @@ defmodule Cachex.Actions do
 
   # we need some constants
   use Cachex.Include,
-    constants: true
+    constants: true,
+    models: true
 
   # add some aliases
   alias Cachex.Cache
@@ -69,7 +70,7 @@ defmodule Cachex.Actions do
   If the key does not exist we return a `nil` value. If the key has expired, we
   delete it from the cache using the `:purge` action as a notification.
   """
-  @spec read(cache :: Cache.t, key :: any) :: Record.t | nil
+  @spec read(cache :: Cache.t, key :: any) :: Models.entry | nil
   def read(%Cache{ name: name } = cache, key) do
     name
     |> :ets.lookup(key)
@@ -94,19 +95,19 @@ defmodule Cachex.Actions do
   Writes a record into the cache, and returns a result signifying whether the
   write was successful or not.
   """
-  @spec write(cache :: Cache.t, record :: Record.t) :: { :ok, true | false }
-  def write(%Cache{ name: name }, record),
-    do: { :ok, :ets.insert(name, record) }
+  @spec write(cache :: Cache.t, entry :: Models.entry) :: { :ok, true | false }
+  def write(%Cache{ name: name }, entry() = entry),
+    do: { :ok, :ets.insert(name, entry) }
 
   # Handles the reesult from a read action in order to handle any expirations
   # set against the key. If the key has expired, we purge it immediately to avoid
   # any issues with consistency. If the record is valid, we just return it as is.
-  defp handle_read([{ key, touched, ttl, _value } = record], cache) do
+  defp handle_read([ entry(key: key, touched: touched, ttl: ttl) = entry ], cache) do
     if Util.has_expired?(cache, touched, ttl) do
       __MODULE__.Del.execute(cache, key, @purge_override)
       nil
     else
-      record
+      entry
     end
   end
   defp handle_read(_missing, _cache),

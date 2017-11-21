@@ -7,7 +7,8 @@ defmodule Cachex.Actions.Get do
 
   # we need our imports
   use Cachex.Include,
-    actions: true
+    actions: true,
+    models: true
 
   # add some aliases
   alias Cachex.Actions
@@ -24,7 +25,7 @@ defmodule Cachex.Actions.Get do
   """
   defaction get(%Cache{ } = cache, key, options) do
     case Actions.read(cache, key) do
-      { ^key, _touched, _ttl, value } ->
+      entry(value: value) ->
         { :ok, value }
       _missing ->
         { :missing, nil }

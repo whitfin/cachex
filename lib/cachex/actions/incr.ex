@@ -6,13 +6,13 @@ defmodule Cachex.Actions.Incr do
 
   # we need our imports
   use Cachex.Include,
+    constants: true,
     actions: true,
-    constants: true
+    models: true
 
   # add some aliases
   alias Cachex.Actions.Exists
   alias Cachex.Cache
-  alias Cachex.Record
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -31,15 +31,16 @@ defmodule Cachex.Actions.Incr do
   defaction incr(%Cache{ name: name } = cache, key, options) do
     amount  = Util.get_opt(options,  :amount, &is_integer/1, 1)
     initial = Util.get_opt(options, :initial, &is_integer/1, 0)
+    expiry  = Util.get_expiration(cache, nil)
 
-    default = Record.create(cache, key, initial)
+    default = entry_now(key: key, ttl: expiry, value: initial)
 
     Locksmith.write(cache, key, fn ->
       existed = Exists.execute(cache, key, @notify_false)
 
       try do
         name
-        |> :ets.update_counter(key, { 4, amount }, default)
+        |> :ets.update_counter(key, entry_mod(:value, amount), default)
         |> handle_existed(existed)
       rescue
         _e -> @error_non_numeric_value

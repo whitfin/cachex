@@ -19,7 +19,7 @@ defmodule Cachex.Actions.InvokeTest do
     { :ok, true } = Cachex.set(cache, "list", [ 1, 2, 3, 4 ])
 
     # retrieve the raw record
-    { "list", touched, nil, _val } = Cachex.inspect!(cache, { :record, "list" })
+    { :entry, "list", touched, nil, _val } = Cachex.inspect!(cache, { :record, "list" })
 
     # execute some custom commands
     lpop1 = Cachex.invoke(cache, "list", :lpop)
@@ -37,7 +37,7 @@ defmodule Cachex.Actions.InvokeTest do
     inspect1 = Cachex.inspect!(cache, { :record, "list" })
 
     # verify the touched time was unchanged
-    assert(inspect1 == { "list", touched, nil, [ ] })
+    assert(inspect1 == { :entry, "list", touched, nil, [ ] })
 
     # pop some extras to test avoiding writes
     lpop3 = Cachex.invoke(cache, "list", :lpop)

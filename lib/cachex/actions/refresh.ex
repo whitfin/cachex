@@ -8,7 +8,8 @@ defmodule Cachex.Actions.Refresh do
 
   # we need our imports
   use Cachex.Include,
-    actions: true
+    actions: true,
+    models: true
 
   # add some aliases
   alias Cachex.Actions
@@ -27,7 +28,7 @@ defmodule Cachex.Actions.Refresh do
   """
   defaction refresh(%Cache{ } = cache, key, options) do
     Locksmith.write(cache, key, fn ->
-      Actions.update(cache, key, [{ 2, Util.now() }])
+      Actions.update(cache, key, entry_mod(touched: Util.now()))
     end)
   end
 end

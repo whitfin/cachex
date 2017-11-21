@@ -22,10 +22,11 @@ defmodule Cachex.Include do
       @purge_override_call   { :purge, [[]] }
       @purge_override_result { :ok, 1 }
       @purge_override        [ via: @purge_override_call, hook_result: @purge_override_result ]
+      @table_options         [ keypos: 2, read_concurrency: true, write_concurrency: true ]
     end
   end
 
   # Imports all models
   defp define(:models),
-    do: quote(do: import Cachex.Models)
+    do: quote(do: import Cachex.Spec)
 end

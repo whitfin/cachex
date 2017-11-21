@@ -27,7 +27,7 @@ defmodule Cachex.ActionsTest do
     record3 = Cachex.Actions.read(state, 3)
 
     # the first should find a record
-    assert(match?({ 1, _touched, nil, 1 }, record1))
+    assert(match?({ :entry, 1, _touched, nil, 1 }, record1))
 
     # the second should expire
     assert(record2 == nil)
@@ -53,7 +53,11 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.get(cache)
 
     # write some values into the cache
-    write1 = Cachex.Actions.write(state, { "key", 1, nil, "value" })
+    write1 = Cachex.Actions.write(state, entry(
+      key: "key",
+      touched: 1,
+      value: "value"
+    ))
 
     # verify the write
     assert(write1 == { :ok, true })
@@ -62,11 +66,15 @@ defmodule Cachex.ActionsTest do
     value1 = Cachex.Actions.read(state, "key")
 
     # validate the value
-    assert(value1 == { "key", 1, nil, "value" })
+    assert(value1 == entry(
+      key: "key",
+      touched: 1,
+      value: "value"
+    ))
 
     # attempt to update some values
-    update1 = Cachex.Actions.update(state, "key", [{ 4, "yek" }])
-    update2 = Cachex.Actions.update(state, "nop", [{ 4, "yek" }])
+    update1 = Cachex.Actions.update(state, "key", entry_mod(value: "yek"))
+    update2 = Cachex.Actions.update(state, "nop", entry_mod(value: "yek"))
 
     # the first should be ok
     assert(update1 == { :ok, true })
@@ -78,7 +86,11 @@ defmodule Cachex.ActionsTest do
     value2 = Cachex.Actions.read(state, "key")
 
     # validate the update took effect
-    assert(value2 == { "key", 1, nil, "yek" })
+    assert(value2 == entry(
+      key: "key",
+      touched: 1,
+      value: "yek"
+    ))
   end
 
   # This test focuses on the `defact` macro which binds Hook notifications to the

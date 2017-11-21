@@ -25,8 +25,7 @@ defmodule Cachex.Options do
   to duplicate this logic all over the codebase.
   """
   def parse(name, options) when is_list(options) do
-    with { :ok,   ets_result } <- setup_ets(name, options),
-         { :ok,   cmd_result } <- setup_commands(name, options),
+    with { :ok,   cmd_result } <- setup_commands(name, options),
          { :ok, limit_result } <- setup_limit(name, options),
          { :ok,  hook_result } <- setup_hooks(name, options, limit_result),
          { :ok, trans_result } <- setup_transactions(name, options),
@@ -41,7 +40,6 @@ defmodule Cachex.Options do
           name: name,
           commands: cmd_result,
           default_ttl: default_ttl,
-          ets_opts: ets_result,
           fallback: fb_result,
           hooks: hook_result,
           janitor: janitor,
@@ -65,17 +63,6 @@ defmodule Cachex.Options do
     |> Util.get_opt(:commands, &Keyword.keyword?/1, [])
     |> Enum.uniq_by(&elem(&1, 0))
     |> Commands.parse
-  end
-
-  # Parses out a potential list of ETS options, passing through the default opts
-  # used for concurrency settings. This allows them to be overridden, but it would
-  # have to be explicitly overridden.
-  defp setup_ets(_name, options) do
-    options
-    |> Util.get_opt(:ets_opts, &is_list/1, [])
-    |> Keyword.put_new(:write_concurrency, true)
-    |> Keyword.put_new(:read_concurrency, true)
-    |> Util.wrap(:ok)
   end
 
   # Sets up and fallback behaviour options. Currently this just retrieves the

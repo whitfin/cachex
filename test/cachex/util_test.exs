@@ -51,7 +51,7 @@ defmodule Cachex.UtilTest do
     # compare match1 to hand written
     assert(match1 == [
       {
-        { :"$1", :"$2", :"$3", :"$4" },
+        { :_, :"$1", :"$2", :"$3", :"$4" },
         [ { :"/=", :"$3", nil } ],
         [ { { :"$1", :"$2" } } ]
       }
@@ -60,7 +60,7 @@ defmodule Cachex.UtilTest do
     # compare match2 to hand written
     assert(match2 == [
       {
-        { :"$1", :"$2", :"$3", :"$4" },
+        { :_, :"$1", :"$2", :"$3", :"$4" },
         [ { :"/=", :"$3", nil } ],
         [ { { :"$1", :"$2", :"$3", :"$4" } } ]
       }
@@ -165,25 +165,6 @@ defmodule Cachex.UtilTest do
     assert(result3 == %{ "key1" => 1, "key2" => "1", "key3" => 1 })
   end
 
-  # Macros need to gain access to the last element in a Tuple, so we provide a
-  # utility function which simply pulls the last element if there is one, but if
-  # not then it just returns a nil value.
-  test "locating the last value from inside a Tuple" do
-    # define our base Tuples to test against
-    tuple1 = { 1, 2, 3 }
-    tuple2 = { }
-
-    # pull back the last element for both
-    result1 = Cachex.Util.last_of_tuple(tuple1)
-    result2 = Cachex.Util.last_of_tuple(tuple2)
-
-    # first should return the last element
-    assert(result1 == 3)
-
-    # the second should default to nil
-    assert(result2 == nil)
-  end
-
   # This test just ensures that we correctly convert return values to either a
   # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
   # behaviour is a :commit Tuple for backwards compatibility.
@@ -260,7 +241,7 @@ defmodule Cachex.UtilTest do
       [ { head, query, return } ] = result
 
       # assert all makes sense
-      assert(head == { :"$1", :"$2", :"$3", :"$4" })
+      assert(head == { :_, :"$1", :"$2", :"$3", :"$4" })
       assert(return == [ { :"$1", :"$2", :"$3", :"$4" } ])
 
       # the query has some dynamic values
@@ -293,7 +274,7 @@ defmodule Cachex.UtilTest do
       [ { head, query, return } ] = result
 
       # assert all makes sense
-      assert(head == { :"$1", :"$2", :"$3", :"$4" })
+      assert(head == { :_, :"$1", :"$2", :"$3", :"$4" })
       assert(return == [ { :"$1", :"$2", :"$3", :"$4" } ])
 
       # the query has some dynamic values
@@ -328,5 +309,4 @@ defmodule Cachex.UtilTest do
     assert(result1 == { "value" })
     assert(result2 == {   nil  })
   end
-
 end

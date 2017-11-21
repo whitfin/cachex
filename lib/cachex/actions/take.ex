@@ -8,8 +8,9 @@ defmodule Cachex.Actions.Take do
 
   # we need our imports
   use Cachex.Include,
+    constants: true,
     actions: true,
-    constants: true
+    models: true
 
   # add some aliases
   alias Cachex.Cache
@@ -46,7 +47,7 @@ defmodule Cachex.Actions.Take do
   # make clear that it was correctly evicted (we don't have to remove it because
   # taking it from the cache removes it). If no value comes back, we just jump
   # to returning a missing result and a nil value.
-  defp handle_take([{ _key, touched, ttl, value }], %Cache{ } = cache) do
+  defp handle_take([ entry(touched: touched, ttl: ttl, value: value) ], %Cache{ } = cache) do
     case Util.has_expired?(cache, touched, ttl) do
       false ->
         { :ok, value }

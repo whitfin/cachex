@@ -103,45 +103,6 @@ defmodule CachexTest do
     assert(reason == :invalid_name)
   end
 
-  # This test makes sure that we can pass ETS options through to the table sitting
-  # behind Cachex. This allows for customization of things such as compression. To
-  # check this, we just start a cache with custom options and call ETS directly
-  # in order to see the configuration being used.
-  test "cache start with custom ETS options" do
-    # fetch a name
-    name = Helper.create_name()
-
-    # cleanup on exit
-    Helper.delete_on_exit(name)
-
-    # start up a cache
-    { :ok, pid } = Cachex.start_link(name, [ ets_opts: [ :compressed ] ])
-
-    # check valid pid
-    assert(is_pid(pid))
-    assert(Process.alive?(pid))
-
-    # ensure compression is enabled
-    assert(:ets.info(name, :compressed))
-  end
-
-  # This test ensures that we handle invalid ETS options gracefully. ETS would
-  # usually throw an ArgumentError, but that's a bit too extreme in our case, as
-  # we'd rather just return a short atom error message to hint what the issue is.
-  test "cache start with invalid ETS options" do
-    # fetch a name
-    name = Helper.create_name()
-
-    # cleanup on exit (just in case)
-    Helper.delete_on_exit(name)
-
-    # try to start a cache with invalid ETS options
-    { :error, reason } = Cachex.start_link(name, [ ets_opts: [ :marco_yolo ] ])
-
-    # we should've received an atom warning
-    assert(reason == :invalid_option)
-  end
-
   # This test ensures that we handle option parsing errors gracefully. If anything
   # goes wrong when parsing options, we exit early before starting the cache to
   # avoid bloating the Supervision tree.

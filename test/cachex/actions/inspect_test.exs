@@ -113,7 +113,7 @@ defmodule Cachex.Actions.InspectTest do
     record2 = Cachex.inspect(cache, { :record, 2 })
 
     # break down the first record
-    { :ok, { key, touched, ttl, value } } = record1
+    { :ok, { :entry, key, touched, ttl, value } } = record1
 
     # verify the first record
     assert(key == 1)

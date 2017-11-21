@@ -7,12 +7,12 @@ defmodule Cachex.Actions.Set do
 
   # we need our imports
   use Cachex.Include,
-    actions: true
+    actions: true,
+    models: true
 
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Cache
-  alias Cachex.Record
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -26,7 +26,9 @@ defmodule Cachex.Actions.Set do
   """
   defaction set(%Cache{ } = cache, key, value, options) do
     ttlval = Util.get_opt(options, :ttl, &is_integer/1)
-    record = Record.create(cache, key, value, ttlval)
+    expiry = Util.get_expiration(cache, ttlval)
+
+    record = entry_now(key: key, ttl: expiry, value: value)
 
     Locksmith.write(cache, key, fn ->
       Actions.write(cache, record)

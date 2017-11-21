@@ -22,16 +22,6 @@ defmodule Cachex.Actions.Exists do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction exists?(%Cache{ } = cache, key, options) do
-    cache
-    |> Actions.read(key)
-    |> handle_record
-  end
-
-  # Handles the record coming back from our read and converts the result into
-  # a true or false value. If the record is missing we just return false.
-  defp handle_record({ _key, _touched, _ttl, _value }),
-    do: { :ok, true }
-  defp handle_record(_missing),
-    do: { :ok, false }
+  defaction exists?(%Cache{ } = cache, key, options),
+    do: { :ok, Actions.read(cache, key) != nil }
 end

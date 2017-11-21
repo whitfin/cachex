@@ -6,7 +6,8 @@ defmodule Cachex.Actions.Update do
 
   # we need our imports
   use Cachex.Include,
-    actions: true
+    actions: true,
+    models: true
 
   # add some aliases
   alias Cachex.Actions
@@ -28,7 +29,7 @@ defmodule Cachex.Actions.Update do
   """
   defaction update(%Cache{ } = cache, key, value, options) do
     Locksmith.write(cache, key, fn ->
-      Actions.update(cache, key, [{ 4, value }])
+      Actions.update(cache, key, entry_mod(value: value))
     end)
   end
 end

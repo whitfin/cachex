@@ -13,7 +13,7 @@ defmodule Cachex.Actions.DecrTest do
 
     # define write options
     opts1 = []
-    opts2 = [ amount: 2 ]
+    opts2 = [  amount:  2 ]
     opts3 = [ initial: 10 ]
     opts4 = [ initial: 10, amount: 5 ]
 

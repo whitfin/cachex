@@ -65,48 +65,6 @@ defmodule Cachex.OptionsTest do
     assert(results6 == { :error, :invalid_command })
   end
 
-  # This test ensures that custom ETS options can be passed through to the ETS
-  # table. We need to check that if the value is not a list, we use defaults. We
-  # also verify that read/write concurrency is true unless explicitly disabled.
-  test "parsing :ets_opts flags" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # define the defaults
-    defaults = [
-      read_concurrency: true,
-      write_concurrency: true
-    ]
-
-    # parse out valid options
-    { :ok, state1 } = Cachex.Options.parse(name, [ ets_opts: [ :compressed ] ])
-
-    # parse out invalid options
-    { :ok, state2 } = Cachex.Options.parse(name, [ ets_opts: "[:compressed]" ])
-    { :ok, state3 } = Cachex.Options.parse(name, [ ])
-
-    # parse out overridden options
-    { :ok, state4 } = Cachex.Options.parse(name, [
-      ets_opts: [
-        read_concurrency: false,
-        write_concurrency: false
-      ]
-    ])
-
-    # the first options are completely valid
-    assert(state1.ets_opts == defaults ++ [ :compressed ])
-
-    # both the second and third options use defaults
-    assert(state2.ets_opts == defaults)
-    assert(state3.ets_opts == defaults)
-
-    # the fourth options overrides the concurrency options
-    assert(state4.ets_opts == [
-      read_concurrency: false,
-      write_concurrency: false
-    ])
-  end
-
   # Every cache can have a default fallback implementation which is used in case
   # of no fallback provided against cache reads. The only constraint here is that
   # the provided value is a valid function (of any arity).

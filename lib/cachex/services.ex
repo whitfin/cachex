@@ -7,6 +7,10 @@ defmodule Cachex.Services do
   # to group all logic into one place to make it easier to see exactly
   # what exists against a cache and what doesn't.
 
+  # we need constants
+  use Cachex.Include,
+    constants: true
+
   # add some aliases
   alias Cachex.Cache
   alias Cachex.Services
@@ -67,8 +71,8 @@ defmodule Cachex.Services do
 
   # Creates the required specifications for the backing cache table. This
   # spec should be included before any others in the main parent spec.
-  defp table_spec(%Cache{ name: name, ets_opts: ets_opts }) do
+  defp table_spec(%Cache{ name: name }) do
     server_opts = [ name: Names.eternal(name), quiet: true ]
-    [ supervisor(Eternal, [ name, ets_opts, server_opts ]) ]
+    [ supervisor(Eternal, [ name, @table_options, server_opts ]) ]
   end
 end

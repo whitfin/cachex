@@ -21,7 +21,6 @@ defmodule Cachex.Cache do
   defstruct [
     name: nil,              # the name of the cache
     commands: %{},          # any custom commands attached to the cache
-    ets_opts: [],           # any options to give to ETS
     default_ttl: nil,       # any default ttl values to use
     fallback: %Fallback{},  # the default fallback implementation
     hooks: hooks(),         # any hooks to attach to the cache

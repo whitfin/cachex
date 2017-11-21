@@ -58,5 +58,4 @@ defmodule Cachex.Disk do
     do: [ compressed: val ]
   defp fetch_compress_opt(_val),
     do: [ compressed: 1 ]
-
 end

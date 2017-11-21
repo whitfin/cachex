@@ -7,7 +7,8 @@ defmodule Cachex.Actions.Ttl do
 
   # we need our imports
   use Cachex.Include,
-    actions: true
+    actions: true,
+    models: true
 
   # add some aliases
   alias Cachex.Actions
@@ -34,9 +35,9 @@ defmodule Cachex.Actions.Ttl do
   # this point. If there is no TTL, we return a nil value. Otherwise we calculate
   # the time remaining and return that to the user. If the record does not exist,
   # we just return a missing result.
-  defp handle_record({ _key, _touched, nil, _value }),
+  defp handle_record(entry(ttl: nil)),
     do: { :ok, nil }
-  defp handle_record({ _key, touched, ttl, _value }),
+  defp handle_record(entry(touched: touched, ttl: ttl)),
     do: { :ok, touched + ttl - Util.now() }
   defp handle_record(_missing),
     do: { :missing, nil }
