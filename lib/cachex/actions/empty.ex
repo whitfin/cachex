@@ -6,9 +6,8 @@ defmodule Cachex.Actions.Empty do
   # results back into boolean values.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    constants: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
@@ -30,7 +29,7 @@ defmodule Cachex.Actions.Empty do
   """
   defaction empty?(%Cache{ } = cache, options) do
     cache
-    |> Size.execute(@notify_false)
+    |> Size.execute(const(:notify_false))
     |> handle_size
   end
 

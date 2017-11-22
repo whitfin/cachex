@@ -7,8 +7,7 @@ defmodule Cachex.Hook do
   # needed.
 
   # use our constants
-  use Cachex.Include,
-    constants: true
+  import Cachex.Errors
 
   # define our opaque type
   @opaque t :: %__MODULE__{ }
@@ -110,11 +109,11 @@ defmodule Cachex.Hook do
       mod.__info__(:module)
       do_validate(rest, [ hook | acc ])
     rescue
-      _ -> @error_invalid_hook
+      _ -> error(:invalid_hook)
     end
   end
   defp do_validate([ _invalid | _rest ], _acc),
-    do: @error_invalid_hook
+    do: error(:invalid_hook)
   defp do_validate([ ], acc),
     do: { :ok, Enum.reverse(acc) }
 end

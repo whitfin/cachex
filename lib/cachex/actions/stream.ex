@@ -6,9 +6,8 @@ defmodule Cachex.Actions.Stream do
   # change in future.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    constants: true
+  import Cachex.Actions
+  import Cachex.Errors
 
   # add some aliases
   alias Cachex.Cache
@@ -51,7 +50,7 @@ defmodule Cachex.Actions.Stream do
   defp handle_test({ :ok, _result }, name, spec),
     do: { :ok, init_stream(name, spec) }
   defp handle_test({ :error, _result }, _name, _spec),
-    do: @error_invalid_match
+    do: error(:invalid_match)
 
   # Initializes a Stream resource using an underlying ETS cursor as the resource.
   # Every time more items are requested, we pull another batch of items until the

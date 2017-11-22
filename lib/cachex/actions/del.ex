@@ -5,8 +5,7 @@ defmodule Cachex.Actions.Del do
   # which ensures consistency against Transactions.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Cache

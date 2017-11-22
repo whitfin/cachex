@@ -6,9 +6,8 @@ defmodule Cachex.Actions.Fetch do
   # a new value in the cache.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    constants: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Get
@@ -25,7 +24,7 @@ defmodule Cachex.Actions.Fetch do
   into the cache going forward in order to act as a read-through cache.
   """
   defaction fetch(%Cache{ } = cache, key, fallback, options) do
-    with { :missing, nil } <- Get.execute(cache, key, @notify_false) do
+    with { :missing, nil } <- Get.execute(cache, key, const(:notify_false)) do
       cache
       |> handle_fallback(fallback, key)
       |> Util.normalize_commit
@@ -47,7 +46,7 @@ defmodule Cachex.Actions.Fetch do
   # returned as-is (i.e. no persistence and without any extra modifications).
   defp handle_commit(result, cache, key) do
     with { :commit, val } <- result do
-      Set.execute(cache, key, val, @notify_false)
+      Set.execute(cache, key, val, const(:notify_false))
     end
     result
   end

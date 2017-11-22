@@ -6,8 +6,7 @@ defmodule Cachex.Actions.Dump do
   # nodes and machines.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Cache

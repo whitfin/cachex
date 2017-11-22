@@ -7,9 +7,8 @@ defmodule Cachex.Actions.Refresh do
   # against Transactions.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions

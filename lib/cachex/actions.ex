@@ -9,9 +9,7 @@ defmodule Cachex.Actions do
   # performance.
 
   # we need some constants
-  use Cachex.Include,
-    constants: true,
-    models: true
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
@@ -34,7 +32,7 @@ defmodule Cachex.Actions do
   for example.
   """
   defmacro defaction({ name, _line, [ _cache | stateless_args ] = arguments }, do: body) do
-    quote location: :keep do
+    quote do
       def execute(unquote_splicing(arguments)) do
         local_opts  = var!(options)
         local_state = var!(cache)
@@ -104,7 +102,7 @@ defmodule Cachex.Actions do
   # any issues with consistency. If the record is valid, we just return it as is.
   defp handle_read([ entry(key: key, touched: touched, ttl: ttl) = entry ], cache) do
     if Util.has_expired?(cache, touched, ttl) do
-      __MODULE__.Del.execute(cache, key, @purge_override)
+      __MODULE__.Del.execute(cache, key, const(:purge_override))
       nil
     else
       entry

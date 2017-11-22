@@ -6,9 +6,7 @@ defmodule Cachex.Actions.Reset do
   # doesn't make sense to always have a reset as the first message).
 
   # we need our constants
-  use Cachex.Include,
-    constants: true,
-    models: true
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Clear
@@ -45,7 +43,7 @@ defmodule Cachex.Actions.Reset do
   # cache table.
   defp reset_cache(cache, only) do
     if :cache in only do
-      Clear.execute(cache, @notify_false)
+      Clear.execute(cache, const(:notify_false))
     end
   end
 

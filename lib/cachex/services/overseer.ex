@@ -10,8 +10,8 @@ defmodule Cachex.Services.Overseer do
   # small in order to reduce potential complexity.
 
   # require our includes
-  use Cachex.Include,
-    models: true
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add any aliases
   alias Cachex.Cache
@@ -59,13 +59,13 @@ defmodule Cachex.Services.Overseer do
     quote location: :keep do
       case Overseer.ensure(unquote(cache)) do
         nil ->
-          @error_no_cache
+          error(:no_cache)
         var!(cache) ->
           cache = var!(cache)
           if :erlang.whereis(cache.name) != :undefined do
             unquote(body)
           else
-            @error_no_cache
+            error(:no_cache)
           end
       end
     end

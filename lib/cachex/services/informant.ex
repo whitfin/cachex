@@ -8,8 +8,7 @@ defmodule Cachex.Services.Informant do
   # notifications being sent to child hooks for a cache.
 
   # import our models
-  use Cachex.Include,
-    models: true
+  import Cachex.Spec
 
   # add any aliases
   alias Cachex.Cache

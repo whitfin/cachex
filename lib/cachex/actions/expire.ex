@@ -6,10 +6,8 @@ defmodule Cachex.Actions.Expire do
   # in a lock-aware context which ensures consistency against Transactions.
 
   # we need our imports
-  use Cachex.Include,
-    constants: true,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
@@ -45,5 +43,5 @@ defmodule Cachex.Actions.Expire do
   defp do_expire(cache, key, exp) when exp > -1,
     do: Actions.update(cache, key, entry_mod(touched: Util.now, ttl: exp))
   defp do_expire(cache, key, _exp),
-    do: Del.execute(cache, key, @purge_override)
+    do: Del.execute(cache, key, const(:purge_override))
 end

@@ -5,9 +5,8 @@ defmodule Cachex.Actions.Update do
   # a new value over the top.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions

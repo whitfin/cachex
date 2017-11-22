@@ -5,9 +5,8 @@ defmodule Cachex.Actions.Clear do
   # have been evicted or not.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    constants: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
@@ -28,7 +27,7 @@ defmodule Cachex.Actions.Clear do
     Locksmith.transaction(cache, [], fn ->
       evicted =
         cache
-        |> Size.execute(@notify_false)
+        |> Size.execute(const(:notify_false))
         |> handle_evicted
 
       true = :ets.delete_all_objects(name)

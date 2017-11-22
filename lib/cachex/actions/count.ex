@@ -5,8 +5,7 @@ defmodule Cachex.Actions.Count do
   # expiration time of items into consideration when returning this count.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Cache

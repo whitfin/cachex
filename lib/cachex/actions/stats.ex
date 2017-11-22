@@ -6,10 +6,8 @@ defmodule Cachex.Actions.Stats do
   # return them to the user.
 
   # we need constants
-  use Cachex.Include,
-    constants: true,
-    actions: true,
-    models: true
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
@@ -42,7 +40,7 @@ defmodule Cachex.Actions.Stats do
   # running stats hook. If no hook is provided, we return an error because the
   # Stats hook is not running, meaning that stats are disabled.
   defp handle_hook(nil, _options),
-    do: @error_stats_disabled
+    do: error(:stats_disabled)
   defp handle_hook(%Hook{ ref: ref }, options) do
     stats = Hook.Stats.retrieve(ref)
 

@@ -7,10 +7,8 @@ defmodule Cachex.Actions.Take do
   # in a lock context.
 
   # we need our imports
-  use Cachex.Include,
-    constants: true,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
@@ -52,7 +50,11 @@ defmodule Cachex.Actions.Take do
       false ->
         { :ok, value }
       true ->
-        Informant.broadcast(cache, @purge_override_call, @purge_override_result)
+        Informant.broadcast(
+          cache,
+          const(:purge_override_call),
+          const(:purge_override_result)
+        )
         { :missing, nil }
     end
   end

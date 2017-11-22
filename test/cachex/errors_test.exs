@@ -7,6 +7,7 @@ defmodule Cachex.ErrorsTest do
     # define all recognised errors
     errors = [
       invalid_command:   "Invalid command definition provided",
+      invalid_fallback:  "Invalid fallback function provided",
       invalid_hook:      "Invalid hook definition provided",
       invalid_limit:     "Invalid limit fields provided",
       invalid_match:     "Invalid match specification provided",
@@ -28,5 +29,8 @@ defmodule Cachex.ErrorsTest do
       # verify the message returned
       assert(long_form == msg)
     end
+
+    # make sure we're not missing any error definitions
+    assert(length(Cachex.Errors.known()) == length(errors))
   end
 end

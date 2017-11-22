@@ -4,8 +4,7 @@ defmodule Cachex.Options do
   # to avoid accidentally getting mixed field names and values across the library.
 
   # access to constants
-  use Cachex.Include,
-    models: true
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Commands

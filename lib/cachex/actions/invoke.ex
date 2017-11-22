@@ -7,9 +7,9 @@ defmodule Cachex.Actions.Invoke do
   # for more details.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    constants: true
+  import Cachex.Actions
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Get
@@ -39,7 +39,7 @@ defmodule Cachex.Actions.Invoke do
   # In the case of a `:return` function, we just pull the value from the cache
   # and pass it off to be transformed before the result is passed back.
   defp do_invoke({ :return, fun }, cache, key) when is_function(fun, 1) do
-    { _status_, value } = Get.execute(cache, key, @notify_false)
+    { _status_, value } = Get.execute(cache, key, const(:notify_false))
     { :ok, fun.(value) }
   end
 
@@ -49,12 +49,12 @@ defmodule Cachex.Actions.Invoke do
   # to be written to the cache, as well as the value to return.
   defp do_invoke({ :modify, fun }, %Cache{ } = cache, key) when is_function(fun, 1) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { status, value } = Get.execute(cache, key, @notify_false)
+      { status, value } = Get.execute(cache, key, const(:notify_false))
       { return, tempv } = fun.(value)
 
       tempv == value || Util
         .write_mod(status)
-        .execute(cache, key, tempv, @notify_false)
+        .execute(cache, key, tempv, const(:notify_false))
 
       { :ok, return }
     end)
@@ -62,6 +62,6 @@ defmodule Cachex.Actions.Invoke do
 
   # Carries out an invocation. If the command retrieved is invalid, we just pass
   # an error back to the caller instead of trying to do anything too clever.
-  defp do_invoke(_cmd, _Cache, _key),
-    do: @error_invalid_command
+  defp do_invoke(_cmd, _cache, _key),
+    do: error(:invalid_command)
 end

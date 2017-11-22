@@ -5,8 +5,7 @@ defmodule Cachex.Actions.Purge do
   # allow the Janitor to do the heavy lifting at this point.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Cache

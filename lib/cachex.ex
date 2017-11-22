@@ -28,9 +28,9 @@ defmodule Cachex do
   # main supervisor
   use Supervisor
 
-  # add all use clauses
-  use Cachex.Include,
-    constants: true
+  # add all imports
+  import Cachex.Errors
+  import Cachex.Spec
 
   # allow unsafe generation
   use Unsafe.Generator,
@@ -226,7 +226,7 @@ defmodule Cachex do
   @spec start_link(atom, Keyword.t, Keyword.t) :: { atom, pid }
   def start_link(name, options \\ [], server_opts \\ [])
   def start_link(name, _options, _server_opts) when not is_atom(name),
-    do: @error_invalid_name
+    do: error(:invalid_name)
   def start_link(name, options, server_opts) do
     with { :ok,  true } <- ensure_started(),
          { :ok,  true } <- ensure_unused(name),
@@ -693,7 +693,7 @@ defmodule Cachex do
         val when is_function(val) ->
           Actions.Fetch.execute(cache, key, val, options)
         _na ->
-          @error_invalid_fallback
+          error(:invalid_fallback)
       end
     end
   end
@@ -1184,7 +1184,7 @@ defmodule Cachex do
     if Overseer.setup?() do
       { :ok, true }
     else
-      @error_not_started
+      error(:not_started)
     end
   end
 
@@ -1206,11 +1206,11 @@ defmodule Cachex do
   defp setup_env(cache, options) when is_list(options) do
     with { :ok, opts } <- Options.parse(cache, options) do
       try do
-        :ets.new(cache, [ :named_table | @table_options ])
+        :ets.new(cache, [ :named_table | const(:table_options) ])
         :ets.delete(cache)
         { :ok, opts }
       rescue
-        _ -> @error_invalid_option
+        _ -> error(:invalid_option)
       end
     end
   end

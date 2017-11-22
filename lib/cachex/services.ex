@@ -8,8 +8,7 @@ defmodule Cachex.Services do
   # what exists against a cache and what doesn't.
 
   # we need constants
-  use Cachex.Include,
-    constants: true
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
@@ -73,6 +72,6 @@ defmodule Cachex.Services do
   # spec should be included before any others in the main parent spec.
   defp table_spec(%Cache{ name: name }) do
     server_opts = [ name: Names.eternal(name), quiet: true ]
-    [ supervisor(Eternal, [ name, @table_options, server_opts ]) ]
+    [ supervisor(Eternal, [ name, const(:table_options), server_opts ]) ]
   end
 end

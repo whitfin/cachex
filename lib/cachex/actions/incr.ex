@@ -5,10 +5,9 @@ defmodule Cachex.Actions.Incr do
   # values to place inside the cache before incrementing.
 
   # we need our imports
-  use Cachex.Include,
-    constants: true,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Exists
@@ -36,14 +35,14 @@ defmodule Cachex.Actions.Incr do
     default = entry_now(key: key, ttl: expiry, value: initial)
 
     Locksmith.write(cache, key, fn ->
-      existed = Exists.execute(cache, key, @notify_false)
+      existed = Exists.execute(cache, key, const(:notify_false))
 
       try do
         name
-        |> :ets.update_counter(key, entry_mod(:value, amount), default)
+        |> :ets.update_counter(key, entry_mod({ :value, amount }), default)
         |> handle_existed(existed)
       rescue
-        _e -> @error_non_numeric_value
+        _e -> error(:non_numeric_value)
       end
     end)
   end

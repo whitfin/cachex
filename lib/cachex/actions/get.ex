@@ -6,9 +6,8 @@ defmodule Cachex.Actions.Get do
   # to populate a new value in the cache.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions

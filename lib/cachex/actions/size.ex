@@ -5,8 +5,7 @@ defmodule Cachex.Actions.Size do
   # inside the cache. Expirations are not taken into account here.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Cache

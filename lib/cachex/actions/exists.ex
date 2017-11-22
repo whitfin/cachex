@@ -5,8 +5,7 @@ defmodule Cachex.Actions.Exists do
   # cache membership, because we also need to take TTL into account.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Actions

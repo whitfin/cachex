@@ -6,10 +6,8 @@ defmodule Cachex.Actions.Touch do
   # least-recently used cache systems.
 
   # we need our imports
-  use Cachex.Include,
-    constants: true,
-    actions: true,
-    models: true
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
@@ -37,7 +35,7 @@ defmodule Cachex.Actions.Touch do
   defaction touch(%Cache{ } = cache, key, options) do
     Locksmith.transaction(cache, [ key ], fn ->
       cache
-      |> Ttl.execute(key, @notify_false)
+      |> Ttl.execute(key, const(:notify_false))
       |> handle_ttl(cache, key)
     end)
   end

@@ -6,8 +6,7 @@ defmodule Cachex.Commands do
   # but just the parsing and validation of provided commands.
 
   # we need our constants
-  use Cachex.Include,
-    constants: true
+  import Cachex.Errors
 
   @doc """
   Parses a Keyword list of commands into a Map of commands.
@@ -30,5 +29,5 @@ defmodule Cachex.Commands do
   def validate([ ]),
     do: :ok
   def validate(_inv),
-    do: @error_invalid_command
+    do: error(:invalid_command)
 end

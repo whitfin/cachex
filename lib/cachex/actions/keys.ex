@@ -6,8 +6,7 @@ defmodule Cachex.Actions.Keys do
   # be expected, so use it wisely - or use a Stream instead.
 
   # we need our imports
-  use Cachex.Include,
-    actions: true
+  import Cachex.Actions
 
   # add some aliases
   alias Cachex.Cache

@@ -6,8 +6,7 @@ defmodule Cachex.Actions.Inspect do
   # easier to follow for newcomers.
 
   # we need constants
-  use Cachex.Include,
-    constants: true
+  import Cachex.Errors
 
   # add any aliases
   alias Cachex.Cache
@@ -63,7 +62,7 @@ defmodule Cachex.Actions.Inspect do
     if :erlang.whereis(ref) != :undefined do
       { :ok, GenServer.call(ref, :last) }
     else
-      @error_janitor_disabled
+      error(:janitor_disabled)
     end
   end
 
@@ -107,5 +106,5 @@ defmodule Cachex.Actions.Inspect do
 
   # This is just a catch all to tell the user they asked for an invalid option.
   defp inspect(_cache, _option),
-    do: @error_invalid_option
+    do: error(:invalid_option)
 end
