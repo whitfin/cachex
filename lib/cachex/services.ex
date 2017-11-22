@@ -36,14 +36,17 @@ defmodule Cachex.Services do
 
   This is used to set up the supervision tree on a cache by cache basis,
   rather than embedding all of this logic into the parent module.
+
+  Definition order here matters, as there's inter-dependency between each
+  of the child processes (such as the Janitor -> Locksmith).
   """
   @spec cache_spec(Cache.t) :: [ Spec.spec ]
   def cache_spec(%Cache{ } = cache) do
     []
     |> Enum.concat(table_spec(cache))
-    |> Enum.concat(janitor_spec(cache))
     |> Enum.concat(locksmith_spec(cache))
     |> Enum.concat(informant_spec(cache))
+    |> Enum.concat(janitor_spec(cache))
   end
 
   # Creates the required specification for the informant supervisor, which

@@ -10,7 +10,6 @@ defmodule Cachex.Cache do
   import Cachex.Spec
 
   # add any aliases
-  alias Cachex.Fallback
   alias Cachex.Limit
 
   # our opaque type
@@ -21,7 +20,7 @@ defmodule Cachex.Cache do
     name: nil,              # the name of the cache
     commands: %{},          # any custom commands attached to the cache
     default_ttl: nil,       # any default ttl values to use
-    fallback: %Fallback{},  # the default fallback implementation
+    fallback: fallback(),   # the default fallback implementation
     hooks: hooks(),         # any hooks to attach to the cache
     limit: %Limit{},        # any limit to apply to the cache
     ode: true,              # whether we enable on-demand expiration

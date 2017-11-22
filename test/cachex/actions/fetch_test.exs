@@ -17,8 +17,8 @@ defmodule Cachex.Actions.FetchTest do
     cache2 = Helper.create_cache([
       hooks: [ hook ],
       fallback: [
-        state: "val",
-        action: concat
+        provide: "val",
+        default: concat
       ]
     ])
 

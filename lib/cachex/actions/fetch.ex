@@ -38,8 +38,8 @@ defmodule Cachex.Actions.Fetch do
   # can be set to nil). This enables easy definition whilst keeping structure.
   defp handle_fallback(_cache, fallback, key) when is_function(fallback, 1),
     do: fallback.(key)
-  defp handle_fallback(%Cache{ fallback: %{ state: state } }, fallback, key),
-    do: fallback.(key, state)
+  defp handle_fallback(%Cache{ fallback: fallback(provide: provide) }, fallback, key),
+    do: fallback.(key, provide)
 
   # Handles the result of a fallback commit. If it's tagged with the :commit flag,
   # the value is persisted through to the backing table, otherwise the result is

@@ -74,9 +74,9 @@ defmodule Cachex.OptionsTest do
 
     # define our falbacks
     fallback1 = []
-    fallback2 = [ action: &String.reverse/1 ]
-    fallback3 = [ action: &String.reverse/1, state: {} ]
-    fallback4 = [ state: {} ]
+    fallback2 = [ default: &String.reverse/1 ]
+    fallback3 = [ default: &String.reverse/1, provide: {} ]
+    fallback4 = [ provide: {} ]
     fallback5 = &String.reverse/1
     fallback6 = { }
 
@@ -89,21 +89,18 @@ defmodule Cachex.OptionsTest do
     { :ok, state6 } = Cachex.Options.parse(name, [ fallback: fallback6 ])
 
     # the first and sixth should use defaults
-    assert(state1.fallback == %Cachex.Fallback{ })
-    assert(state6.fallback == %Cachex.Fallback{ })
+    assert(state1.fallback == fallback())
+    assert(state6.fallback == fallback())
 
     # the second and fifth should have an action but no state
-    assert(state2.fallback == %Cachex.Fallback{ action: &String.reverse/1 })
-    assert(state5.fallback == %Cachex.Fallback{ action: &String.reverse/1 })
+    assert(state2.fallback == fallback(default: &String.reverse/1))
+    assert(state5.fallback == fallback(default: &String.reverse/1))
 
     # the third should have both an action and state
-    assert(state3.fallback == %Cachex.Fallback{
-      action: &String.reverse/1,
-      state: {}
-    })
+    assert(state3.fallback == fallback(default: &String.reverse/1, provide: {}))
 
     # the fourth should have a state but no action
-    assert(state4.fallback == %Cachex.Fallback{ state: { } })
+    assert(state4.fallback == fallback(provide: {}))
   end
 
   # This test will ensure that we can parse Hook values successfully. Hooks can

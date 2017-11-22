@@ -223,15 +223,15 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ ttl_interval: :timer.seconds(5) ])
 
   """
-  @spec start_link(atom, Keyword.t, Keyword.t) :: { atom, pid }
-  def start_link(name, options \\ [], server_opts \\ [])
-  def start_link(name, _options, _server_opts) when not is_atom(name),
+  @spec start_link(atom, Keyword.t) :: { atom, pid }
+  def start_link(name, options \\ [])
+  def start_link(name, _options) when not is_atom(name),
     do: error(:invalid_name)
-  def start_link(name, options, server_opts) do
+  def start_link(name, options) do
     with { :ok,  true } <- ensure_started(),
          { :ok,  true } <- ensure_unused(name),
          { :ok, cache } <- setup_env(name, options),
-         { :ok,   pid }  = Supervisor.start_link(__MODULE__, cache, [ name: name ] ++ server_opts),
+         { :ok,   pid }  = Supervisor.start_link(__MODULE__, cache, [ name: name ]),
          { :ok,  link }  = Informant.link(cache),
                 ^link   <- Overseer.update(name, link),
      do: { :ok,   pid }
@@ -246,9 +246,9 @@ defmodule Cachex do
   to avoid using this in production applications and instead opt for a natural
   Supervision tree.
   """
-  @spec start(atom, Keyword.t, Keyword.t) :: { atom, pid }
-  def start(name, options \\ [], server_opts \\ []) do
-    with { :ok, pid } <- start_link(name, options, server_opts) do
+  @spec start(atom, Keyword.t) :: { atom, pid }
+  def start(name, options \\ []) do
+    with { :ok, pid } <- start_link(name, options) do
       :erlang.unlink(pid) && { :ok, pid }
     end
   end
@@ -689,7 +689,7 @@ defmodule Cachex do
   @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
   def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
-      case fallback || cache.fallback.action do
+      case fallback || fallback(cache.fallback, :default) do
         val when is_function(val) ->
           Actions.Fetch.execute(cache, key, val, options)
         _na ->

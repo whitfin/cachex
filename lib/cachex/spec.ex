@@ -7,6 +7,10 @@ defmodule Cachex.Spec do
   @type entry :: record(:entry, key: any, touched: number, ttl: number, value: any)
   defrecord :entry, key: nil, touched: nil, ttl: nil, value: nil
 
+  # fallback state representation
+  @type fallback :: record(:fallback, provide: any, default: (any -> any))
+  defrecord :fallback, provide: nil, default: nil
+
   # hook pairings for cache internals
   @type hooks :: record(:hooks, pre: [ Hook.t ], post: [ Hook.t ])
   defrecord :hooks, pre: [], post: []

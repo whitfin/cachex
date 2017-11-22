@@ -8,7 +8,6 @@ defmodule Cachex.Options do
 
   # add some aliases
   alias Cachex.Commands
-  alias Cachex.Fallback
   alias Cachex.Hook
   alias Cachex.Limit
   alias Cachex.Util
@@ -63,16 +62,22 @@ defmodule Cachex.Options do
   # Sets up and fallback behaviour options. Currently this just retrieves the
   # two flags from the options list and returns them inside a tuple for storage.
   defp setup_fallbacks(_name, options) do
-    fb_opts = Util.opt_transform(options, :fallback, fn
-      (fun) when is_function(fun) ->
-        [ action: fun ]
-      (list) when is_list(list) ->
-        list
-      (_inv) ->
-        []
-    end)
+    parsed_fallback =
+      Util.opt_transform(options, :fallback, fn
+        (fun) when is_function(fun) ->
+          fallback(default: fun)
 
-    { :ok, Fallback.parse(fb_opts) }
+        (opts) when is_list(opts) ->
+          fallback([
+            provide: Keyword.get(opts, :provide),
+            default: Util.get_opt(opts, :default, &is_function/1)
+          ])
+
+        (_inv) ->
+          fallback()
+      end)
+
+    { :ok, parsed_fallback }
   end
 
   # Sets up any hooks to be enabled for this cache. Also parses out whether a
