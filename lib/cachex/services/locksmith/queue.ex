@@ -7,6 +7,9 @@ defmodule Cachex.Services.Locksmith.Queue do
   # will therefore have their own queue, represented in this module, and will
   # operate using the utilities provided in the main Locksmith.
 
+  # we need the parent imports
+  import Cachex.Spec
+
   # import the Locksmith for ease
   import Cachex.Services.Locksmith
 
@@ -17,8 +20,8 @@ defmodule Cachex.Services.Locksmith.Queue do
   log output. This may be configurable in future, but this table will likely
   never cause an issue in the first place (as it handles only basic interactions).
   """
-  def start_link(%Cachex.Cache{ locksmith: locksmith } = cache),
-    do: GenServer.start_link(__MODULE__, cache, [ name: locksmith ])
+  def start_link(%Cachex.Cache{ name: name } = cache),
+    do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :locksmith) ])
 
   @doc """
   Sets the current process as transactional and returns the cache as the state.

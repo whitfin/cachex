@@ -43,4 +43,8 @@ defmodule Cachex.Spec do
   # generate entry with default touch time
   defmacro entry_now(pairs),
     do: quote(do: entry(unquote([ touched: quote(do: :os.system_time(1000)) ] ++ pairs)))
+
+  # generate names for cache components
+  defmacro name(name, suffix) when suffix in [ :eternal, :janitor, :locksmith, :stats ],
+    do: quote(do: :"#{unquote(name)}_#{unquote(suffix)}")
 end

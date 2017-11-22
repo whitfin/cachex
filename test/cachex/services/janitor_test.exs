@@ -56,9 +56,6 @@ defmodule Cachex.Services.JanitorTest do
     # create a test cache
     cache = Helper.create_cache([ hooks: hooks, ttl_interval: ttl_interval ])
 
-    # retrieve the cache state
-    state = Services.Overseer.get(cache)
-
     # add a new cache entry
     { :ok, true } = Cachex.set(cache, "key", "value", ttl: ttl_value)
 
@@ -78,7 +75,7 @@ defmodule Cachex.Services.JanitorTest do
     assert(exists2 == { :ok, false })
 
     # retrieve the metadata
-    metadata1 = GenServer.call(state.janitor, :last)
+    metadata1 = GenServer.call(name(cache, :janitor), :last)
 
     # verify the count was updated
     assert(metadata1[:count] == 1)

@@ -12,7 +12,6 @@ defmodule Cachex.Options do
   alias Cachex.Hook
   alias Cachex.Limit
   alias Cachex.Util
-  alias Cachex.Util.Names
 
   @doc """
   Parses a list of input options to the fields we care about, setting things like
@@ -32,8 +31,7 @@ defmodule Cachex.Options do
          { :ok,   ode_result } <- setup_ode(name, options),
          { :ok,   ttl_result } <- setup_ttl_components(name, options)
       do
-        { transactional, locksmith } = trans_result
-        { default_ttl, ttl_interval, janitor } = ttl_result
+        { default_ttl, ttl_interval } = ttl_result
 
         { :ok, %Cachex.Cache{
           name: name,
@@ -41,11 +39,9 @@ defmodule Cachex.Options do
           default_ttl: default_ttl,
           fallback: fb_result,
           hooks: hook_result,
-          janitor: janitor,
           limit: limit_result,
-          locksmith: locksmith,
           ode: ode_result,
-          transactions: transactional,
+          transactions: trans_result,
           ttl_interval: ttl_interval
         } }
       end
@@ -86,7 +82,7 @@ defmodule Cachex.Options do
     stats_hook =
       options[:stats] == true && %Hook{
         module: Cachex.Hook.Stats,
-        server_args: [ name: Names.stats(name) ]
+        server_args: [ name: name(name, :stats) ]
       }
 
     hooks_opts =
@@ -129,19 +125,15 @@ defmodule Cachex.Options do
 
   # Parses out whether the user wishes to utilize transactions or not. They can
   # either be enabled or disabled, represented by `true` and `false`.
-  defp setup_transactions(name, options) do
-    trans_opts = {
-      Util.get_opt(options, :transactions, &is_boolean/1, false),
-      Names.locksmith(name)
-    }
-    { :ok, trans_opts }
+  defp setup_transactions(_name, options) do
+    options
+    |> Util.get_opt(:transactions, &is_boolean/1, false)
+    |> Util.wrap(:ok)
   end
 
   # Sets up and parses any options related to TTL behaviours. Currently this deals
   # with janitor naming, TTL defaults, and purge intervals.
-  defp setup_ttl_components(name, options) do
-    janitor_name = Names.janitor(name)
-
+  defp setup_ttl_components(_name, options) do
     default_ttl  = Util.get_opt(options, :default_ttl, fn(val) ->
       is_integer(val) and val > 0
     end)
@@ -150,11 +142,11 @@ defmodule Cachex.Options do
 
     opts = cond do
       ttl_interval == -1 ->
-        { default_ttl, nil, nil }
+        { default_ttl, nil }
       is_nil(ttl_interval) ->
-        { default_ttl, :timer.seconds(3), janitor_name }
+        { default_ttl, :timer.seconds(3) }
       true ->
-        { default_ttl, ttl_interval, janitor_name }
+        { default_ttl, ttl_interval }
     end
 
     { :ok, opts }

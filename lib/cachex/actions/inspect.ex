@@ -7,6 +7,7 @@ defmodule Cachex.Actions.Inspect do
 
   # we need constants
   import Cachex.Errors
+  import Cachex.Spec
 
   # add any aliases
   alias Cachex.Cache
@@ -58,11 +59,12 @@ defmodule Cachex.Actions.Inspect do
   #
   # If the Janitor doesn't exist, an error is returned to inform the user, otherwise
   # we just return the metadata in an ok Tuple.
-  defp inspect(%Cache{ janitor: ref }, { :janitor, :last }) do
-    if :erlang.whereis(ref) != :undefined do
-      { :ok, GenServer.call(ref, :last) }
-    else
-      error(:janitor_disabled)
+  defp inspect(%Cache{ name: name }, { :janitor, :last }) do
+    case :erlang.whereis(name(name, :janitor)) do
+      :undefined ->
+        error(:janitor_disabled)
+       reference ->
+        { :ok, GenServer.call(reference, :last) }
     end
   end
 

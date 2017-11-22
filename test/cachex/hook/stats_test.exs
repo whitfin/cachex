@@ -17,7 +17,7 @@ defmodule Cachex.Hook.StatsTest do
     { :ok,    1 } = Cachex.get(cache, 1)
 
     # generate the name of the stats hook
-    sname = Cachex.Util.Names.stats(cache)
+    sname = name(cache, :stats)
 
     # attempt to retrieve the cache stats
     stats = Cachex.Hook.Stats.retrieve(sname)

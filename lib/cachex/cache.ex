@@ -23,9 +23,7 @@ defmodule Cachex.Cache do
     default_ttl: nil,       # any default ttl values to use
     fallback: %Fallback{},  # the default fallback implementation
     hooks: hooks(),         # any hooks to attach to the cache
-    janitor: nil,           # the name of the janitor attached (if any)
     limit: %Limit{},        # any limit to apply to the cache
-    locksmith: nil,         # the name of the locksmith queue attached
     ode: true,              # whether we enable on-demand expiration
     transactions: false,    # whether to enable transactions
     ttl_interval: nil       # the ttl check interval

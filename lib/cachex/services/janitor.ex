@@ -9,6 +9,9 @@ defmodule Cachex.Services.Janitor do
   # use GenServer
   use GenServer
 
+  # import parents
+  import Cachex.Spec
+
   # add some aliases
   alias Cachex.Cache
   alias Cachex.Services
@@ -26,8 +29,8 @@ defmodule Cachex.Services.Janitor do
   All options are passed throught to the initialization function, and the GenServer
   options are passed straight to GenServer to deal with.
   """
-  def start_link(%Cache{ } = cache, server_opts) when is_list(server_opts),
-    do: GenServer.start_link(__MODULE__, cache, server_opts)
+  def start_link(%Cache{ name: name } = cache),
+    do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :janitor) ])
 
   @doc """
   Main initialization phase of a janitor.

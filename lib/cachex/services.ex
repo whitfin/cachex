@@ -13,7 +13,6 @@ defmodule Cachex.Services do
   # add some aliases
   alias Cachex.Cache
   alias Cachex.Services
-  alias Cachex.Util.Names
   alias Supervisor.Spec
 
   # import supervisor stuff
@@ -59,8 +58,8 @@ defmodule Cachex.Services do
   # is nil (meaning that no Janitor has been enabled for the cache).
   defp janitor_spec(%Cache{ ttl_interval: nil }),
     do: []
-  defp janitor_spec(%Cache{ janitor: janitor } = cache),
-    do: [ worker(Services.Janitor, [ cache, [ name: janitor ] ]) ]
+  defp janitor_spec(%Cache{ } = cache),
+    do: [ worker(Services.Janitor, [ cache ]) ]
 
   # Creates any required specifications for the Locksmith services running
   # alongside a cache instance. This will create a queue instance for any
@@ -71,7 +70,7 @@ defmodule Cachex.Services do
   # Creates the required specifications for the backing cache table. This
   # spec should be included before any others in the main parent spec.
   defp table_spec(%Cache{ name: name }) do
-    server_opts = [ name: Names.eternal(name), quiet: true ]
+    server_opts = [ name: name(name, :eternal), quiet: true ]
     [ supervisor(Eternal, [ name, const(:table_options), server_opts ]) ]
   end
 end

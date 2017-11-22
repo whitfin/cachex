@@ -10,6 +10,9 @@ defmodule Cachex.Services.Locksmith do
   # not for the speedup when using ETS. When using an ETS table this check is
   # typically 0.3-0.5µs/op whereas a GenServer is roughly 10x this.
 
+  # we need imports
+  import Cachex.Spec
+
   # add any aliases
   alias Cachex.Cache
 
@@ -66,10 +69,10 @@ defmodule Cachex.Services.Locksmith do
   function to avoid having to handle row locking explicitly.
   """
   @spec transaction(Cache.t, [ any ], ( -> any)) :: any
-  def transaction(%Cache{ locksmith: locksmith }, keys, fun) do
+  def transaction(%Cache{ name: name }, keys, fun) do
     case transaction?() do
       true  -> fun.()
-      false -> GenServer.call(locksmith, { :transaction, keys, fun }, :infinity)
+      false -> GenServer.call(name(name, :locksmith), { :transaction, keys, fun }, :infinity)
     end
   end
 
@@ -133,10 +136,10 @@ defmodule Cachex.Services.Locksmith do
   @spec write(Cache.t, any, ( -> any)) :: any
   def write(%Cache{ transactions: false }, _key, fun),
     do: fun.()
-  def write(%Cache{ locksmith: locksmith } = cache, key, fun) do
+  def write(%Cache{ name: name } = cache, key, fun) do
     case transaction?() or writable?(cache, key) do
       true  -> fun.()
-      false -> GenServer.call(locksmith, { :exec, fun }, :infinity)
+      false -> GenServer.call(name(name, :locksmith), { :exec, fun }, :infinity)
     end
   end
 end

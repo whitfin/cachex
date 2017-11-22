@@ -210,7 +210,7 @@ defmodule Cachex.OptionsTest do
     # create a stats hook
     hook = %Cachex.Hook{
       module: Cachex.Hook.Stats,
-      server_args: [ name: Cachex.Util.Names.stats(name) ]
+      server_args: [ name: name(name, :stats) ]
     }
 
     # parse the stats recording flags
@@ -237,11 +237,6 @@ defmodule Cachex.OptionsTest do
     assert(state1.transactions == true)
     assert(state2.transactions == false)
     assert(state3.transactions == false)
-
-    # we also need to make sure they all have the locksmith name
-    assert(state1.locksmith == Cachex.Util.Names.locksmith(name))
-    assert(state2.locksmith == Cachex.Util.Names.locksmith(name))
-    assert(state3.locksmith == Cachex.Util.Names.locksmith(name))
   end
 
   # This test verifies the parsing of TTL related flags. We have to test various
