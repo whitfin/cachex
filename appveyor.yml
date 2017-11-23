@@ -6,6 +6,10 @@ skip_commits:
 environment:
   elixir_version: 1.5.2
 
+branches:
+  only:
+    - master
+
 cache:
   - '%APPDATA%\Local\Temp -> appveyor.yml'
 
@@ -19,4 +23,6 @@ build_script:
   - mix deps.get
 
 test_script:
+  - mix credo --all --format=oneline
   - mix coveralls --trace
+  - mix bench
