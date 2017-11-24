@@ -15,10 +15,13 @@ defmodule Cachex.Policy.LRW do
 
   # use the hook system
   use Cachex.Hook
+  use Cachex.Policy
+
+  # import macros
+  import Cachex.Spec
 
   # add internal aliases
   alias Cachex.Cache
-  alias Cachex.Limit
   alias Cachex.Services
   alias Cachex.Util
 
@@ -33,12 +36,33 @@ defmodule Cachex.Policy.LRW do
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Util.create_match([ { { :"$1", :"$2" } } ], [ ])
 
+  ####################
+  # Policy behaviour #
+  ####################
+
+  @doc """
+  Returns a list of hooks required to run alongside this policy.
+  """
+  def hooks(limit),
+    do: [
+      %Cachex.Hook{
+        args: limit,
+        module: __MODULE__,
+        provide: [ :cache ],
+        type: :post
+      }
+    ]
+
+  ##################
+  # Initialization #
+  ##################
+
   @doc """
   Initializes the policy, accepting a maximum size and a bound to trim by.
 
   We store a state of the maximum size, and a calculated number to trim to.
   """
-  def init(%Limit{ limit: max_size, reclaim: reclaim, options: options }) do
+  def init(limit(limit: max_size, reclaim: reclaim, options: options)) do
     trim_bound = round(max_size * reclaim)
 
     batch_size =
@@ -49,6 +73,10 @@ defmodule Cachex.Policy.LRW do
 
     { :ok, { max_size, trim_bound, batch_size, nil } }
   end
+
+  #############
+  # Listeners #
+  #############
 
   @doc """
   Checks and enforces the bounds of the cache as needed.
@@ -73,6 +101,10 @@ defmodule Cachex.Policy.LRW do
   """
   def handle_info({ :provision, { :cache, cache } }, { max_size, reclaim, batch, _cache }),
     do: { :noreply, { max_size, reclaim, batch, cache } }
+
+  #############
+  # Algorithm #
+  #############
 
   # Suggest stepping through this pipeline a function at a time and reading the
   # associated comments. This pipeline controls the trimming of the cache to fit

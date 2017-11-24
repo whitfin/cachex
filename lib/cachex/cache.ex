@@ -9,9 +9,6 @@ defmodule Cachex.Cache do
   # import records
   import Cachex.Spec
 
-  # add any aliases
-  alias Cachex.Limit
-
   # our opaque type
   @opaque t :: %__MODULE__{ }
 
@@ -22,7 +19,7 @@ defmodule Cachex.Cache do
     default_ttl: nil,       # any default ttl values to use
     fallback: fallback(),   # the default fallback implementation
     hooks: hooks(),         # any hooks to attach to the cache
-    limit: %Limit{},        # any limit to apply to the cache
+    limit: limit(),         # any limit to apply to the cache
     ode: true,              # whether we enable on-demand expiration
     transactions: false,    # whether to enable transactions
     ttl_interval: nil       # the ttl check interval

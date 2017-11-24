@@ -47,6 +47,7 @@ defmodule Cachex.Services do
     |> Enum.concat(locksmith_spec(cache))
     |> Enum.concat(informant_spec(cache))
     |> Enum.concat(janitor_spec(cache))
+    |> Enum.concat(limit_spec(cache))
   end
 
   # Creates the required specification for the informant supervisor, which
@@ -63,6 +64,19 @@ defmodule Cachex.Services do
     do: []
   defp janitor_spec(%Cache{ } = cache),
     do: [ worker(Services.Janitor, [ cache ]) ]
+
+  # Attaches any limit specifications to the supervision tree. This will
+  # rarely be used except in custom limit implementations by developers.
+  defp limit_spec(%Cache{ limit: limit(limit: nil) }),
+    do: []
+  defp limit_spec(%Cache{ limit: limit(policy: policy) = limit }) do
+    case apply(policy, :children, [ limit ]) do
+      [] -> []
+      cs ->
+        strategy = apply(policy, :strategy, [])
+        [ supervisor(Supervisor, [ cs, [ strategy: strategy ] ]) ]
+    end
+  end
 
   # Creates any required specifications for the Locksmith services running
   # alongside a cache instance. This will create a queue instance for any

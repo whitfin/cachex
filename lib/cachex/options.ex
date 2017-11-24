@@ -5,11 +5,11 @@ defmodule Cachex.Options do
 
   # access to constants
   import Cachex.Spec
+  import Cachex.Errors
 
   # add some aliases
   alias Cachex.Commands
   alias Cachex.Hook
-  alias Cachex.Limit
   alias Cachex.Util
 
   @doc """
@@ -85,19 +85,27 @@ defmodule Cachex.Options do
   # and post hooks as they're stored separately.
   defp setup_hooks(name, options, limit) do
     stats_hook =
-      options[:stats] == true && %Hook{
+      options[:stats] == true && [ %Hook{
         module: Cachex.Hook.Stats,
         server_args: [ name: name(name, :stats) ]
-      }
+      } ]
 
     hooks_opts =
       options
       |> Keyword.get(:hooks, [])
       |> List.wrap
 
+    limit_hooks =
+      case limit do
+        limit(limit: nil) ->
+          []
+        limit(policy: policy) ->
+          apply(policy, :hooks, [ limit ])
+      end
+
     hooks = Enum.concat([
-      List.wrap(stats_hook || []),
-      Limit.to_hooks(limit),
+      stats_hook || [],
+      limit_hooks,
       hooks_opts
     ])
 
@@ -115,9 +123,21 @@ defmodule Cachex.Options do
   # a Limit struct based on the provided values. If the cache has no limits, the
   # `:limit` key in the struct will be nil.
   defp setup_limit(_name, options) do
-    options
-    |> Keyword.get(:limit)
-    |> Limit.parse
+    limit(limit: limit, policy: policy, reclaim: reclaim, options: options) = l =
+      case Keyword.get(options, :limit) do
+        limit() = record -> record
+        limit -> limit(limit: limit)
+      end
+
+    with true <- (is_nil(limit) or (is_number(limit) and limit > 0)),
+         true <- is_atom(policy),
+         true <- (is_number(reclaim) and reclaim > 0 and reclaim <= 1),
+         true <- Keyword.keyword?(options)
+      do
+        { :ok, l }
+      else
+        _ -> error(:invalid_limit)
+      end
   end
 
   # Parses out whether the user wishes to disable on-demand expirations or not. It

@@ -151,11 +151,11 @@ defmodule Cachex.OptionsTest do
     name = Helper.create_name()
 
     # create a default limit
-    default = %Cachex.Limit{ }
+    default = limit()
 
     # our cache limit
     max_size = 500
-    c_limits = %Cachex.Limit{ limit: max_size }
+    c_limits = limit(limit: max_size)
 
     # parse options with a valid max_size
     { :ok, state1 } = Cachex.Options.parse(name, [ limit: max_size ])
@@ -168,8 +168,8 @@ defmodule Cachex.OptionsTest do
     # check the first and second states have limits
     assert(state1.limit == c_limits)
     assert(state2.limit == c_limits)
-    assert(state1.hooks == hooks(pre: [], post: Cachex.Limit.to_hooks(c_limits)))
-    assert(state2.hooks == hooks(pre: [], post: Cachex.Limit.to_hooks(c_limits)))
+    assert(state1.hooks == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
+    assert(state2.hooks == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
 
     # check the third has no limits attached
     assert(state3.limit == default)

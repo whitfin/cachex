@@ -35,12 +35,12 @@ defmodule Cachex.Policy.LRWTest do
     })
 
     # define our cache limit
-    limit = %Cachex.Limit{
+    limit = limit(
       limit: 100,
       policy: Cachex.Policy.LRW,
       reclaim: 0.75,
       options: [ batch_size: 25 ]
-    }
+    )
 
     # create a cache with a max size
     cache = Helper.create_cache([ hooks: [ hook ], limit: limit ])
@@ -104,11 +104,11 @@ defmodule Cachex.Policy.LRWTest do
   # the cache size back under the maximum size.
   test "evicting by removing expired keys" do
     # define our cache limit
-    limit = %Cachex.Limit{
+    limit = limit(
       limit: 100,
       policy: Cachex.Policy.LRW,
       reclaim: 0.3
-    }
+    )
 
     # create a cache with a max size
     cache = Helper.create_cache([ limit: limit ])

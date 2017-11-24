@@ -15,6 +15,10 @@ defmodule Cachex.Spec do
   @type hooks :: record(:hooks, pre: [ Hook.t ], post: [ Hook.t ])
   defrecord :hooks, pre: [], post: []
 
+  # limit records to define cache bounds
+  @type limit :: record(:limit, limit: integer, policy: atom, reclaim: number, options: Keyword.t)
+  defrecord :limit, limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1, options: []
+
   # constants generation
   defmacro const(:notify_false),
     do: quote(do: [ notify: false ])
