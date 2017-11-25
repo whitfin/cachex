@@ -67,7 +67,7 @@ defmodule Cachex.Services do
 
   # Attaches any limit specifications to the supervision tree. This will
   # rarely be used except in custom limit implementations by developers.
-  defp limit_spec(%Cache{ limit: limit(limit: nil) }),
+  defp limit_spec(%Cache{ limit: limit(size: nil) }),
     do: []
   defp limit_spec(%Cache{ limit: limit(policy: policy) = limit }) do
     case apply(policy, :children, [ limit ]) do

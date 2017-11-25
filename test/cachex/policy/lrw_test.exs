@@ -36,7 +36,7 @@ defmodule Cachex.Policy.LRWTest do
 
     # define our cache limit
     limit = limit(
-      limit: 100,
+      size: 100,
       policy: Cachex.Policy.LRW,
       reclaim: 0.75,
       options: [ batch_size: 25 ]
@@ -105,7 +105,7 @@ defmodule Cachex.Policy.LRWTest do
   test "evicting by removing expired keys" do
     # define our cache limit
     limit = limit(
-      limit: 100,
+      size: 100,
       policy: Cachex.Policy.LRW,
       reclaim: 0.3
     )

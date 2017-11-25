@@ -68,7 +68,7 @@ defmodule Cachex.Actions do
   If the key does not exist we return a `nil` value. If the key has expired, we
   delete it from the cache using the `:purge` action as a notification.
   """
-  @spec read(cache :: Cache.t, key :: any) :: Models.entry | nil
+  @spec read(cache :: Cache.t, key :: any) :: Spec.entry | nil
   def read(%Cache{ name: name } = cache, key) do
     name
     |> :ets.lookup(key)
@@ -93,7 +93,7 @@ defmodule Cachex.Actions do
   Writes a record into the cache, and returns a result signifying whether the
   write was successful or not.
   """
-  @spec write(cache :: Cache.t, entry :: Models.entry) :: { :ok, true | false }
+  @spec write(cache :: Cache.t, entry :: Spec.entry) :: { :ok, true | false }
   def write(%Cache{ name: name }, entry() = entry),
     do: { :ok, :ets.insert(name, entry) }
 

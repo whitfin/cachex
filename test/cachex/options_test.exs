@@ -155,7 +155,7 @@ defmodule Cachex.OptionsTest do
 
     # our cache limit
     max_size = 500
-    c_limits = limit(limit: max_size)
+    c_limits = limit(size: max_size)
 
     # parse options with a valid max_size
     { :ok, state1 } = Cachex.Options.parse(name, [ limit: max_size ])

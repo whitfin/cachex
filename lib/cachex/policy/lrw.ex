@@ -62,7 +62,7 @@ defmodule Cachex.Policy.LRW do
 
   We store a state of the maximum size, and a calculated number to trim to.
   """
-  def init(limit(limit: max_size, reclaim: reclaim, options: options)) do
+  def init(limit(size: max_size, reclaim: reclaim, options: options)) do
     trim_bound = round(max_size * reclaim)
 
     batch_size =

@@ -10,6 +10,7 @@ defmodule Cachex.Options do
   # add some aliases
   alias Cachex.Commands
   alias Cachex.Hook
+  alias Cachex.Spec
   alias Cachex.Util
 
   @doc """
@@ -97,7 +98,7 @@ defmodule Cachex.Options do
 
     limit_hooks =
       case limit do
-        limit(limit: nil) ->
+        limit(size: nil) ->
           []
         limit(policy: policy) ->
           apply(policy, :hooks, [ limit ])
@@ -123,21 +124,16 @@ defmodule Cachex.Options do
   # a Limit struct based on the provided values. If the cache has no limits, the
   # `:limit` key in the struct will be nil.
   defp setup_limit(_name, options) do
-    limit(limit: limit, policy: policy, reclaim: reclaim, options: options) = l =
+    limit =
       case Keyword.get(options, :limit) do
-        limit() = record -> record
-        limit -> limit(limit: limit)
+        limit() = limit -> limit
+        size -> limit(size: size)
       end
 
-    with true <- (is_nil(limit) or (is_number(limit) and limit > 0)),
-         true <- is_atom(policy),
-         true <- (is_number(reclaim) and reclaim > 0 and reclaim <= 1),
-         true <- Keyword.keyword?(options)
-      do
-        { :ok, l }
-      else
-        _ -> error(:invalid_limit)
-      end
+    case Spec.valid?(limit) do
+      true  -> { :ok, limit }
+      false -> error(:invalid_limit)
+    end
   end
 
   # Parses out whether the user wishes to disable on-demand expirations or not. It

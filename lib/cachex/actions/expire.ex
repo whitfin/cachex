@@ -14,7 +14,6 @@ defmodule Cachex.Actions.Expire do
   alias Cachex.Actions.Del
   alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   @doc """
   Sets the expiration time on a given record.
@@ -41,7 +40,7 @@ defmodule Cachex.Actions.Expire do
   # given is `nil` or a non-negative, we update the record's touch time and TTL.
   # If the value is negative, we immediately remove the record from the cache.
   defp do_expire(cache, key, exp) when exp > -1,
-    do: Actions.update(cache, key, entry_mod(touched: Util.now, ttl: exp))
+    do: Actions.update(cache, key, entry_mod_now(ttl: exp))
   defp do_expire(cache, key, _exp),
     do: Del.execute(cache, key, const(:purge_override))
 end

@@ -14,7 +14,6 @@ defmodule Cachex.Actions.Touch do
   alias Cachex.Actions.Ttl
   alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   @doc """
   Touches a key inside the cache.
@@ -48,8 +47,8 @@ defmodule Cachex.Actions.Touch do
   # to the use to signify that the key was not touched because it was missing.
   defp handle_ttl({ :ok, value }, cache, key) do
     Actions.update(cache, key, case value do
-      nil -> entry_mod(touched: Util.now())
-      ttl -> entry_mod(touched: Util.now(), ttl: ttl)
+      nil -> entry_mod_now()
+      ttl -> entry_mod_now(ttl: ttl)
     end)
   end
   defp handle_ttl({ :missing, nil }, _cache, _key),
