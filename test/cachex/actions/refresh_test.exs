@@ -7,7 +7,7 @@ defmodule Cachex.Actions.RefreshTest do
   # refresh the key.
   test "refreshing the TTL time on a key" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -59,5 +59,4 @@ defmodule Cachex.Actions.RefreshTest do
     # the second TTL should be reset to 1000
     assert_in_delta(ttl4, 995, 6)
   end
-
 end

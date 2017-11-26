@@ -114,7 +114,7 @@ defmodule CachexTest do
     Helper.delete_on_exit(name)
 
     # try to start a cache with invalid hook definitions
-    { :error, reason } = Cachex.start_link(name, [ hooks: %Cachex.Hook{ module: Missing } ])
+    { :error, reason } = Cachex.start_link(name, [ hooks: hook(module: Missing) ])
 
     # we should've received an atom warning
     assert(reason == :invalid_hook)

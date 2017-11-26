@@ -10,7 +10,7 @@ defmodule Cachex.HookTest do
     hook1 = ForwardHook.create()
 
     # create a hook with an invalid module
-    hook2 = %Cachex.Hook{ hook1 | module: MissingModule }
+    hook2 = hook(hook1, module: MissingModule)
 
     # validate the hooks individually
     result1 = Cachex.Hook.validate(hook1)

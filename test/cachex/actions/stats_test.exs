@@ -167,5 +167,4 @@ defmodule Cachex.Actions.StatsTest do
       setCount: 1
     })
   end
-
 end

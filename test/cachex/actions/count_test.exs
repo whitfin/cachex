@@ -5,7 +5,7 @@ defmodule Cachex.Actions.CountTest do
   # will return the size of the cache, but ignoring the number of expired entries.
   test "counting items in a cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -35,5 +35,4 @@ defmodule Cachex.Actions.CountTest do
     # verify the hooks were updated with the count
     assert_receive({ { :count, [[]] }, ^result })
   end
-
 end

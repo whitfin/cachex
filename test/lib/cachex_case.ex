@@ -11,6 +11,9 @@ defmodule CachexCase do
 
       import Cachex.Spec
       import ExUnit.CaptureLog
+
+      require ExecuteHook
+      require ForwardHook
     end
   end
 end

@@ -12,7 +12,6 @@ defmodule Cachex.Services.Informant do
 
   # add any aliases
   alias Cachex.Cache
-  alias Cachex.Hook
   alias Supervisor.Spec
 
   @doc """
@@ -85,20 +84,20 @@ defmodule Cachex.Services.Informant do
   # list of Hook structs. Wherever there is a match, the PID of the child is added
   # to the Hook so that a Hook struct can track where it lives.
   defp attach_hook_pid(hooks, children) do
-    Enum.map(hooks, fn(%Hook{ module: module } = hook) ->
-      %Hook{ hook | ref: find_pid(children, module) }
+    Enum.map(hooks, fn(hook(module: module) = hook) ->
+      hook(hook, ref: find_pid(children, module))
    end)
   end
 
   # Internal emission, used to define whether we send using an async request or
   # not. We also determine whether we should supply a timeout value or not.
-  defp do_notify(%Hook{ ref: nil }, _action, _result),
+  defp do_notify(hook(ref: nil), _action, _result),
     do: nil
-  defp do_notify(%Hook{ async: true, ref: ref }, action, result),
+  defp do_notify(hook(async: true, ref: ref), action, result),
     do: GenServer.cast(ref, { :cachex_notify, { action, result } })
-  defp do_notify(%Hook{ max_timeout: nil, ref: ref }, action, result),
+  defp do_notify(hook(timeout: nil, ref: ref), action, result),
     do: GenServer.call(ref, { :cachex_notify, { action, result } }, :infinity)
-  defp do_notify(%Hook{ max_timeout: val, ref: ref }, action, result),
+  defp do_notify(hook(timeout: val, ref: ref), action, result),
     do: GenServer.call(ref, { :cachex_notify, { action, result }, val }, :infinity)
 
   # Locates a process identifier for the given module in the child specification
@@ -111,6 +110,6 @@ defmodule Cachex.Services.Informant do
   end
 
   # Generates a Supervisor specification for a hook.
-  defp spec(%Hook{ module: mod, args: args, server_args: opts }),
-    do: Spec.worker(GenServer, [ mod, args, opts ], [ id: mod ])
+  defp spec(hook(module: module, args: args, options: options)),
+    do: Spec.worker(GenServer, [ module, args, options ], [ id: module ])
 end

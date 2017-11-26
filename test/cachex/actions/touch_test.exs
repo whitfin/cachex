@@ -7,7 +7,7 @@ defmodule Cachex.Actions.TouchTest do
   # touch time on the record has been modified.
   test "touching a key in the cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])

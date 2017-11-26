@@ -6,7 +6,7 @@ defmodule Cachex.Actions.DelTest do
   # both. We also ensure that hooks receive the delete notification successfully.
   test "removing entries from a cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -34,5 +34,4 @@ defmodule Cachex.Actions.DelTest do
     assert(value1 == { :missing, nil })
     assert(value2 == { :missing, nil })
   end
-
 end

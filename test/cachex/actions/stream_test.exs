@@ -70,5 +70,4 @@ defmodule Cachex.Actions.StreamTest do
     # verify the stream fails
     assert(result == { :error, :invalid_match })
   end
-
 end

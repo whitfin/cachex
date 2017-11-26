@@ -45,12 +45,12 @@ defmodule Cachex.Policy.LRW do
   """
   def hooks(limit),
     do: [
-      %Cachex.Hook{
+      hook(
         args: limit,
         module: __MODULE__,
         provide: [ :cache ],
         type: :post
-      }
+      )
     ]
 
   ##################

@@ -74,9 +74,7 @@ defmodule Cachex.OverseerTest do
   # that provisioned hooks receive the new state they're working with.
   test "updating a state in the table" do
     # create a hook listener
-    hook = ForwardHook.create(%{
-      provide: [ :cache ]
-    })
+    hook = ForwardHook.create(provide: [ :cache ])
 
     # start up our cache using the helper
     name = Helper.create_cache([ hooks: hook ])

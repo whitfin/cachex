@@ -15,7 +15,6 @@ defmodule Cachex.Services.Overseer do
 
   # add any aliases
   alias Cachex.Cache
-  alias Cachex.Hook
   alias Cachex.Services
   alias Supervisor.Spec
 
@@ -162,7 +161,8 @@ defmodule Cachex.Services.Overseer do
         pre_hooks
         |> Enum.concat(post_hooks)
         |> Enum.filter(&requires_state?/1)
-        |> Enum.each(&send(&1.ref, { :provision, { :cache, nstate } }))
+        |> Enum.map(&hook(&1, :ref))
+        |> Enum.each(&send(&1, { :provision, { :cache, nstate } }))
       end
 
       nstate
@@ -173,7 +173,7 @@ defmodule Cachex.Services.Overseer do
 
   # Verifies whether a Hook requires a state worker. If it does, return true
   # otherwise return a false.
-  defp requires_state?(%Hook{ provide: provide }) when is_list(provide),
+  defp requires_state?(hook(provide: provide)),
     do: :cache in provide
   defp requires_state?(_hook),
     do: false

@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Stats do
 
   # Locates a Hook for the Stats module, using function heads as the filter. If
   # the function head matches, we return true, otherwise we just return false.
-  defp find_hook(%Hook{ module: Cachex.Hook.Stats }),
+  defp find_hook(hook(module: Cachex.Hook.Stats)),
     do: true
   defp find_hook(_hook),
     do: false
@@ -41,7 +41,7 @@ defmodule Cachex.Actions.Stats do
   # Stats hook is not running, meaning that stats are disabled.
   defp handle_hook(nil, _options),
     do: error(:stats_disabled)
-  defp handle_hook(%Hook{ ref: ref }, options) do
+  defp handle_hook(hook(ref: ref), options) do
     stats = Hook.Stats.retrieve(ref)
 
     final =

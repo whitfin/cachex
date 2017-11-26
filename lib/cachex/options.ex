@@ -86,10 +86,10 @@ defmodule Cachex.Options do
   # and post hooks as they're stored separately.
   defp setup_hooks(name, options, limit) do
     stats_hook =
-      options[:stats] == true && [ %Hook{
+      options[:stats] == true && [ hook(
         module: Cachex.Hook.Stats,
-        server_args: [ name: name(name, :stats) ]
-      } ]
+        options: [ name: name(name, :stats) ]
+      ) ]
 
     hooks_opts =
       options
@@ -111,7 +111,7 @@ defmodule Cachex.Options do
     ])
 
     with { :ok, hooks } <- Hook.validate(hooks) do
-      type = Enum.group_by(hooks, &Map.get(&1, :type))
+      type = Enum.group_by(hooks, &hook(&1, :type))
 
       pre  = Map.get(type,  :pre, [])
       post = Map.get(type, :post, [])

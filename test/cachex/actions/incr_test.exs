@@ -6,7 +6,7 @@ defmodule Cachex.Actions.IncrTest do
   # coming back, as well as the fact they're forwarded to the hooks correctly.
   test "incrementing cache items" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -68,5 +68,4 @@ defmodule Cachex.Actions.IncrTest do
     # we should receive an error
     assert(result == { :error, :non_numeric_value })
   end
-
 end

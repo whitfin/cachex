@@ -6,9 +6,7 @@ defmodule Cachex.Actions.TakeTest do
   # key is missing, we return a message stating as such.
   test "taking keys from a cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{
-      results: true
-    })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -55,5 +53,4 @@ defmodule Cachex.Actions.TakeTest do
     assert(exists2 == { :ok, false })
     assert(exists3 == { :ok, false })
   end
-
 end

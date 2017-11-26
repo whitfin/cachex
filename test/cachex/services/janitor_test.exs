@@ -44,9 +44,7 @@ defmodule Cachex.Services.JanitorTest do
   # verify that the metadata of the last run is updated alongside the changes.
   test "purging records on a schedule" do
     # create our forwarding hook
-    hooks = ForwardHook.create(%{
-      results: true
-    })
+    hooks = ForwardHook.create()
 
     # set our interval values
     ttl_interval = 50

@@ -15,6 +15,14 @@ defmodule Cachex.Spec do
   @type fallback :: record(:fallback, provide: any, default: (any -> any))
   defrecord :fallback, provide: nil, default: nil
 
+  # expiration property representation
+  @type expiration :: record(:expiration, default: integer, interval: integer, lazy: boolean)
+  defrecord :expiration, default: nil, interval: 3000, lazy: true
+
+  # hook record definition
+  @type hook :: record(:hook, args: any, async: boolean, module: atom, options: Keyword.t, provide: [ atom ], ref: pid, timeout: integer, type: :pre | :post)
+  defrecord :hook, args: nil, async: true, module: nil, options: [], provide: [], ref: nil, timeout: nil, type: :post
+
   # hook pairings for cache internals
   @type hooks :: record(:hooks, pre: [ Hook.t ], post: [ Hook.t ])
   defrecord :hooks, pre: [], post: []

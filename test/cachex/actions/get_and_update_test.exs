@@ -6,7 +6,7 @@ defmodule Cachex.Actions.GetAndUpdateTest do
   # TTL of a key being maintained after the update calls.
   test "retrieving and updated cache records" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -93,5 +93,4 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     # TTL should be maintained
     assert_in_delta(ttl1, 965, 11)
   end
-
 end

@@ -6,7 +6,7 @@ defmodule Cachex.Actions.ClearTest do
   # ensure that hooks were updated with the correct values.
   test "clearing a cache of all items" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -41,5 +41,4 @@ defmodule Cachex.Actions.ClearTest do
     assert(value2 == { :missing, nil })
     assert(value3 == { :missing, nil })
   end
-
 end

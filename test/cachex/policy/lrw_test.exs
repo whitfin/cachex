@@ -30,9 +30,7 @@ defmodule Cachex.Policy.LRWTest do
   # notified of the evictions that occurred.
   test "evicting when a cache crosses a limit" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{
-      results: true
-    })
+    hook = ForwardHook.create()
 
     # define our cache limit
     limit = limit(

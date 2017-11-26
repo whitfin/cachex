@@ -158,5 +158,4 @@ defmodule Cachex.Actions.ResetTest do
     # verify they don't reset
     assert_in_delta(stats3.creationDate, ctime2, 5)
   end
-
 end

@@ -7,7 +7,7 @@ defmodule Cachex.Actions.SizeTest do
   # new keys are added to the cache.
   test "checking the total size of a cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -48,5 +48,4 @@ defmodule Cachex.Actions.SizeTest do
     # verify the hooks were updated with the message
     assert_receive({ { :size, [[]] }, ^result3 })
   end
-
 end

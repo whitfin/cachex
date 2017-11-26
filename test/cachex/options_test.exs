@@ -111,14 +111,10 @@ defmodule Cachex.OptionsTest do
     name = Helper.create_name()
 
     # create our pre hook
-    pre_hook = ForwardHook.create(%{
-      type: :pre
-    })
+    pre_hook = ForwardHook.create(type: :pre)
 
     # create our post hook
-    post_hook = ForwardHook.create(%{
-      type: :post
-    })
+    post_hook = ForwardHook.create(type: :post)
 
     # parse out valid hook combinations
     { :ok, state1 } = Cachex.Options.parse(name, [ hooks: [ pre_hook, post_hook ] ])
@@ -127,7 +123,7 @@ defmodule Cachex.OptionsTest do
     # parse out invalid hook combinations
     { :ok,  state3 } = Cachex.Options.parse(name, [ ])
     { :error,  msg } = Cachex.Options.parse(name, [ hooks: "[hooks]" ])
-    { :error, ^msg } = Cachex.Options.parse(name, [ hooks: %Cachex.Hook{ module: Missing }])
+    { :error, ^msg } = Cachex.Options.parse(name, [ hooks: hook(module: Missing) ])
 
     # check the hook groupings for the first state
     assert(state1.hooks == hooks(pre: [ pre_hook ], post: [ post_hook ]))
@@ -205,10 +201,10 @@ defmodule Cachex.OptionsTest do
     name = Helper.create_name()
 
     # create a stats hook
-    hook = %Cachex.Hook{
+    hook = hook(
       module: Cachex.Hook.Stats,
-      server_args: [ name: name(name, :stats) ]
-    }
+      options: [ name: name(name, :stats) ]
+    )
 
     # parse the stats recording flags
     { :ok, state } = Cachex.Options.parse(name, [ stats: true ])

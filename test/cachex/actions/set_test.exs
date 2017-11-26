@@ -7,7 +7,7 @@ defmodule Cachex.Actions.SetTest do
   # this as necessary.
   test "adding new values to the cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache1 = Helper.create_cache([ hooks: [ hook ] ])
@@ -63,5 +63,4 @@ defmodule Cachex.Actions.SetTest do
     # the fourth should have a TTL around 5s
     assert_in_delta(ttl4, 5000, 10)
   end
-
 end
