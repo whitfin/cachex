@@ -41,7 +41,6 @@ defmodule Cachex do
   alias Cachex.Cache
   alias Cachex.Errors
   alias Cachex.ExecutionError
-  alias Cachex.Options
   alias Cachex.Services
   alias Cachex.Util
 
@@ -1203,12 +1202,12 @@ defmodule Cachex do
   # ready to go. This cannot be done later, as Eternal is started in the tree -
   # meaning that the Supervisor would crash and restart rather than returning
   # an error message explaining what had happened.
-  defp setup_env(cache, options) when is_list(options) do
-    with { :ok, opts } <- Options.parse(cache, options) do
+  defp setup_env(name, options) when is_list(options) do
+    with { :ok, cache } <- Cache.create(name, options) do
       try do
-        :ets.new(cache, [ :named_table | const(:table_options) ])
-        :ets.delete(cache)
-        { :ok, opts }
+        :ets.new(name, [ :named_table | const(:table_options) ])
+        :ets.delete(name)
+        { :ok, cache }
       rescue
         _ -> error(:invalid_option)
       end

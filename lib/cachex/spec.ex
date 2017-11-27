@@ -83,24 +83,4 @@ defmodule Cachex.Spec do
   # generate names for cache components
   defmacro name(name, suffix) when suffix in [ :eternal, :janitor, :locksmith, :stats ],
     do: quote(do: :"#{unquote(name)}_#{unquote(suffix)}")
-
-  ##############
-  # Validation #
-  ##############
-
-  def valid?(entry(touched: touched, ttl: ttl)),
-    do: is_integer(touched) and (is_nil(ttl) or is_integer(ttl))
-
-  def valid?(fallback(default: default)),
-    do: is_function(default)
-
-  def valid?(hooks(pre: pre, post: post)),
-    do: is_list(pre) and is_list(post)
-
-  def valid?(limit(size: size, policy: policy, reclaim: reclaim, options: options)) do
-    with true <- (is_nil(size) or (is_number(size) and size > 0)),
-         true <- is_atom(policy),
-         true <- (is_number(reclaim) and reclaim > 0 and reclaim <= 1),
-     do: Keyword.keyword?(options)
-  end
 end
