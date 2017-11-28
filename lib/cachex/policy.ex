@@ -11,7 +11,7 @@ defmodule Cachex.Policy do
   @doc """
   Returns an optional child spec to start for this policy.
   """
-  @callback children(Spec.limit) :: Supervisor.Spec.spec
+  @callback child_spec(Spec.limit) :: Supervisor.Spec.spec
 
   @doc """
   Returns the Supervisor strategy for this policy.
@@ -25,11 +25,11 @@ defmodule Cachex.Policy do
       @behaviour Cachex.Policy
 
       @doc false
-      def hooks(_limit),
+      def child_spec(_limit),
         do: []
 
       @doc false
-      def children(_limit),
+      def hooks(_limit),
         do: []
 
       @doc false
@@ -39,8 +39,8 @@ defmodule Cachex.Policy do
       # all can be overridden
       defoverridable [
         hooks: 1,
-        children: 1,
-        strategy: 0
+        strategy: 0,
+        child_spec: 1
       ]
     end
   end

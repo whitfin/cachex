@@ -1,13 +1,11 @@
 defmodule Cachex.Services do
   @moduledoc false
-  # This module provides service specification generation for Cachex.
+  # Service specification provider for Cachex caches.
   #
-  # Services can either exist for the global Cachex application or for
-  # a specific cache. This module provides access to both in an attempt
+  # Services can either exist for the global Cachex application or on
+  # a cache level. This module provides access to both in an attempt
   # to group all logic into one place to make it easier to see exactly
   # what exists against a cache and what doesn't.
-
-  # we need constants
   import Cachex.Spec
 
   # add some aliases
@@ -23,6 +21,9 @@ defmodule Cachex.Services do
 
   This will typically only be called once at startup, but it's separated
   out in order to make it easier to find when comparing supervisors.
+
+  At the time of writing, the order does not matter - but that does not
+  mean this will always be the case, so please be careful when modifying.
   """
   @spec app_spec :: [ Spec.spec ]
   def app_spec,
@@ -50,27 +51,31 @@ defmodule Cachex.Services do
     |> Enum.concat(limit_spec(cache))
   end
 
-  # Creates the required specification for the informant supervisor, which
-  # acts as a parent to all hooks running against a cache. It should be
-  # noted that this might result in no processes if no hooks are connected
-  # to the cache at startup (meaning the supervisor will terminate).
+  # Creates a specification for the Informant supervisor.
+  #
+  # The Informant acts as a parent to all hooks running against a cache. It
+  # should be noted that this might result in no processes if there are no
+  # hooks attached to the cache at startup (meaning no supervisor either).
   defp informant_spec(%Cache{ } = cache),
     do: [ supervisor(Services.Informant, [ cache ]) ]
 
-  # Creates any required specifications for the Janitor services running
-  # along a cache instance. This can be an empty list if the interval set
-  # is nil (meaning that no Janitor has been enabled for the cache).
+  # Creates a specification for the Janitor service.
+  #
+  # This can be an empty list if the cleanup interval is set to nil, which
+  # dictates that no Janitor should be enabled for the cache.
   defp janitor_spec(%Cache{ ttl_interval: nil }),
     do: []
   defp janitor_spec(%Cache{ } = cache),
     do: [ worker(Services.Janitor, [ cache ]) ]
 
-  # Attaches any limit specifications to the supervision tree. This will
-  # rarely be used except in custom limit implementations by developers.
+  # Creates any require limit specifications for the supervision tree.
+  #
+  # This will rarely be used in the out-of-the-box experience, it's mainly
+  # provided for use in custom limit implementations by developers.
   defp limit_spec(%Cache{ limit: limit(size: nil) }),
     do: []
   defp limit_spec(%Cache{ limit: limit(policy: policy) = limit }) do
-    case apply(policy, :children, [ limit ]) do
+    case apply(policy, :child_spec, [ limit ]) do
       [] -> []
       cs ->
         strategy = apply(policy, :strategy, [])
@@ -78,14 +83,20 @@ defmodule Cachex.Services do
     end
   end
 
-  # Creates any required specifications for the Locksmith services running
-  # alongside a cache instance. This will create a queue instance for any
-  # transactions executed; it does not start the global Locksmith table.
+  # Creates the required Locksmith queue specification for a cache.
+  #
+  # This will create a queue worker instance for any transactions to be
+  # executed against. It should be noted that this does not start the
+  # global (application-wide) Locksmith table; that should be started
+  # separately on application startup using app_spec/0.
   defp locksmith_spec(%Cache{ } = cache),
     do: [ worker(Services.Locksmith.Queue, [ cache ]) ]
 
-  # Creates the required specifications for the backing cache table. This
-  # spec should be included before any others in the main parent spec.
+  # Creates the required specifications for a backing cache table.
+  #
+  # This specification should be included in a cache tree before any others
+  # are started as we should provide the guarantee that the table exists
+  # before any other services are started (to avoid race conditions).
   defp table_spec(%Cache{ name: name }) do
     server_opts = [ name: name(name, :eternal), quiet: true ]
     [ supervisor(Eternal, [ name, const(:table_options), server_opts ]) ]

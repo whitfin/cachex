@@ -145,20 +145,20 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of limit records" do
     # define some valid records
-    limit1 = limit(size: 100, policy: __MODULE__, reclaim: 0.1, options: [ ])
-    limit2 = limit(size: nil, policy: __MODULE__, reclaim: 0.1, options: [ ])
+    limit1 = limit(size: 100)
+    limit2 = limit(size: nil)
 
     # ensure all records are valid
     assert Validator.valid?(limit1)
     assert Validator.valid?(limit2)
 
     # define some invalid records
-    limit3 = limit(size:  -1, policy: __MODULE__, reclaim: 0.1, options: [ ])
-    limit4 = limit(size: 100, policy:   :missing, reclaim: 0.1, options: [ ])
-    limit5 = limit(size: 100, policy: __MODULE__, reclaim: 0.0, options: [ ])
-    limit6 = limit(size: 100, policy: __MODULE__, reclaim: 1.1, options: [ ])
-    limit7 = limit(size: 100, policy: __MODULE__, reclaim: 0.1, options: nil)
-    limit8 = limit(size: 100, policy: __MODULE__, reclaim: 0.1, options: [1])
+    limit3 = limit(size:  -1)
+    limit4 = limit(policy: :missing)
+    limit5 = limit(reclaim: 0.0)
+    limit6 = limit(reclaim: 1.1)
+    limit7 = limit(options: nil)
+    limit8 = limit(options: [1])
 
     # ensure all records are invalid
     refute Validator.valid?(limit3)
