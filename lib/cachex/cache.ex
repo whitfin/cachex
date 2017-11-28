@@ -175,10 +175,7 @@ defmodule Cachex.Cache do
   # Sets up and parses any options related to TTL behaviours. Currently this deals
   # with janitor naming, TTL defaults, and purge intervals.
   defp setup_ttl_components(_name, options) do
-    default_ttl  = Util.get_opt(options, :default_ttl, fn(val) ->
-      is_integer(val) and val > 0
-    end)
-
+    default_ttl  = Util.get_opt(options, :default_ttl, &is_positive_integer/1)
     ttl_interval = Util.get_opt(options, :ttl_interval, &is_integer/1)
 
     opts = cond do

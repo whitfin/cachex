@@ -80,7 +80,19 @@ defmodule Cachex.Spec do
   # Utilities #
   #############
 
+  # positive number testing
+  defmacro is_positive_integer(integer),
+    do: quote(do: is_integer(unquote(integer)) and unquote(integer) > 0)
+
+  # positive number testing
+  defmacro is_negative_integer(integer),
+    do: quote(do: is_integer(unquote(integer)) and unquote(integer) < 0)
+
   # generate names for cache components
   defmacro name(name, suffix) when suffix in [ :eternal, :janitor, :locksmith, :stats ],
     do: quote(do: :"#{unquote(name)}_#{unquote(suffix)}")
+
+  # nillable value validation
+  defmacro nillable(value, validator),
+    do: quote(do: is_nil(unquote(value)) or apply(unquote(validator), [ unquote(value) ]))
 end

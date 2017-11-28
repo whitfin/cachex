@@ -623,7 +623,7 @@ defmodule Cachex do
   """
   @spec expire(cache, any, number, Keyword.t) :: { status, true | false }
   def expire(cache, key, expiration, options \\ [])
-  when (expiration == nil or is_number(expiration)) and is_list(options) do
+  when (is_nil(expiration) or is_number(expiration)) and is_list(options) do
     Overseer.enforce(cache) do
       Actions.Expire.execute(cache, key, expiration, options)
     end
