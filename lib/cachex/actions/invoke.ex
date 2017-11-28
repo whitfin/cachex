@@ -38,19 +38,19 @@ defmodule Cachex.Actions.Invoke do
 
   # In the case of a `:return` function, we just pull the value from the cache
   # and pass it off to be transformed before the result is passed back.
-  defp do_invoke({ :return, fun }, cache, key) when is_function(fun, 1) do
+  defp do_invoke(command(type: :read, execute: exec), cache, key) do
     { _status_, value } = Get.execute(cache, key, const(:notify_false))
-    { :ok, fun.(value) }
+    { :ok, exec.(value) }
   end
 
   # In the case of `:modify` functions, we initialize a locking context to ensure
   # consistency, before retrieving the value of the key. This value is then passed
   # through to the command and the return value is used to dictate the new value
   # to be written to the cache, as well as the value to return.
-  defp do_invoke({ :modify, fun }, %Cache{ } = cache, key) when is_function(fun, 1) do
+  defp do_invoke(command(type: :write, execute: exec), %Cache{ } = cache, key) do
     Locksmith.transaction(cache, [ key ], fn ->
       { status, value } = Get.execute(cache, key, const(:notify_false))
-      { return, tempv } = fun.(value)
+      { return, tempv } = exec.(value)
 
       tempv == value || Util
         .write_mod(status)

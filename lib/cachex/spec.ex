@@ -7,6 +7,10 @@ defmodule Cachex.Spec do
   # Records #
   ###########
 
+  # custom command representation
+  @type command :: record(:command, type: :read | :write, execute: (any -> { any, any }))
+  defrecord :command, type: nil, execute: nil
+
   # cache entry representation
   @type entry :: record(:entry, key: any, touched: number, ttl: number, value: any)
   defrecord :entry, key: nil, touched: nil, ttl: nil, value: nil

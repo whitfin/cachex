@@ -3,6 +3,24 @@ defmodule Cachex.Spec.ValidatorTest do
 
   alias Cachex.Spec.Validator
 
+  test "validation of command records" do
+    # define some valid records
+    command1 = command(type:  :read, execute: &String.reverse/1)
+    command2 = command(type: :write, execute: &String.reverse/1)
+
+    # ensure all records are valid
+    assert Validator.valid?(:command, command1)
+    assert Validator.valid?(:command, command2)
+
+    # define some invalid records
+    command3 = command(type: :invalid, execute: &String.reverse/1)
+    command4 = command(type:   :write, execute: &is_function/2)
+
+    # ensure all records are invalid
+    refute Validator.valid?(:command, command3)
+    refute Validator.valid?(:command, command4)
+  end
+
   test "validation of entry records" do
     # define some valid records
     entry1 = entry(key: "key", touched: 1, ttl: nil, value: "value")
@@ -11,10 +29,10 @@ defmodule Cachex.Spec.ValidatorTest do
     entry4 = entry(key:   nil, touched: 1, ttl: nil, value: nil)
 
     # ensure all records are valid
-    assert Validator.valid?(entry1)
-    assert Validator.valid?(entry2)
-    assert Validator.valid?(entry3)
-    assert Validator.valid?(entry4)
+    assert Validator.valid?(:entry, entry1)
+    assert Validator.valid?(:entry, entry2)
+    assert Validator.valid?(:entry, entry3)
+    assert Validator.valid?(:entry, entry4)
 
     # define some invalid records
     entry5 = entry(key: "key", touched: nil, ttl: nil, value: nil)
@@ -24,11 +42,11 @@ defmodule Cachex.Spec.ValidatorTest do
     entry9 = entry(key: "key", touched:   1, ttl:  -1, value: nil)
 
     # ensure all records are invalid
-    refute Validator.valid?(entry5)
-    refute Validator.valid?(entry6)
-    refute Validator.valid?(entry7)
-    refute Validator.valid?(entry8)
-    refute Validator.valid?(entry9)
+    refute Validator.valid?(:entry, entry5)
+    refute Validator.valid?(:entry, entry6)
+    refute Validator.valid?(:entry, entry7)
+    refute Validator.valid?(:entry, entry8)
+    refute Validator.valid?(:entry, entry9)
   end
 
   test "validation of expiration records" do
@@ -38,9 +56,9 @@ defmodule Cachex.Spec.ValidatorTest do
     expiration3 = expiration(default: 100, interval: nil, lazy: true)
 
     # ensure all records are valid
-    assert Validator.valid?(expiration1)
-    assert Validator.valid?(expiration2)
-    assert Validator.valid?(expiration3)
+    assert Validator.valid?(:expiration, expiration1)
+    assert Validator.valid?(:expiration, expiration2)
+    assert Validator.valid?(:expiration, expiration3)
 
     # define some invalid records
     expiration4 = expiration(default: nil, interval: nil, lazy: "false")
@@ -50,11 +68,11 @@ defmodule Cachex.Spec.ValidatorTest do
     expiration8 = expiration(default:  -1, interval: nil, lazy: false)
 
     # ensure all records are invalid
-    refute Validator.valid?(expiration4)
-    refute Validator.valid?(expiration5)
-    refute Validator.valid?(expiration6)
-    refute Validator.valid?(expiration7)
-    refute Validator.valid?(expiration8)
+    refute Validator.valid?(:expiration, expiration4)
+    refute Validator.valid?(:expiration, expiration5)
+    refute Validator.valid?(:expiration, expiration6)
+    refute Validator.valid?(:expiration, expiration7)
+    refute Validator.valid?(:expiration, expiration8)
   end
 
   test "validation of fallback records" do
@@ -65,18 +83,18 @@ defmodule Cachex.Spec.ValidatorTest do
     fallback4 = fallback(default: fn _, _ -> nil end, provide: nil)
 
     # ensure all records are valid
-    assert Validator.valid?(fallback1)
-    assert Validator.valid?(fallback2)
-    assert Validator.valid?(fallback3)
-    assert Validator.valid?(fallback4)
+    assert Validator.valid?(:fallback, fallback1)
+    assert Validator.valid?(:fallback, fallback2)
+    assert Validator.valid?(:fallback, fallback3)
+    assert Validator.valid?(:fallback, fallback4)
 
     # define some invalid records
     fallback5 = fallback(default: " ", provide: nil)
     fallback6 = fallback(default: fn -> nil end, provide: nil)
 
     # ensure all records are invalid
-    refute Validator.valid?(fallback5)
-    refute Validator.valid?(fallback6)
+    refute Validator.valid?(:fallback, fallback5)
+    refute Validator.valid?(:fallback, fallback6)
   end
 
   test "validation of hook records" do
@@ -87,10 +105,10 @@ defmodule Cachex.Spec.ValidatorTest do
     hook4 = hook(module: __MODULE__, ref: self(), timeout: 100, type:  :pre)
 
     # ensure all records are valid
-    assert Validator.valid?(hook1)
-    assert Validator.valid?(hook2)
-    assert Validator.valid?(hook3)
-    assert Validator.valid?(hook4)
+    assert Validator.valid?(:hook, hook1)
+    assert Validator.valid?(:hook, hook2)
+    assert Validator.valid?(:hook, hook3)
+    assert Validator.valid?(:hook, hook4)
 
     # define some invalid records
     hook5  = hook(module: :missing)
@@ -105,16 +123,16 @@ defmodule Cachex.Spec.ValidatorTest do
     hook14 = hook(module: __MODULE__, type: :missing)
 
     # ensure all records are invalid
-    refute Validator.valid?(hook5)
-    refute Validator.valid?(hook6)
-    refute Validator.valid?(hook7)
-    refute Validator.valid?(hook8)
-    refute Validator.valid?(hook9)
-    refute Validator.valid?(hook10)
-    refute Validator.valid?(hook11)
-    refute Validator.valid?(hook12)
-    refute Validator.valid?(hook13)
-    refute Validator.valid?(hook14)
+    refute Validator.valid?(:hook, hook5)
+    refute Validator.valid?(:hook, hook6)
+    refute Validator.valid?(:hook, hook7)
+    refute Validator.valid?(:hook, hook8)
+    refute Validator.valid?(:hook, hook9)
+    refute Validator.valid?(:hook, hook10)
+    refute Validator.valid?(:hook, hook11)
+    refute Validator.valid?(:hook, hook12)
+    refute Validator.valid?(:hook, hook13)
+    refute Validator.valid?(:hook, hook14)
   end
 
   test "validation of hooks records" do
@@ -124,9 +142,9 @@ defmodule Cachex.Spec.ValidatorTest do
     hooks3 = hooks(pre: [], post: [hook(module: __MODULE__)])
 
     # ensure all records are valid
-    assert Validator.valid?(hooks1)
-    assert Validator.valid?(hooks2)
-    assert Validator.valid?(hooks3)
+    assert Validator.valid?(:hooks, hooks1)
+    assert Validator.valid?(:hooks, hooks2)
+    assert Validator.valid?(:hooks, hooks3)
 
     # define some invalid records
     hooks4 = hooks(pre: [ "test" ], post: [ ])
@@ -136,11 +154,11 @@ defmodule Cachex.Spec.ValidatorTest do
     hooks8 = hooks(pre: [ hook() ], post: [ hook() ])
 
     # ensure all records are invalid
-    refute Validator.valid?(hooks4)
-    refute Validator.valid?(hooks5)
-    refute Validator.valid?(hooks6)
-    refute Validator.valid?(hooks7)
-    refute Validator.valid?(hooks8)
+    refute Validator.valid?(:hooks, hooks4)
+    refute Validator.valid?(:hooks, hooks5)
+    refute Validator.valid?(:hooks, hooks6)
+    refute Validator.valid?(:hooks, hooks7)
+    refute Validator.valid?(:hooks, hooks8)
   end
 
   test "validation of limit records" do
@@ -149,8 +167,8 @@ defmodule Cachex.Spec.ValidatorTest do
     limit2 = limit(size: nil)
 
     # ensure all records are valid
-    assert Validator.valid?(limit1)
-    assert Validator.valid?(limit2)
+    assert Validator.valid?(:limit, limit1)
+    assert Validator.valid?(:limit, limit2)
 
     # define some invalid records
     limit3 = limit(size:  -1)
@@ -161,11 +179,11 @@ defmodule Cachex.Spec.ValidatorTest do
     limit8 = limit(options: [1])
 
     # ensure all records are invalid
-    refute Validator.valid?(limit3)
-    refute Validator.valid?(limit4)
-    refute Validator.valid?(limit5)
-    refute Validator.valid?(limit6)
-    refute Validator.valid?(limit7)
-    refute Validator.valid?(limit8)
+    refute Validator.valid?(:limit, limit3)
+    refute Validator.valid?(:limit, limit4)
+    refute Validator.valid?(:limit, limit5)
+    refute Validator.valid?(:limit, limit6)
+    refute Validator.valid?(:limit, limit7)
+    refute Validator.valid?(:limit, limit8)
   end
 end

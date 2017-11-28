@@ -6,10 +6,6 @@ defmodule Cachex.Hook do
   # to execute either before or after the Cachex command, and can be blocking as
   # needed.
 
-  # use our constants
-  import Cachex.Errors
-  import Cachex.Spec
-
   @doc """
   This implementation is the same as `handle_notify/2`, except we also provide
   the results of the action as the second argument. This is only called if the
@@ -75,33 +71,4 @@ defmodule Cachex.Hook do
       defoverridable [ init: 1, handle_notify: 3 ]
     end
   end
-
-  @doc """
-  Validates a set of Hooks.
-
-  On successful validation, this returns a list of valid hooks against a Tuple
-  tagged as ok. If any of the hooks are invalid, we halt and return an error in
-  order to indicate the error to the user.
-  """
-  def validate(hooks) when is_list(hooks),
-    do: do_validate(hooks, [])
-  def validate(hook),
-    do: do_validate([ hook ], [])
-
-  # Validates a list of Hooks. If a hook has a valid module backing it, it is
-  # treated as valid (any crashes following are down to the user at that point).
-  # If not, we return an error to halt the validation. To check for a valid module,
-  # we just try to call `__info__/1` on the module.
-  defp do_validate([ hook(module: mod) = hook | rest ], acc) do
-    try do
-      mod.__info__(:module)
-      do_validate(rest, [ hook | acc ])
-    rescue
-      _ -> error(:invalid_hook)
-    end
-  end
-  defp do_validate([ _invalid | _rest ], _acc),
-    do: error(:invalid_hook)
-  defp do_validate([ ], acc),
-    do: { :ok, Enum.reverse(acc) }
 end

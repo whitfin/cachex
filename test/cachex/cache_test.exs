@@ -30,8 +30,12 @@ defmodule Cachex.CacheTest do
 
     # define valid command lists
     v_cmds1 = [ commands: [ ] ]
-    v_cmds2 = [ commands: [ lpop: { :return, fun1 } ] ]
-    v_cmds3 = [ commands: [ lpop: { :return, fun1 }, lpop: { :modify, fun2 } ] ]
+    v_cmds2 = [ commands:  [ lpop: command(type: :read, execute: fun1) ] ]
+    v_cmds3 = [ commands: %{ lpop: command(type: :read, execute: fun1) } ]
+    v_cmds4 = [ commands: [
+      lpop: command(type:  :read, execute: fun1),
+      lpop: command(type: :write, execute: fun2)
+    ] ]
 
     # define invalid command lists
     i_cmds1 = [ commands: [ 1 ] ]
@@ -42,27 +46,23 @@ defmodule Cachex.CacheTest do
     { :ok, results1 } = Cachex.Cache.create(name, v_cmds1)
     { :ok, results2 } = Cachex.Cache.create(name, v_cmds2)
     { :ok, results3 } = Cachex.Cache.create(name, v_cmds3)
+    { :ok, results4 } = Cachex.Cache.create(name, v_cmds4)
 
     # the first two should be parsed into maps
     assert(results1.commands == %{ })
-    assert(results2.commands == %{ lpop: { :return, fun1 } })
+    assert(results2.commands == %{ lpop: command(type: :read, execute: fun1) })
+    assert(results3.commands == %{ lpop: command(type: :read, execute: fun1) })
 
-    # the third should keep only the first implementation
-    assert(results3.commands == %{ lpop: { :return, fun1 } })
+    # the fourth should keep only the first implementation
+    assert(results4.commands == %{ lpop: command(type: :read, execute: fun1) })
 
-    # parse the fourth and fifth
-    { :ok, results4 } = Cachex.Cache.create(name, i_cmds1)
-    { :ok, results5 } = Cachex.Cache.create(name, i_cmds2)
-
-    # the fourth and fifth default to empty
-    assert(results4.commands == %{ })
-    assert(results5.commands == %{ })
-
-    # parse the invalid list
-    results6 = Cachex.Cache.create(name, i_cmds3)
+    # parse the invalid lists
+    { :error,  msg } = Cachex.Cache.create(name, i_cmds1)
+    { :error, ^msg } = Cachex.Cache.create(name, i_cmds2)
+    { :error, ^msg } = Cachex.Cache.create(name, i_cmds3)
 
     # should return an error
-    assert(results6 == { :error, :invalid_command })
+    assert(msg == :invalid_command)
   end
 
   # Every cache can have a default fallback implementation which is used in case
@@ -73,24 +73,23 @@ defmodule Cachex.CacheTest do
     name = Helper.create_name()
 
     # define our falbacks
-    fallback1 = []
-    fallback2 = [ default: &String.reverse/1 ]
-    fallback3 = [ default: &String.reverse/1, provide: {} ]
-    fallback4 = [ provide: {} ]
+    fallback1 = fallback()
+    fallback2 = fallback(default: &String.reverse/1)
+    fallback3 = fallback(default: &String.reverse/1, provide: {})
+    fallback4 = fallback(provide: {})
     fallback5 = &String.reverse/1
     fallback6 = { }
 
-    # parse both as options
+    # parse all the valid fallbacks into caches
     { :ok, state1 } = Cachex.Cache.create(name, [ fallback: fallback1 ])
     { :ok, state2 } = Cachex.Cache.create(name, [ fallback: fallback2 ])
     { :ok, state3 } = Cachex.Cache.create(name, [ fallback: fallback3 ])
     { :ok, state4 } = Cachex.Cache.create(name, [ fallback: fallback4 ])
     { :ok, state5 } = Cachex.Cache.create(name, [ fallback: fallback5 ])
-    { :ok, state6 } = Cachex.Cache.create(name, [ fallback: fallback6 ])
+    { :error, msg } = Cachex.Cache.create(name, [ fallback: fallback6 ])
 
-    # the first and sixth should use defaults
+    # the first should use defaults
     assert(state1.fallback == fallback())
-    assert(state6.fallback == fallback())
 
     # the second and fifth should have an action but no state
     assert(state2.fallback == fallback(default: &String.reverse/1))
@@ -101,6 +100,9 @@ defmodule Cachex.CacheTest do
 
     # the fourth should have a state but no action
     assert(state4.fallback == fallback(provide: {}))
+
+    # an invalid fallback should actually fail
+    assert(msg == :invalid_fallback)
   end
 
   # This test will ensure that we can parse Hook values successfully. Hooks can
@@ -281,20 +283,5 @@ defmodule Cachex.CacheTest do
     # the eight state should have both disabled
     assert(state8.default_ttl == nil)
     assert(state8.ttl_interval == nil)
-  end
-
-  # If we don't receive a valid list to parse options from, we just default to
-  # returning an empty state with only the cache name set. This test just checks
-  # that parsing an invalid list is the same as parsing an empty list.
-  test "parsing without a valid options list" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # parse both valid and invalid options
-    { :ok, state1 } = Cachex.Cache.create(name, [ ])
-    { :ok, state2 } = Cachex.Cache.create(name, "invalid_options")
-
-    # assert the two caches match
-    assert(state1 == state2)
   end
 end
