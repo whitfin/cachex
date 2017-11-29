@@ -42,15 +42,15 @@ defmodule Cachex.Spec.Validator do
   # as the key and value can be of any type (including nil). The touch time
   # and ttl values must be integers if set, and the ttl value can be nil.
   def valid?(:entry, entry(touched: touched, ttl: ttl)),
-    do: is_positive_integer(touched) and nillable(ttl, &is_positive_integer/1)
+    do: is_positive_integer(touched) and valid_nillable?(ttl, &is_positive_integer/1)
 
   # Validates an expiration specification record.
   #
   # This has to validate the default/interval values as being a nillable integers,
   # and the lazy value has to be a boolean value (which can not be nil).
   def valid?(:expiration, expiration(default: default, interval: interval, lazy: lazy)),
-    do: nillable(default, &is_positive_integer/1) and
-        nillable(interval, &is_positive_integer/1) and
+    do: valid_nillable?(default, &is_positive_integer/1) and
+        valid_nillable?(interval, &is_positive_integer/1) and
         is_boolean(lazy)
 
   # Validates a fallback specification record.
@@ -58,7 +58,7 @@ defmodule Cachex.Spec.Validator do
   # At this point it just needs to verify that the default value is a valid
   # function. We can only support functions with arity 1 or 2.
   def valid?(:fallback, fallback(default: default)),
-    do: nillable(default, &(is_function(&1, 1) or is_function(&1, 2)))
+    do: valid_nillable?(default, &(is_function(&1, 1) or is_function(&1, 2)))
 
   # Validates a hook specification record.
   #
@@ -81,8 +81,8 @@ defmodule Cachex.Spec.Validator do
     # run the rest of the basic validations
     with true <- (type in [ :post, :pre ]),
          true <- valid_module?(module),
-         true <- nillable(ref, &is_pid/1),
-         true <- nillable(timeout, &is_positive_integer/1),
+         true <- valid_nillable?(ref, &is_pid/1),
+         true <- valid_nillable?(timeout, &is_positive_integer/1),
          true <- is_list(provide),
          true <- is_boolean(async),
      do: Keyword.keyword?(options)
@@ -104,7 +104,7 @@ defmodule Cachex.Spec.Validator do
   # the policy being a valid module, the reclaim space being a valid float between 0 and 1,
   # and a valid keyword list as the options.
   def valid?(:limit, limit(size: size, policy: policy, reclaim: reclaim, options: options)) do
-    with true <- nillable(size, &is_positive_integer/1),
+    with true <- valid_nillable?(size, &is_positive_integer/1),
          true <- (is_number(reclaim) and reclaim > 0 and reclaim <= 1),
          true <- valid_module?(policy),
      do: Keyword.keyword?(options)

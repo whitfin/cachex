@@ -10,7 +10,7 @@ defmodule Cachex.Hook.StatsTest do
     cache = Helper.create_cache([ stats: true ])
 
     # retrieve the current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # carry out some cache operations
     { :ok, true } = Cachex.set(cache, 1, 1)

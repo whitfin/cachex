@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Ttl do
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Cache
-  alias Cachex.Util
 
   @doc """
   Retrieves the remaining TTL for a cache item.
@@ -37,7 +36,7 @@ defmodule Cachex.Actions.Ttl do
   defp handle_record(entry(ttl: nil)),
     do: { :ok, nil }
   defp handle_record(entry(touched: touched, ttl: ttl)),
-    do: { :ok, touched + ttl - Util.now() }
+    do: { :ok, touched + ttl - now() }
   defp handle_record(_missing),
     do: { :missing, nil }
 end

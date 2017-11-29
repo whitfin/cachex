@@ -55,7 +55,7 @@ defmodule Cachex.Services.Janitor do
   """
   def handle_info(:ttl_check, { %Cache{ name: name }, _last }) do
     new_caches = Overseer.get(name)
-    start_time = Util.now()
+    start_time = now()
 
     { duration, { :ok, count } = result } = :timer.tc(fn ->
       purge_records(new_caches)

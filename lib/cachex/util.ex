@@ -2,6 +2,7 @@ defmodule Cachex.Util do
   @moduledoc false
   # A small collection of utilities for use throughout the library. Mainly things
   # to do with response formatting and generally just common functions.
+  import Cachex.Spec
 
   # memory size suffixes
   @sibs ["B", "KiB", "MiB", "GiB", "TiB"]
@@ -85,19 +86,6 @@ defmodule Cachex.Util do
     do: false
 
   @doc """
-  Shorthand increments for a map key. If the value is not a number, it is assumed
-  to be 0.
-  """
-  def increment_map_key(map, key, amount) do
-    Map.update(map, key, amount, fn
-      (val) when is_number(val) ->
-        amount + val
-      (_va) ->
-        amount
-    end)
-  end
-
-  @doc """
   Normalizes a commit result to determine whether we're going to signal to
   commit the changes to the cache, or simply ignore the changes and return.
   """
@@ -107,12 +95,6 @@ defmodule Cachex.Util do
     do: val
   def normalize_commit(val),
     do: { :commit, val }
-
-  @doc """
-  Consistency wrapper around current time in millis.
-  """
-  def now,
-    do: :os.system_time(1000)
 
   @doc """
   Transforms an option value from inside a Keyword list using a provided transformer.

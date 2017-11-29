@@ -42,7 +42,6 @@ defmodule Cachex do
   alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Services
-  alias Cachex.Util
 
   # alias any services
   alias Services.Informant
@@ -656,7 +655,7 @@ defmodule Cachex do
   def expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
     via_opts = via({ :expire_at, [ key, timestamp, options ] }, options)
-    expire(cache, key, timestamp - Util.now(), via_opts)
+    expire(cache, key, timestamp - now(), via_opts)
   end
 
   @doc """

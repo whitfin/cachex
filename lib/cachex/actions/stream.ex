@@ -8,13 +8,14 @@ defmodule Cachex.Actions.Stream do
   # we need our imports
   import Cachex.Actions
   import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Cache
   alias Cachex.Util
 
   # our test record for testing matches
-  @test { "key", Util.now(), 1000, "value" }
+  @test { "key", now(), 1000, "value" }
 
   @doc """
   Creates a Stream for a cache.

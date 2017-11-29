@@ -103,7 +103,7 @@ defmodule Cachex.Actions.InspectTest do
     cache = Helper.create_cache()
 
     # get the current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # set a cache record
     { :ok, true } = Cachex.set(cache, 1, "one", ttl: 1000)

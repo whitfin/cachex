@@ -4,9 +4,6 @@ defmodule Cachex.Stats do
   # outside due to the use of `process_action/2` which is defined many times to
   # match against actions efficiently.
 
-  # add some aliases
-  alias Cachex.Util
-
   @doc """
   Registers an action with the stats, incrementing various fields as appropriate
   and incrementing the global statistics map. Every action will increment the
@@ -122,7 +119,9 @@ defmodule Cachex.Stats do
       action_stats =
         fields
         |> List.wrap
-        |> Enum.reduce(inner_stats || %{ }, &(Util.increment_map_key(&2, &1, amount)))
+        |> Enum.reduce(inner_stats || %{}, fn(key, acc) ->
+            Map.update(acc, key, amount, &(amount + &1))
+           end)
 
       { nil, action_stats }
     end)

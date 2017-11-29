@@ -138,33 +138,6 @@ defmodule Cachex.UtilTest do
     refute(result4)
   end
 
-  # There are a couple of places we want to increment a value inside a Map without
-  # having to re-roll it, so it lives inside the Utils. This test just ensures that
-  # we can both increment numeric values, or overwrite a non-numeric value with the
-  # value we're trying to increment with.
-  test "incrementing a value inside a Map" do
-    # define our base map
-    map = %{ "key1" => 1, "key2" => "1" }
-
-    # attempt to increment a numberic value
-    result1 = Cachex.Util.increment_map_key(map, "key1", 1)
-
-    # attempt to increment a non-numeric value (overwrites)
-    result2 = Cachex.Util.increment_map_key(map, "key2", 1)
-
-    # attempt to increment a missing value (sets)
-    result3 = Cachex.Util.increment_map_key(map, "key3", 1)
-
-    # the first result should have incremented
-    assert(result1 == %{ "key1" => 2, "key2" => "1" })
-
-    # the second result should have overwritten
-    assert(result2 == %{ "key1" => 1, "key2" => 1 })
-
-    # the third result should have set the new value
-    assert(result3 == %{ "key1" => 1, "key2" => "1", "key3" => 1 })
-  end
-
   # This test just ensures that we correctly convert return values to either a
   # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
   # behaviour is a :commit Tuple for backwards compatibility.
@@ -187,23 +160,6 @@ defmodule Cachex.UtilTest do
 
     # the value should be converted to the first
     assert(result3 == tuple1)
-  end
-
-  # We use milliseconds for dates around Cachex, so we just need to make sure we
-  # have a utility function which does this safely for us. We create the miils
-  # from an Erlang timestamp, just to make sure we have another tier of validation.
-  test "retrieving the current time in milliseconds" do
-    # pull the current timestamp
-    { mega, seconds, ms } = :os.timestamp()
-
-    # convert the timestamp to milliseconds
-    millis = (mega * 1000000 + seconds) * 1000 + div(ms, 1000)
-
-    # pull back the time from the util function
-    current = Cachex.Util.now()
-
-    # check they're the same (with an error bound of 2ms)
-    assert_in_delta(current, millis, 2)
   end
 
   # This test just provides basic coverage of the write_mod function, by using

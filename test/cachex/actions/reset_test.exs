@@ -17,7 +17,7 @@ defmodule Cachex.Actions.ResetTest do
     cache2 = Helper.create_cache()
 
     # get current time
-    ctime1 = Cachex.Util.now()
+    ctime1 = now()
 
     # set some values
     { :ok, true } = Cachex.set(cache1, 1, 1)
@@ -37,7 +37,7 @@ defmodule Cachex.Actions.ResetTest do
     :timer.sleep(10)
 
     # get current time
-    ctime2 = Cachex.Util.now()
+    ctime2 = now()
 
     # reset the whole cache
     reset1 = Cachex.reset(cache1)
@@ -67,7 +67,7 @@ defmodule Cachex.Actions.ResetTest do
     cache = Helper.create_cache([ stats: true ])
 
     # get current time
-    ctime1 = Cachex.Util.now()
+    ctime1 = now()
 
     # set some values
     { :ok, true } = Cachex.set(cache, 1, 1)
@@ -108,7 +108,7 @@ defmodule Cachex.Actions.ResetTest do
     cache = Helper.create_cache([ stats: true ])
 
     # get current time
-    ctime1 = Cachex.Util.now()
+    ctime1 = now()
 
     # set some values
     { :ok, true } = Cachex.set(cache, 1, 1)
@@ -126,7 +126,7 @@ defmodule Cachex.Actions.ResetTest do
     :timer.sleep(10)
 
     # get current time
-    ctime2 = Cachex.Util.now()
+    ctime2 = now()
 
     # reset only cache
     reset1 = Cachex.reset(cache, [ only: :hooks, hooks: [ MyModule ] ])

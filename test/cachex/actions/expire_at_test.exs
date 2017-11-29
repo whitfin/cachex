@@ -21,7 +21,7 @@ defmodule Cachex.Actions.ExpireAtTest do
     Helper.flush()
 
     # grab current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # set the expire time
     f_expire_time = ctime + 10000
