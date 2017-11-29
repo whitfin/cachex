@@ -1,8 +1,9 @@
 defmodule CachexBench do
   use Benchfella
+  import Cachex.Spec
 
   @one_hour :timer.hours(1)
-  @tomorrow Cachex.Util.now() + (1000 * 60 * 60 * 24)
+  @tomorrow now() + (1000 * 60 * 60 * 24)
 
   setup_all do
     Application.ensure_all_started(:cachex)

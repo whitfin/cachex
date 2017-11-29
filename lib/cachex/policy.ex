@@ -6,7 +6,7 @@ defmodule Cachex.Policy do
   @doc """
   Returns any hook definitions required for this policy.
   """
-  @callback hooks(Spec.limit) :: [ Cachex.Hook.t ]
+  @callback hooks(Spec.limit) :: [ Spec.hook ]
 
   @doc """
   Returns an optional child spec to start for this policy.
