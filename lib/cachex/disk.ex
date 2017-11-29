@@ -7,6 +7,7 @@ defmodule Cachex.Disk do
 
   # we need constants for errors
   import Cachex.Errors
+  import Cachex.Spec
 
   # add a Util alias
   alias Cachex.Util
@@ -24,7 +25,7 @@ defmodule Cachex.Disk do
     path
     |> File.read!
     |> :erlang.binary_to_term([ :safe ])
-    |> Util.wrap(:ok)
+    |> wrap(:ok)
   rescue
     _ -> error(:unreachable_file)
   end

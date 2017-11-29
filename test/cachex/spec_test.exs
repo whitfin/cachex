@@ -112,6 +112,9 @@ defmodule Cachex.SpecTest do
     assert_in_delta(now(), millis, 2)
   end
 
+  test "wrapping values inside tagged Tuples",
+    do: assert wrap("value", :ok) == { :ok, "value" }
+
   defp test_macro(macro, args),
     do: apply(macro, args)
 end

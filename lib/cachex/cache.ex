@@ -106,7 +106,7 @@ defmodule Cachex.Cache do
           cmds
           |> Enum.reverse
           |> Enum.into(%{})
-          |> Util.wrap(:ok)
+          |> wrap(:ok)
       end
     end
   end

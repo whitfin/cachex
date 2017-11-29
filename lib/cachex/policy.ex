@@ -1,6 +1,10 @@
 defmodule Cachex.Policy do
   @moduledoc false
-  # This module contains the definition of the Policy behaviour.
+  # Module controlling policy behaviour definitions.
+  #
+  # This module purely exposes the behaviour and convenience macros for
+  # creating a custom policy. It's used internally be `Cachex.Policy.LRW`
+  # and provides very little more than an interface to adhere to.
   import Cachex.Spec
 
   @doc """

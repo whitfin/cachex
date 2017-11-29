@@ -325,6 +325,13 @@ defmodule Cachex.Spec do
   defmacro valid_nillable?(nillable, condition),
     do: quote(do: is_nil(unquote(nillable)) or apply(unquote(condition), [ unquote(nillable) ]))
 
+  @doc """
+  Wraps a value inside a tagged Tuple using the provided tag.
+  """
+  @spec wrap(any, atom) :: { atom, any }
+  defmacro wrap(value, tag) when is_atom(tag),
+    do: quote(do: { unquote(tag), unquote(value) })
+
   ##################
   # ETS Generation #
   ##################
