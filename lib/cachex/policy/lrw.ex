@@ -99,8 +99,8 @@ defmodule Cachex.Policy.LRW do
   This worker is then used going forward for any cache calls to avoid the overhead
   of looking up the state. Again an optimization.
   """
-  def handle_info({ :provision, { :cache, cache } }, { max_size, reclaim, batch, _cache }),
-    do: { :noreply, { max_size, reclaim, batch, cache } }
+  def handle_provision({ :cache, cache }, { max_size, reclaim, batch, _cache }),
+    do: { :ok, { max_size, reclaim, batch, cache } }
 
   #############
   # Algorithm #

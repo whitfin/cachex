@@ -26,6 +26,14 @@ defmodule CachexCase.ForwardHook do
   @doc false
   # Forwards the received message on to the test process, and simply returns the
   # state as it was to start with.
+  def handle_provision(provision, proc) do
+    handle_info(provision, proc)
+    { :ok, proc }
+  end
+
+  @doc false
+  # Forwards the received message on to the test process, and simply returns the
+  # state as it was to start with.
   def handle_info(msg, proc) do
     send(proc, msg)
     { :noreply, proc }

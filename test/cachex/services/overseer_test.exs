@@ -113,7 +113,7 @@ defmodule Cachex.OverseerTest do
     assert(result.default_ttl == 3)
 
     # now we need to make sure our state was forwarded
-    assert_receive({ :provision, { :cache, ^update2 } })
+    assert_receive({ :cache, ^update2 })
   end
 
   # Because the updates execute inside an Agent, we need to make sure that we

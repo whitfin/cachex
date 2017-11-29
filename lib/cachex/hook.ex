@@ -1,5 +1,7 @@
 defmodule Cachex.Hook do
   @moduledoc false
+  # Module controlling hook behaviour definitions.
+  #
   # This module defines the hook implementations for Cachex, allowing the user to
   # add hooks into the command execution. This means that users can build plugin
   # style listeners in order to do things like logging. Hooks can be registered
@@ -7,30 +9,43 @@ defmodule Cachex.Hook do
   # needed.
 
   @doc """
-  This implementation is the same as `handle_notify/2`, except we also provide
-  the results of the action as the second argument. This is only called if the
-  `results` key is set to a truthy value inside your Cachex.Hook struct.
+  Handles a cache notification.
+
+  The first argument is the action being taken along with arguments, with the
+  second argument being the results of the action (this can be nil for hooks)
+  which fire before the action is executed.
   """
   @callback handle_notify(tuple, tuple, any) :: { :ok, any }
+
+  @doc """
+  Handles a provisioning call.
+
+  The provided argument will be a Tuple dictating the type of value being
+  provisioned along with the value itself. This can be used to listen on
+  states required for hook executions (such as cache records).
+  """
+  @callback handle_provision({ atom, any }, any) :: { :ok, any }
 
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      # inherit server
-      use GenServer
-
       # force the Hook behaviours
       @behaviour Cachex.Hook
 
-      @doc false
-      def init(args) do
-        { :ok, args }
-      end
+      # inherit server
+      use GenServer
 
       @doc false
-      def handle_notify(event, result, state) do
-        { :ok, state }
-      end
+      def init(args),
+        do: { :ok, args }
+
+      @doc false
+      def handle_notify(event, result, state),
+        do: { :ok, state }
+
+      @doc false
+      def handle_provision(provisions, state),
+        do: { :ok, state }
 
       @doc false
       def handle_cast({ :cachex_notify, { event, result } }, state) do
@@ -56,19 +71,28 @@ defmodule Cachex.Hook do
           handle_notify(event, result, state)
         end)
 
-        case Task.yield(task, timeout) do
+        case Task.yield(task, timeout) || Task.shutdown(task) do
           { :ok, { :ok, new_state } } ->
             { :reply, :ok, new_state }
-          _timeout ->
-            Task.shutdown(task)
+          nil ->
             { :reply, :hook_timeout, state }
         end
+      end
+
+      @doc false
+      def handle_info({ :cachex_provision, provisions }, state) do
+        { :ok, new_state } = handle_provision(provisions, state)
+        { :noreply, new_state }
       end
 
       # Allow overrides of everything *except* the handle_event implementation.
       # We reserve that for internal use in order to make Hook definitions as
       # straightforward as possible.
-      defoverridable [ init: 1, handle_notify: 3 ]
+      defoverridable [
+        init: 1,
+        handle_notify: 3,
+        handle_provision: 2
+      ]
     end
   end
 end

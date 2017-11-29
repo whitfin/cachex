@@ -162,7 +162,7 @@ defmodule Cachex.Services.Overseer do
         |> Enum.concat(post_hooks)
         |> Enum.filter(&requires_state?/1)
         |> Enum.map(&hook(&1, :ref))
-        |> Enum.each(&send(&1, { :provision, { :cache, nstate } }))
+        |> Enum.each(&send(&1, { :cachex_provision, { :cache, nstate } }))
       end
 
       nstate
