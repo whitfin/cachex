@@ -7,13 +7,11 @@ defmodule Cachex.Errors do
 
   # internally recognised errors
   @known_errors [
-    :invalid_command, :invalid_fallback,
-    :invalid_hook,    :invalid_limit,
-    :invalid_match,   :invalid_name,
-    :invalid_option,  :janitor_disabled,
-    :no_cache,        :non_numeric_value,
-    :not_started,     :stats_disabled,
-    :unreachable_file
+    :invalid_command, :invalid_expiration, :invalid_fallback,
+    :invalid_hook,    :invalid_limit,      :invalid_match,
+    :invalid_name,    :invalid_option,     :janitor_disabled,
+    :no_cache,        :non_numeric_value,  :not_started,
+    :stats_disabled,  :unreachable_file
   ]
 
   @doc """
@@ -39,6 +37,8 @@ defmodule Cachex.Errors do
   """
   def long_form(:invalid_command),
     do: "Invalid command definition provided"
+  def long_form(:invalid_expiration),
+    do: "Invalid expiration definition provided"
   def long_form(:invalid_fallback),
     do: "Invalid fallback function provided"
   def long_form(:invalid_hook),

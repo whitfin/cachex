@@ -90,8 +90,8 @@ defmodule Cachex.Services.Janitor do
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(%Cache{ ttl_interval: ttl_interval } = cache) do
-    :erlang.send_after(ttl_interval, self(), :ttl_check)
+  defp schedule_check(%Cache{ expiration: expiration(interval: interval) } = cache) do
+    :erlang.send_after(interval, self(), :ttl_check)
     cache
   end
 end

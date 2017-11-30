@@ -20,15 +20,13 @@ defmodule Cachex.Cache do
 
   # internal state struct
   defstruct [
-    name: nil,              # the name of the cache
-    commands: %{},          # any custom commands attached to the cache
-    default_ttl: nil,       # any default ttl values to use
-    fallback: fallback(),   # the default fallback implementation
-    hooks: hooks(),         # any hooks to attach to the cache
-    limit: limit(),         # any limit to apply to the cache
-    ode: true,              # whether we enable on-demand expiration
-    transactions: false,    # whether to enable transactions
-    ttl_interval: nil       # the ttl check interval
+    name: nil,                # the name of the cache
+    commands: %{},            # any custom commands attached to the cache
+    expiration: expiration(), # cache level expiration settings
+    fallback: fallback(),     # the default fallback implementation
+    hooks: hooks(),           # any hooks to attach to the cache
+    limit: limit(),           # any limit to apply to the cache
+    transactional: false      # whether to enable transactions
   ]
 
   @doc """
@@ -42,28 +40,23 @@ defmodule Cachex.Cache do
   @spec create(atom, Keyword.t) :: { :ok, __MODULE__.t } | { :error, atom }
   def create(name, options) when is_list(options) do
     # complex parsing statements which can fail out early
-    with { :ok,   cmd_result } <- setup_commands(name, options),
-         { :ok, limit_result } <- setup_limit(name, options),
-         { :ok,  hook_result } <- setup_hooks(name, options, limit_result),
-         { :ok,    fb_result } <- setup_fallbacks(name, options),
-         { :ok,   ttl_result } <- setup_ttl_components(name, options),
+    with { :ok,      limit } <- setup_limit(name, options),
+         { :ok,      hooks } <- setup_hooks(name, options, limit),
+         { :ok,   commands } <- setup_commands(name, options),
+         { :ok,   fallback } <- setup_fallbacks(name, options),
+         { :ok, expiration } <- setup_expiration(name, options),
 
          # basic parsing which doesn't have the opportunity to fail
-         ode_enabled   = Util.get_opt(options, :ode, &is_boolean/1, true),
-         transactional = Util.get_opt(options, :transactions, &is_boolean/1, false)
+         transactional = Util.get_opt(options, :transactional, &is_boolean/1, false)
       do
-        { default_ttl, ttl_interval } = ttl_result
-
         { :ok, %__MODULE__{
           name: name,
-          commands: cmd_result,
-          default_ttl: default_ttl,
-          fallback: fb_result,
-          hooks: hook_result,
-          limit: limit_result,
-          ode: ode_enabled,
-          transactions: transactional,
-          ttl_interval: ttl_interval
+          commands: commands,
+          expiration: expiration,
+          fallback: fallback,
+          hooks: hooks,
+          limit: limit,
+          transactional: transactional
         } }
       end
   end
@@ -108,6 +101,34 @@ defmodule Cachex.Cache do
           |> Enum.into(%{})
           |> wrap(:ok)
       end
+    end
+  end
+
+  # Configures an expiration options record for a cache.
+  #
+  # We don't allow any shorthands here because there's no logical
+  # default to use. Therefore an expiration must be provided, otherwise
+  # it'll fail validation and return an error to the caller.
+  defp setup_expiration(_name, options) do
+    expiration =
+      Util.opt_transform(options, :expiration, fn
+        # provided expiration, woohoo!
+        (expiration() = expiration) ->
+          expiration
+
+        # unset so default
+        (nil) ->
+          expiration()
+
+        # anything else, no thanks!
+        (_invalid) ->
+          nil
+      end)
+
+    # validate using the spec validator
+    case Validator.valid?(:expiration, expiration) do
+      false -> error(:invalid_expiration)
+      true  -> { :ok, expiration }
     end
   end
 
@@ -201,18 +222,6 @@ defmodule Cachex.Cache do
     case Validator.valid?(:limit, limit) do
       false -> error(:invalid_limit)
       true  -> { :ok, limit }
-    end
-  end
-
-  # Sets up and parses any options related to TTL behaviours.
-  #
-  # Currently this deals with janitor naming, TTL defaults, and purge intervals.
-  defp setup_ttl_components(_name, options) do
-    default_ttl  = Util.get_opt(options, :default_ttl, &is_positive_integer/1)
-    case Util.get_opt(options, :ttl_interval, &is_integer/1) do
-       -1 -> { :ok, { default_ttl, nil } }
-      nil -> { :ok, { default_ttl, :timer.seconds(3) } }
-      val -> { :ok, { default_ttl, val } }
     end
   end
 end

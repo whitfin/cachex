@@ -63,7 +63,7 @@ defmodule Cachex.Services do
   #
   # This can be an empty list if the cleanup interval is set to nil, which
   # dictates that no Janitor should be enabled for the cache.
-  defp janitor_spec(%Cache{ ttl_interval: nil }),
+  defp janitor_spec(%Cache{ expiration: expiration(interval: nil) }),
     do: []
   defp janitor_spec(%Cache{ } = cache),
     do: [ worker(Services.Janitor, [ cache ]) ]

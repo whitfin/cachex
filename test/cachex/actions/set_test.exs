@@ -13,7 +13,7 @@ defmodule Cachex.Actions.SetTest do
     cache1 = Helper.create_cache([ hooks: [ hook ] ])
 
     # create a test cache with a default ttl
-    cache2 = Helper.create_cache([ hooks: [ hook ], default_ttl: 10000 ])
+    cache2 = Helper.create_cache([ hooks: [ hook ], expiration: expiration(default: 10000) ])
 
     # set some values in the cache
     set1 = Cachex.set(cache1, 1, 1)

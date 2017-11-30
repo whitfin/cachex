@@ -134,7 +134,7 @@ defmodule Cachex.Services.Locksmith do
   we execute consistently.
   """
   @spec write(Cache.t, any, ( -> any)) :: any
-  def write(%Cache{ transactions: false }, _key, fun),
+  def write(%Cache{ transactional: false }, _key, fun),
     do: fun.()
   def write(%Cache{ name: name } = cache, key, fun) do
     case transaction?() or writable?(cache, key) do

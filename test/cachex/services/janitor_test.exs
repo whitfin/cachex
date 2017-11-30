@@ -52,7 +52,7 @@ defmodule Cachex.Services.JanitorTest do
     ttl_wait = round(ttl_interval * 1.5)
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: hooks, ttl_interval: ttl_interval ])
+    cache = Helper.create_cache([ hooks: hooks, expiration: expiration(interval: ttl_interval) ])
 
     # add a new cache entry
     { :ok, true } = Cachex.set(cache, "key", "value", ttl: ttl_value)

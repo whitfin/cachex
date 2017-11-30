@@ -65,6 +65,43 @@ defmodule Cachex.CacheTest do
     assert(msg == :invalid_command)
   end
 
+  # This test verifies the parsing of TTL related flags. We have to test various
+  # combinations of :ttl_interval and :default_ttl to verify each state correctly.
+  test "parsing :expiration flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # parse out valid combinations
+    { :ok, state1 } = Cachex.Cache.create(name, [ expiration: expiration(default: 1) ])
+    { :ok, state2 } = Cachex.Cache.create(name, [ expiration: expiration(default: nil) ])
+    { :ok, state3 } = Cachex.Cache.create(name, [ expiration: expiration(interval: 1) ])
+    { :ok, state4 } = Cachex.Cache.create(name, [ expiration: expiration(interval: nil) ])
+    { :ok, state5 } = Cachex.Cache.create(name, [ expiration: expiration(lazy: true) ])
+    { :ok, state6 } = Cachex.Cache.create(name, [ expiration: expiration(lazy: false) ])
+    { :ok, state7 } = Cachex.Cache.create(name, [ ])
+
+    # verify all valid states parse correctly
+    assert state1.expiration == expiration(default:   1, interval: 3000, lazy: true)
+    assert state2.expiration == expiration(default: nil, interval: 3000, lazy: true)
+    assert state3.expiration == expiration(default: nil, interval:    1, lazy: true)
+    assert state4.expiration == expiration(default: nil, interval:  nil, lazy: true)
+    assert state5.expiration == expiration(default: nil, interval: 3000, lazy: true)
+    assert state6.expiration == expiration(default: nil, interval: 3000, lazy: false)
+    assert state7.expiration == expiration(default: nil, interval: 3000, lazy: true)
+
+    # parse out invalid combinations
+    { :error,  msg } = Cachex.Cache.create(name, [ expiration: expiration(default: -1) ])
+    { :error, ^msg } = Cachex.Cache.create(name, [ expiration: expiration(default: "1") ])
+    { :error, ^msg } = Cachex.Cache.create(name, [ expiration: expiration(interval: -1) ])
+    { :error, ^msg } = Cachex.Cache.create(name, [ expiration: expiration(interval: "1") ])
+    { :error, ^msg } = Cachex.Cache.create(name, [ expiration: expiration(lazy: nil) ])
+    { :error, ^msg } = Cachex.Cache.create(name, [ expiration: expiration(lazy: "1") ])
+    { :error, ^msg } = Cachex.Cache.create(name, [ expiration: "expiration" ])
+
+    # check the error message on the failed states
+    assert msg == :invalid_expiration
+  end
+
   # Every cache can have a default fallback implementation which is used in case
   # of no fallback provided against cache reads. The only constraint here is that
   # the provided value is a valid function (of any arity).
@@ -177,24 +214,6 @@ defmodule Cachex.CacheTest do
     assert(state4 == { :error, :invalid_limit })
   end
 
-  # On-Demand expiration can be disabled, and so we have to parse out whether the
-  # user has chosen to disable it or not. This is simply checking for a truthy
-  # value provided aginst disabling the expiration.
-  test "parsing :ode flags" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # parse our values as options
-    { :ok, state1 } = Cachex.Cache.create(name, [ ode: false ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ ode:  true ])
-    { :ok, state3 } = Cachex.Cache.create(name, [ ])
-
-    # the first one should be truthy, and the latter two falsey
-    assert(state1.ode == false)
-    assert(state2.ode ==  true)
-    assert(state3.ode ==  true)
-  end
-
   # This test will verify the ability to record stats in a state. This option
   # will just add the Cachex Stats hook to the list of hooks inside the cache.
   # We just need to verify that the hook is added after being parsed.
@@ -219,69 +238,18 @@ defmodule Cachex.CacheTest do
   # a cache has them enabled or disabled. This is simply checking whether the flag
   # is set to true or false, and the default. We also verify that the transaction
   # locksmith has its name set inside the returned state.
-  test "parsing :transactions flags" do
+  test "parsing :transactional flags" do
     # grab a cache name
     name = Helper.create_name()
 
     # parse our values as options
-    { :ok, state1 } = Cachex.Cache.create(name, [ transactions:  true ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ transactions: false ])
+    { :ok, state1 } = Cachex.Cache.create(name, [ transactional:  true ])
+    { :ok, state2 } = Cachex.Cache.create(name, [ transactional: false ])
     { :ok, state3 } = Cachex.Cache.create(name, [ ])
 
     # the first one should be truthy, and the latter two falsey
-    assert(state1.transactions == true)
-    assert(state2.transactions == false)
-    assert(state3.transactions == false)
-  end
-
-  # This test verifies the parsing of TTL related flags. We have to test various
-  # combinations of :ttl_interval and :default_ttl to verify each state correctly.
-  test "parsing :ttl_interval flags" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # parse out valid combinations
-    { :ok, state1 } = Cachex.Cache.create(name, [ default_ttl: 1 ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ default_ttl: 1, ttl_interval: -1 ])
-    { :ok, state3 } = Cachex.Cache.create(name, [ default_ttl: 1, ttl_interval: 500 ])
-    { :ok, state4 } = Cachex.Cache.create(name, [ ttl_interval: 500 ])
-
-    # parse out invalid combinations
-    { :ok, state5 } = Cachex.Cache.create(name, [ default_ttl: "1" ])
-    { :ok, state6 } = Cachex.Cache.create(name, [ default_ttl: -1 ])
-    { :ok, state7 } = Cachex.Cache.create(name, [ ttl_interval: "1" ])
-    { :ok, state8 } = Cachex.Cache.create(name, [ ttl_interval: -1 ])
-
-    # the first state should have a default_ttl of 1 and a default ttl_interval
-    assert(state1.default_ttl == 1)
-    assert(state1.ttl_interval == 3000)
-
-    # the second state should have default_ttl 1 and ttl_interval disabled
-    assert(state2.default_ttl == 1)
-    assert(state2.ttl_interval == nil)
-
-    # the third state should have default_ttl of 1 and ttl_interval of 500
-    assert(state3.default_ttl == 1)
-    assert(state3.ttl_interval == 500)
-
-    # the fourth state should have default_ttl disabled and ttl_interval of 500
-    assert(state4.default_ttl == nil)
-    assert(state4.ttl_interval == 500)
-
-    # the fifth state should have ttl_interval enabled
-    assert(state5.default_ttl == nil)
-    assert(state5.ttl_interval == 3000)
-
-    # the sixth state should have ttl_interval enabled
-    assert(state6.default_ttl == nil)
-    assert(state6.ttl_interval == 3000)
-
-    # the seventh state should have ttl_interval enabled
-    assert(state7.default_ttl == nil)
-    assert(state7.ttl_interval == 3000)
-
-    # the eight state should have both disabled
-    assert(state8.default_ttl == nil)
-    assert(state8.ttl_interval == nil)
+    assert(state1.transactional == true)
+    assert(state2.transactional == false)
+    assert(state3.transactional == false)
   end
 end

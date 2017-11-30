@@ -114,8 +114,8 @@ defmodule Cachex.UtilTest do
     time_tl2 = 100_000_000
 
     # define both an enabled and disabled state
-    state1 = %Cachex.Cache{ ode: true }
-    state2 = %Cachex.Cache{ state1 | ode: false }
+    state1 = %Cachex.Cache{ expiration: expiration(lazy: true) }
+    state2 = %Cachex.Cache{ expiration: expiration(lazy: false) }
 
     # expired combination regardless of state
     result1 = Cachex.Util.has_expired?(touched1, time_tl1)

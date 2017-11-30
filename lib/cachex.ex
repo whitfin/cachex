@@ -1143,11 +1143,11 @@ defmodule Cachex do
   def transaction(cache, keys, operation, options \\ [])
   when is_function(operation, 1) and is_list(keys) and is_list(options) do
     Overseer.enforce(cache) do
-      if cache.transactions do
+      if cache.transactional do
         Actions.Transaction.execute(cache, keys, operation, options)
       else
         cache.name
-        |> Overseer.update(&%Cache{ &1 | transactions: true })
+        |> Overseer.update(&%Cache{ &1 | transactional: true })
         |> Actions.Transaction.execute(keys, operation, options)
       end
     end

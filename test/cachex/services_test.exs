@@ -39,7 +39,7 @@ defmodule Cachex.ServicesTest do
 
   test "skipping cache janitor specifications" do
     # generate the test cache state with the Janitor disabled
-    name  = Helper.create_cache([ ttl_interval: -1 ])
+    name  = Helper.create_cache([ expiration: expiration(interval: nil) ])
     cache = Services.Overseer.get(name)
 
     # validate the services

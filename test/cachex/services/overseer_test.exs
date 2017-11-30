@@ -83,8 +83,8 @@ defmodule Cachex.OverseerTest do
     state = Services.Overseer.get(name)
 
     # store our updated states
-    update1 = %Cachex.Cache{ state | default_ttl: 5 }
-    update2 = %Cachex.Cache{ state | default_ttl: 3 }
+    update1 = %Cachex.Cache{ state | expiration: expiration(state.expiration, default: 5) }
+    update2 = %Cachex.Cache{ state | expiration: expiration(state.expiration, default: 3) }
 
     # update in parallel with a wait to make sure that writes block and always
     # execute in sequence, regardless of when they actually update
@@ -110,7 +110,7 @@ defmodule Cachex.OverseerTest do
     result = Services.Overseer.get(name)
 
     # ensure the last call is the new value
-    assert(result.default_ttl == 3)
+    assert(expiration(result.expiration, :default) == 3)
 
     # now we need to make sure our state was forwarded
     assert_receive({ :cache, ^update2 })
