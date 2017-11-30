@@ -9,7 +9,7 @@ defmodule Cachex.Services.LocksmithTest do
     cache = Helper.create_cache()
 
     # fetch the cache state
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # check transaction status from inside of a transaction
     transaction1 = Services.Locksmith.transaction(state, [], fn ->
@@ -34,8 +34,8 @@ defmodule Cachex.Services.LocksmithTest do
     cache2 = Helper.create_cache([ transactional: false ])
 
     # fetch the states for the caches
-    state1 = Services.Overseer.get(cache1)
-    state2 = Services.Overseer.get(cache2)
+    state1 = Services.Overseer.retrieve(cache1)
+    state2 = Services.Overseer.retrieve(cache2)
 
     # our write action
     write = &Services.Locksmith.transaction?/0
@@ -62,8 +62,8 @@ defmodule Cachex.Services.LocksmithTest do
     cache2 = Helper.create_cache([ transactional:  true ])
 
     # fetch the states for the caches
-    state1 = Services.Overseer.get(cache1)
-    state2 = Services.Overseer.get(cache2)
+    state1 = Services.Overseer.retrieve(cache1)
+    state2 = Services.Overseer.retrieve(cache2)
 
     # our transaction actions - this will lock the key "key" in both caches for
     # 50ms before incrementing the same key by 1.
@@ -115,7 +115,7 @@ defmodule Cachex.Services.LocksmithTest do
     cache = Helper.create_cache([ transactions: true ])
 
     # retrieve the state for our cache
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # execute a crashing transaction
     result = Services.Locksmith.transaction(state, [ ], fn ->
@@ -134,7 +134,7 @@ defmodule Cachex.Services.LocksmithTest do
     cache = Helper.create_cache()
 
     # retrieve the state for our cache
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # lock some keys in the cache
     true = Services.Locksmith.lock(state, [ "key1", "key2" ])

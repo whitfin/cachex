@@ -13,8 +13,8 @@ defmodule Cachex.Services.InformantTest do
     cache2 = Helper.create_cache([ hooks: [ hook2 ] ])
 
     # grab a state instance for the broadcast
-    state1 = Services.Overseer.get(cache1)
-    state2 = Services.Overseer.get(cache2)
+    state1 = Services.Overseer.retrieve(cache1)
+    state2 = Services.Overseer.retrieve(cache2)
 
     # broadcast using the cache name
     Services.Informant.broadcast(state1, :broadcast, :result)
@@ -60,10 +60,10 @@ defmodule Cachex.Services.InformantTest do
     cache4 = Helper.create_cache([ hooks: hook4 ])
 
     # update our hooks from the caches
-    cache(hooks: hooks(pre:  [ hook1 ])) = Services.Overseer.get(cache1)
-    cache(hooks: hooks(post: [ hook2 ])) = Services.Overseer.get(cache2)
-    cache(hooks: hooks(post: [ hook3 ])) = Services.Overseer.get(cache3)
-    cache(hooks: hooks(post: [ hook4 ])) = Services.Overseer.get(cache4)
+    cache(hooks: hooks(pre:  [ hook1 ])) = Services.Overseer.retrieve(cache1)
+    cache(hooks: hooks(post: [ hook2 ])) = Services.Overseer.retrieve(cache2)
+    cache(hooks: hooks(post: [ hook3 ])) = Services.Overseer.retrieve(cache3)
+    cache(hooks: hooks(post: [ hook4 ])) = Services.Overseer.retrieve(cache4)
 
     # uninitialized hooks shouldn't emit
     Services.Informant.notify([ hook5 ], :hook5, :result)

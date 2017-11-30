@@ -9,7 +9,7 @@ defmodule Cachex.Policy.LRWTest do
     cache = Helper.create_cache()
 
     # retrieve the cache state
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # add 5000 keys to the cache
     for x <- 1..5000 do
@@ -44,7 +44,7 @@ defmodule Cachex.Policy.LRWTest do
     cache = Helper.create_cache([ hooks: [ hook ], limit: limit ])
 
     # retrieve the cache state
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # add 1000 keys to the cache
     for x <- 1..100 do
@@ -112,7 +112,7 @@ defmodule Cachex.Policy.LRWTest do
     cache = Helper.create_cache([ limit: limit ])
 
     # retrieve the cache state
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # set 50 keys without ttl
     for x <- 1..50 do

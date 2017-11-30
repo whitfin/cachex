@@ -11,16 +11,16 @@ defmodule Cachex.OverseerTest do
     state = cache(name: name)
 
     # set our state in the table
-    Services.Overseer.set(name, state)
+    Services.Overseer.register(name, state)
 
     # ensure that the state exists
-    assert(Services.Overseer.member?(name))
+    assert(Services.Overseer.known?(name))
 
     # remove our state from the table
-    Services.Overseer.del(name)
+    Services.Overseer.unregister(name)
 
     # ensure the state is gone
-    refute(Services.Overseer.member?(name))
+    refute(Services.Overseer.known?(name))
   end
 
   # Ensures that we receive a state from the input if possible. If we provide a
@@ -34,14 +34,14 @@ defmodule Cachex.OverseerTest do
     state = cache(name: name)
 
     # set our state in the table
-    Services.Overseer.set(name, state)
+    Services.Overseer.register(name, state)
 
     # ensure that the state comes back
     assert(Services.Overseer.ensure(state) === state)
     assert(Services.Overseer.ensure(name) === state)
 
     # remove our state from the table
-    Services.Overseer.del(name)
+    Services.Overseer.unregister(name)
 
     # ensure the state is gone
     assert(Services.Overseer.ensure(name) == nil)
@@ -58,10 +58,10 @@ defmodule Cachex.OverseerTest do
     state = cache(name: name)
 
     # set our state in the table
-    Services.Overseer.set(name, state)
+    Services.Overseer.register(name, state)
 
     # pull back the state from the table
-    result = Services.Overseer.get(name)
+    result = Services.Overseer.retrieve(name)
 
     # ensure nothing has changed
     assert(result == state)
@@ -80,7 +80,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_cache([ hooks: hook ])
 
     # retrieve our state
-    cache(expiration: expiration) = state = Services.Overseer.get(name)
+    cache(expiration: expiration) = state = Services.Overseer.retrieve(name)
 
     # store our updated states
     update1 = cache(state, expiration: expiration(expiration, default: 5))
@@ -107,7 +107,7 @@ defmodule Cachex.OverseerTest do
     :timer.sleep(50)
 
     # pull back the state from the table
-    cache(expiration: expiration) = Services.Overseer.get(name)
+    cache(expiration: expiration) = Services.Overseer.retrieve(name)
 
     # ensure the last call is the new value
     assert(expiration(expiration, :default) == 3)
@@ -128,10 +128,10 @@ defmodule Cachex.OverseerTest do
     state = cache(name: name)
 
     # set our state in the table
-    Services.Overseer.set(name, state)
+    Services.Overseer.register(name, state)
 
     # ensure that the state exists
-    assert(Services.Overseer.member?(name))
+    assert(Services.Overseer.known?(name))
 
     # begin a bad update on the table
     Services.Overseer.update(name, fn(_) ->
@@ -139,7 +139,7 @@ defmodule Cachex.OverseerTest do
     end)
 
     # pull back the state from the table
-    result = Services.Overseer.get(name)
+    result = Services.Overseer.retrieve(name)
 
     # ensure that the state has persisted
     assert(result == state)

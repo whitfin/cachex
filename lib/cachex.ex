@@ -1180,7 +1180,7 @@ defmodule Cachex do
   # Determines whether the Cachex application state has been started or not. If
   # not, we return an error to tell the user to start it appropriately.
   defp ensure_started do
-    if Overseer.setup?() do
+    if Overseer.started?() do
       { :ok, true }
     else
       error(:not_started)

@@ -12,7 +12,7 @@ defmodule Cachex.ActionsTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # retrieve the state
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # write several values
     { :ok, true } = Cachex.set(cache, 1, 1)
@@ -50,7 +50,7 @@ defmodule Cachex.ActionsTest do
     cache = Helper.create_cache()
 
     # retrieve the state
-    state = Services.Overseer.get(cache)
+    state = Services.Overseer.retrieve(cache)
 
     # write some values into the cache
     write1 = Cachex.Actions.write(state, entry(
@@ -108,8 +108,8 @@ defmodule Cachex.ActionsTest do
     cache2 = Helper.create_cache([ hooks: [ hook2 ] ])
 
     # get the states for each cache
-    state1 = Services.Overseer.get(cache1)
-    state2 = Services.Overseer.get(cache2)
+    state1 = Services.Overseer.retrieve(cache1)
+    state2 = Services.Overseer.retrieve(cache2)
 
     # execute some actions
     5  = execute(state1, 5, [])

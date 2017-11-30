@@ -11,7 +11,7 @@ defmodule Cachex.ServicesTest do
   test "generating default cache specifications" do
     # generate the test cache state
     name  = Helper.create_cache()
-    cache = Services.Overseer.get(name)
+    cache = Services.Overseer.retrieve(name)
 
     # validate the services
     assert [
@@ -25,7 +25,7 @@ defmodule Cachex.ServicesTest do
   test "generating cache limit specifications" do
     # generate the test cache state with a limit attached
     name  = Helper.create_cache([ limit: limit(size: 10, policy: __MODULE__.TestPolicy) ])
-    cache = Services.Overseer.get(name)
+    cache = Services.Overseer.retrieve(name)
 
     # validate the services
     assert [
@@ -40,7 +40,7 @@ defmodule Cachex.ServicesTest do
   test "skipping cache janitor specifications" do
     # generate the test cache state with the Janitor disabled
     name  = Helper.create_cache([ expiration: expiration(interval: nil) ])
-    cache = Services.Overseer.get(name)
+    cache = Services.Overseer.retrieve(name)
 
     # validate the services
     assert [

@@ -1,15 +1,16 @@
 defmodule Cachex.Services.Overseer do
   @moduledoc false
-  # This module controls the state of caches being handled by Cachex. This is part
-  # of an experiment to see if it's viable to remove the internal GenServer to
-  # avoid several bottleneck scenarios, at well as letting the developer choose
-  # how to control their concurrency.
+  # Service module overseeing the persistence of cache records.
   #
-  # States are stored inside an ETS table which is started via `Cachex.Application`
-  # and should only be accessed via this module. The interface is deliberately
-  # small in order to reduce potential complexity.
-
-  # require our includes
+  # This module controls the state of caches being handled by Cachex. This was
+  # originally part of an experiment to see if it was viable to remove a process
+  # which backed each cache to avoid bottlenecking scenarios and grant the develop
+  # finer control over their concurrency.
+  #
+  # The result was much higher throughput with better flexibility, and so we kept
+  # this new design. Cache states are stored in a single ETS table backing this
+  # module and all cache calls will be routed through here first to ensure their
+  # state is up to date.
   import Cachex.Errors
   import Cachex.Spec
 
@@ -24,12 +25,17 @@ defmodule Cachex.Services.Overseer do
   @manager_name :cachex_overseer_manager
   @table_name   :cachex_overseer_table
 
-  @doc """
-  Starts the main supervision tree for an Overseer process.
+  ##############
+  # Public API #
+  ##############
 
-  This will start the child table for state tracking and an Agent process which
-  is used as a simple queue to allow for transactional modifications.
+  @doc """
+  Creates a new Overseer service tree.
+
+  This will start a basic `Agent` for transactional changes, as well
+  as the main ETS table backing this service.
   """
+  @spec start_link :: Supervisor.on_start
   def start_link do
     ets_opts = [ read_concurrency: true, write_concurrency: true ]
     tab_opts = [ @table_name, ets_opts, [ quiet: true ] ]
@@ -47,51 +53,38 @@ defmodule Cachex.Services.Overseer do
   end
 
   @doc """
-  Enforces a cache binding into a `Cachex.Cache` instance.
+  Ensures a cache from a name or record.
 
-  This will coerce cache names into a `Cachex.Cache` insatnce, whilst just
-  returning the provided instance if it's already a cache. If the cache
-  cannot be coerced into an instance, a nil value is returned.
-  """
-  defmacro enforce(cache, do: body) do
-    quote location: :keep do
-      case Overseer.ensure(unquote(cache)) do
-        nil ->
-          error(:no_cache)
-        var!(cache) ->
-          cache = var!(cache)
-          if :erlang.whereis(cache(cache, :name)) != :undefined do
-            unquote(body)
-          else
-            error(:no_cache)
-          end
-      end
-    end
-  end
-
-  @doc """
-  Removes a state from the local state table.
-  """
-  @spec del(atom) :: true
-  def del(name) when is_atom(name),
-    do: :ets.delete(@table_name, name)
-
-  @doc """
-  Ensures a state from a cache name or state.
+  Ensuring a cache will map the provided argument to a
+  cache record if available, otherwise a nil value.
   """
   @spec ensure(atom | Spec.cache) :: Spec.cache | nil
   def ensure(cache() = cache),
     do: cache
   def ensure(name) when is_atom(name),
-    do: get(name)
+    do: retrieve(name)
   def ensure(_miss),
     do: nil
 
   @doc """
-  Retrieves a state from the local state table, or `nil` if none exists.
+  Determines whether a cache is known by the Overseer.
   """
-  @spec get(atom) :: Spec.cache | nil
-  def get(name) do
+  @spec known?(atom) :: true | false
+  def known?(name) when is_atom(name),
+    do: :ets.member(@table_name, name)
+
+  @doc """
+  Registers a cache record against a name.
+  """
+  @spec register(atom, Spec.cache) :: true
+  def register(name, cache() = cache) when is_atom(name),
+    do: :ets.insert(@table_name, { name, cache })
+
+  @doc """
+  Retrieves a cache record, or `nil` if none exists.
+  """
+  @spec retrieve(atom) :: Spec.cache | nil
+  def retrieve(name) do
     case :ets.lookup(@table_name, name) do
       [{ ^name, state }] ->
         state
@@ -101,37 +94,16 @@ defmodule Cachex.Services.Overseer do
   end
 
   @doc """
-  Determines whether the given cache is provided in the state table.
+  Determines whether the Overseer has been started.
   """
-  @spec member?(atom) :: true | false
-  def member?(name) when is_atom(name),
-    do: :ets.member(@table_name, name)
-
-  @doc """
-  Sets a state in the local state table.
-  """
-  @spec set(atom, Spec.cache) :: true
-  def set(name, cache() = cache) when is_atom(name),
-    do: :ets.insert(@table_name, { name, cache })
-
-  @doc """
-  Determines whether the tables for this module have been setup correctly.
-  """
-  @spec setup? :: true | false
-  def setup?,
+  @spec started? :: boolean
+  def started?,
     do: Enum.member?(:ets.all, @table_name)
 
   @doc """
-  Returns the name of the local state table.
+  Carries out a transaction against the state table.
   """
-  @spec table_name :: atom
-  def table_name,
-    do: @table_name
-
-  @doc """
-  Carries out a blocking set of actions against the state table.
-  """
-  @spec transaction(atom, ( -> any)) :: any
+  @spec transaction(atom, (() -> any)) :: any
   def transaction(name, fun) when is_atom(name) and is_function(fun, 0) do
     Agent.get(@manager_name, fn(cache) ->
       try do
@@ -143,7 +115,14 @@ defmodule Cachex.Services.Overseer do
   end
 
   @doc """
-  Updates a state inside the local state table.
+  Unregisters a cache record against a name.
+  """
+  @spec unregister(atom) :: true
+  def unregister(name) when is_atom(name),
+    do: :ets.delete(@table_name, name)
+
+  @doc """
+  Updates a cache record against a name.
 
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
@@ -151,10 +130,10 @@ defmodule Cachex.Services.Overseer do
   @spec update(atom, Spec.cache | (Spec.cache -> Spec.cache)) :: Spec.cache
   def update(name, fun) when is_atom(name) and is_function(fun, 1) do
     transaction(name, fn ->
-      cstate = get(name)
+      cstate = retrieve(name)
       nstate = fun.(cstate)
 
-      set(name, nstate)
+      register(name, nstate)
 
       with hooks(pre: pre_hooks, post: post_hooks) <- cache(nstate, :hooks) do
         pre_hooks
@@ -170,10 +149,40 @@ defmodule Cachex.Services.Overseer do
   def update(name, cache(name: name) = cache),
     do: update(name, fn _ -> cache end)
 
-  # Verifies whether a Hook requires a state worker. If it does, return true
-  # otherwise return a false.
+  ##########
+  # Macros #
+  ##########
+
+  @doc false
+  # Enforces a cache binding into a cache record.
+  #
+  # This will coerce cache names into a cache record, whilst just
+  # returning the provided instance if it's already a cache. If
+  # the cache cannot be coerced into an instance, a nil value
+  # is returned.
+  #
+  # TODO: this can be optimized further (i.e. at all)
+  defmacro enforce(cache, do: body) do
+    quote do
+      case Overseer.ensure(unquote(cache)) do
+        nil ->
+          error(:no_cache)
+        var!(cache) ->
+          cache = var!(cache)
+          if :erlang.whereis(cache(cache, :name)) != :undefined do
+            unquote(body)
+          else
+            error(:no_cache)
+          end
+      end
+    end
+  end
+
+  ###############
+  # Private API #
+  ###############
+
+  # Verifies if a hook has a cache provisioned.
   defp requires_state?(hook(provide: provide)),
     do: :cache in provide
-  defp requires_state?(_hook),
-    do: false
 end

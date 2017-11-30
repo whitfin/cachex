@@ -9,6 +9,7 @@ defmodule Cachex.Actions.Inspect do
   # at any time - not only with major increments of the library version.
   alias Cachex.Services
   alias Cachex.Util
+  alias Services.Janitor
   alias Services.Overseer
 
   # we need macros
@@ -60,14 +61,8 @@ defmodule Cachex.Actions.Inspect do
   # schema is defined in the `Cachex.Services.Janitor` module.
   #
   # In the case the Janitor service is not running, an error will be returned.
-  def execute(cache(name: name), { :janitor, :last }) do
-    case :erlang.whereis(name(name, :janitor)) do
-      :undefined ->
-        error(:janitor_disabled)
-       reference ->
-        { :ok, GenServer.call(reference, :last) }
-    end
-  end
+  def execute(cache() = cache, { :janitor, :last }),
+    do: Janitor.last_run(cache)
 
   # Retrieves the current size of the backing cache table in bytes.
   #
@@ -111,7 +106,7 @@ defmodule Cachex.Actions.Inspect do
   # This is relatively easy to get via other methods, but it's available here
   # as the "best" way for a developer to do so (outside of the internal API).
   def execute(cache(name: name), :cache),
-    do: { :ok, Overseer.get(name) }
+    do: { :ok, Overseer.retrieve(name) }
 
   # Catch-all to return an error.
   def execute(_cache, _option),

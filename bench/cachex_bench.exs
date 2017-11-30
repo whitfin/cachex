@@ -13,6 +13,7 @@ defmodule CachexBench do
     Cachex.set(:bench_cache, "decr_test", 0)
     Cachex.set(:bench_cache, "expire_at_test", "expire_at_value")
     Cachex.set(:bench_cache, "expire_test", "expire_value")
+    Cachex.set(:bench_cache, "fetch_test", "fetch_value")
     Cachex.set(:bench_cache, "get_test", "get_value")
     Cachex.set(:bench_cache, "gad_test", "gad_value")
     Cachex.set(:bench_cache, "incr_test", 0)
@@ -31,7 +32,7 @@ defmodule CachexBench do
     end
 
     cache = if use_state do
-      Cachex.inspect!(:bench_cache, :state)
+      Cachex.inspect!(:bench_cache, :cache)
     else
       :bench_cache
     end
@@ -79,6 +80,11 @@ defmodule CachexBench do
 
   bench "expire_at" do
     Cachex.expire_at(bench_context, "expire_at_test", @tomorrow)
+    :ok
+  end
+
+  bench "fetch" do
+    Cachex.fetch(bench_context, "fetch_test")
     :ok
   end
 

@@ -66,13 +66,13 @@ defmodule Cachex.Hook do
       end
 
       @doc false
-      def handle_call({ :cachex_notify, { event, result } } = msg, _ctx, state) do
+      def handle_call({ :cachex_notify, { event, result } }, _ctx, state) do
         { :ok, new_state } = handle_notify(event, result, state)
         { :reply, :ok, new_state }
       end
 
       @doc false
-      def handle_call({ :cachex_notify, { event, result }, timeout } = msg, _ctx, state) do
+      def handle_call({ :cachex_notify, { event, result }, timeout }, _ctx, state) do
         task = Task.async(fn ->
           handle_notify(event, result, state)
         end)

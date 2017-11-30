@@ -1,15 +1,19 @@
 defmodule Cachex.Services.Janitor do
   @moduledoc false
-  # The main TTL cleanup for Cachex, providing a very basic task scheduler to
-  # repeatedly cleanup the cache table for all records which have expired. This
-  # is a separate process to avoid any potential overhead in the main process.
-  # It's possible that certain cleanups will result in full table scans, and so
-  # we split into a separate GenServer for safety in case it takes a while.
-
-  # use GenServer
+  # Expiration service to clean up expired cache records periodically.
+  #
+  # The Janitor provides the main expiration cleanup for Cachex, providing a
+  # very basic scheduler to repeatedly cleanup cache tables for all expired
+  # entries.
+  #
+  # This runs in a separate process to avoid any potential overhead in for
+  # a user, but uses existing functions in the API so manual cleanup is
+  # possible. It's possible that certain cleanups will result in full table
+  # scans, so it should be expected that this can take a while to execute.
   use GenServer
 
-  # import parents
+  # import parent macros
+  import Cachex.Errors
   import Cachex.Spec
 
   # add some aliases
@@ -17,47 +21,69 @@ defmodule Cachex.Services.Janitor do
   alias Services.Informant
   alias Services.Overseer
 
-  @doc """
-  Simple initialization for use in the main owner process in order to start an
-  instance of a janitor.
+  ##############
+  # Public API #
+  ##############
 
-  All options are passed throught to the initialization function, and the GenServer
-  options are passed straight to GenServer to deal with.
+  @doc """
+  Starts a new Janitor process for a cache.
+
+  At this point customization is non-existent, in order to keep the service
+  as simple as possible and avoid the space for error and edge cases.
   """
+  @spec start_link(Spec.cache) :: GenServer.on_start
   def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :janitor) ])
 
   @doc """
-  Main initialization phase of a janitor.
+  Retrieves information about the latest Janitor run for a cache.
 
-  This will create a stats struct as required and create the initial state for
-  this janitor. The state is then passed through for use in the future.
+  If the service is disabled on the cache, an error is returned.
   """
-  def init(cache() = cache),
+  @spec last_run(Spec.cache) :: %{}
+  def last_run(cache(expiration: expiration(interval: nil))),
+    do: error(:janitor_disabled)
+  def last_run(cache(name: name)) do
+    name
+    |> name(:janitor)
+    |> GenServer.call(:last)
+  end
+
+  ####################
+  # Server Callbacks #
+  ####################
+
+  @doc false
+  # Initializes a Janitor service using a cache record.
+  #
+  # This will create the structure used to store metadata about
+  # the run cycles of the Janitor, and schedule the first run.
+  def init(cache),
     do: { :ok, { schedule_check(cache), %{ } } }
 
-  @doc """
-  Returns the last metadata for this Janitor.
-  """
+  @doc false
+  # Returns metadata about the last run of this Janitor.
+  #
+  # The returned information should be treated as non-guaranteed.
   def handle_call(:last, _ctx, { _cache, last } = state),
-    do: { :reply, last, state }
+    do: { :reply, { :ok, last }, state }
 
-  @doc """
-  Runs a TTL check and eviction against the backing ETS table.
-
-  We basically drop to the ETS level and provide a select which only matches docs
-  to be removed, and then ETS deletes them as it goes.
-  """
+  @doc false
+  # Executes an expiration cleanup against a cache table.
+  #
+  # This will drop to the ETS level and use a select to match documents which
+  # need to be removed; they are then deleted by ETS at very high speeds.
   def handle_info(:ttl_check, { cache(name: name), _last }) do
-    new_caches = Overseer.get(name)
     start_time = now()
+    new_caches = Overseer.retrieve(name)
 
     { duration, { :ok, count } = result } = :timer.tc(fn ->
       Cachex.purge(new_caches)
     end)
 
-    if count > 0 do
-      Informant.broadcast(new_caches, { :purge, [ [] ] }, result)
+    case count do
+      0 -> nil
+      _ -> Informant.broadcast(new_caches, const(:purge_override_call), result)
     end
 
     last = %{
@@ -69,11 +95,12 @@ defmodule Cachex.Services.Janitor do
     { :noreply, { schedule_check(new_caches), last } }
   end
 
+  ###############
+  # Private API #
+  ###############
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(cache(expiration: expiration(interval: interval)) = cache) do
-    :erlang.send_after(interval, self(), :ttl_check)
-    cache
-  end
+  defp schedule_check(cache(expiration: expiration(interval: interval)) = cache),
+    do: :erlang.send_after(interval, self(), :ttl_check) && cache
 end
