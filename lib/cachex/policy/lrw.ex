@@ -1,5 +1,7 @@
 defmodule Cachex.Policy.LRW do
   @moduledoc false
+  # Least recently written eviction policy for Cachex.
+  #
   # This module provides an eviction policy for Cachex, evicting the least-recently
   # written entries from the cache. This is determined by the touched time inside
   # each cache record, which means that this eviction is almost zero cost, consuming
@@ -9,11 +11,13 @@ defmodule Cachex.Policy.LRW do
   # allowing the user to determine exactly how much they'd like to trim in the event
   # they've gone over the limit.
   #
+  # The `:batch_size` option can be set in the limit options to dictate how many
+  # entries should be removed at once by this policy. This will default to a batch
+  # size of 100 entries at a time.
+  #
   # This eviction is relatively fast, and should keep the cache below bounds at most
   # times. Note that many writes in a very short amount of time can flood the cache,
   # but it should recover given a few seconds.
-
-  # use the hook system
   use Cachex.Hook
   use Cachex.Policy
 
@@ -21,27 +25,29 @@ defmodule Cachex.Policy.LRW do
   import Cachex.Spec
 
   # add internal aliases
-  alias Cachex.Services
+  alias Cachex.Services.Informant
   alias Cachex.Util
 
-  # alias any services
-  alias Services.Informant
-
-  # store a list of actions which add items to the cache, as we only need to then
-  # operate on these actions - this allows us to optimize and avoid checking size
-  # when there's no chance of a size change since the last check
+  # A list of actions which add items to the cache.
+  #
+  # We only need to operate on these actions, allowing us to optimize and
+  # avoid checking cache bounds when there's no change of a change.
+  #
+  # This will become moot once we have the ability to subscribe to a subset
+  # of actions from inside a hook definition (planned for the future).
   @additives MapSet.new([ :set, :update, :incr, :get_and_update, :decr ])
 
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Util.create_match([ { { :"$1", :"$2" } } ], [ ])
 
   ####################
-  # Policy behaviour #
+  # Policy Behaviour #
   ####################
 
   @doc """
-  Returns a list of hooks required to run alongside this policy.
+  Retrieves a list of hooks required to run against this policy.
   """
+  @spec hooks(Spec.limit) :: [ Spec.hook ]
   def hooks(limit),
     do: [
       hook(
@@ -56,11 +62,12 @@ defmodule Cachex.Policy.LRW do
   # Initialization #
   ##################
 
-  @doc """
-  Initializes the policy, accepting a maximum size and a bound to trim by.
-
-  We store a state of the maximum size, and a calculated number to trim to.
-  """
+  @doc false
+  # Initializes this policy using the limit being enforced.
+  #
+  # The maximum size is stored in the state, alongside the pre-calculated
+  # number to trim down to. The batch size to use when removing records is
+  # also configurable via the provided options.
   def init(limit(size: max_size, reclaim: reclaim, options: options)) do
     trim_bound = round(max_size * reclaim)
 
@@ -77,27 +84,27 @@ defmodule Cachex.Policy.LRW do
   # Listeners #
   #############
 
-  @doc """
-  Checks and enforces the bounds of the cache as needed.
-
-  This notification will receive all actions taken by the cache, and uses them to
-  determine when to trim the cache. We only operate on results which have not had
-  an error, and whose actions are listed in the additives constant (as only actions)
-  fitting this criteria can have a net gain in cache size.
-  """
-  def handle_notify({ action, _options }, { status, _value }, opts) when status != :error do
+  @doc false
+  # Handles notification of a cache action.
+  #
+  # This will check if the action can modify the size of the cache, and if so will
+  # execute the boundary enforcement to trim the size as needed.
+  #
+  # Note that this will ignore error results and only operates on actions which are
+  # able to cause a net gain in cache size (so removals are also ignored).
+  def handle_notify({ action, _options }, { status, _value }, opts)
+  when status != :error do
     if MapSet.member?(@additives, action) do
       enforce_bounds(opts)
     end
     { :ok, opts }
   end
 
-  @doc """
-  Retrieves a provisioned worker from the cache and stores it inside the state.
-
-  This worker is then used going forward for any cache calls to avoid the overhead
-  of looking up the state. Again an optimization.
-  """
+  @doc false
+  # Receives a provisioned cache instance.
+  #
+  # The provided cache is then stored in the cache and used for cache calls going
+  # forwards, in order to skip the lookups inside the cache overseer for performance.
   def handle_provision({ :cache, cache }, { max_size, reclaim, batch, _cache }),
     do: { :ok, { max_size, reclaim, batch, cache } }
 
@@ -105,6 +112,8 @@ defmodule Cachex.Policy.LRW do
   # Algorithm #
   #############
 
+  # Enforces the bounds of a cache based on the provided state.
+  #
   # Suggest stepping through this pipeline a function at a time and reading the
   # associated comments. This pipeline controls the trimming of the cache to fit
   # the appropriate size.
@@ -127,7 +136,7 @@ defmodule Cachex.Policy.LRW do
   # to happen. This is a slight speed boost, but it's noticeable - tests will fail
   # intermittently if this is not checked in this way.
   defp enforce_bounds({ max_size, reclaim, batch, cache }) do
-    case Cachex.size!(cache, [ notify: false ]) do
+    case Cachex.size!(cache, const(:notify_false)) do
       cache_size when cache_size <= max_size ->
         notify_worker(0, cache)
       cache_size ->
@@ -139,29 +148,36 @@ defmodule Cachex.Policy.LRW do
     end
   end
 
-  # Calculates the space to reclaim inside the cache, based on the maximum cache
-  # size, the reclaim bound, and the current size of the cache. A positive result
-  # from this function means we need to carry out evictions, whereas a negative
-  # means that the cache is currently underpopulated.
+  # Calculates the space to reclaim inside a cache.
+  #
+  # This is a function of the maximum cache size, the reclaim bound and the
+  # current size of the cache. A positive result from this function means that
+  # we need to carry out evictions, whereas a negative results means that the
+  # cache is currently underpopulated.
   defp calculate_reclaim(current_size, max_size, reclaim_bound),
     do: (max_size - reclaim_bound - current_size) * -1
 
-  # Calculates the purge offset of the cache. Basically this means that if the
-  # cache is overpopulated, we would trigger a Janitor purge to see if it brings
-  # us back under the cache limit. The resulting amount to remove is then returned.
-  # Again, a positive result means that we still have evictions to carry out.
+  # Calculates the purge offset of a cache.
+  #
+  # Basically this means that if the cache is overpopulated, we would trigger
+  # a Janitor purge to see if expirations bring the cache back under the max
+  # size limits. The resulting amount of removed records is then offset against
+  # the reclaim space, meaning that a positive result require us to carry out
+  # further evictions manually down the chain.
   defp calculate_poffset(reclaim_space, cache) when reclaim_space > 0,
     do: reclaim_space - Cachex.purge!(cache)
 
-  # This is the cuts of the cache trimming. If the provided offset is negative,
-  # it means that the cache is within the maximum size and so we just pass through
+  # Erases the least recently written records up to the offset limit.
+  #
+  # If the provided offset is not positive we don't do anything as it signals that
+  # the cache is already within the correctly sized limits so we just pass through
   # as a no-op.
   #
-  # In the case that it's positive, it represents the number of items to remove
-  # from the cache. We do this by using a traversal of the underlying ETS table,
-  # which only selects the key and touch time. The key is obviously required when
-  # it comes to removing the document, and the touch time is used to determine
-  # the sorted order required for implementing LRW. We transform this sort using
+  # In the case the offset is positive, it represents the number of entries we need
+  # to remove from the cache table. We do this by traversing the underlying ETS table,
+  # which only selects the key and touch time as a minor optimization. The key is
+  # naturally required when it comes to removing the document, and the touch time is
+  # used to determine the sort order required for LRW. We transform this sort using
   # a QLC cursor and pass it through to `erase_cursor/3` to delete.
   defp erase_lower_bound(offset, cache(name: name), batch_size) when offset > 0 do
     name
@@ -175,13 +191,15 @@ defmodule Cachex.Policy.LRW do
   defp erase_lower_bound(offset, _state, _batch_size),
     do: offset
 
-  # This function erases a QLC cursor by taking in a provided cursor and removing
-  # the first N elements from the cursor. Removals are done in batches according
-  # to the provided :batch_size option.
+  # Erases entries in an LRW ETS cursor.
+  #
+  # This will exhaust a QLC cursor by taking in a provided cursor and removing the first
+  # N elements (where N is the number of entries we need to remove). Removals are done
+  # in configurable batches according to the `:batch_size` option.
   #
   # This is a recursive function as we have to keep track of the number to remove,
   # as the removal is done by calling `erase_batch/3`. At the end of the recursion,
-  # we make sure to remove the trailing QLC cursor to avoid leaving it around.
+  # we make sure to delete the trailing QLC cursor to avoid it lying around still.
   defp erase_cursor(cursor, table, remainder, batch_size) when remainder > batch_size do
     erase_batch(cursor, table, batch_size)
     erase_cursor(cursor, table, remainder - batch_size, batch_size)
@@ -191,27 +209,31 @@ defmodule Cachex.Policy.LRW do
     :qlc.delete_cursor(cursor)
   end
 
-  # Erases a batch of entries from the table. We pull the next batch of entries
-  # from the table and erase them by key. This is not as efficient as using the
-  # `:ets.select_delete/2` function but is required due to the cursored sort.
+  # Erases a batch of entries from a QLC cursor.
+  #
+  # This is not the most performant way to do this (as far as I know), as
+  # we need to pull a batch of entries from the table and then just pass
+  # them back through to ETS to erase them by key. This is nowhere near as
+  # performant as `:ets.select_delete/2` but appears to be required because
+  # of the need to sort the QLC cursor by the touch time.
   defp erase_batch(cursor, table, batch_size) do
     for { key, _touched } <- :qlc.next_answers(cursor, batch_size) do
       :ets.delete(table, key)
     end
   end
 
-  # At the end of the pipeline we broadcast the eviction count to any listening
-  # hooks. Remember that it's important that we're ignoring `clear/1` calls in
-  # this hook, as otherwise we'd execute a check immediately after (on our report).
-  # If the offset is not positive, we don't broadcast - meaning that we didn't
-  # have to remove anything from the cache (the no-op from the above definitions).
-  # It returns a tuple simply to keep compatibility with the return type coming
-  # from `Worker.broadcast/3`.
+  # Broadcasts the number of removed entries to the cache hooks.
+  #
+  # If the offset is not positive we didn't have to remove anything and so we
+  # don't broadcast any results. An 0 Tuple is returned just to keep compability
+  # with the response type from `Informant.broadcast/3`.
   #
   # It should be noted that we use a `:clear` action here as these evictions are
-  # based on size and not on TTL. The evictions done during the purge earlier in
-  # the pipeline are reported separately and we're only reporting the delta at this
-  # point in time.
+  # based on size and not on expiration. The evictions done during the purge earlier
+  # in the pipeline are reported separately and we're only reporting the delta at this
+  # point in time. Therefore remember that it's important that we're ignoring the
+  # results of `clear()` and `purge()` calls in this hook, otherwise we would end
+  # up in a recursive loop due to the hook system.
   defp notify_worker(offset, state) when offset > 0,
     do: Informant.broadcast(state, { :clear, [[]] }, { :ok, offset })
   defp notify_worker(_offset, _state),
