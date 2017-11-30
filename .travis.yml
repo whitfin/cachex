@@ -10,11 +10,10 @@ branches:
   only:
   - master
 before_install:
-  - rm mix.lock
+  - mix local.hex --force
   - mix local.rebar --force
+  - mix deps.get
 script:
   - mix credo --all --format=oneline
   - mix coveralls.travis --trace
   - mix bench
-env:
-  - MIX_ENV=test

@@ -6,14 +6,14 @@ defmodule Cachex.Actions.DecrTest do
   # coming back, as well as the fact they're forwarded to the hooks correctly.
   test "decrementing cache items" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # define write options
     opts1 = []
-    opts2 = [ amount: 2 ]
+    opts2 = [  amount:  2 ]
     opts3 = [ initial: 10 ]
     opts4 = [ initial: 10, amount: 5 ]
 
@@ -68,5 +68,4 @@ defmodule Cachex.Actions.DecrTest do
     # we should receive an error
     assert(result == { :error, :non_numeric_value })
   end
-
 end

@@ -7,7 +7,7 @@ defmodule Cachex.Actions.FetchTest do
   # If the provided function is arity 1, we ignore the state argument.
   test "fetching keys from a cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a default fetch action
     concat = &(&1 <> "_" <> &2)
@@ -16,10 +16,7 @@ defmodule Cachex.Actions.FetchTest do
     cache1 = Helper.create_cache([ hooks: [ hook ] ])
     cache2 = Helper.create_cache([
       hooks: [ hook ],
-      fallback: [
-        state: "val",
-        action: concat
-      ]
+      fallback: fallback(provide: "val", default: concat)
     ])
 
     # set some keys in the cache

@@ -5,13 +5,11 @@ defmodule Cachex.Actions.Reset do
   # because there is no need to notify on reset (as there has been a reset, so it
   # doesn't make sense to always have a reset as the first message).
 
-  # we need our imports
-  use Cachex.Actions
+  # we need our constants
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Clear
-  alias Cachex.Cache
-  alias Cachex.Hook
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -24,7 +22,7 @@ defmodule Cachex.Actions.Reset do
   Nothing in here will notify hooks of the reset as it's quite redundant and it's
   evident that a reset happened when you see that your hook has reinitialized.
   """
-  def execute(%Cache{ } = cache, options) do
+  def execute(cache() = cache, options) do
     Locksmith.transaction(cache, [ ], fn ->
       only =
         options
@@ -43,19 +41,19 @@ defmodule Cachex.Actions.Reset do
   # cache table.
   defp reset_cache(cache, only) do
     if :cache in only do
-      Clear.execute(cache, @notify_false)
+      Clear.execute(cache, const(:notify_false))
     end
   end
 
   # Controls the resetting of any hooks, either all or a subset. We have a small
   # optimization here to detect when we want to reset all hooks, to avoid filtering
   # without cause. We use a MapSet just to avoid the O(N) lookups otherwise.
-  defp reset_hooks(%Cache{ pre_hooks: pre, post_hooks: post }, only, opts) do
+  defp reset_hooks(cache(hooks: hooks(pre: pre_hooks, post: post_hooks)), only, opts) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->
-          pre
-          |> Enum.concat(post)
+          pre_hooks
+          |> Enum.concat(post_hooks)
           |> Enum.each(&notify_reset/1)
         val ->
           hset =
@@ -63,8 +61,8 @@ defmodule Cachex.Actions.Reset do
             |> List.wrap
             |> MapSet.new
 
-          pre
-          |> Enum.concat(post)
+          pre_hooks
+          |> Enum.concat(post_hooks)
           |> Enum.filter(&should_reset?(&1, hset))
           |> Enum.each(&notify_reset/1)
       end
@@ -73,13 +71,13 @@ defmodule Cachex.Actions.Reset do
 
   # This function determines if a hook should be reset. It should only be reset
   # if it exists inside the set of hooks to reset.
-  defp should_reset?(%Hook{ module: mod }, hook_set),
+  defp should_reset?(hook(module: mod), hook_set),
     do: MapSet.member?(hook_set, mod)
 
   # Notifies a hook of the reset. This simply forwards the hook arguments to the
   # hook alongside a reset message to signal that the hook needs to reinitialize.
   # There is a listener built into the server implementation backing hooks which
   # will handle this automatically, so there's nothing more we need to do.
-  defp notify_reset(%Hook{ args: args, ref: ref }) ,
+  defp notify_reset(hook(args: args, ref: ref)) ,
     do: GenServer.cast(ref, { :cachex_reset, args })
 end

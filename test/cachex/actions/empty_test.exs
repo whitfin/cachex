@@ -7,7 +7,7 @@ defmodule Cachex.Actions.EmptyTest do
   # of the size functionality.
   test "checking if a cache is empty" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -33,5 +33,4 @@ defmodule Cachex.Actions.EmptyTest do
     # verify the hooks were updated with the message
     assert_receive({ { :empty?, [[]] }, ^result2 })
   end
-
 end

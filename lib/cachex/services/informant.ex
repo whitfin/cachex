@@ -7,9 +7,10 @@ defmodule Cachex.Services.Informant do
   # all hooks as children, as well as provide utility functions for new
   # notifications being sent to child hooks for a cache.
 
+  # import our models
+  import Cachex.Spec
+
   # add any aliases
-  alias Cachex.Cache
-  alias Cachex.Hook
   alias Supervisor.Spec
 
   @doc """
@@ -19,9 +20,9 @@ defmodule Cachex.Services.Informant do
   the parent supervisor. Otherwise all hooks are added to a supervisor
   to fold out into their own tree.
   """
-  def start_link(%Cache{ pre_hooks: [], post_hooks: [] }),
+  def start_link(cache(hooks: hooks(pre: [], post: []))),
     do: :ignore
-  def start_link(%Cache{ pre_hooks: pre_hooks, post_hooks: post_hooks }) do
+  def start_link(cache(hooks: hooks(pre: pre_hooks, post: post_hooks))) do
     pre_hooks
     |> Enum.concat(post_hooks)
     |> Enum.map(&spec/1)
@@ -33,13 +34,13 @@ defmodule Cachex.Services.Informant do
 
   This will send a nil result, as the result does not yet exist.
   """
-  def broadcast(%Cache{ pre_hooks: pre_hooks }, action),
+  def broadcast(cache(hooks: hooks(pre: pre_hooks)), action),
     do: notify(pre_hooks, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
-  def broadcast(%Cache{ post_hooks: post_hooks }, action, result),
+  def broadcast(cache(hooks: hooks(post: post_hooks)), action, result),
     do: notify(post_hooks, action, result)
 
   @doc """
@@ -48,9 +49,9 @@ defmodule Cachex.Services.Informant do
   This is a required post-step as hooks are started independently and
   are not named in a deterministic way.
   """
-  def link(%Cache{ pre_hooks: [], post_hooks: [] } = cache),
+  def link(cache(hooks: hooks(pre: [], post: [])) = cache),
     do: { :ok, cache }
-  def link(%Cache{ name: name, pre_hooks: pre_hooks, post_hooks: post_hooks } = cache) do
+  def link(cache(name: name, hooks: hooks(pre: pre_hooks, post: post_hooks)) = cache) do
     children =
       name
       |> Supervisor.which_children
@@ -60,12 +61,7 @@ defmodule Cachex.Services.Informant do
     link_pre  = attach_hook_pid(pre_hooks,  children)
     link_post = attach_hook_pid(post_hooks, children)
 
-    link_state = %Cache{ cache |
-      pre_hooks: link_pre,
-      post_hooks: link_post
-    }
-
-    { :ok, link_state }
+    { :ok, cache(cache, hooks: hooks(pre: link_pre, post: link_post)) }
   end
 
   @doc """
@@ -87,20 +83,20 @@ defmodule Cachex.Services.Informant do
   # list of Hook structs. Wherever there is a match, the PID of the child is added
   # to the Hook so that a Hook struct can track where it lives.
   defp attach_hook_pid(hooks, children) do
-    Enum.map(hooks, fn(%Hook{ module: module } = hook) ->
-      %Hook{ hook | ref: find_pid(children, module) }
+    Enum.map(hooks, fn(hook(module: module) = hook) ->
+      hook(hook, ref: find_pid(children, module))
    end)
   end
 
   # Internal emission, used to define whether we send using an async request or
   # not. We also determine whether we should supply a timeout value or not.
-  defp do_notify(%Hook{ ref: nil }, _action, _result),
+  defp do_notify(hook(ref: nil), _action, _result),
     do: nil
-  defp do_notify(%Hook{ async: true, ref: ref }, action, result),
+  defp do_notify(hook(async: true, ref: ref), action, result),
     do: GenServer.cast(ref, { :cachex_notify, { action, result } })
-  defp do_notify(%Hook{ max_timeout: nil, ref: ref }, action, result),
+  defp do_notify(hook(timeout: nil, ref: ref), action, result),
     do: GenServer.call(ref, { :cachex_notify, { action, result } }, :infinity)
-  defp do_notify(%Hook{ max_timeout: val, ref: ref }, action, result),
+  defp do_notify(hook(timeout: val, ref: ref), action, result),
     do: GenServer.call(ref, { :cachex_notify, { action, result }, val }, :infinity)
 
   # Locates a process identifier for the given module in the child specification
@@ -113,6 +109,6 @@ defmodule Cachex.Services.Informant do
   end
 
   # Generates a Supervisor specification for a hook.
-  defp spec(%Hook{ module: mod, args: args, server_args: opts }),
-    do: Spec.worker(GenServer, [ mod, args, opts ], [ id: mod ])
+  defp spec(hook(module: module, args: args, options: options)),
+    do: Spec.worker(GenServer, [ module, args, options ], [ id: module ])
 end

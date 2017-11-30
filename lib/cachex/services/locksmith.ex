@@ -9,9 +9,7 @@ defmodule Cachex.Services.Locksmith do
   # also be noted that this behaviour could easily live in a GenServer were it
   # not for the speedup when using ETS. When using an ETS table this check is
   # typically 0.3-0.5µs/op whereas a GenServer is roughly 10x this.
-
-  # add any aliases
-  alias Cachex.Cache
+  import Cachex.Spec
 
   # our constant lock table
   @table_name :cachex_locksmith
@@ -39,8 +37,8 @@ defmodule Cachex.Services.Locksmith do
   rather than just repeatedly calling ETS with insertion. This also has the benefit
   of ensuring that all keys are locked at the same time.
   """
-  @spec lock(Cache.t, [ any ]) :: true
-  def lock(%Cache{ name: name }, keys) do
+  @spec lock(Spec.cache, [ any ]) :: true
+  def lock(cache(name: name), keys) do
     t_proc = self()
 
     writes =
@@ -54,8 +52,8 @@ defmodule Cachex.Services.Locksmith do
   @doc """
   Returns the list of locked keys for a cache.
   """
-  @spec locked(Cache.t) :: [ any ]
-  def locked(%Cache{ name: name }),
+  @spec locked(Spec.cache) :: [ any ]
+  def locked(cache(name: name)),
     do: :ets.select(@table_name, [ { { { name, :"$1" }, :_ }, [], [ :"$1" ] } ])
 
   @doc """
@@ -65,11 +63,11 @@ defmodule Cachex.Services.Locksmith do
   the function has completed, all locks will be removed. This is just a shorthand
   function to avoid having to handle row locking explicitly.
   """
-  @spec transaction(Cache.t, [ any ], ( -> any)) :: any
-  def transaction(%Cache{ locksmith: locksmith }, keys, fun) do
+  @spec transaction(Spec.cache, [ any ], ( -> any)) :: any
+  def transaction(cache(name: name), keys, fun) do
     case transaction?() do
       true  -> fun.()
-      false -> GenServer.call(locksmith, { :transaction, keys, fun }, :infinity)
+      false -> GenServer.call(name(name, :locksmith), { :transaction, keys, fun }, :infinity)
     end
   end
 
@@ -101,8 +99,8 @@ defmodule Cachex.Services.Locksmith do
   so we have to simply iterate over the locks and remove them sequentially. This
   is a little less desirable, but needs must.
   """
-  @spec unlock(Cache.t, [ any ]) :: true
-  def unlock(%Cache{ name: name }, keys) do
+  @spec unlock(Spec.cache, [ any ]) :: true
+  def unlock(cache(name: name), keys) do
     keys
     |> List.wrap
     |> Enum.all?(&:ets.delete(@table_name, { name, &1 }))
@@ -114,8 +112,8 @@ defmodule Cachex.Services.Locksmith do
   For a key to be writeable, it must either have no lock, or be locked by the
   calling process.
   """
-  @spec writable?(Cachex.cache, any) :: true | false
-  def writable?(%Cache{ name: name }, key) do
+  @spec writable?(Spec.cache, any) :: true | false
+  def writable?(cache(name: name), key) do
     case :ets.lookup(@table_name, { name, key }) do
       [{ _key, proc }] ->
         proc == self()
@@ -130,13 +128,13 @@ defmodule Cachex.Services.Locksmith do
   If the key is locked, the write is queued inside the lock server to ensure that
   we execute consistently.
   """
-  @spec write(Cache.t, any, ( -> any)) :: any
-  def write(%Cache{ transactions: false }, _key, fun),
+  @spec write(Spec.cache, any, ( -> any)) :: any
+  def write(cache(transactional: false), _key, fun),
     do: fun.()
-  def write(%Cache{ locksmith: locksmith } = cache, key, fun) do
+  def write(cache(name: name) = cache, key, fun) do
     case transaction?() or writable?(cache, key) do
       true  -> fun.()
-      false -> GenServer.call(locksmith, { :exec, fun }, :infinity)
+      false -> GenServer.call(name(name, :locksmith), { :exec, fun }, :infinity)
     end
   end
 end

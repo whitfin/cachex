@@ -2,6 +2,7 @@ defmodule Cachex.Util do
   @moduledoc false
   # A small collection of utilities for use throughout the library. Mainly things
   # to do with response formatting and generally just common functions.
+  import Cachex.Spec
 
   # memory size suffixes
   @sibs ["B", "KiB", "MiB", "GiB", "TiB"]
@@ -25,7 +26,7 @@ defmodule Cachex.Util do
   def bytes_to_readable(size, sibs \\ @sibs)
   def bytes_to_readable(size, [ _, next |tail ]) when size >= 1024,
     do: bytes_to_readable(size / 1024, [ next | tail ])
-  def bytes_to_readable(size, [ head|_ ]) do
+  def bytes_to_readable(size, [ head | _ ]) do
     "~.2f ~s"
     |> :io_lib.format([size / 1, head])
     |> IO.iodata_to_binary
@@ -44,12 +45,20 @@ defmodule Cachex.Util do
 
     [
       {
-        { :"$1", :"$2", :"$3", :"$4" },
+        { :_, :"$1", :"$2", :"$3", :"$4" },
         List.wrap(do_field_normalize(nwhere)),
         List.wrap(do_field_normalize(return))
       }
     ]
   end
+
+  @doc """
+  Pulls the expiration for a given cache/expiration combination.
+  """
+  def get_expiration(cache(expiration: expiration(default: default)), nil),
+    do: default
+  def get_expiration(_cache, expiration),
+    do: expiration
 
   @doc """
   Pulls a value from a set of options. If the value satisfies the condition passed
@@ -69,38 +78,12 @@ defmodule Cachex.Util do
   Small utility to figure out if a document has expired based on the last touched
   time and the TTL of the document.
   """
-  def has_expired?(%Cachex.Cache{ ode: false }, _touched, _ttl),
-    do: false
-  def has_expired?(_state, touched, ttl),
-    do: has_expired?(touched, ttl)
+  def has_expired?(cache(expiration: expiration(lazy: lazy)), touched, ttl),
+    do: lazy and has_expired?(touched, ttl)
   def has_expired?(touched, ttl) when is_number(ttl),
     do: touched + ttl < now()
   def has_expired?(_touched, _ttl),
     do: false
-
-  @doc """
-  Shorthand increments for a map key. If the value is not a number, it is assumed
-  to be 0.
-  """
-  def increment_map_key(map, key, amount) do
-    Map.update(map, key, amount, fn
-      (val) when is_number(val) ->
-        amount + val
-      (_va) ->
-        amount
-    end)
-  end
-
-  @doc """
-  Retrieves the last item in a Tuple. This is just shorthand around sizeof and
-  pulling the last element.
-  """
-  def last_of_tuple(tuple) when is_tuple(tuple) do
-    case tuple_size(tuple) do
-      0 -> nil
-      n -> elem(tuple, n - 1)
-    end
-  end
 
   @doc """
   Normalizes a commit result to determine whether we're going to signal to
@@ -112,12 +95,6 @@ defmodule Cachex.Util do
     do: val
   def normalize_commit(val),
     do: { :commit, val }
-
-  @doc """
-  Consistency wrapper around current time in millis.
-  """
-  def now,
-    do: :os.system_time(1000)
 
   @doc """
   Transforms an option value from inside a Keyword list using a provided transformer.
@@ -154,13 +131,6 @@ defmodule Cachex.Util do
       }
     ])
   end
-
-  @doc """
-  Wraps a value inside a Tuple with a given tag as first element. This is just a
-  convenience function for pipelines.
-  """
-  def wrap(val, tag),
-    do: { tag, val }
 
   @doc """
   Finds the module to use for a write action based on the provided tag.

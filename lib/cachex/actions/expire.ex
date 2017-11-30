@@ -6,14 +6,13 @@ defmodule Cachex.Actions.Expire do
   # in a lock-aware context which ensures consistency against Transactions.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Actions.Del
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   @doc """
   Sets the expiration time on a given record.
@@ -30,7 +29,7 @@ defmodule Cachex.Actions.Expire do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction expire(%Cache{ } = cache, key, expiration, options) do
+  defaction expire(cache() = cache, key, expiration, options) do
     Locksmith.write(cache, key, fn ->
       do_expire(cache, key, expiration)
     end)
@@ -40,7 +39,7 @@ defmodule Cachex.Actions.Expire do
   # given is `nil` or a non-negative, we update the record's touch time and TTL.
   # If the value is negative, we immediately remove the record from the cache.
   defp do_expire(cache, key, exp) when exp > -1,
-    do: Actions.update(cache, key, [{ 2, Util.now() }, { 3, exp }])
+    do: Actions.update(cache, key, entry_mod_now(ttl: exp))
   defp do_expire(cache, key, _exp),
-    do: Del.execute(cache, key, @purge_override)
+    do: Del.execute(cache, key, const(:purge_override))
 end

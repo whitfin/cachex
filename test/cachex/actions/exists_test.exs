@@ -6,7 +6,7 @@ defmodule Cachex.Actions.ExistsTest do
   # evict it on demand using the generic read action.
   test "checking if a key exists" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -51,5 +51,4 @@ defmodule Cachex.Actions.ExistsTest do
     assert(value2 == { :missing, nil })
     assert(value3 == { :missing, nil })
   end
-
 end

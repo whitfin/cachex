@@ -6,14 +6,13 @@ defmodule Cachex.Actions.Touch do
   # least-recently used cache systems.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Actions.Ttl
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   @doc """
   Touches a key inside the cache.
@@ -31,10 +30,10 @@ defmodule Cachex.Actions.Touch do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction touch(%Cache{ } = cache, key, options) do
+  defaction touch(cache() = cache, key, options) do
     Locksmith.transaction(cache, [ key ], fn ->
       cache
-      |> Ttl.execute(key, @notify_false)
+      |> Ttl.execute(key, const(:notify_false))
       |> handle_ttl(cache, key)
     end)
   end
@@ -45,10 +44,12 @@ defmodule Cachex.Actions.Touch do
   # also update the TTL to the time remaining (so there is no change in TTL when
   # the touch time changes). If the TTL returns missing we just return a false
   # to the use to signify that the key was not touched because it was missing.
-  defp handle_ttl({ :ok, nil }, cache, key),
-    do: Actions.update(cache, key, [{ 2, Util.now() }])
-  defp handle_ttl({ :ok, val }, cache, key),
-    do: Actions.update(cache, key, [{ 2, Util.now() }, { 3, val }])
+  defp handle_ttl({ :ok, value }, cache, key) do
+    Actions.update(cache, key, case value do
+      nil -> entry_mod_now()
+      ttl -> entry_mod_now(ttl: ttl)
+    end)
+  end
   defp handle_ttl({ :missing, nil }, _cache, _key),
     do: { :missing, false }
 end

@@ -15,10 +15,12 @@ defmodule Cachex.Policy.LRW do
 
   # use the hook system
   use Cachex.Hook
+  use Cachex.Policy
+
+  # import macros
+  import Cachex.Spec
 
   # add internal aliases
-  alias Cachex.Cache
-  alias Cachex.Limit
   alias Cachex.Services
   alias Cachex.Util
 
@@ -33,12 +35,33 @@ defmodule Cachex.Policy.LRW do
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Util.create_match([ { { :"$1", :"$2" } } ], [ ])
 
+  ####################
+  # Policy behaviour #
+  ####################
+
+  @doc """
+  Returns a list of hooks required to run alongside this policy.
+  """
+  def hooks(limit),
+    do: [
+      hook(
+        args: limit,
+        module: __MODULE__,
+        provide: [ :cache ],
+        type: :post
+      )
+    ]
+
+  ##################
+  # Initialization #
+  ##################
+
   @doc """
   Initializes the policy, accepting a maximum size and a bound to trim by.
 
   We store a state of the maximum size, and a calculated number to trim to.
   """
-  def init(%Limit{ limit: max_size, reclaim: reclaim, options: options }) do
+  def init(limit(size: max_size, reclaim: reclaim, options: options)) do
     trim_bound = round(max_size * reclaim)
 
     batch_size =
@@ -49,6 +72,10 @@ defmodule Cachex.Policy.LRW do
 
     { :ok, { max_size, trim_bound, batch_size, nil } }
   end
+
+  #############
+  # Listeners #
+  #############
 
   @doc """
   Checks and enforces the bounds of the cache as needed.
@@ -71,8 +98,12 @@ defmodule Cachex.Policy.LRW do
   This worker is then used going forward for any cache calls to avoid the overhead
   of looking up the state. Again an optimization.
   """
-  def handle_info({ :provision, { :cache, cache } }, { max_size, reclaim, batch, _cache }),
-    do: { :noreply, { max_size, reclaim, batch, cache } }
+  def handle_provision({ :cache, cache }, { max_size, reclaim, batch, _cache }),
+    do: { :ok, { max_size, reclaim, batch, cache } }
+
+  #############
+  # Algorithm #
+  #############
 
   # Suggest stepping through this pipeline a function at a time and reading the
   # associated comments. This pipeline controls the trimming of the cache to fit
@@ -132,7 +163,7 @@ defmodule Cachex.Policy.LRW do
   # it comes to removing the document, and the touch time is used to determine
   # the sorted order required for implementing LRW. We transform this sort using
   # a QLC cursor and pass it through to `erase_cursor/3` to delete.
-  defp erase_lower_bound(offset, %Cache{ name: name }, batch_size) when offset > 0 do
+  defp erase_lower_bound(offset, cache(name: name), batch_size) when offset > 0 do
     name
     |> :ets.table([ traverse: { :select, @qlc_match } ])
     |> :qlc.sort([ order: fn({ _k1, t1 }, { _k2, t2  }) -> t1 < t2 end ])

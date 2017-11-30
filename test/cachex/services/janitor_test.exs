@@ -44,9 +44,7 @@ defmodule Cachex.Services.JanitorTest do
   # verify that the metadata of the last run is updated alongside the changes.
   test "purging records on a schedule" do
     # create our forwarding hook
-    hooks = ForwardHook.create(%{
-      results: true
-    })
+    hooks = ForwardHook.create()
 
     # set our interval values
     ttl_interval = 50
@@ -54,10 +52,7 @@ defmodule Cachex.Services.JanitorTest do
     ttl_wait = round(ttl_interval * 1.5)
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: hooks, ttl_interval: ttl_interval ])
-
-    # retrieve the cache state
-    state = Services.Overseer.get(cache)
+    cache = Helper.create_cache([ hooks: hooks, expiration: expiration(interval: ttl_interval) ])
 
     # add a new cache entry
     { :ok, true } = Cachex.set(cache, "key", "value", ttl: ttl_value)
@@ -78,7 +73,7 @@ defmodule Cachex.Services.JanitorTest do
     assert(exists2 == { :ok, false })
 
     # retrieve the metadata
-    metadata1 = GenServer.call(state.janitor, :last)
+    metadata1 = GenServer.call(name(cache, :janitor), :last)
 
     # verify the count was updated
     assert(metadata1[:count] == 1)

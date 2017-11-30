@@ -7,7 +7,7 @@ defmodule Cachex.Actions.GetTest do
   # a message stating as such.
   test "retrieving keys from a cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache1 = Helper.create_cache([ hooks: [ hook ] ])

@@ -6,12 +6,11 @@ defmodule Cachex.Actions.Ttl do
   # to the developer.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
-  alias Cachex.Util
 
   @doc """
   Retrieves the remaining TTL for a cache item.
@@ -23,7 +22,7 @@ defmodule Cachex.Actions.Ttl do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction ttl(%Cache{ } = cache, key, options) do
+  defaction ttl(cache() = cache, key, options) do
     cache
     |> Actions.read(key)
     |> handle_record
@@ -33,10 +32,10 @@ defmodule Cachex.Actions.Ttl do
   # this point. If there is no TTL, we return a nil value. Otherwise we calculate
   # the time remaining and return that to the user. If the record does not exist,
   # we just return a missing result.
-  defp handle_record({ _key, _touched, nil, _value }),
+  defp handle_record(entry(ttl: nil)),
     do: { :ok, nil }
-  defp handle_record({ _key, touched, ttl, _value }),
-    do: { :ok, touched + ttl - Util.now() }
+  defp handle_record(entry(touched: touched, ttl: ttl)),
+    do: { :ok, touched + ttl - now() }
   defp handle_record(_missing),
     do: { :missing, nil }
 end

@@ -6,10 +6,10 @@ defmodule Cachex.Actions.Keys do
   # be expected, so use it wisely - or use a Stream instead.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -22,7 +22,7 @@ defmodule Cachex.Actions.Keys do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction keys(%Cache{ name: name } = cache, options) do
+  defaction keys(cache(name: name) = cache, options) do
     query = Util.retrieve_all_rows(:key)
     klist = :ets.select(name, query)
 

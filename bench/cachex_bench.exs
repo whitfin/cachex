@@ -1,8 +1,9 @@
 defmodule CachexBench do
   use Benchfella
+  import Cachex.Spec
 
   @one_hour :timer.hours(1)
-  @tomorrow Cachex.Util.now() + (1000 * 60 * 60 * 24)
+  @tomorrow now() + (1000 * 60 * 60 * 24)
 
   setup_all do
     Application.ensure_all_started(:cachex)
@@ -25,7 +26,7 @@ defmodule CachexBench do
 
     if use_trans do
       Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
-        %Cachex.Cache{ state | transactions: true }
+        cache(state, transactional: true)
       end)
     end
 

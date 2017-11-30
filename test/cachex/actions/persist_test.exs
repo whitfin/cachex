@@ -6,7 +6,7 @@ defmodule Cachex.Actions.PersistTest do
   # TTL associated with the key going forwards.
   test "removing the TTL on a key" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -53,5 +53,4 @@ defmodule Cachex.Actions.PersistTest do
     assert(ttl3 == nil)
     assert(ttl4 == nil)
   end
-
 end

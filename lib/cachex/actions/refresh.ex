@@ -7,13 +7,12 @@ defmodule Cachex.Actions.Refresh do
   # against Transactions.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   @doc """
   Refreshes a TTL in the cache.
@@ -24,9 +23,9 @@ defmodule Cachex.Actions.Refresh do
   We execute inside a lock-aware context to ensure that no other operation is
   working on the same keys during execution.
   """
-  defaction refresh(%Cache{ } = cache, key, options) do
+  defaction refresh(cache() = cache, key, options) do
     Locksmith.write(cache, key, fn ->
-      Actions.update(cache, key, [{ 2, Util.now() }])
+      Actions.update(cache, key, entry_mod_now())
     end)
   end
 end

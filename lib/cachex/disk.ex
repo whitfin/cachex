@@ -6,7 +6,8 @@ defmodule Cachex.Disk do
   # attached and will add basic compression by default.
 
   # we need constants for errors
-  use Cachex.Constants
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add a Util alias
   alias Cachex.Util
@@ -24,9 +25,9 @@ defmodule Cachex.Disk do
     path
     |> File.read!
     |> :erlang.binary_to_term([ :safe ])
-    |> Util.wrap(:ok)
+    |> wrap(:ok)
   rescue
-    _ -> @error_unreachable_file
+    _ -> error(:unreachable_file)
   end
 
   @doc """
@@ -47,7 +48,7 @@ defmodule Cachex.Disk do
 
     case File.write(path, insert) do
        :ok -> { :ok, true }
-      _err -> @error_unreachable_file
+      _err -> error(:unreachable_file)
     end
   end
 
@@ -57,5 +58,4 @@ defmodule Cachex.Disk do
     do: [ compressed: val ]
   defp fetch_compress_opt(_val),
     do: [ compressed: 1 ]
-
 end

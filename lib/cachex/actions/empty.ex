@@ -6,10 +6,10 @@ defmodule Cachex.Actions.Empty do
   # results back into boolean values.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Actions.Size
 
   @doc """
@@ -26,9 +26,9 @@ defmodule Cachex.Actions.Empty do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction empty?(%Cache{ } = cache, options) do
+  defaction empty?(cache() = cache, options) do
     cache
-    |> Size.execute(@notify_false)
+    |> Size.execute(const(:notify_false))
     |> handle_size
   end
 

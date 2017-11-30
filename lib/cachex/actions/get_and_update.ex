@@ -5,11 +5,11 @@ defmodule Cachex.Actions.GetAndUpdate do
   # that everything runs inside a Transaction to guarantee that the key is locked.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Get
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -25,9 +25,9 @@ defmodule Cachex.Actions.GetAndUpdate do
   value in the cache directly. If it does exist, then we use the update actions
   to update the existing record.
   """
-  defaction get_and_update(%Cache{ } = cache, key, update_fun, options) do
+  defaction get_and_update(cache() = cache, key, update_fun, options) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { status, value } = Get.execute(cache, key, @notify_false)
+      { status, value } = Get.execute(cache, key, const(:notify_false))
 
       value
       |> update_fun.()
@@ -44,7 +44,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   defp handle_commit({ :commit, tempv }, cache, key, status) do
     Util
       .write_mod(status)
-      .execute(cache, key, tempv, @notify_false)
+      .execute(cache, key, tempv, const(:notify_false))
 
     { status, tempv }
   end

@@ -4,9 +4,9 @@ defmodule Cachex.Actions.Transaction do
   # is small because we simply pass values through to the Locksmith implementation
   # of transactions, which does the heavy lifting. All that's provided here is a
   # little bit of massaging.
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -20,7 +20,7 @@ defmodule Cachex.Actions.Transaction do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  def execute(%Cache{ } = cache, keys, operation, _options) do
+  def execute(cache() = cache, keys, operation, _options) do
     Locksmith.transaction(cache, keys, fn ->
       { :ok, operation.(cache) }
     end)

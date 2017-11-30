@@ -7,7 +7,7 @@ defmodule Cachex.Actions.TouchTest do
   # touch time on the record has been modified.
   test "touching a key in the cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -23,8 +23,8 @@ defmodule Cachex.Actions.TouchTest do
     Helper.flush()
 
     # retrieve the raw records
-    { _key1, touched1, ttl1, _value1 } = Cachex.Actions.read(state, 1)
-    { _key2, touched2, ttl2, _value2 } = Cachex.Actions.read(state, 2)
+    entry(touched: touched1, ttl: ttl1) = Cachex.Actions.read(state, 1)
+    entry(touched: touched2, ttl: ttl2) = Cachex.Actions.read(state, 2)
 
     # the first TTL should be nil
     assert(ttl1 == nil)
@@ -53,8 +53,8 @@ defmodule Cachex.Actions.TouchTest do
     assert_receive({ { :touch, [ 3, [] ] }, ^touch3 })
 
     # retrieve the raw records again
-    { _key1, touched3, ttl3, _value1 } = Cachex.Actions.read(state, 1)
-    { _key2, touched4, ttl4, _value2 } = Cachex.Actions.read(state, 2)
+    entry(touched: touched3, ttl: ttl3) = Cachex.Actions.read(state, 1)
+    entry(touched: touched4, ttl: ttl4) = Cachex.Actions.read(state, 2)
 
     # the first ttl should still be nil
     assert(ttl3 == nil)

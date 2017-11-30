@@ -6,10 +6,10 @@ defmodule Cachex.Actions.Stats do
   # return them to the user.
 
   # we need constants
-  use Cachex.Constants
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Hook
 
   @doc """
@@ -21,26 +21,26 @@ defmodule Cachex.Actions.Stats do
   Everything in here is out of bound of the main process, so no Transaction have
   to taken into account, etc.
   """
-  @spec execute(Cache.t, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
-  def execute(%Cache{ post_hooks: hooks }, options) do
-    hooks
+  @spec execute(Spec.cache, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
+  def execute(cache(hooks: hooks(post: post_hooks)), options) do
+    post_hooks
     |> Enum.find(&find_hook/1)
     |> handle_hook(options)
   end
 
   # Locates a Hook for the Stats module, using function heads as the filter. If
   # the function head matches, we return true, otherwise we just return false.
-  defp find_hook(%Hook{ module: Cachex.Hook.Stats }),
+  defp find_hook(hook(module: Cachex.Hook.Stats)),
     do: true
   defp find_hook(_hook),
     do: false
 
   # Uses a stats hook to retrieve pieces of the statistics container from the
   # running stats hook. If no hook is provided, we return an error because the
-  # Stats hook is not running, meaning that record_stats is disabled.
+  # Stats hook is not running, meaning that stats are disabled.
   defp handle_hook(nil, _options),
-    do: @error_stats_disabled
-  defp handle_hook(%Hook{ ref: ref }, options) do
+    do: error(:stats_disabled)
+  defp handle_hook(hook(ref: ref), options) do
     stats = Hook.Stats.retrieve(ref)
 
     final =

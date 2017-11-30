@@ -45,8 +45,8 @@ defmodule Cachex.Actions.InspectTest do
   # error is returned if there is no Janitor process started for the cache.
   test "inspecting janitor metadata" do
     # create a cache with no janitor and one with
-    cache1 = Helper.create_cache([ ttl_interval: -1 ])
-    cache2 = Helper.create_cache([ ttl_interval:  1 ])
+    cache1 = Helper.create_cache([ expiration: expiration(interval: nil) ])
+    cache2 = Helper.create_cache([ expiration: expiration(interval:   1) ])
 
     # let the janitor run
     :timer.sleep(2)
@@ -103,7 +103,7 @@ defmodule Cachex.Actions.InspectTest do
     cache = Helper.create_cache()
 
     # get the current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # set a cache record
     { :ok, true } = Cachex.set(cache, 1, "one", ttl: 1000)
@@ -113,7 +113,7 @@ defmodule Cachex.Actions.InspectTest do
     record2 = Cachex.inspect(cache, { :record, 2 })
 
     # break down the first record
-    { :ok, { key, touched, ttl, value } } = record1
+    { :ok, { :entry, key, touched, ttl, value } } = record1
 
     # verify the first record
     assert(key == 1)
@@ -137,7 +137,7 @@ defmodule Cachex.Actions.InspectTest do
 
     # update the state to have a different setting
     state2 = Services.Overseer.update(cache, fn(state) ->
-      %Cachex.Cache{ state | transactions: true }
+      cache(state, transactional: true)
     end)
 
     # retrieve the state via inspection
@@ -162,5 +162,4 @@ defmodule Cachex.Actions.InspectTest do
     # check the result is an error
     assert(result == { :error, :invalid_option })
   end
-
 end

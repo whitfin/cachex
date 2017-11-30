@@ -8,7 +8,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)
@@ -31,7 +31,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)
@@ -55,7 +55,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)
@@ -74,19 +74,17 @@ defmodule Cachex.OverseerTest do
   # that provisioned hooks receive the new state they're working with.
   test "updating a state in the table" do
     # create a hook listener
-    hook = ForwardHook.create(%{
-      provide: [ :cache ]
-    })
+    hook = ForwardHook.create(provide: [ :cache ])
 
     # start up our cache using the helper
     name = Helper.create_cache([ hooks: hook ])
 
     # retrieve our state
-    state = Services.Overseer.get(name)
+    cache(expiration: expiration) = state = Services.Overseer.get(name)
 
     # store our updated states
-    update1 = %Cachex.Cache{ state | default_ttl: 5 }
-    update2 = %Cachex.Cache{ state | default_ttl: 3 }
+    update1 = cache(state, expiration: expiration(expiration, default: 5))
+    update2 = cache(state, expiration: expiration(expiration, default: 3))
 
     # update in parallel with a wait to make sure that writes block and always
     # execute in sequence, regardless of when they actually update
@@ -109,13 +107,13 @@ defmodule Cachex.OverseerTest do
     :timer.sleep(50)
 
     # pull back the state from the table
-    result = Services.Overseer.get(name)
+    cache(expiration: expiration) = Services.Overseer.get(name)
 
     # ensure the last call is the new value
-    assert(result.default_ttl == 3)
+    assert(expiration(expiration, :default) == 3)
 
     # now we need to make sure our state was forwarded
-    assert_receive({ :provision, { :cache, ^update2 } })
+    assert_receive({ :cache, ^update2 })
   end
 
   # Because the updates execute inside an Agent, we need to make sure that we
@@ -127,7 +125,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)

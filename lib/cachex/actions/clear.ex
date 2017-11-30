@@ -5,10 +5,10 @@ defmodule Cachex.Actions.Clear do
   # have been evicted or not.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Actions.Size
   alias Cachex.Services.Locksmith
 
@@ -22,11 +22,11 @@ defmodule Cachex.Actions.Clear do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction clear(%Cache{ name: name } = cache, options) do
+  defaction clear(cache(name: name) = cache, options) do
     Locksmith.transaction(cache, [], fn ->
       evicted =
         cache
-        |> Size.execute(@notify_false)
+        |> Size.execute(const(:notify_false))
         |> handle_evicted
 
       true = :ets.delete_all_objects(name)

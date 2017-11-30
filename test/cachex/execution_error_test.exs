@@ -13,5 +13,4 @@ defmodule Cachex.ExecutionErrorTest do
       # ensure the message is valid
       assert(msg == "Error during action execution")
   end
-
 end

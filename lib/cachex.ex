@@ -25,9 +25,12 @@ defmodule Cachex do
   example usage.
   """
 
-  # add all use clauses
-  use Cachex.Constants
+  # main supervisor
   use Supervisor
+
+  # add all imports
+  import Cachex.Errors
+  import Cachex.Spec
 
   # allow unsafe generation
   use Unsafe.Generator,
@@ -38,9 +41,7 @@ defmodule Cachex do
   alias Cachex.Cache
   alias Cachex.Errors
   alias Cachex.ExecutionError
-  alias Cachex.Options
   alias Cachex.Services
-  alias Cachex.Util
 
   # alias any services
   alias Services.Informant
@@ -53,7 +54,7 @@ defmodule Cachex do
   import Kernel, except: [ inspect: 2 ]
 
   # the cache type
-  @type cache :: atom | Cache.t
+  @type cache :: atom | Spec.cache
 
   # custom status type
   @type status :: :ok | :error | :missing
@@ -135,10 +136,6 @@ defmodule Cachex do
 
           iex> Cachex.start_link(:my_cache, [ default_ttl: :timer.seconds(1) ])
 
-    * `:ets_opts` - A list of options to pass to the ETS table initialization.
-
-          iex> Cachex.start_link(:my_cache, [ ets_opts: [ { :write_concurrency, false } ] ])
-
     * `:fallback` - A default fallback implementation to use when dealing with
       multi-layered caches. This function is called with a key which has no value,
       in order to allow loading from a different location.
@@ -198,12 +195,12 @@ defmodule Cachex do
 
           iex> Cachex.start_link(:my_cache, [ ode: false ])
 
-    * `:record_stats` - Whether you wish this cache to record usage statistics or
+    * `:stats` - Whether you wish this cache to record usage statistics or
       not. This has only minor overhead due to being implemented as an asynchronous
       hook (roughly 1µ/op). Stats can be retrieve from a running cache by using
       `Cachex.stats/2`.
 
-          iex> Cachex.start_link(:my_cache, [ record_stats: true ])
+          iex> Cachex.start_link(:my_cache, [ stats: true ])
 
     * `:transactions` - Whether to have transactions and row locking enabled from
       cache startup. Please note that even if this is false, it will be enabled
@@ -224,15 +221,15 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ ttl_interval: :timer.seconds(5) ])
 
   """
-  @spec start_link(atom, Keyword.t, Keyword.t) :: { atom, pid }
-  def start_link(name, options \\ [], server_opts \\ [])
-  def start_link(name, _options, _server_opts) when not is_atom(name),
-    do: @error_invalid_name
-  def start_link(name, options, server_opts) do
+  @spec start_link(atom, Keyword.t) :: { atom, pid }
+  def start_link(name, options \\ [])
+  def start_link(name, _options) when not is_atom(name),
+    do: error(:invalid_name)
+  def start_link(name, options) do
     with { :ok,  true } <- ensure_started(),
          { :ok,  true } <- ensure_unused(name),
          { :ok, cache } <- setup_env(name, options),
-         { :ok,   pid }  = Supervisor.start_link(__MODULE__, cache, [ name: name ] ++ server_opts),
+         { :ok,   pid }  = Supervisor.start_link(__MODULE__, cache, [ name: name ]),
          { :ok,  link }  = Informant.link(cache),
                 ^link   <- Overseer.update(name, link),
      do: { :ok,   pid }
@@ -247,9 +244,9 @@ defmodule Cachex do
   to avoid using this in production applications and instead opt for a natural
   Supervision tree.
   """
-  @spec start(atom, Keyword.t, Keyword.t) :: { atom, pid }
-  def start(name, options \\ [], server_opts \\ []) do
-    with { :ok, pid } <- start_link(name, options, server_opts) do
+  @spec start(atom, Keyword.t) :: { atom, pid }
+  def start(name, options \\ []) do
+    with { :ok, pid } <- start_link(name, options) do
       :erlang.unlink(pid) && { :ok, pid }
     end
   end
@@ -259,8 +256,8 @@ defmodule Cachex do
   #
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
-  @spec init(cache :: Cache.t) :: { status, any }
-  def init(%Cache{ } = cache) do
+  @spec init(cache :: Spec.cache) :: { status, any }
+  def init(cache() = cache) do
     cache
     |> Services.cache_spec
     |> supervise(strategy: :one_for_one)
@@ -625,7 +622,7 @@ defmodule Cachex do
   """
   @spec expire(cache, any, number, Keyword.t) :: { status, true | false }
   def expire(cache, key, expiration, options \\ [])
-  when (expiration == nil or is_number(expiration)) and is_list(options) do
+  when (is_nil(expiration) or is_number(expiration)) and is_list(options) do
     Overseer.enforce(cache) do
       Actions.Expire.execute(cache, key, expiration, options)
     end
@@ -658,7 +655,7 @@ defmodule Cachex do
   def expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
     via_opts = via({ :expire_at, [ key, timestamp, options ] }, options)
-    expire(cache, key, timestamp - Util.now(), via_opts)
+    expire(cache, key, timestamp - now(), via_opts)
   end
 
   @doc """
@@ -690,11 +687,11 @@ defmodule Cachex do
   @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
   def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
-      case fallback || cache.fallback.action do
+      case fallback || fallback(cache(cache, :fallback), :default) do
         val when is_function(val) ->
           Actions.Fetch.execute(cache, key, val, options)
         _na ->
-          @error_invalid_fallback
+          error(:invalid_fallback)
       end
     end
   end
@@ -814,7 +811,6 @@ defmodule Cachex do
       iex> Cachex.inspect(:my_cache, :state)
       {:ok,
        %Cachex.Cache{name: :name, commands: %{}, default_ttl: nil,
-        ets_opts: [read_concurrency: true, write_concurrency: true],
         fallback: %Cachex.Fallback{action: nil, state: nil},
         janitor: :my_cache_janitor,
         limit: %Cachex.Limit{limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1},
@@ -1147,11 +1143,12 @@ defmodule Cachex do
   def transaction(cache, keys, operation, options \\ [])
   when is_function(operation, 1) and is_list(keys) and is_list(options) do
     Overseer.enforce(cache) do
-      if cache.transactions do
+      if cache(cache, :transactional) do
         Actions.Transaction.execute(cache, keys, operation, options)
       else
-        cache.name
-        |> Overseer.update(&%Cache{ &1 | transactions: true })
+        cache
+        |> cache(:name)
+        |> Overseer.update(&cache(&1, transactional: true))
         |> Actions.Transaction.execute(keys, operation, options)
       end
     end
@@ -1186,7 +1183,7 @@ defmodule Cachex do
     if Overseer.setup?() do
       { :ok, true }
     else
-      @error_not_started
+      error(:not_started)
     end
   end
 
@@ -1205,14 +1202,14 @@ defmodule Cachex do
   # ready to go. This cannot be done later, as Eternal is started in the tree -
   # meaning that the Supervisor would crash and restart rather than returning
   # an error message explaining what had happened.
-  defp setup_env(cache, options) when is_list(options) do
-    with { :ok, opts } <- Options.parse(cache, options) do
+  defp setup_env(name, options) when is_list(options) do
+    with { :ok, cache } <- Cache.create(name, options) do
       try do
-        :ets.new(cache, [ :named_table | opts.ets_opts ])
-        :ets.delete(cache)
-        { :ok, opts }
+        :ets.new(name, [ :named_table | const(:table_options) ])
+        :ets.delete(name)
+        { :ok, cache }
       rescue
-        _ -> @error_invalid_option
+        _ -> error(:invalid_option)
       end
     end
   end

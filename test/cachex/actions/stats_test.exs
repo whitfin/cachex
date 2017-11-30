@@ -6,10 +6,10 @@ defmodule Cachex.Actions.StatsTest do
   # filtered by the provided flags in order to customize output correctly.
   test "retrieving stats for a cache" do
     # create a test cache
-    cache = Helper.create_cache([ record_stats: true ])
+    cache = Helper.create_cache([ stats: true ])
 
     # retrieve current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # execute some cache actions
     { :ok, true } = Cachex.set(cache, 1, 1)
@@ -72,7 +72,7 @@ defmodule Cachex.Actions.StatsTest do
   # when they have already been disabled.
   test "retrieving stats from a diabled cache" do
     # create a test cache
-    cache = Helper.create_cache([ record_stats: false ])
+    cache = Helper.create_cache([ stats: false ])
 
     # retrieve default stats
     stats = Cachex.stats(cache)
@@ -86,10 +86,10 @@ defmodule Cachex.Actions.StatsTest do
   # 50% either way.
   test "retrieving different rate combinations" do
     # create test caches
-    cache1 = Helper.create_cache([ record_stats: true ])
-    cache2 = Helper.create_cache([ record_stats: true ])
-    cache3 = Helper.create_cache([ record_stats: true ])
-    cache4 = Helper.create_cache([ record_stats: true ])
+    cache1 = Helper.create_cache([ stats: true ])
+    cache2 = Helper.create_cache([ stats: true ])
+    cache3 = Helper.create_cache([ stats: true ])
+    cache4 = Helper.create_cache([ stats: true ])
 
     # retrieve stats with no rates
     stats1 = Cachex.stats!(cache1)
@@ -167,5 +167,4 @@ defmodule Cachex.Actions.StatsTest do
       setCount: 1
     })
   end
-
 end

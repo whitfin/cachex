@@ -5,6 +5,7 @@ defmodule CachexCase.Helper do
   # Generally it just makes writing tests a lot easier and more convenient.
 
   # import assertion stuff
+  import Cachex.Spec
   import ExUnit.Assertions
 
   # a list of letters A - Z
@@ -41,9 +42,8 @@ defmodule CachexCase.Helper do
   # Triggers a cache to be deleted at the end of the test. We have to pass this
   # through to the TestHelper module as we don't have a valid ExUnit context to
   # be able to define the execution hook correctly.
-  def delete_on_exit(name) do
-    TestHelper.delete_on_exit(name) && name
-  end
+  def delete_on_exit(name),
+    do: TestHelper.delete_on_exit(name) && name
 
   @doc false
   # Flush all messages in the process queue. If there is no message in the mailbox,
@@ -70,12 +70,12 @@ defmodule CachexCase.Helper do
   # calculated using assertions. If the condition fails, we try again over and
   # over until a threshold is hit. Once the threshold is hit, we raise the last
   # known assertion error, as it's unlikely the test will pass going forward.
-  def poll(timeout, expected, generator, start_time \\ Cachex.Util.now()) do
+  def poll(timeout, expected, generator, start_time \\ now()) do
     try do
       assert(generator.() == expected)
     rescue
       e ->
-        unless start_time + timeout > Cachex.Util.now() do
+        unless start_time + timeout > now() do
           raise e
         end
         poll(timeout, expected, generator, start_time)

@@ -18,12 +18,11 @@ The second and third arguments are both optional and represent cache and server 
 |:----------------:|:------------------:|:-----------------------------------------------------------------------:|
 |     commands     |  list of commands  |     A list of custom commands to attach to the cache for invocation     |
 |    default_ttl   |     milliseconds   | A default expiration time for a key when being placed inside the cache. |
-|     ets_opts     |   list of options  |               A list of options to give to the ETS table.               |
 |     fallback     |  Function or List  |   A function accepting a key which is used for multi-layered caching.   |
 |       hooks      |    list of Hooks   |    A list of execution hooks (see below) to listen on cache actions.    |
 |       limit      |  a Limit constuct  |     An integer or Limit struct to define the bounds of this cache.      |
 |        ode       |  `true` or `false` |  Whether or not to enable on-demand expirations when reading back keys. |
-|   record_stats   |  `true` or `false` |            Whether to track statistics for this cache or not.           |
+|       stats      |  `true` or `false` |            Whether to track statistics for this cache or not.           |
 |   transactions   |  `true` or `false` |             Whether to turn on transactions at cache start.             |
 |   ttl_interval   |     milliseconds   |                The frequency the Janitor process runs at.               |
 

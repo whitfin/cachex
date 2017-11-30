@@ -51,7 +51,7 @@ defmodule Cachex.UtilTest do
     # compare match1 to hand written
     assert(match1 == [
       {
-        { :"$1", :"$2", :"$3", :"$4" },
+        { :_, :"$1", :"$2", :"$3", :"$4" },
         [ { :"/=", :"$3", nil } ],
         [ { { :"$1", :"$2" } } ]
       }
@@ -60,7 +60,7 @@ defmodule Cachex.UtilTest do
     # compare match2 to hand written
     assert(match2 == [
       {
-        { :"$1", :"$2", :"$3", :"$4" },
+        { :_, :"$1", :"$2", :"$3", :"$4" },
         [ { :"/=", :"$3", nil } ],
         [ { { :"$1", :"$2", :"$3", :"$4" } } ]
       }
@@ -114,8 +114,8 @@ defmodule Cachex.UtilTest do
     time_tl2 = 100_000_000
 
     # define both an enabled and disabled state
-    state1 = %Cachex.Cache{ ode: true }
-    state2 = %Cachex.Cache{ state1 | ode: false }
+    state1 = cache(expiration: expiration(lazy: true))
+    state2 = cache(expiration: expiration(lazy: false))
 
     # expired combination regardless of state
     result1 = Cachex.Util.has_expired?(touched1, time_tl1)
@@ -136,52 +136,6 @@ defmodule Cachex.UtilTest do
     # the second and fourth should not have
     refute(result2)
     refute(result4)
-  end
-
-  # There are a couple of places we want to increment a value inside a Map without
-  # having to re-roll it, so it lives inside the Utils. This test just ensures that
-  # we can both increment numeric values, or overwrite a non-numeric value with the
-  # value we're trying to increment with.
-  test "incrementing a value inside a Map" do
-    # define our base map
-    map = %{ "key1" => 1, "key2" => "1" }
-
-    # attempt to increment a numberic value
-    result1 = Cachex.Util.increment_map_key(map, "key1", 1)
-
-    # attempt to increment a non-numeric value (overwrites)
-    result2 = Cachex.Util.increment_map_key(map, "key2", 1)
-
-    # attempt to increment a missing value (sets)
-    result3 = Cachex.Util.increment_map_key(map, "key3", 1)
-
-    # the first result should have incremented
-    assert(result1 == %{ "key1" => 2, "key2" => "1" })
-
-    # the second result should have overwritten
-    assert(result2 == %{ "key1" => 1, "key2" => 1 })
-
-    # the third result should have set the new value
-    assert(result3 == %{ "key1" => 1, "key2" => "1", "key3" => 1 })
-  end
-
-  # Macros need to gain access to the last element in a Tuple, so we provide a
-  # utility function which simply pulls the last element if there is one, but if
-  # not then it just returns a nil value.
-  test "locating the last value from inside a Tuple" do
-    # define our base Tuples to test against
-    tuple1 = { 1, 2, 3 }
-    tuple2 = { }
-
-    # pull back the last element for both
-    result1 = Cachex.Util.last_of_tuple(tuple1)
-    result2 = Cachex.Util.last_of_tuple(tuple2)
-
-    # first should return the last element
-    assert(result1 == 3)
-
-    # the second should default to nil
-    assert(result2 == nil)
   end
 
   # This test just ensures that we correctly convert return values to either a
@@ -206,23 +160,6 @@ defmodule Cachex.UtilTest do
 
     # the value should be converted to the first
     assert(result3 == tuple1)
-  end
-
-  # We use milliseconds for dates around Cachex, so we just need to make sure we
-  # have a utility function which does this safely for us. We create the miils
-  # from an Erlang timestamp, just to make sure we have another tier of validation.
-  test "retrieving the current time in milliseconds" do
-    # pull the current timestamp
-    { mega, seconds, ms } = :os.timestamp()
-
-    # convert the timestamp to milliseconds
-    millis = (mega * 1000000 + seconds) * 1000 + div(ms, 1000)
-
-    # pull back the time from the util function
-    current = Cachex.Util.now()
-
-    # check they're the same (with an error bound of 2ms)
-    assert_in_delta(current, millis, 2)
   end
 
   # This test just provides basic coverage of the write_mod function, by using
@@ -260,7 +197,7 @@ defmodule Cachex.UtilTest do
       [ { head, query, return } ] = result
 
       # assert all makes sense
-      assert(head == { :"$1", :"$2", :"$3", :"$4" })
+      assert(head == { :_, :"$1", :"$2", :"$3", :"$4" })
       assert(return == [ { :"$1", :"$2", :"$3", :"$4" } ])
 
       # the query has some dynamic values
@@ -293,7 +230,7 @@ defmodule Cachex.UtilTest do
       [ { head, query, return } ] = result
 
       # assert all makes sense
-      assert(head == { :"$1", :"$2", :"$3", :"$4" })
+      assert(head == { :_, :"$1", :"$2", :"$3", :"$4" })
       assert(return == [ { :"$1", :"$2", :"$3", :"$4" } ])
 
       # the query has some dynamic values
@@ -328,5 +265,4 @@ defmodule Cachex.UtilTest do
     assert(result1 == { "value" })
     assert(result2 == {   nil  })
   end
-
 end

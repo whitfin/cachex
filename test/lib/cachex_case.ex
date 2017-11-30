@@ -9,8 +9,11 @@ defmodule CachexCase do
       alias CachexCase.Helper
       alias Cachex.Services
 
-      import Cachex.Macros
+      import Cachex.Spec
       import ExUnit.CaptureLog
+
+      require ExecuteHook
+      require ForwardHook
     end
   end
 end

@@ -4,13 +4,13 @@ defmodule Cachex.Hook.Stats do
   # a given cache. This is used as a post hook for a cache and provides an example
   # of what a hook can look like. This container has no knowledge of the cache
   # it belongs to, it only keeps track of an internal Map of statistics.
+  import Cachex.Spec
 
   # use the hooks
   use Cachex.Hook
 
   # add some aliases
   alias Cachex.Stats
-  alias Cachex.Util
 
   @doc """
   Initializes a new stats Map.
@@ -18,8 +18,8 @@ defmodule Cachex.Hook.Stats do
   We set a `:creationDate` field inside the `:meta` sub-Map to contain the date
   that the statistics were first created.
   """
-  def init(_options \\ []),
-    do: { :ok, %{ meta: %{ creationDate: Util.now() } } }
+  def init(_options),
+    do: { :ok, %{ meta: %{ creationDate: now() } } }
 
   @doc """
   Registers actions against the stats container.

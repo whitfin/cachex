@@ -7,7 +7,7 @@ defmodule Cachex.Actions.ExpireAtTest do
   # setting expire times on missing keys.
   test "setting a key to expire at a given time" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -21,7 +21,7 @@ defmodule Cachex.Actions.ExpireAtTest do
     Helper.flush()
 
     # grab current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # set the expire time
     f_expire_time = ctime + 10000
@@ -66,5 +66,4 @@ defmodule Cachex.Actions.ExpireAtTest do
     assert(ttl3 == { :missing, nil })
     assert(ttl4 == { :missing, nil })
   end
-
 end

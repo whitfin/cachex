@@ -7,17 +7,17 @@ defmodule Cachex.Hook.StatsTest do
   # module, so please refer to those tests for any issues with counters.
   test "retrieving the state of a hook" do
     # create a test cache
-    cache = Helper.create_cache([ record_stats: true ])
+    cache = Helper.create_cache([ stats: true ])
 
     # retrieve the current time
-    ctime = Cachex.Util.now()
+    ctime = now()
 
     # carry out some cache operations
     { :ok, true } = Cachex.set(cache, 1, 1)
     { :ok,    1 } = Cachex.get(cache, 1)
 
     # generate the name of the stats hook
-    sname = Cachex.Util.Names.stats(cache)
+    sname = name(cache, :stats)
 
     # attempt to retrieve the cache stats
     stats = Cachex.Hook.Stats.retrieve(sname)
@@ -28,5 +28,4 @@ defmodule Cachex.Hook.StatsTest do
     assert(stats.global == %{ hitCount: 1, opCount: 2, setCount: 1 })
     assert(stats.set == %{ true: 1 })
   end
-
 end

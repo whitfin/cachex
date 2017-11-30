@@ -5,11 +5,11 @@ defmodule Cachex.Actions.Exists do
   # cache membership, because we also need to take TTL into account.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
 
   @doc """
   Checks if an item exists in a cache.
@@ -21,16 +21,6 @@ defmodule Cachex.Actions.Exists do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction exists?(%Cache{ } = cache, key, options) do
-    cache
-    |> Actions.read(key)
-    |> handle_record
-  end
-
-  # Handles the record coming back from our read and converts the result into
-  # a true or false value. If the record is missing we just return false.
-  defp handle_record({ _key, _touched, _ttl, _value }),
-    do: { :ok, true }
-  defp handle_record(_missing),
-    do: { :ok, false }
+  defaction exists?(cache() = cache, key, options),
+    do: { :ok, Actions.read(cache, key) != nil }
 end

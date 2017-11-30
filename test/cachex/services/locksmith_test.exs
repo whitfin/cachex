@@ -30,8 +30,8 @@ defmodule Cachex.Services.LocksmithTest do
   # ensure that writes are queued unnecessarily.
   test "executing a write outside of a transaction" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache([ transactions:  true ])
-    cache2 = Helper.create_cache([ transactions: false ])
+    cache1 = Helper.create_cache([ transactional:  true ])
+    cache2 = Helper.create_cache([ transactional: false ])
 
     # fetch the states for the caches
     state1 = Services.Overseer.get(cache1)
@@ -58,8 +58,8 @@ defmodule Cachex.Services.LocksmithTest do
   # itself, as it's needed to test the write execution.
   test "executing a transactional block" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache([ transactions: false ])
-    cache2 = Helper.create_cache([ transactions:  true ])
+    cache1 = Helper.create_cache([ transactional: false ])
+    cache2 = Helper.create_cache([ transactional:  true ])
 
     # fetch the states for the caches
     state1 = Services.Overseer.get(cache1)

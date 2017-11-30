@@ -7,7 +7,7 @@ defmodule Cachex.Actions.KeysTest do
   # any way guaranteed, even with no cache modification.
   test "retrieving the keys inside the cache" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -43,5 +43,4 @@ defmodule Cachex.Actions.KeysTest do
     # verify the hooks were updated with the count
     assert_receive({ { :keys, [[]] }, { ^status, ^keys } })
   end
-
 end

@@ -6,12 +6,12 @@ defmodule Cachex.Actions.InvokeTest do
   # also coverage here for checking that the same value is not written to the
   # cache if it remains unchanged - but this can only be seen using coverage tools
   # due to the nature of the backing writes.
-  test "invoking :modify commands" do
+  test "invoking :write commands" do
     # create a test cache
     cache = Helper.create_cache([
       commands: [
-        lpop: { :modify, &lpop/1 },
-        rpop: { :modify, &rpop/1 }
+        lpop: command(type: :write, execute: &lpop/1),
+        rpop: command(type: :write, execute: &rpop/1)
       ]
     ])
 
@@ -19,7 +19,7 @@ defmodule Cachex.Actions.InvokeTest do
     { :ok, true } = Cachex.set(cache, "list", [ 1, 2, 3, 4 ])
 
     # retrieve the raw record
-    { "list", touched, nil, _val } = Cachex.inspect!(cache, { :record, "list" })
+    { :entry, "list", touched, nil, _val } = Cachex.inspect!(cache, { :record, "list" })
 
     # execute some custom commands
     lpop1 = Cachex.invoke(cache, "list", :lpop)
@@ -37,7 +37,7 @@ defmodule Cachex.Actions.InvokeTest do
     inspect1 = Cachex.inspect!(cache, { :record, "list" })
 
     # verify the touched time was unchanged
-    assert(inspect1 == { "list", touched, nil, [ ] })
+    assert(inspect1 == { :entry, "list", touched, nil, [ ] })
 
     # pop some extras to test avoiding writes
     lpop3 = Cachex.invoke(cache, "list", :lpop)
@@ -51,11 +51,11 @@ defmodule Cachex.Actions.InvokeTest do
   # This test covers the ability to run commands tagged with the `:return type.
   # We simply test that we can return values as expected, as this is a very simple
   # implementation which doesn't have much room for error beyond user-created issues.
-  test "invoking :return commands" do
+  test "invoking :read commands" do
     # create a test cache
     cache = Helper.create_cache([
       commands: [
-        last: { :return, &List.last/1 }
+        last: command(type: :read, execute: &List.last/1)
       ]
     ])
 
@@ -90,10 +90,10 @@ defmodule Cachex.Actions.InvokeTest do
     state = Services.Overseer.get(cache)
 
     # modify the state to have fake commands
-    state = %Cachex.Cache{ state | commands: %{
+    state = cache(state, commands: %{
       fake_mod: { :modify, &({ &1, &2 }) },
       fake_ret: { :return, &({ &1, &2 }) }
-    } }
+    })
 
     # try to invoke a missing command
     invoke1 = Cachex.invoke(state, "heh", :unknowns)

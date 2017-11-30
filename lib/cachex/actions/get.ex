@@ -6,11 +6,11 @@ defmodule Cachex.Actions.Get do
   # to populate a new value in the cache.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
 
   @doc """
   Retrieves a value from inside the cache.
@@ -21,9 +21,9 @@ defmodule Cachex.Actions.Get do
   the cache for next time. Note that `nil` values inside the cache are treated
   as missing values.
   """
-  defaction get(%Cache{ } = cache, key, options) do
+  defaction get(cache() = cache, key, options) do
     case Actions.read(cache, key) do
-      { ^key, _touched, _ttl, value } ->
+      entry(value: value) ->
         { :ok, value }
       _missing ->
         { :missing, nil }

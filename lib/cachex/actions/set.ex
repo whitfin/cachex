@@ -6,12 +6,11 @@ defmodule Cachex.Actions.Set do
   # clashes.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
-  alias Cachex.Record
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -23,9 +22,11 @@ defmodule Cachex.Actions.Set do
   write outside of the lock context just to avoid potentially blocking the backing
   Transaction manager process for more time than is needed.
   """
-  defaction set(%Cache{ } = cache, key, value, options) do
+  defaction set(cache() = cache, key, value, options) do
     ttlval = Util.get_opt(options, :ttl, &is_integer/1)
-    record = Record.create(cache, key, value, ttlval)
+    expiry = Util.get_expiration(cache, ttlval)
+
+    record = entry_now(key: key, ttl: expiry, value: value)
 
     Locksmith.write(cache, key, fn ->
       Actions.write(cache, record)

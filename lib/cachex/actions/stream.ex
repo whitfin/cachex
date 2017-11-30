@@ -6,14 +6,15 @@ defmodule Cachex.Actions.Stream do
   # change in future.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Util
 
   # our test record for testing matches
-  @test { "key", Util.now(), 1000, "value" }
+  @test { "key", now(), 1000, "value" }
 
   @doc """
   Creates a Stream for a cache.
@@ -32,7 +33,7 @@ defmodule Cachex.Actions.Stream do
   has provided a valid return type. If they haven't, we return an error before
   creating a cursor or the Stream itself.
   """
-  defaction stream(%Cache{ name: name } = cache, options) do
+  defaction stream(cache(name: name) = cache, options) do
     spec =
       options
       |> Keyword.get(:of, { { :key, :value } })
@@ -49,7 +50,7 @@ defmodule Cachex.Actions.Stream do
   defp handle_test({ :ok, _result }, name, spec),
     do: { :ok, init_stream(name, spec) }
   defp handle_test({ :error, _result }, _name, _spec),
-    do: @error_invalid_match
+    do: error(:invalid_match)
 
   # Initializes a Stream resource using an underlying ETS cursor as the resource.
   # Every time more items are requested, we pull another batch of items until the

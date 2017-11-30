@@ -4,24 +4,27 @@ defmodule Cachex.Errors do
   # message to their long (non-atom) form. Used to allow functions to return short
   # errors such as `{ :error, :short_name }` and have them converted after the
   # fact, rather than bloating actions with potentially large error messages.
-  @doc false
-  defmacro __using__(_) do
-    quote do
-      @error_invalid_command    { :error, :invalid_command }
-      @error_invalid_fallback   { :error, :invalid_fallback }
-      @error_invalid_hook       { :error, :invalid_hook }
-      @error_invalid_limit      { :error, :invalid_limit }
-      @error_invalid_match      { :error, :invalid_match }
-      @error_invalid_name       { :error, :invalid_name }
-      @error_invalid_option     { :error, :invalid_option }
-      @error_janitor_disabled   { :error, :janitor_disabled }
-      @error_no_cache           { :error, :no_cache }
-      @error_non_numeric_value  { :error, :non_numeric_value }
-      @error_not_started        { :error, :not_started }
-      @error_stats_disabled     { :error, :stats_disabled }
-      @error_unreachable_file   { :error, :unreachable_file }
-    end
-  end
+
+  # internally recognised errors
+  @known_errors [
+    :invalid_command, :invalid_expiration, :invalid_fallback,
+    :invalid_hook,    :invalid_limit,      :invalid_match,
+    :invalid_name,    :invalid_option,     :janitor_disabled,
+    :no_cache,        :non_numeric_value,  :not_started,
+    :stats_disabled,  :unreachable_file
+  ]
+
+  @doc """
+  Generates a tagged `:error` Tuple at compile time.
+  """
+  defmacro error(key) when key in @known_errors,
+    do: quote(do: { :error, unquote(key) })
+
+  @doc """
+  Returns the list of known (and raiseable) error names.
+  """
+  def known,
+    do: @known_errors
 
   @doc """
   Converts an error identifier to it's longer form.
@@ -34,10 +37,12 @@ defmodule Cachex.Errors do
   """
   def long_form(:invalid_command),
     do: "Invalid command definition provided"
-  def long_form(:invalid_hook),
-    do: "Invalid hook definition provided"
+  def long_form(:invalid_expiration),
+    do: "Invalid expiration definition provided"
   def long_form(:invalid_fallback),
     do: "Invalid fallback function provided"
+  def long_form(:invalid_hook),
+    do: "Invalid hook definition provided"
   def long_form(:invalid_limit),
     do: "Invalid limit fields provided"
   def long_form(:invalid_match),

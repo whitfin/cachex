@@ -6,12 +6,12 @@ defmodule Cachex.Actions.Fetch do
   # a new value in the cache.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Get
   alias Cachex.Actions.Set
-  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -22,8 +22,8 @@ defmodule Cachex.Actions.Fetch do
   based on the key in the case the key is missing. This value will then be placed
   into the cache going forward in order to act as a read-through cache.
   """
-  defaction fetch(%Cache{ } = cache, key, fallback, options) do
-    with { :missing, nil } <- Get.execute(cache, key, @notify_false) do
+  defaction fetch(cache() = cache, key, fallback, options) do
+    with { :missing, nil } <- Get.execute(cache, key, const(:notify_false)) do
       cache
       |> handle_fallback(fallback, key)
       |> Util.normalize_commit
@@ -37,15 +37,15 @@ defmodule Cachex.Actions.Fetch do
   # can be set to nil). This enables easy definition whilst keeping structure.
   defp handle_fallback(_cache, fallback, key) when is_function(fallback, 1),
     do: fallback.(key)
-  defp handle_fallback(%Cache{ fallback: %{ state: state } }, fallback, key),
-    do: fallback.(key, state)
+  defp handle_fallback(cache(fallback: fallback(provide: provide)), fallback, key),
+    do: fallback.(key, provide)
 
   # Handles the result of a fallback commit. If it's tagged with the :commit flag,
   # the value is persisted through to the backing table, otherwise the result is
   # returned as-is (i.e. no persistence and without any extra modifications).
   defp handle_commit(result, cache, key) do
     with { :commit, val } <- result do
-      Set.execute(cache, key, val, @notify_false)
+      Set.execute(cache, key, val, const(:notify_false))
     end
     result
   end

@@ -7,7 +7,7 @@ defmodule Cachex.Actions.PurgeTest do
   # removed by the purge call. Finally we make sure to check the hook notifications.
   test "purging expired records" do
     # create a forwarding hook
-    hook = ForwardHook.create(%{ results: true })
+    hook = ForwardHook.create()
 
     # create a test cache
     cache = Helper.create_cache([ hooks: [ hook ] ])
@@ -45,5 +45,4 @@ defmodule Cachex.Actions.PurgeTest do
     # verify that the key is gone
     assert(exists == { :ok, false })
   end
-
 end

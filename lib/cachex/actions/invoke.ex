@@ -7,11 +7,12 @@ defmodule Cachex.Actions.Invoke do
   # for more details.
 
   # we need our imports
-  use Cachex.Actions
+  import Cachex.Actions
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Get
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -28,7 +29,7 @@ defmodule Cachex.Actions.Invoke do
   There are currently no options accepted here, but it's required as an argument
   in order to future-proof the arity.
   """
-  defaction invoke(%Cache{ commands: commands } = cache, key, cmd, options) do
+  defaction invoke(cache(commands: commands) = cache, key, cmd, options) do
     commands
     |> Map.get(cmd)
     |> do_invoke(cache, key)
@@ -36,23 +37,23 @@ defmodule Cachex.Actions.Invoke do
 
   # In the case of a `:return` function, we just pull the value from the cache
   # and pass it off to be transformed before the result is passed back.
-  defp do_invoke({ :return, fun }, cache, key) when is_function(fun, 1) do
-    { _status_, value } = Get.execute(cache, key, @notify_false)
-    { :ok, fun.(value) }
+  defp do_invoke(command(type: :read, execute: exec), cache, key) do
+    { _status_, value } = Get.execute(cache, key, const(:notify_false))
+    { :ok, exec.(value) }
   end
 
   # In the case of `:modify` functions, we initialize a locking context to ensure
   # consistency, before retrieving the value of the key. This value is then passed
   # through to the command and the return value is used to dictate the new value
   # to be written to the cache, as well as the value to return.
-  defp do_invoke({ :modify, fun }, %Cache{ } = cache, key) when is_function(fun, 1) do
+  defp do_invoke(command(type: :write, execute: exec), cache() = cache, key) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { status, value } = Get.execute(cache, key, @notify_false)
-      { return, tempv } = fun.(value)
+      { status, value } = Get.execute(cache, key, const(:notify_false))
+      { return, tempv } = exec.(value)
 
       tempv == value || Util
         .write_mod(status)
-        .execute(cache, key, tempv, @notify_false)
+        .execute(cache, key, tempv, const(:notify_false))
 
       { :ok, return }
     end)
@@ -60,6 +61,6 @@ defmodule Cachex.Actions.Invoke do
 
   # Carries out an invocation. If the command retrieved is invalid, we just pass
   # an error back to the caller instead of trying to do anything too clever.
-  defp do_invoke(_cmd, _Cache, _key),
-    do: @error_invalid_command
+  defp do_invoke(_cmd, _cache, _key),
+    do: error(:invalid_command)
 end

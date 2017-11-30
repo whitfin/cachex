@@ -9,12 +9,11 @@ defmodule Cachex.Services.Overseer do
   # and should only be accessed via this module. The interface is deliberately
   # small in order to reduce potential complexity.
 
-  # require our constants
-  use Cachex.Constants
+  # require our includes
+  import Cachex.Errors
+  import Cachex.Spec
 
   # add any aliases
-  alias Cachex.Cache
-  alias Cachex.Hook
   alias Cachex.Services
   alias Supervisor.Spec
 
@@ -58,13 +57,13 @@ defmodule Cachex.Services.Overseer do
     quote location: :keep do
       case Overseer.ensure(unquote(cache)) do
         nil ->
-          @error_no_cache
+          error(:no_cache)
         var!(cache) ->
           cache = var!(cache)
-          if :erlang.whereis(cache.name) != :undefined do
+          if :erlang.whereis(cache(cache, :name)) != :undefined do
             unquote(body)
           else
-            @error_no_cache
+            error(:no_cache)
           end
       end
     end
@@ -80,8 +79,8 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Ensures a state from a cache name or state.
   """
-  @spec ensure(atom | Cache.t) :: Cache.t | nil
-  def ensure(%Cache{ } = cache),
+  @spec ensure(atom | Spec.cache) :: Spec.cache | nil
+  def ensure(cache() = cache),
     do: cache
   def ensure(name) when is_atom(name),
     do: get(name)
@@ -91,7 +90,7 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Retrieves a state from the local state table, or `nil` if none exists.
   """
-  @spec get(atom) :: Cache.t | nil
+  @spec get(atom) :: Spec.cache | nil
   def get(name) do
     case :ets.lookup(@table_name, name) do
       [{ ^name, state }] ->
@@ -111,8 +110,8 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Sets a state in the local state table.
   """
-  @spec set(atom, Cache.t) :: true
-  def set(name, %Cache{ } = cache) when is_atom(name),
+  @spec set(atom, Spec.cache) :: true
+  def set(name, cache() = cache) when is_atom(name),
     do: :ets.insert(@table_name, { name, cache })
 
   @doc """
@@ -149,7 +148,7 @@ defmodule Cachex.Services.Overseer do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(atom, Cache.t | (Cache.t -> Cache.t)) :: Cache.t
+  @spec update(atom, Spec.cache | (Spec.cache -> Spec.cache)) :: Spec.cache
   def update(name, fun) when is_atom(name) and is_function(fun, 1) do
     transaction(name, fn ->
       cstate = get(name)
@@ -157,20 +156,23 @@ defmodule Cachex.Services.Overseer do
 
       set(name, nstate)
 
-      nstate.pre_hooks
-      |> Enum.concat(nstate.post_hooks)
-      |> Enum.filter(&requires_state?/1)
-      |> Enum.each(&send(&1.ref, { :provision, { :cache, nstate } }))
+      with hooks(pre: pre_hooks, post: post_hooks) <- cache(nstate, :hooks) do
+        pre_hooks
+        |> Enum.concat(post_hooks)
+        |> Enum.filter(&requires_state?/1)
+        |> Enum.map(&hook(&1, :ref))
+        |> Enum.each(&send(&1, { :cachex_provision, { :cache, nstate } }))
+      end
 
       nstate
     end)
   end
-  def update(name, %Cache{ } = cache) when is_atom(name),
+  def update(name, cache(name: name) = cache),
     do: update(name, fn _ -> cache end)
 
   # Verifies whether a Hook requires a state worker. If it does, return true
   # otherwise return a false.
-  defp requires_state?(%Hook{ provide: provide }) when is_list(provide),
+  defp requires_state?(hook(provide: provide)),
     do: :cache in provide
   defp requires_state?(_hook),
     do: false
