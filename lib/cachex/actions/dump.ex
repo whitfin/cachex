@@ -1,16 +1,17 @@
 defmodule Cachex.Actions.Dump do
   @moduledoc false
-  # This module controls the implementation for the `dump` command, which writes
-  # out a given cache directly to disk at the provided file location. This can
-  # then be imported using the `load` command to allow moving of caching between
-  # nodes and machines.
+  # Command module to allow serialization of a cache to disk.
+  #
+  # Rather than using DETS to back up the internal ETS table, this module will
+  # serialize the entire table using the ETF via the `Cachex.Disk` module.
+  #
+  # Backups can be imported again using the `load()` command, and should be
+  # able to be transferred between processes and physical nodes.
+  alias Cachex.Disk
 
-  # we need our imports
+  # import our macros
   import Cachex.Actions
   import Cachex.Spec
-
-  # add some aliases
-  alias Cachex.Disk
 
   @doc """
   Dumps a cache to disk at the given location.

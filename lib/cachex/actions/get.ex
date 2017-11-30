@@ -1,25 +1,23 @@
 defmodule Cachex.Actions.Get do
   @moduledoc false
-  # This module provides the implementation for the Get action, which is in charge
-  # of retrieving values from the cache by key. If the record has expired, it is
-  # purged on read. If the record is missing, we allow the use of fallback functions
-  # to populate a new value in the cache.
+  # Command module to enable basic retrieval of cache entries.
+  #
+  # This command provides very little over the raw read actions provided by the
+  # `Cachex.Actions` module, as most of the heavy lifting is done in there. The
+  # only modification made is that the value is extracted, rather than returning
+  # the entire entry.
+  alias Cachex.Actions
 
   # we need our imports
   import Cachex.Actions
   import Cachex.Spec
 
-  # add some aliases
-  alias Cachex.Actions
-
   @doc """
   Retrieves a value from inside the cache.
 
-  This action supports the use of default fallbacks set on a cache state for the
-  ability to fallback to another cache, or to compute any missing values. If the
-  value does not exist in the cache, fallbacks can be used to set the value in
-  the cache for next time. Note that `nil` values inside the cache are treated
-  as missing values.
+  The returned value will be wrapped in a tagged Tuple to communicate
+  whether it was found in the cache or not. If the Tuple is tagged with
+  the `:missing` tag, the value was not found.
   """
   defaction get(cache() = cache, key, options) do
     case Actions.read(cache, key) do

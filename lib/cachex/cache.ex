@@ -72,12 +72,12 @@ defmodule Cachex.Cache do
       nil  -> error(:invalid_command)
       cmds ->
         validated =
-        Enum.all?(cmds, fn
-          ({ _name, command }) ->
-            Validator.valid?(:command, command)
-          (_invalid_elements) ->
-            false
-        end)
+          Enum.all?(cmds, fn
+            ({ _name, command }) ->
+              Validator.valid?(:command, command)
+            (_invalid_elements) ->
+              false
+          end)
 
       case validated do
         false -> error(:invalid_command)

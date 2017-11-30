@@ -141,7 +141,7 @@ defmodule Cachex.Actions.InspectTest do
     end)
 
     # retrieve the state via inspection
-    result = Cachex.inspect(state1, :state)
+    result = Cachex.inspect(state1, :cache)
 
     # ensure the states don't match
     assert(result != { :ok, state1 })

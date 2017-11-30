@@ -1,29 +1,25 @@
 defmodule Cachex.Actions.Update do
   @moduledoc false
-  # This module handles the updating of values inside a cache. Updates do not
-  # affect a currently set TTL, if you wish to have the TTL modified, simply set
-  # a new value over the top.
+  # Command module to update existing cache entries.
+  #
+  # The only semantic difference between an `update()` call against a `set()`
+  # call is that the expiration time remains unchanged during an update. If
+  # you wish to have the expiration time modified, you can simply set your
+  # new value over the top of the existing one.
+  alias Cachex.Actions
+  alias Cachex.Services.Locksmith
 
   # we need our imports
   import Cachex.Actions
   import Cachex.Spec
 
-  # add some aliases
-  alias Cachex.Actions
-  alias Cachex.Services.Locksmith
-
   @doc """
-  Updates a value inside the cache.
+  Updates an entry inside the cache.
 
   Updates do not affect the touch time of a record, which is what makes an update
-  call useful. If you need to update the touch time, immediately call the Touch
-  action after an update.
-
-  This action executes inside a Transaction to ensure that there are no keys currently
-  under a lock - thus ensuring consistency.
-
-  There are currently no recognised options, the argument only exists for future
-  proofing.
+  call useful. If you need to update the touch time you can either call `touch()`
+  immediately after an update, or you can simply set a value over the top instead
+  of doing an update.
   """
   defaction update(cache() = cache, key, value, options) do
     Locksmith.write(cache, key, fn ->

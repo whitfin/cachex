@@ -20,7 +20,7 @@ defmodule Cachex.Hook.StatsTest do
     sname = name(cache, :stats)
 
     # attempt to retrieve the cache stats
-    stats = Cachex.Hook.Stats.retrieve(sname)
+    stats = GenServer.call(sname, :retrieve)
 
     # verify the state of the stats
     assert_in_delta(stats.meta.creationDate, ctime, 5)

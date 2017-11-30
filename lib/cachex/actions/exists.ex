@@ -1,26 +1,22 @@
 defmodule Cachex.Actions.Exists do
   @moduledoc false
-  # This module controls the implementation behind checking whether a record
-  # exists inside the cache. It's a little more complicated than just checking
-  # cache membership, because we also need to take TTL into account.
+  # Command module to allow checking for entry existence.
+  #
+  # This is very straightfoward, but is a little more than an `:ets.member/2`
+  # call as we also need to validate expiration time to stay consistent.
+  alias Cachex.Actions
 
-  # we need our imports
+  # add required macros
   import Cachex.Actions
   import Cachex.Spec
 
-  # add some aliases
-  alias Cachex.Actions
-
   @doc """
-  Checks if an item exists in a cache.
+  Checks whether an entry exists in a cache.
 
-  We simply return true of false if membership is detected. This operation has
-  to do a read in order to validate that the TTL has expired, so we delegate to
-  the generic read action to do the lifting for us.
-
-  There are currently no recognised options, the argument only exists for future
-  proofing.
+  This is a little more involved than a straight ETS call, as we need to take
+  the expiration time of the entry into account. As such, we call via the main
+  `Cachex.Actions` module and just cast the result to a boolean.
   """
   defaction exists?(cache() = cache, key, options),
-    do: { :ok, Actions.read(cache, key) != nil }
+    do: { :ok, !!Actions.read(cache, key) }
 end

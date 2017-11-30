@@ -39,10 +39,4 @@ defmodule Cachex.Hook.Stats do
   """
   def handle_call(:retrieve, _ctx, stats),
     do: { :reply, stats, stats }
-
-  @doc """
-  Retrieves the current stats container from the Stats process.
-  """
-  def retrieve(ref),
-    do: GenServer.call(ref, :retrieve)
 end

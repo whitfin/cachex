@@ -48,14 +48,20 @@ defmodule Cachex.Hook do
         do: { :ok, state }
 
       @doc false
-      def handle_cast({ :cachex_notify, { event, result } }, state) do
-        { :ok, new_state } = handle_notify(event, result, state)
+      def handle_info({ :cachex_reset, args }, state) do
+        { :ok, new_state } = apply(__MODULE__, :init, [ args ])
         { :noreply, new_state }
       end
 
       @doc false
-      def handle_cast({ :cachex_reset, args }, state) do
-        { :ok, new_state } = apply(__MODULE__, :init, [ args ])
+      def handle_info({ :cachex_provision, provisions }, state) do
+        { :ok, new_state } = handle_provision(provisions, state)
+        { :noreply, new_state }
+      end
+
+      @doc false
+      def handle_info({ :cachex_notify, { event, result } }, state) do
+        { :ok, new_state } = handle_notify(event, result, state)
         { :noreply, new_state }
       end
 
@@ -77,12 +83,6 @@ defmodule Cachex.Hook do
           nil ->
             { :reply, :hook_timeout, state }
         end
-      end
-
-      @doc false
-      def handle_info({ :cachex_provision, provisions }, state) do
-        { :ok, new_state } = handle_provision(provisions, state)
-        { :noreply, new_state }
       end
 
       # Allow overrides of everything *except* the handle_event implementation.

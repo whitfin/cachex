@@ -93,7 +93,7 @@ defmodule Cachex.Services.Informant do
   defp do_notify(hook(ref: nil), _action, _result),
     do: nil
   defp do_notify(hook(async: true, ref: ref), action, result),
-    do: GenServer.cast(ref, { :cachex_notify, { action, result } })
+    do: send(ref, { :cachex_notify, { action, result } })
   defp do_notify(hook(timeout: nil, ref: ref), action, result),
     do: GenServer.call(ref, { :cachex_notify, { action, result } }, :infinity)
   defp do_notify(hook(timeout: val, ref: ref), action, result),

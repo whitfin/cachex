@@ -1,27 +1,29 @@
 defmodule Cachex.Actions.Refresh do
   @moduledoc false
-  # This module controls the implementation of the Refresh action. Refreshing is
-  # the act of resetting a TTL as if it has just been set. We accomplish this by
-  # simply updating the touch time (as this is that the TTL is calculated from).
-  # The Refresh action executes in a lock-aware context which ensures consistency
-  # against Transactions.
+  # Command module to allow refreshing an expiration value.
+  #
+  # Refreshing an expiration is the notion of resetting an expiration time
+  # as if it were just set. This is done by updating the touched time (as
+  # this is used to calculate expiration offsets).
+  #
+  # The main advantage of this command is the ability to refresh an existing
+  # expiration without knowing in advance what it was previously set to.
+  alias Cachex.Actions
+  alias Cachex.Services.Locksmith
 
   # we need our imports
   import Cachex.Actions
   import Cachex.Spec
 
-  # add some aliases
-  alias Cachex.Actions
-  alias Cachex.Services.Locksmith
-
   @doc """
-  Refreshes a TTL in the cache.
+  Refreshes an expiration on a cache entry.
 
-  If a TTL is not set, it is left unset. Otherwise the touch time is updated to
-  the current time (as expiration is a function of touch time and TTL time).
+  If the entry currently has no expiration set, it is left unset. Otherwise the
+  touch time of the entry is updated to the current time (as entry expiration is
+  a function of touched time and expiration time).
 
-  We execute inside a lock-aware context to ensure that no other operation is
-  working on the same keys during execution.
+  This operates inside a lock aware context to avoid clashing with other operations
+  on the same key during execution.
   """
   defaction refresh(cache() = cache, key, options) do
     Locksmith.write(cache, key, fn ->

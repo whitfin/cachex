@@ -4,26 +4,28 @@ Cache limits are restrictions on a cache to ensure that it stays within given bo
 
 ## Configuration
 
-Limits are defined at cache startup and cannot be changed at this point in time. You can provide either an integer or a `Cachex.Limit` structure to the `:limit` option in the Cachex interface.
+Limits are defined at cache startup and cannot be changed at this point in time. You can provide either an integer or a `limit` record to the `:limit` option in the Cachex interface.
 
 ```elixir
 # maximum 500 entries, default eviction, default trim
 Cachex.start(:my_cache, [ limit: 500 ])
 
 # maximum 500 entries, LRW eviction, trim to 250
-Cachex.start(:my_cache, [ limit: %Cachex.Limit{ limit: 500, policy: Cachex.Policy.LRW, reclaim: 0.5 } ])
+Cachex.start(:my_cache, [ limit: limit(size: 500, policy: Cachex.Policy.LRW, reclaim: 0.5) ])
 ```
 
-A `Cachex.Limit` structure consists (currently) of only 3 fields which dictate a limit and how it should be enforced. This allows the user to customize their eviction without getting too low-level. Below is an example structure, which demonstrates what an integer `:limit` parameter would unpack to internally.
+A `limit` record consists (currently) of only 4 fields which dictate a limit and how it should be enforced. This allows the user to customize their eviction without getting too low-level. Below is an example structure, which demonstrates what an integer `:limit` parameter would unpack to internally.
 
 ```elixir
-%Cachex.Limit{
+limit(
   # the limit provided
-  limit: 500,
+  size: 500,
   # the policy to use for eviction
   policy: Cachex.Policy.LRW,
   # how much to reclaim on bound expiration
-  reclaim: 0.1
+  reclaim: 0.1,
+  # options to pass to the policy server
+  options: []
 }
 ```
 

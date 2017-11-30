@@ -14,9 +14,9 @@ val1 = Cachex.get!(:my_cache, "key1")
 val2 = Cachex.get!(:my_cache, "key2")
 
 # this is using an execution block
-{ val1, val2 } = Cachex.execute!(:my_cache, fn(state) ->
-  v1 = Cachex.get!(state, "key1")
-  v2 = Cachex.get!(state, "key2")
+{ val1, val2 } = Cachex.execute!(:my_cache, fn(cache) ->
+  v1 = Cachex.get!(cache, "key1")
+  v2 = Cachex.get!(cache, "key2")
   { v1, v2 }
 end)
 ```
@@ -27,13 +27,13 @@ It's very important to note that even though you're executing a block, other act
 
 ```elixir
 # start our execution block
-Cachex.execute!(:my_cache, fn(state) ->
+Cachex.execute!(:my_cache, fn(cache) ->
   # set a base value in the cache
-  Cachex.set!(state, "key", "value")
+  Cachex.set!(cache, "key", "value")
   # we're paused but other stuff can happen
   :timer.sleep(5000)
   # this may have have been set elsewhere by this point
-  Cachex.get!(state, "key")
+  Cachex.get!(cache, "key")
 end)
 ```
 
@@ -45,13 +45,13 @@ One of the most useful blocks is the transactional block. These blocks will bind
 
 ```elixir
 # start our execution block
-Cachex.transaction!(:my_cache, [ "key" ], fn(state) ->
+Cachex.transaction!(:my_cache, [ "key" ], fn(cache) ->
   # set a base value in the cache
-  Cachex.set!(state, "key", "value")
+  Cachex.set!(cache, "key", "value")
   # we're paused but other stuff can not happen
   :timer.sleep(5000)
   # this will be guaranteed to return "value"
-  Cachex.get!(state, "key")
+  Cachex.get!(cache, "key")
 end)
 ```
 

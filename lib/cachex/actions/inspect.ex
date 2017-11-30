@@ -1,64 +1,66 @@
 defmodule Cachex.Actions.Inspect do
   @moduledoc false
-  # This module contains inspection tools for a cache. Cache inspection can be
-  # anything from checking the current expired keyspace, to pulling the raw doc
-  # back from the cache. Options are defined in function heads to make the module
-  # easier to follow for newcomers.
+  # Command module to enable cache inspection.
+  #
+  # Cache inspection can be anything from checking the current size of the
+  # expired keyspace to pulling raw entry records back from the table.
+  #
+  # Due to the nature of inspection, behaviour in this module can change
+  # at any time - not only with major increments of the library version.
+  alias Cachex.Services
+  alias Cachex.Util
+  alias Services.Overseer
 
-  # we need constants
+  # we need macros
   import Cachex.Errors
   import Cachex.Spec
 
-  # add any aliases
-  alias Cachex.Services
-  alias Cachex.Util
-
-  # add services
-  alias Services.Overseer
-
-  # save the inspect function
-  import Kernel, except: [ inspect: 2 ]
-
-  # define our accepted options
+  # define our accepted options for the inspection calls
   @type option :: { :expired, :count } | { :expired, :keys } |
                   { :janitor, :last  } | { :memory, :bytes } |
                   { :memory, :binary } | { :memory, :words } |
-                  { :record,     any } |   :Cache
+                  { :record,     any } |   :cache
 
   @doc """
   Inspect various things about a cache.
 
-  This action offers the ability to retrieve various pieces of information about
-  a cache, such as memory and metadata about internal processes. There are many
-  options so we call a private function named `inspect/2`, and each option is
-  documented individually.
-  """
-  def execute(cache, option),
-    do: inspect(cache, option)
+  Inspection offers the ability to retrieve pieces of information about a cache
+  and the associated services, such as memory use and metadata about internal
+  processes.
 
-  # Returns the number of expired documents which currently live inside the cache
-  # (i.e. those which will be removed if a Janitor purge executes). We do this
-  # with a simple count query using the utils to generate the query easily.
-  defp inspect(cache(name: name), { :expired, :count }) do
+  There are many options broken up by function head, so please see the source
+  commands for definition for further documentation.
+  """
+  def execute(cache, option)
+
+  # Returns the number of expired entries currently inside the cache.
+  #
+  # The number of entries returned represents the number of records which will
+  # be removed on the next run of the Janitor service. It does not track the
+  # number of expired records which have already been purged or removed.
+  def execute(cache(name: name), { :expired, :count }) do
     query = Util.retrieve_expired_rows(true)
     { :ok, :ets.select_count(name, query) }
   end
 
-  # Returns the keys of expired documents which currently live inside the cache
-  # (i.e. those which will be removed if a Janitor purge executes). This is very
-  # expensive if there are a lot of keys expired, so use wisely.
-  defp inspect(cache(name: name), { :expired, :keys }) do
+  # Returns the keys of expired entries currently inside the cache.
+  #
+  # This is essentially the same as the definition above, except that it will
+  # return the list of entry keys rather than just a count. Naturally this is
+  # an expensive call and should really only be used when debugging.
+  def execute(cache(name: name), { :expired, :keys }) do
     query = Util.retrieve_expired_rows(:key)
     { :ok, :ets.select(name, query) }
   end
 
-  # Returns information about the last run of a Janitor process (if there is one).
-  # We make sure to try validate the existence of the Janitor before calling it,
-  # but a crash here shouldn't really be an issue (as it's used for debugging).
+  # Returns information about the last run of the Janitor service.
   #
-  # If the Janitor doesn't exist, an error is returned to inform the user, otherwise
-  # we just return the metadata in an ok Tuple.
-  defp inspect(cache(name: name), { :janitor, :last }) do
+  # This calls through to the Janitor server, and so might take a while if the
+  # server is currently in the process of purging records. The returned metadata
+  # schema is defined in the `Cachex.Services.Janitor` module.
+  #
+  # In the case the Janitor service is not running, an error will be returned.
+  def execute(cache(name: name), { :janitor, :last }) do
     case :erlang.whereis(name(name, :janitor)) do
       :undefined ->
         error(:janitor_disabled)
@@ -67,45 +69,51 @@ defmodule Cachex.Actions.Inspect do
     end
   end
 
-  # Retrieves the current size of the underlying ETS table backing the cache and
-  # returns it as a number of bytes after using the system word size for the
-  # calculation.
-  defp inspect(cache() = cache, { :memory, :bytes }) do
-    { :ok, mem_words } = inspect(cache, { :memory, :words })
+  # Retrieves the current size of the backing cache table in bytes.
+  #
+  # This should be treated as an estimation as it's rounded based on
+  # the number of words used to maintain the cache.
+  def execute(cache() = cache, { :memory, :bytes }) do
+    { :ok, mem_words } = execute(cache, { :memory, :words })
     { :ok, mem_words * :erlang.system_info(:wordsize) }
   end
 
-  # Retrieves the current size of the underlying ETS table backing the cache and
-  # returns it as a human readable binary representation. This uses the inspect
-  # action to calculate the byte count of a cache under the hood.
-  defp inspect(cache() = cache, { :memory, :binary }) do
-    { :ok, bytes } = inspect(cache, { :memory, :bytes })
+  # Retrieves the current size of the backing cache table in a readable format.
+  #
+  # This should be treated as an estimation as it's rounded based on the number
+  # of words used to maintain the cache.
+  def execute(cache() = cache, { :memory, :binary }) do
+    { :ok, bytes } = execute(cache, { :memory, :bytes })
     { :ok, Util.bytes_to_readable(bytes) }
   end
 
-  # Retrieves the current word count of the underlying ETS table backing the cache
-  # and returns it in an ok Tuple. It is unlikely the user will ever need this,
-  # but the other memory inspections use it so it doesn't hurt to expose it anyway.
-  defp inspect(cache(name: name), { :memory, :words }),
+  # Retrieves the current size of the backing cache table in machine words.
+  #
+  # It's unlikely the caller will want to use this directly, but as it's used
+  # by other inspection methods there's no harm in exposing it in the API.
+  def execute(cache(name: name), { :memory, :words }),
     do: { :ok, :ets.info(name, :memory) }
 
-  # Retrieves a raw record from the cache, specified by the provided key. This
-  # is useful when you need access to a record which may have expired. If the
-  # record doesn't exist, a nil value will be returned instead.
-  defp inspect(cache(name: name), { :record, key }) do
+  # Retrieves a raw entry from the cache table.
+  #
+  # This is useful when you need access to a record which may have expired. If
+  # the entry does not exist, a nil value will be returned instead. Expirations
+  # are not taken into account (either lazily or otherwise) on this read call.
+  def execute(cache(name: name), { :record, key }) do
     case :ets.lookup(name, key) do
       [ ] -> { :ok, nil }
-      [r] -> { :ok,   r }
+      [e] -> { :ok,   e }
     end
   end
 
-  # Simply returns the current Cache of the cache. This is easy enough to get
-  # through other methods, but it's available here to refer to as the "best"
-  # way for a consumer to do so (someone who isn't developing Cachex).
-  defp inspect(cache(name: name), :state),
+  # Retrieves the internal state of the cache.
+  #
+  # This is relatively easy to get via other methods, but it's available here
+  # as the "best" way for a developer to do so (outside of the internal API).
+  def execute(cache(name: name), :cache),
     do: { :ok, Overseer.get(name) }
 
-  # This is just a catch all to tell the user they asked for an invalid option.
-  defp inspect(_cache, _option),
+  # Catch-all to return an error.
+  def execute(_cache, _option),
     do: error(:invalid_option)
 end

@@ -14,11 +14,7 @@ defmodule Cachex.Services.Janitor do
 
   # add some aliases
   alias Cachex.Services
-  alias Cachex.Util
-
-  # include services
   alias Services.Informant
-  alias Services.Locksmith
   alias Services.Overseer
 
   @doc """
@@ -57,7 +53,7 @@ defmodule Cachex.Services.Janitor do
     start_time = now()
 
     { duration, { :ok, count } = result } = :timer.tc(fn ->
-      purge_records(new_caches)
+      Cachex.purge(new_caches)
     end)
 
     if count > 0 do
@@ -73,19 +69,6 @@ defmodule Cachex.Services.Janitor do
     { :noreply, { schedule_check(new_caches), last } }
   end
 
-  @doc """
-  A public handler for purging records, so that it can be called from the main
-  process as needed.
-
-  This execution happens inside a Transaction to ensure that there are no open
-  key locks on the table.
-  """
-  @spec purge_records(Spec.cache) :: { :ok, integer }
-  def purge_records(cache(name: name) = cache) do
-    Locksmith.transaction(cache, [ ], fn ->
-      { :ok, :ets.select_delete(name, Util.retrieve_expired_rows(true)) }
-    end)
-  end
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.

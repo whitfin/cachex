@@ -1,42 +1,6 @@
 defmodule Cachex.Services.JanitorTest do
   use CachexCase
 
-  # The Janitor module provides a public function for use by external processes
-  # which wish to purge expired records. This function simply purges expired
-  # records and returns the count of removed records. This test simply verifies
-  # the number returned here and that the records are indeed removed.
-  test "purging records manually" do
-    # create a test cache
-    cache = Helper.create_cache()
-
-    # fetch the state
-    state = Services.Overseer.get(cache)
-
-    # add a new cache entry
-    { :ok, true } = Cachex.set(state, "key", "value", ttl: 25)
-
-    # purge before the entry expires
-    purge1 = Services.Janitor.purge_records(state)
-
-    # verify that the purge removed nothing
-    assert(purge1 == { :ok, 0 })
-
-    # wait until the entry has expired
-    :timer.sleep(50)
-
-    # purge after the entry expires
-    purge2 = Services.Janitor.purge_records(state)
-
-    # verify that the purge removed the key
-    assert(purge2 == { :ok, 1 })
-
-    # check whether the key exists
-    exists = Cachex.exists?(state, "key")
-
-    # verify that the key is gone
-    assert(exists == { :ok, false })
-  end
-
   # The Janitor process can run on a schedule too, to automatically purge records.
   # This test should verify a Janitor running on a schedule, as well as make sure
   # that the Janitor sends a notification to hooks whenever the process removes

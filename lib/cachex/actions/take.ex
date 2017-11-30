@@ -1,35 +1,31 @@
 defmodule Cachex.Actions.Take do
   @moduledoc false
-  # This module contains the implementation of the Take action. Taking a key is
-  # the act of retrieving a key and deleting it in one atomic action. It's a
-  # useful action when used to guarantee that a given process retrieves the last
-  # known value of a record. Taking a key is clearly destructive, so it operates
-  # in a lock context.
+  # Command module to allow taking of cache entries.
+  #
+  # The notion of taking a key is the act of retrieving a key and deleting it
+  # in a single atomic action. It's useful when used to guarantee that a given
+  # process retrieves the final value of an entry.
+  #
+  # Taking a key is clearly destructive, so it operates in a lock context.
+  alias Cachex.Services.Informant
+  alias Cachex.Services.Locksmith
+  alias Cachex.Util
 
   # we need our imports
   import Cachex.Actions
   import Cachex.Spec
 
-  # add some aliases
-  alias Cachex.Services
-  alias Cachex.Util
-
-  # add services
-  alias Services.Informant
-  alias Services.Locksmith
-
   @doc """
-  Takes a given item from the cache.
+  Takes an entry from a cache.
 
-  This will always remove the value if it exists, ensuring that immediately after
-  this call the value no longer exists in the cache. We uphold any expirations
-  by detecting them and not returning the value if we're received one.
+  This will always remove the entry from the cache, ensuring that the entry no
+  longer exists immediately after this call finishes.
 
-  Taking a value happens under a lock context to ensure that the key isn't being
-  currently locked by another write sequence.
+  Expirations are lazily checked here, ensuring that even if a value is taken
+  from the cache it's only returned if it has not yet expired.
 
-  There are currently no recognised options, the argument only exists for future
-  proofing.
+  Taking a value happens in a lock aware context to ensure that the key isn't
+  being currently locked by another write sequence.
   """
   defaction take(cache(name: name) = cache, key, options) do
     Locksmith.write(cache, key, fn ->
@@ -39,12 +35,12 @@ defmodule Cachex.Actions.Take do
     end)
   end
 
-  # Handles the result of taking a key from the cache. If the record comes back,
-  # we check for expiration - if it has expired, we notify of a purge call to
-  # make clear that it was correctly evicted (we don't have to remove it because
-  # taking it from the cache removes it). If no value comes back, we just jump
-  # to returning a missing result and a nil value.
-  defp handle_take([ entry(touched: touched, ttl: ttl, value: value) ], cache() = cache) do
+  # Handles the result of taking a key from the backing table.
+  #
+  # If an entry comes back from the call, we check for expiration before returning
+  # back to the caller. If the entry has expired, we broadcast the expiry (as the
+  # entry was already removed when we took if from the cache).
+  defp handle_take([ entry(touched: touched, ttl: ttl, value: value) ], cache) do
     case Util.has_expired?(cache, touched, ttl) do
       false ->
         { :ok, value }

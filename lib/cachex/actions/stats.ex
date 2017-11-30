@@ -1,47 +1,44 @@
 defmodule Cachex.Actions.Stats do
   @moduledoc false
-  # This module controls the retrieval of any stats associated with a cache. We
-  # have to first locate the Stats hook inside the state. If there isn't one, we
-  # return an error. If there is, we normalize according to provided options and
-  # return them to the user.
-
-  # we need constants
+  # Command module to allow cache statistics retrieval.
+  #
+  # This module is only active if the statistics hook has been enabled in
+  # the cache, either via the stats option at startup or by providing the
+  # hook manually.
   import Cachex.Errors
   import Cachex.Spec
-
-  # add some aliases
-  alias Cachex.Hook
 
   @doc """
   Retrieves statistics for a cache.
 
-  If the cache does not have statistics on, an error is returned. Otherwise a
-  Map containing various statistics is returned to the user in an ok Tuple.
+  This will return an error if statistics tracking has not been enabled,
+  either via the options at cache startup, or manually by providing the hook.
 
-  Everything in here is out of bound of the main process, so no Transaction have
-  to taken into account, etc.
+  If the provided cache does not have statistics enabled, an error will be returned.
   """
   @spec execute(Spec.cache, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
   def execute(cache(hooks: hooks(post: post_hooks)), options) do
     post_hooks
-    |> Enum.find(&find_hook/1)
+    |> Enum.find(&find_stats_hooks/1)
     |> handle_hook(options)
   end
 
-  # Locates a Hook for the Stats module, using function heads as the filter. If
-  # the function head matches, we return true, otherwise we just return false.
-  defp find_hook(hook(module: Cachex.Hook.Stats)),
+  # Returns true if the provided value is a statistics hook.
+  defp find_stats_hooks(hook(module: Cachex.Hook.Stats)),
     do: true
-  defp find_hook(_hook),
+  defp find_stats_hooks(_hook),
     do: false
 
-  # Uses a stats hook to retrieve pieces of the statistics container from the
-  # running stats hook. If no hook is provided, we return an error because the
-  # Stats hook is not running, meaning that stats are disabled.
+  # Retrieves statistics from the provided statistics hook.
+  #
+  # The statistics hook has built in support for retrieval, so we
+  # just make a call over to the hook to retrieve the data.
+  #
+  # If the provided hook is missing, an error will be returned.
   defp handle_hook(nil, _options),
     do: error(:stats_disabled)
   defp handle_hook(hook(ref: ref), options) do
-    stats = Hook.Stats.retrieve(ref)
+    stats = GenServer.call(ref, :retrieve)
 
     final =
       options
@@ -54,14 +51,13 @@ defmodule Cachex.Actions.Stats do
     { :ok, final }
   end
 
-  # This function normalizes the stats returned from the stats hook according to
-  # what the developer wishes to retrieve stats for. In the case they have asked
-  # for raw stats, we just return the raw payload coming back. If they're asked
-  # for an overview, we do some enriching of the global stats to provide some
-  # high level statistics (which are sufficient in most cases). If they've asked
-  # for specific types of stats, we just pull all the keys out of the top level
-  # and use the result (meaning that it could be empty if there are no stats of
-  # the type the user is asking for).
+  # Normalizes the stats returned from the statistics hook.
+  #
+  # This uses the `:for` option to determine how to format the statistics. If
+  # the `:raw` option has been provided, we just return the raw payload coming
+  # back directly from the statistics server. If the `:for` option has specified
+  # an overview, we do some enriching of the global stats to provide some high
+  # level statistics.
   defp normalize([ :raw ], stats),
     do: stats
   defp normalize([ :overview ], stats) do
@@ -84,10 +80,11 @@ defmodule Cachex.Actions.Stats do
   defp normalize(keys, stats),
     do: Map.take(stats, keys)
 
-  # This function generates a request rates Map, which is a map containing hit
-  # and miss rates, as well as counts of hits and misses. This has to be defined
-  # as separate functions in order to handle potential division by 0. All rates
-  # will always be floats to ensure consistency (even when they are whole numbers).
+  # Generates request rates for statistics map.
+  #
+  # This will generate hit/miss rates as floats, even when they're integer
+  # values to ensure consistency. This is separated out to easily handle the
+  # potential to divide values by 0, avoiding a crash in the application.
   defp generate_rates(_reqs, 0, misses),
     do: %{
       hitCount: 0,
