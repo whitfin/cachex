@@ -26,7 +26,7 @@ defmodule CachexBench do
 
     if use_trans do
       Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
-        %Cachex.Cache{ state | transactions: true }
+        cache(state, transactional: true)
       end)
     end
 
