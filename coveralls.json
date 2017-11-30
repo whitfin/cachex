@@ -16,5 +16,7 @@
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true
   },
-  "skip_files": [ ]
+  "skip_files": [
+    "lib/cachex/stats.ex"
+  ]
 }

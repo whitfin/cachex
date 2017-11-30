@@ -1,25 +1,38 @@
 defmodule Cachex.Services.Locksmith do
   @moduledoc false
-  # This module controls the ETS table backing the LockManager. It should be noted
-  # that this table acts as a global lock table against all caches. This is due
-  # to the desire that an ETS table is a fairly expensive construct to store only
-  # a few keys. Because of this we have a global table and just tag the record
-  # in the table with the namespace of the cache it was written by. This table
-  # will typically be very small (as locks are cleaned up as they go). It should
-  # also be noted that this behaviour could easily live in a GenServer were it
-  # not for the speedup when using ETS. When using an ETS table this check is
-  # typically 0.3-0.5µs/op whereas a GenServer is roughly 10x this.
+  # Locking service in charge of table transactions.
+  #
+  # This module acts as a global lock table against all cache. This is due to the
+  # fact that ETS tables are fairly expensive to construct if they're only going
+  # to store a few keys.
+  #
+  # Due to this we have a single global table in charge of locks, and we tag just
+  # the key in the table with the name of the cache it's associated with. This
+  # keyspace will typically be very small, so there should be almost no impact to
+  # operating in this way (except that we only have a single ETS table rather than
+  # a potentially large N).
+  #
+  # It should be noted that the behaviour in this module could easily live as a
+  # GenServer if it weren't for the speedup gained when using ETS. When using an
+  # ETS table, checking for a lock is typically 0.3-0.5µs/op whereas a call to a
+  # server process is roughly 10x this (due to the process interactions).
+  alias Cachex.Services.Locksmith.Queue
+
+  # we need records
   import Cachex.Spec
 
-  # our constant lock table
+  # our global lock table name
   @table_name :cachex_locksmith
 
   @doc """
-  Starts an Eternal ETS table to act as a global lock table.
+  Starts the backing services required by the Locksmith.
 
-  We start the table with no logging to make sure we don't spam a developer's
-  log output. This may be configurable in future, but this table will likely
-  never cause an issue in the first place (as it handles only basic interactions).
+  At this point this will start the backing ETS table required by the locking
+  logic inside the Locksmith. This is started with concurrency enabled and
+  logging disabled to avoid spamming log output.
+
+  This may become configurable in future, but this table will likelyn never
+  cause issues in the first place (as it only handles very basic operations).
   """
   @spec start_link :: GenServer.on_start
   def start_link do
@@ -31,13 +44,13 @@ defmodule Cachex.Services.Locksmith do
   end
 
   @doc """
-  Locks a list of keys against a given cache in the table.
+  Locks a number of keys for a cache.
 
-  We format the keys into a list of writes to optimize the interactions with ETS,
-  rather than just repeatedly calling ETS with insertion. This also has the benefit
-  of ensuring that all keys are locked at the same time.
+  This function can handle multiple keys to lock together atomically. The
+  returned boolean will signal if the lock was successful. A lock can fail
+  if one of the provided keys is already locked.
   """
-  @spec lock(Spec.cache, [ any ]) :: true
+  @spec lock(Spec.cache, [ any ]) :: boolean
   def lock(cache(name: name), keys) do
     t_proc = self()
 
@@ -50,29 +63,34 @@ defmodule Cachex.Services.Locksmith do
   end
 
   @doc """
-  Returns the list of locked keys for a cache.
+  Retrieves a list of locked keys for a cache.
+
+  This uses some ETS maching voodoo to pull back the locked keys. They
+  won't be returned in any specific order, so don't rely on it.
   """
   @spec locked(Spec.cache) :: [ any ]
   def locked(cache(name: name)),
     do: :ets.select(@table_name, [ { { { name, :"$1" }, :_ }, [], [ :"$1" ] } ])
 
   @doc """
-  Carries out a cache transaction.
+  Executes a transaction against a cache table.
 
-  This will lock the required keys before executing the provided function. Once
-  the function has completed, all locks will be removed. This is just a shorthand
-  function to avoid having to handle row locking explicitly.
+  If the process is already in a transactional context, the provided function
+  will be executed immediately. Otherwise the required keys will be locked until
+  the provided function has finished executing.
+
+  This is mainly shorthand to avoid having to handle row locking explicitly.
   """
   @spec transaction(Spec.cache, [ any ], ( -> any)) :: any
-  def transaction(cache(name: name), keys, fun) do
+  def transaction(cache() = cache, keys, fun) when is_list(keys) do
     case transaction?() do
       true  -> fun.()
-      false -> GenServer.call(name(name, :locksmith), { :transaction, keys, fun }, :infinity)
+      false -> Queue.transaction(cache, keys, fun)
     end
   end
 
   @doc """
-  Detects if the current process is in transactional context.
+  Determines if the current process is in transactional context.
   """
   @spec transaction? :: boolean
   def transaction?,
@@ -93,12 +111,13 @@ defmodule Cachex.Services.Locksmith do
     do: Process.put(:cachex_transaction, false)
 
   @doc """
-  Unlocks a list of keys against a given cache in the table.
+  Unlocks a number of keys for a cache.
 
   There's currently no way to batch delete items in ETS beyond a select_delete,
   so we have to simply iterate over the locks and remove them sequentially. This
   is a little less desirable, but needs must.
   """
+  # TODO: figure out how to remove atomically
   @spec unlock(Spec.cache, [ any ]) :: true
   def unlock(cache(name: name), keys) do
     keys
@@ -107,9 +126,9 @@ defmodule Cachex.Services.Locksmith do
   end
 
   @doc """
-  Checks if a given key in the cache is writeable.
+  Determines if a key is able to be written to by the current process.
 
-  For a key to be writeable, it must either have no lock, or be locked by the
+  For a key to be writeable, it must either have no lock or be locked by the
   calling process.
   """
   @spec writable?(Spec.cache, any) :: true | false
@@ -125,16 +144,20 @@ defmodule Cachex.Services.Locksmith do
   @doc """
   Performs a write against the given key inside the table.
 
-  If the key is locked, the write is queued inside the lock server to ensure that
-  we execute consistently.
+  If the key is locked, the write is queued inside the lock server
+  to ensure that we execute consistently.
+
+  This is a little hard to explain, but if the cache has not had any
+  transactions executed against it we skip the lock check as any of
+  our ETS writes are atomic and so do not require a lock.
   """
-  @spec write(Spec.cache, any, ( -> any)) :: any
+  @spec write(Spec.cache, any, (() -> any)) :: any
   def write(cache(transactional: false), _key, fun),
     do: fun.()
-  def write(cache(name: name) = cache, key, fun) do
+  def write(cache() = cache, key, fun) do
     case transaction?() or writable?(cache, key) do
       true  -> fun.()
-      false -> GenServer.call(name(name, :locksmith), { :exec, fun }, :infinity)
+      false -> Queue.execute(cache, fun)
     end
   end
 end
