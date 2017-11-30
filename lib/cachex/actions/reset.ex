@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Reset do
 
   # add some aliases
   alias Cachex.Actions.Clear
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -23,7 +22,7 @@ defmodule Cachex.Actions.Reset do
   Nothing in here will notify hooks of the reset as it's quite redundant and it's
   evident that a reset happened when you see that your hook has reinitialized.
   """
-  def execute(%Cache{ } = cache, options) do
+  def execute(cache() = cache, options) do
     Locksmith.transaction(cache, [ ], fn ->
       only =
         options
@@ -49,7 +48,7 @@ defmodule Cachex.Actions.Reset do
   # Controls the resetting of any hooks, either all or a subset. We have a small
   # optimization here to detect when we want to reset all hooks, to avoid filtering
   # without cause. We use a MapSet just to avoid the O(N) lookups otherwise.
-  defp reset_hooks(%Cache{ hooks: hooks(pre: pre_hooks, post: post_hooks) }, only, opts) do
+  defp reset_hooks(cache(hooks: hooks(pre: pre_hooks, post: post_hooks)), only, opts) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->

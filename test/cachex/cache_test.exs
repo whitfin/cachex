@@ -7,11 +7,8 @@ defmodule Cachex.CacheTest do
     # grab a cache name
     name = Helper.create_name()
 
-    # parse the options
-    { :ok, state } = Cachex.Cache.create(name, [])
-
-    # assert the name is added
-    assert(state.name == name)
+    # parse the options into a validated cache state
+    assert { :ok, cache(name: ^name) } = Cachex.Cache.create(name, [])
   end
 
   # This test makes sure that we can correctly parse out commands which are to
@@ -43,18 +40,18 @@ defmodule Cachex.CacheTest do
     i_cmds3 = [ commands: [ lpop: 1 ] ]
 
     # attempt to validate
-    { :ok, results1 } = Cachex.Cache.create(name, v_cmds1)
-    { :ok, results2 } = Cachex.Cache.create(name, v_cmds2)
-    { :ok, results3 } = Cachex.Cache.create(name, v_cmds3)
-    { :ok, results4 } = Cachex.Cache.create(name, v_cmds4)
+    { :ok, cache(commands: commands1) } = Cachex.Cache.create(name, v_cmds1)
+    { :ok, cache(commands: commands2) } = Cachex.Cache.create(name, v_cmds2)
+    { :ok, cache(commands: commands3) } = Cachex.Cache.create(name, v_cmds3)
+    { :ok, cache(commands: commands4) } = Cachex.Cache.create(name, v_cmds4)
 
     # the first two should be parsed into maps
-    assert(results1.commands == %{ })
-    assert(results2.commands == %{ lpop: command(type: :read, execute: fun1) })
-    assert(results3.commands == %{ lpop: command(type: :read, execute: fun1) })
+    assert(commands1 == %{ })
+    assert(commands2 == %{ lpop: command(type: :read, execute: fun1) })
+    assert(commands3 == %{ lpop: command(type: :read, execute: fun1) })
 
     # the fourth should keep only the first implementation
-    assert(results4.commands == %{ lpop: command(type: :read, execute: fun1) })
+    assert(commands4 == %{ lpop: command(type: :read, execute: fun1) })
 
     # parse the invalid lists
     { :error,  msg } = Cachex.Cache.create(name, i_cmds1)
@@ -72,22 +69,22 @@ defmodule Cachex.CacheTest do
     name = Helper.create_name()
 
     # parse out valid combinations
-    { :ok, state1 } = Cachex.Cache.create(name, [ expiration: expiration(default: 1) ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ expiration: expiration(default: nil) ])
-    { :ok, state3 } = Cachex.Cache.create(name, [ expiration: expiration(interval: 1) ])
-    { :ok, state4 } = Cachex.Cache.create(name, [ expiration: expiration(interval: nil) ])
-    { :ok, state5 } = Cachex.Cache.create(name, [ expiration: expiration(lazy: true) ])
-    { :ok, state6 } = Cachex.Cache.create(name, [ expiration: expiration(lazy: false) ])
-    { :ok, state7 } = Cachex.Cache.create(name, [ ])
+    { :ok, cache(expiration: exp1) } = Cachex.Cache.create(name, [ expiration: expiration(default: 1) ])
+    { :ok, cache(expiration: exp2) } = Cachex.Cache.create(name, [ expiration: expiration(default: nil) ])
+    { :ok, cache(expiration: exp3) } = Cachex.Cache.create(name, [ expiration: expiration(interval: 1) ])
+    { :ok, cache(expiration: exp4) } = Cachex.Cache.create(name, [ expiration: expiration(interval: nil) ])
+    { :ok, cache(expiration: exp5) } = Cachex.Cache.create(name, [ expiration: expiration(lazy: true) ])
+    { :ok, cache(expiration: exp6) } = Cachex.Cache.create(name, [ expiration: expiration(lazy: false) ])
+    { :ok, cache(expiration: exp7) } = Cachex.Cache.create(name, [ ])
 
     # verify all valid states parse correctly
-    assert state1.expiration == expiration(default:   1, interval: 3000, lazy: true)
-    assert state2.expiration == expiration(default: nil, interval: 3000, lazy: true)
-    assert state3.expiration == expiration(default: nil, interval:    1, lazy: true)
-    assert state4.expiration == expiration(default: nil, interval:  nil, lazy: true)
-    assert state5.expiration == expiration(default: nil, interval: 3000, lazy: true)
-    assert state6.expiration == expiration(default: nil, interval: 3000, lazy: false)
-    assert state7.expiration == expiration(default: nil, interval: 3000, lazy: true)
+    assert exp1 == expiration(default:   1, interval: 3000, lazy: true)
+    assert exp2 == expiration(default: nil, interval: 3000, lazy: true)
+    assert exp3 == expiration(default: nil, interval:    1, lazy: true)
+    assert exp4 == expiration(default: nil, interval:  nil, lazy: true)
+    assert exp5 == expiration(default: nil, interval: 3000, lazy: true)
+    assert exp6 == expiration(default: nil, interval: 3000, lazy: false)
+    assert exp7 == expiration(default: nil, interval: 3000, lazy: true)
 
     # parse out invalid combinations
     { :error,  msg } = Cachex.Cache.create(name, [ expiration: expiration(default: -1) ])
@@ -118,25 +115,25 @@ defmodule Cachex.CacheTest do
     fallback6 = { }
 
     # parse all the valid fallbacks into caches
-    { :ok, state1 } = Cachex.Cache.create(name, [ fallback: fallback1 ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ fallback: fallback2 ])
-    { :ok, state3 } = Cachex.Cache.create(name, [ fallback: fallback3 ])
-    { :ok, state4 } = Cachex.Cache.create(name, [ fallback: fallback4 ])
-    { :ok, state5 } = Cachex.Cache.create(name, [ fallback: fallback5 ])
+    { :ok, cache(fallback: fallback1) } = Cachex.Cache.create(name, [ fallback: fallback1 ])
+    { :ok, cache(fallback: fallback2) } = Cachex.Cache.create(name, [ fallback: fallback2 ])
+    { :ok, cache(fallback: fallback3) } = Cachex.Cache.create(name, [ fallback: fallback3 ])
+    { :ok, cache(fallback: fallback4) } = Cachex.Cache.create(name, [ fallback: fallback4 ])
+    { :ok, cache(fallback: fallback5) } = Cachex.Cache.create(name, [ fallback: fallback5 ])
     { :error, msg } = Cachex.Cache.create(name, [ fallback: fallback6 ])
 
     # the first should use defaults
-    assert(state1.fallback == fallback())
+    assert(fallback1 == fallback())
 
     # the second and fifth should have an action but no state
-    assert(state2.fallback == fallback(default: &String.reverse/1))
-    assert(state5.fallback == fallback(default: &String.reverse/1))
+    assert(fallback2 == fallback(default: &String.reverse/1))
+    assert(fallback5 == fallback(default: &String.reverse/1))
 
     # the third should have both an action and state
-    assert(state3.fallback == fallback(default: &String.reverse/1, provide: {}))
+    assert(fallback3 == fallback(default: &String.reverse/1, provide: {}))
 
     # the fourth should have a state but no action
-    assert(state4.fallback == fallback(provide: {}))
+    assert(fallback4 == fallback(provide: {}))
 
     # an invalid fallback should actually fail
     assert(msg == :invalid_fallback)
@@ -156,22 +153,22 @@ defmodule Cachex.CacheTest do
     post_hook = ForwardHook.create(type: :post)
 
     # parse out valid hook combinations
-    { :ok, state1 } = Cachex.Cache.create(name, [ hooks: [ pre_hook, post_hook ] ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ hooks: pre_hook ])
+    { :ok, cache(hooks: hooks1) } = Cachex.Cache.create(name, [ hooks: [ pre_hook, post_hook ] ])
+    { :ok, cache(hooks: hooks2) } = Cachex.Cache.create(name, [ hooks: pre_hook ])
+    { :ok, cache(hooks: hooks3) } = Cachex.Cache.create(name, [ ])
 
     # parse out invalid hook combinations
-    { :ok,  state3 } = Cachex.Cache.create(name, [ ])
     { :error,  msg } = Cachex.Cache.create(name, [ hooks: "[hooks]" ])
     { :error, ^msg } = Cachex.Cache.create(name, [ hooks: hook(module: Missing) ])
 
     # check the hook groupings for the first state
-    assert(state1.hooks == hooks(pre: [ pre_hook ], post: [ post_hook ]))
+    assert(hooks1 == hooks(pre: [ pre_hook ], post: [ post_hook ]))
 
     # check the hook groupings in the second state
-    assert(state2.hooks == hooks(pre: [ pre_hook ], post: [ ]))
+    assert(hooks2 == hooks(pre: [ pre_hook ], post: [ ]))
 
     # check the third state uses hook defaults
-    assert(state3.hooks == hooks())
+    assert(hooks3 == hooks())
 
     # check the invalid hook message
     assert(msg == :invalid_hook)
@@ -193,25 +190,25 @@ defmodule Cachex.CacheTest do
     c_limits = limit(size: max_size)
 
     # parse options with a valid max_size
-    { :ok, state1 } = Cachex.Cache.create(name, [ limit: max_size ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ limit: c_limits ])
+    { :ok, cache(hooks: hooks1, limit: limit1) } = Cachex.Cache.create(name, [ limit: max_size ])
+    { :ok, cache(hooks: hooks2, limit: limit2) } = Cachex.Cache.create(name, [ limit: c_limits ])
+    { :ok, cache(hooks: hooks3, limit: limit3) } = Cachex.Cache.create(name, [ ])
 
     # parse options with invalid max_size
-    { :ok, state3 } = Cachex.Cache.create(name, [ ])
-           state4   = Cachex.Cache.create(name, [ limit: "max_size" ])
+    { :error, msg } = Cachex.Cache.create(name, [ limit: "max_size" ])
 
     # check the first and second states have limits
-    assert(state1.limit == c_limits)
-    assert(state2.limit == c_limits)
-    assert(state1.hooks == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
-    assert(state2.hooks == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
+    assert(limit1 == c_limits)
+    assert(limit2 == c_limits)
+    assert(hooks1 == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
+    assert(hooks2 == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
 
     # check the third has no limits attached
-    assert(state3.limit == default)
-    assert(state3.hooks == hooks(pre: [], post: []))
+    assert(limit3 == default)
+    assert(hooks3 == hooks(pre: [], post: []))
 
     # check the fourth causes an error
-    assert(state4 == { :error, :invalid_limit })
+    assert(msg == :invalid_limit)
   end
 
   # This test will verify the ability to record stats in a state. This option
@@ -228,10 +225,10 @@ defmodule Cachex.CacheTest do
     )
 
     # parse the stats recording flags
-    { :ok, state } = Cachex.Cache.create(name, [ stats: true ])
+    { :ok, cache(hooks: hooks) } = Cachex.Cache.create(name, [ stats: true ])
 
     # ensure the stats hook has been added
-    assert(state.hooks == hooks(pre: [ ], post: [ hook ]))
+    assert(hooks == hooks(pre: [ ], post: [ hook ]))
   end
 
   # This test will verify the parsing of transactions flags to determine whether
@@ -243,13 +240,13 @@ defmodule Cachex.CacheTest do
     name = Helper.create_name()
 
     # parse our values as options
-    { :ok, state1 } = Cachex.Cache.create(name, [ transactional:  true ])
-    { :ok, state2 } = Cachex.Cache.create(name, [ transactional: false ])
-    { :ok, state3 } = Cachex.Cache.create(name, [ ])
+    { :ok, cache(transactional: trans1) } = Cachex.Cache.create(name, [ transactional:  true ])
+    { :ok, cache(transactional: trans2) } = Cachex.Cache.create(name, [ transactional: false ])
+    { :ok, cache(transactional: trans3) } = Cachex.Cache.create(name, [ ])
 
     # the first one should be truthy, and the latter two falsey
-    assert(state1.transactional == true)
-    assert(state2.transactional == false)
-    assert(state3.transactional == false)
+    assert trans1
+    refute trans2
+    refute trans3
   end
 end

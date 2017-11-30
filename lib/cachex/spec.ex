@@ -15,6 +15,17 @@ defmodule Cachex.Spec do
   # Typespecs #
   #############
 
+  # Record specification for a cache instance
+  @type cache :: record(:cache,
+    name: atom,
+    commands: map,
+    expiration: expiration,
+    fallback: fallback,
+    hooks: hooks,
+    limit: limit,
+    transactional: boolean
+  )
+
   # Record specification for a command instance
   @type command :: record(:command,
     type: :read | :write,
@@ -71,6 +82,22 @@ defmodule Cachex.Spec do
   ###########
   # Records #
   ###########
+
+  @doc """
+  Creates a cache record from the provided values.
+
+  A cache record is used to represent the internal state of a cache, and is used
+  when executing calls. Most values in here will be other records defined in the
+  main specification, and as such please see their documentation for further info.
+  """
+  defrecord :cache,
+    name: nil,
+    commands: %{},
+    expiration: nil,
+    fallback: nil,
+    hooks: nil,
+    limit: nil,
+    transactional: false
 
   @doc """
   Creates a command record from the provided values.
@@ -197,6 +224,12 @@ defmodule Cachex.Spec do
   ###############
   # Record Docs #
   ###############
+
+  @doc """
+  Updates a cache record from the provided values.
+  """
+  @spec cache(cache, Keyword.t) :: cache
+  defmacro cache(record, args)
 
   @doc """
   Updates a command record from the provided values.

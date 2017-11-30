@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Fetch do
   # add some aliases
   alias Cachex.Actions.Get
   alias Cachex.Actions.Set
-  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -23,7 +22,7 @@ defmodule Cachex.Actions.Fetch do
   based on the key in the case the key is missing. This value will then be placed
   into the cache going forward in order to act as a read-through cache.
   """
-  defaction fetch(%Cache{ } = cache, key, fallback, options) do
+  defaction fetch(cache() = cache, key, fallback, options) do
     with { :missing, nil } <- Get.execute(cache, key, const(:notify_false)) do
       cache
       |> handle_fallback(fallback, key)
@@ -38,7 +37,7 @@ defmodule Cachex.Actions.Fetch do
   # can be set to nil). This enables easy definition whilst keeping structure.
   defp handle_fallback(_cache, fallback, key) when is_function(fallback, 1),
     do: fallback.(key)
-  defp handle_fallback(%Cache{ fallback: fallback(provide: provide) }, fallback, key),
+  defp handle_fallback(cache(fallback: fallback(provide: provide)), fallback, key),
     do: fallback.(key, provide)
 
   # Handles the result of a fallback commit. If it's tagged with the :commit flag,

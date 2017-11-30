@@ -11,7 +11,6 @@ defmodule Cachex.Actions.Get do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
 
   @doc """
   Retrieves a value from inside the cache.
@@ -22,7 +21,7 @@ defmodule Cachex.Actions.Get do
   the cache for next time. Note that `nil` values inside the cache are treated
   as missing values.
   """
-  defaction get(%Cache{ } = cache, key, options) do
+  defaction get(cache() = cache, key, options) do
     case Actions.read(cache, key) do
       entry(value: value) ->
         { :ok, value }

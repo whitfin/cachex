@@ -20,7 +20,7 @@ defmodule Cachex.Services.Locksmith.Queue do
   log output. This may be configurable in future, but this table will likely
   never cause an issue in the first place (as it handles only basic interactions).
   """
-  def start_link(%Cachex.Cache{ name: name } = cache),
+  def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :locksmith) ])
 
   @doc """

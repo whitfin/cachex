@@ -6,9 +6,9 @@ defmodule Cachex.Actions.Load do
 
   # we need our imports
   import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Disk
 
   @doc """
@@ -25,7 +25,7 @@ defmodule Cachex.Actions.Load do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction load(%Cache{ name: name } = cache, path, options) do
+  defaction load(cache(name: name) = cache, path, options) do
     with { :ok, terms } <- Disk.read(path, options) do
       { :ok, :ets.insert(name, terms) }
     end

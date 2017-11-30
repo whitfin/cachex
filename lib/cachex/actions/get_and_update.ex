@@ -10,7 +10,6 @@ defmodule Cachex.Actions.GetAndUpdate do
 
   # add some aliases
   alias Cachex.Actions.Get
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -26,7 +25,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   value in the cache directly. If it does exist, then we use the update actions
   to update the existing record.
   """
-  defaction get_and_update(%Cache{ } = cache, key, update_fun, options) do
+  defaction get_and_update(cache() = cache, key, update_fun, options) do
     Locksmith.transaction(cache, [ key ], fn ->
       { status, value } = Get.execute(cache, key, const(:notify_false))
 

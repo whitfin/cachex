@@ -9,7 +9,6 @@ defmodule Cachex.Actions.Clear do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Actions.Size
   alias Cachex.Services.Locksmith
 
@@ -23,7 +22,7 @@ defmodule Cachex.Actions.Clear do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction clear(%Cache{ name: name } = cache, options) do
+  defaction clear(cache(name: name) = cache, options) do
     Locksmith.transaction(cache, [], fn ->
       evicted =
         cache

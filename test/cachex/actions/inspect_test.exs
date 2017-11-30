@@ -137,7 +137,7 @@ defmodule Cachex.Actions.InspectTest do
 
     # update the state to have a different setting
     state2 = Services.Overseer.update(cache, fn(state) ->
-      %Cachex.Cache{ state | transactional: true }
+      cache(state, transactional: true)
     end)
 
     # retrieve the state via inspection
@@ -162,5 +162,4 @@ defmodule Cachex.Actions.InspectTest do
     # check the result is an error
     assert(result == { :error, :invalid_option })
   end
-
 end

@@ -90,10 +90,10 @@ defmodule Cachex.Actions.InvokeTest do
     state = Services.Overseer.get(cache)
 
     # modify the state to have fake commands
-    state = %Cachex.Cache{ state | commands: %{
+    state = cache(state, commands: %{
       fake_mod: { :modify, &({ &1, &2 }) },
       fake_ret: { :return, &({ &1, &2 }) }
-    } }
+    })
 
     # try to invoke a missing command
     invoke1 = Cachex.invoke(state, "heh", :unknowns)

@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Update do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -26,7 +25,7 @@ defmodule Cachex.Actions.Update do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction update(%Cache{ } = cache, key, value, options) do
+  defaction update(cache() = cache, key, value, options) do
     Locksmith.write(cache, key, fn ->
       Actions.update(cache, key, entry_mod(value: value))
     end)

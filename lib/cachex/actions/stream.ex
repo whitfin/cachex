@@ -11,7 +11,6 @@ defmodule Cachex.Actions.Stream do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Util
 
   # our test record for testing matches
@@ -34,7 +33,7 @@ defmodule Cachex.Actions.Stream do
   has provided a valid return type. If they haven't, we return an error before
   creating a cursor or the Stream itself.
   """
-  defaction stream(%Cache{ name: name } = cache, options) do
+  defaction stream(cache(name: name) = cache, options) do
     spec =
       options
       |> Keyword.get(:of, { { :key, :value } })

@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Stats do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Hook
 
   @doc """
@@ -22,8 +21,8 @@ defmodule Cachex.Actions.Stats do
   Everything in here is out of bound of the main process, so no Transaction have
   to taken into account, etc.
   """
-  @spec execute(Cache.t, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
-  def execute(%Cache{ hooks: hooks(post: post_hooks) }, options) do
+  @spec execute(Spec.cache, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
+  def execute(cache(hooks: hooks(post: post_hooks)), options) do
     post_hooks
     |> Enum.find(&find_hook/1)
     |> handle_hook(options)

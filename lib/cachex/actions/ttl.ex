@@ -11,7 +11,6 @@ defmodule Cachex.Actions.Ttl do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
 
   @doc """
   Retrieves the remaining TTL for a cache item.
@@ -23,7 +22,7 @@ defmodule Cachex.Actions.Ttl do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction ttl(%Cache{ } = cache, key, options) do
+  defaction ttl(cache() = cache, key, options) do
     cache
     |> Actions.read(key)
     |> handle_record

@@ -6,9 +6,9 @@ defmodule Cachex.Actions.Count do
 
   # we need our imports
   import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Util
 
   @doc """
@@ -21,7 +21,7 @@ defmodule Cachex.Actions.Count do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction count(%Cache{ name: name } = cache, options) do
+  defaction count(cache(name: name) = cache, options) do
     query = Util.retrieve_all_rows(true)
     count = :ets.select_count(name, query)
 

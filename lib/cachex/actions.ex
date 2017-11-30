@@ -12,7 +12,6 @@ defmodule Cachex.Actions do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services
   alias Cachex.Util
 
@@ -68,8 +67,8 @@ defmodule Cachex.Actions do
   If the key does not exist we return a `nil` value. If the key has expired, we
   delete it from the cache using the `:purge` action as a notification.
   """
-  @spec read(cache :: Cache.t, key :: any) :: Spec.entry | nil
-  def read(%Cache{ name: name } = cache, key) do
+  @spec read(cache :: Spec.cache, key :: any) :: Spec.entry | nil
+  def read(cache(name: name) = cache, key) do
     name
     |> :ets.lookup(key)
     |> handle_read(cache)
@@ -82,8 +81,8 @@ defmodule Cachex.Actions do
   two-step get/update from the Worker interface to accomplish the same. We then
   use a reduction to modify the Tuple.
   """
-  @spec update(cache :: Cache.t, key :: any, changes :: [{}]) :: { :ok, true | false }
-  def update(%Cache{ name: name }, key, changes) do
+  @spec update(cache :: Spec.cache, key :: any, changes :: [{}]) :: { :ok, true | false }
+  def update(cache(name: name), key, changes) do
     name
     |> :ets.update_element(key, changes)
     |> handle_update
@@ -93,8 +92,8 @@ defmodule Cachex.Actions do
   Writes a record into the cache, and returns a result signifying whether the
   write was successful or not.
   """
-  @spec write(cache :: Cache.t, entry :: Spec.entry) :: { :ok, true | false }
-  def write(%Cache{ name: name }, entry() = entry),
+  @spec write(cache :: Spec.cache, entry :: Spec.entry) :: { :ok, true | false }
+  def write(cache(name: name), entry() = entry),
     do: { :ok, :ets.insert(name, entry) }
 
   # Handles the reesult from a read action in order to handle any expirations

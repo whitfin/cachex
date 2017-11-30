@@ -60,10 +60,10 @@ defmodule Cachex.Services.InformantTest do
     cache4 = Helper.create_cache([ hooks: hook4 ])
 
     # update our hooks from the caches
-    hooks(pre:  [ hook1 ]) = Services.Overseer.get(cache1).hooks
-    hooks(post: [ hook2 ]) = Services.Overseer.get(cache2).hooks
-    hooks(post: [ hook3 ]) = Services.Overseer.get(cache3).hooks
-    hooks(post: [ hook4 ]) = Services.Overseer.get(cache4).hooks
+    cache(hooks: hooks(pre:  [ hook1 ])) = Services.Overseer.get(cache1)
+    cache(hooks: hooks(post: [ hook2 ])) = Services.Overseer.get(cache2)
+    cache(hooks: hooks(post: [ hook3 ])) = Services.Overseer.get(cache3)
+    cache(hooks: hooks(post: [ hook4 ])) = Services.Overseer.get(cache4)
 
     # uninitialized hooks shouldn't emit
     Services.Informant.notify([ hook5 ], :hook5, :result)

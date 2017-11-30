@@ -21,7 +21,6 @@ defmodule Cachex.Policy.LRW do
   import Cachex.Spec
 
   # add internal aliases
-  alias Cachex.Cache
   alias Cachex.Services
   alias Cachex.Util
 
@@ -164,7 +163,7 @@ defmodule Cachex.Policy.LRW do
   # it comes to removing the document, and the touch time is used to determine
   # the sorted order required for implementing LRW. We transform this sort using
   # a QLC cursor and pass it through to `erase_cursor/3` to delete.
-  defp erase_lower_bound(offset, %Cache{ name: name }, batch_size) when offset > 0 do
+  defp erase_lower_bound(offset, cache(name: name), batch_size) when offset > 0 do
     name
     |> :ets.table([ traverse: { :select, @qlc_match } ])
     |> :qlc.sort([ order: fn({ _k1, t1 }, { _k2, t2  }) -> t1 < t2 end ])

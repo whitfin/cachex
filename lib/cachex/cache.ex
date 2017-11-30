@@ -15,20 +15,6 @@ defmodule Cachex.Cache do
   alias Cachex.Util
   alias Spec.Validator
 
-  # our opaque type
-  @opaque t :: %__MODULE__{ }
-
-  # internal state struct
-  defstruct [
-    name: nil,                # the name of the cache
-    commands: %{},            # any custom commands attached to the cache
-    expiration: expiration(), # cache level expiration settings
-    fallback: fallback(),     # the default fallback implementation
-    hooks: hooks(),           # any hooks to attach to the cache
-    limit: limit(),           # any limit to apply to the cache
-    transactional: false      # whether to enable transactions
-  ]
-
   @doc """
   Parses a list of cache options into a `Cachex.Cache` instance.
 
@@ -37,7 +23,7 @@ defmodule Cachex.Cache do
   other areas of the library without needing to validate. As such, this code can
   easily become a little messy - but that's ok!
   """
-  @spec create(atom, Keyword.t) :: { :ok, __MODULE__.t } | { :error, atom }
+  @spec create(atom, Keyword.t) :: { :ok, Spec.cache } | { :error, atom }
   def create(name, options) when is_list(options) do
     # complex parsing statements which can fail out early
     with { :ok,      limit } <- setup_limit(name, options),
@@ -49,7 +35,7 @@ defmodule Cachex.Cache do
          # basic parsing which doesn't have the opportunity to fail
          transactional = Util.get_opt(options, :transactional, &is_boolean/1, false)
       do
-        { :ok, %__MODULE__{
+        { :ok, cache([
           name: name,
           commands: commands,
           expiration: expiration,
@@ -57,7 +43,7 @@ defmodule Cachex.Cache do
           hooks: hooks,
           limit: limit,
           transactional: transactional
-        } }
+        ]) }
       end
   end
 

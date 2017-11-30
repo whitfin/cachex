@@ -6,10 +6,10 @@ defmodule Cachex.Actions.Exists do
 
   # we need our imports
   import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
 
   @doc """
   Checks if an item exists in a cache.
@@ -21,6 +21,6 @@ defmodule Cachex.Actions.Exists do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction exists?(%Cache{ } = cache, key, options),
+  defaction exists?(cache() = cache, key, options),
     do: { :ok, Actions.read(cache, key) != nil }
 end

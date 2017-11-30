@@ -11,7 +11,6 @@ defmodule Cachex.Actions.Set do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -23,7 +22,7 @@ defmodule Cachex.Actions.Set do
   write outside of the lock context just to avoid potentially blocking the backing
   Transaction manager process for more time than is needed.
   """
-  defaction set(%Cache{ } = cache, key, value, options) do
+  defaction set(cache() = cache, key, value, options) do
     ttlval = Util.get_opt(options, :ttl, &is_integer/1)
     expiry = Util.get_expiration(cache, ttlval)
 

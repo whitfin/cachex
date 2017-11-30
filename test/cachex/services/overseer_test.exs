@@ -8,7 +8,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)
@@ -31,7 +31,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)
@@ -55,7 +55,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)
@@ -80,11 +80,11 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_cache([ hooks: hook ])
 
     # retrieve our state
-    state = Services.Overseer.get(name)
+    cache(expiration: expiration) = state = Services.Overseer.get(name)
 
     # store our updated states
-    update1 = %Cachex.Cache{ state | expiration: expiration(state.expiration, default: 5) }
-    update2 = %Cachex.Cache{ state | expiration: expiration(state.expiration, default: 3) }
+    update1 = cache(state, expiration: expiration(expiration, default: 5))
+    update2 = cache(state, expiration: expiration(expiration, default: 3))
 
     # update in parallel with a wait to make sure that writes block and always
     # execute in sequence, regardless of when they actually update
@@ -107,10 +107,10 @@ defmodule Cachex.OverseerTest do
     :timer.sleep(50)
 
     # pull back the state from the table
-    result = Services.Overseer.get(name)
+    cache(expiration: expiration) = Services.Overseer.get(name)
 
     # ensure the last call is the new value
-    assert(expiration(result.expiration, :default) == 3)
+    assert(expiration(expiration, :default) == 3)
 
     # now we need to make sure our state was forwarded
     assert_receive({ :cache, ^update2 })
@@ -125,7 +125,7 @@ defmodule Cachex.OverseerTest do
     name = Helper.create_name()
 
     # create our state
-    state = %Cachex.Cache{ name: name }
+    state = cache(name: name)
 
     # set our state in the table
     Services.Overseer.set(name, state)

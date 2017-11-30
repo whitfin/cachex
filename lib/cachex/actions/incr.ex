@@ -11,7 +11,6 @@ defmodule Cachex.Actions.Incr do
 
   # add some aliases
   alias Cachex.Actions.Exists
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -27,7 +26,7 @@ defmodule Cachex.Actions.Incr do
   the call to exists. We try to execute everything possible before blocking
   the write chain.
   """
-  defaction incr(%Cache{ name: name } = cache, key, options) do
+  defaction incr(cache(name: name) = cache, key, options) do
     amount  = Util.get_opt(options,  :amount, &is_integer/1, 1)
     initial = Util.get_opt(options, :initial, &is_integer/1, 0)
     expiry  = Util.get_expiration(cache, nil)

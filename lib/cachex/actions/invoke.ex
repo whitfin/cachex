@@ -13,7 +13,6 @@ defmodule Cachex.Actions.Invoke do
 
   # add some aliases
   alias Cachex.Actions.Get
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -30,7 +29,7 @@ defmodule Cachex.Actions.Invoke do
   There are currently no options accepted here, but it's required as an argument
   in order to future-proof the arity.
   """
-  defaction invoke(%Cache{ commands: commands } = cache, key, cmd, options) do
+  defaction invoke(cache(commands: commands) = cache, key, cmd, options) do
     commands
     |> Map.get(cmd)
     |> do_invoke(cache, key)
@@ -47,7 +46,7 @@ defmodule Cachex.Actions.Invoke do
   # consistency, before retrieving the value of the key. This value is then passed
   # through to the command and the return value is used to dictate the new value
   # to be written to the cache, as well as the value to return.
-  defp do_invoke(command(type: :write, execute: exec), %Cache{ } = cache, key) do
+  defp do_invoke(command(type: :write, execute: exec), cache() = cache, key) do
     Locksmith.transaction(cache, [ key ], fn ->
       { status, value } = Get.execute(cache, key, const(:notify_false))
       { return, tempv } = exec.(value)

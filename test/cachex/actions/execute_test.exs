@@ -9,7 +9,7 @@ defmodule Cachex.Actions.ExecuteTest do
     cache = Helper.create_cache()
 
     # start an execution block
-    result = Cachex.execute(cache, fn(%Cachex.Cache{ } = cache) ->
+    result = Cachex.execute(cache, fn(cache) ->
       [
         Cachex.set!(cache, 1, 1),
         Cachex.set!(cache, 2, 2),

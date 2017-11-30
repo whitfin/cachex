@@ -6,9 +6,9 @@ defmodule Cachex.Actions.Del do
 
   # we need our imports
   import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -24,7 +24,7 @@ defmodule Cachex.Actions.Del do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction del(%Cache{ name: name } = cache, key, options) do
+  defaction del(cache(name: name) = cache, key, options) do
     Locksmith.write(cache, key, fn ->
       { :ok, :ets.delete(name, key) }
     end)

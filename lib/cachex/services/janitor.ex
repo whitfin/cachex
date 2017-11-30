@@ -13,7 +13,6 @@ defmodule Cachex.Services.Janitor do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services
   alias Cachex.Util
 
@@ -29,7 +28,7 @@ defmodule Cachex.Services.Janitor do
   All options are passed throught to the initialization function, and the GenServer
   options are passed straight to GenServer to deal with.
   """
-  def start_link(%Cache{ name: name } = cache),
+  def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :janitor) ])
 
   @doc """
@@ -38,7 +37,7 @@ defmodule Cachex.Services.Janitor do
   This will create a stats struct as required and create the initial state for
   this janitor. The state is then passed through for use in the future.
   """
-  def init(%Cache{ } = cache),
+  def init(cache() = cache),
     do: { :ok, { schedule_check(cache), %{ } } }
 
   @doc """
@@ -53,7 +52,7 @@ defmodule Cachex.Services.Janitor do
   We basically drop to the ETS level and provide a select which only matches docs
   to be removed, and then ETS deletes them as it goes.
   """
-  def handle_info(:ttl_check, { %Cache{ name: name }, _last }) do
+  def handle_info(:ttl_check, { cache(name: name), _last }) do
     new_caches = Overseer.get(name)
     start_time = now()
 
@@ -81,8 +80,8 @@ defmodule Cachex.Services.Janitor do
   This execution happens inside a Transaction to ensure that there are no open
   key locks on the table.
   """
-  @spec purge_records(Cache.t) :: { :ok, integer }
-  def purge_records(%Cache{ name: name } = cache) do
+  @spec purge_records(Spec.cache) :: { :ok, integer }
+  def purge_records(cache(name: name) = cache) do
     Locksmith.transaction(cache, [ ], fn ->
       { :ok, :ets.select_delete(name, Util.retrieve_expired_rows(true)) }
     end)
@@ -90,7 +89,7 @@ defmodule Cachex.Services.Janitor do
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(%Cache{ expiration: expiration(interval: interval) } = cache) do
+  defp schedule_check(cache(expiration: expiration(interval: interval)) = cache) do
     :erlang.send_after(interval, self(), :ttl_check)
     cache
   end

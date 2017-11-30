@@ -6,9 +6,9 @@ defmodule Cachex.Actions.Purge do
 
   # we need our imports
   import Cachex.Actions
+  import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services
   alias Services.Janitor
 
@@ -22,6 +22,6 @@ defmodule Cachex.Actions.Purge do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction purge(%Cache{ } = cache, options),
+  defaction purge(cache() = cache, options),
     do: Janitor.purge_records(cache)
 end

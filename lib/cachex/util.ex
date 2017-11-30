@@ -55,7 +55,7 @@ defmodule Cachex.Util do
   @doc """
   Pulls the expiration for a given cache/expiration combination.
   """
-  def get_expiration(%Cachex.Cache{ expiration: expiration(default: default) }, nil),
+  def get_expiration(cache(expiration: expiration(default: default)), nil),
     do: default
   def get_expiration(_cache, expiration),
     do: expiration
@@ -78,7 +78,7 @@ defmodule Cachex.Util do
   Small utility to figure out if a document has expired based on the last touched
   time and the TTL of the document.
   """
-  def has_expired?(%Cachex.Cache{ expiration: expiration(lazy: lazy) }, touched, ttl),
+  def has_expired?(cache(expiration: expiration(lazy: lazy)), touched, ttl),
     do: lazy and has_expired?(touched, ttl)
   def has_expired?(touched, ttl) when is_number(ttl),
     do: touched + ttl < now()

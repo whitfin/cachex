@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Empty do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Actions.Size
 
   @doc """
@@ -27,7 +26,7 @@ defmodule Cachex.Actions.Empty do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction empty?(%Cache{ } = cache, options) do
+  defaction empty?(cache() = cache, options) do
     cache
     |> Size.execute(const(:notify_false))
     |> handle_size

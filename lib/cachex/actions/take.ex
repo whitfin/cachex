@@ -11,7 +11,6 @@ defmodule Cachex.Actions.Take do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services
   alias Cachex.Util
 
@@ -32,7 +31,7 @@ defmodule Cachex.Actions.Take do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction take(%Cache{ name: name } = cache, key, options) do
+  defaction take(cache(name: name) = cache, key, options) do
     Locksmith.write(cache, key, fn ->
       name
       |> :ets.take(key)
@@ -45,7 +44,7 @@ defmodule Cachex.Actions.Take do
   # make clear that it was correctly evicted (we don't have to remove it because
   # taking it from the cache removes it). If no value comes back, we just jump
   # to returning a missing result and a nil value.
-  defp handle_take([ entry(touched: touched, ttl: ttl, value: value) ], %Cache{ } = cache) do
+  defp handle_take([ entry(touched: touched, ttl: ttl, value: value) ], cache() = cache) do
     case Util.has_expired?(cache, touched, ttl) do
       false ->
         { :ok, value }

@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Touch do
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Actions.Ttl
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -31,7 +30,7 @@ defmodule Cachex.Actions.Touch do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction touch(%Cache{ } = cache, key, options) do
+  defaction touch(cache() = cache, key, options) do
     Locksmith.transaction(cache, [ key ], fn ->
       cache
       |> Ttl.execute(key, const(:notify_false))

@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Expire do
   # add some aliases
   alias Cachex.Actions
   alias Cachex.Actions.Del
-  alias Cachex.Cache
   alias Cachex.Services.Locksmith
 
   @doc """
@@ -30,7 +29,7 @@ defmodule Cachex.Actions.Expire do
   There are currently no recognised options, the argument only exists for future
   proofing.
   """
-  defaction expire(%Cache{ } = cache, key, expiration, options) do
+  defaction expire(cache() = cache, key, expiration, options) do
     Locksmith.write(cache, key, fn ->
       do_expire(cache, key, expiration)
     end)

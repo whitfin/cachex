@@ -54,7 +54,7 @@ defmodule Cachex do
   import Kernel, except: [ inspect: 2 ]
 
   # the cache type
-  @type cache :: atom | Cache.t
+  @type cache :: atom | Spec.cache
 
   # custom status type
   @type status :: :ok | :error | :missing
@@ -256,8 +256,8 @@ defmodule Cachex do
   #
   # This function sets up the Mnesia table and options are parsed before being used
   # to setup the internal workers. Workers are then given to `supervise/2`.
-  @spec init(cache :: Cache.t) :: { status, any }
-  def init(%Cache{ } = cache) do
+  @spec init(cache :: Spec.cache) :: { status, any }
+  def init(cache() = cache) do
     cache
     |> Services.cache_spec
     |> supervise(strategy: :one_for_one)
@@ -687,7 +687,7 @@ defmodule Cachex do
   @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
   def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
-      case fallback || fallback(cache.fallback, :default) do
+      case fallback || fallback(cache(cache, :fallback), :default) do
         val when is_function(val) ->
           Actions.Fetch.execute(cache, key, val, options)
         _na ->
@@ -1143,11 +1143,12 @@ defmodule Cachex do
   def transaction(cache, keys, operation, options \\ [])
   when is_function(operation, 1) and is_list(keys) and is_list(options) do
     Overseer.enforce(cache) do
-      if cache.transactional do
+      if cache(cache, :transactional) do
         Actions.Transaction.execute(cache, keys, operation, options)
       else
-        cache.name
-        |> Overseer.update(&%Cache{ &1 | transactional: true })
+        cache
+        |> cache(:name)
+        |> Overseer.update(&cache(&1, transactional: true))
         |> Actions.Transaction.execute(keys, operation, options)
       end
     end

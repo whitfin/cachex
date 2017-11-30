@@ -9,7 +9,6 @@ defmodule Cachex.Services do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Cache
   alias Cachex.Services
   alias Supervisor.Spec
 
@@ -41,8 +40,8 @@ defmodule Cachex.Services do
   Definition order here matters, as there's inter-dependency between each
   of the child processes (such as the Janitor -> Locksmith).
   """
-  @spec cache_spec(Cache.t) :: [ Spec.spec ]
-  def cache_spec(%Cache{ } = cache) do
+  @spec cache_spec(Spec.cache) :: [ Spec.spec ]
+  def cache_spec(cache() = cache) do
     []
     |> Enum.concat(table_spec(cache))
     |> Enum.concat(locksmith_spec(cache))
@@ -56,25 +55,25 @@ defmodule Cachex.Services do
   # The Informant acts as a parent to all hooks running against a cache. It
   # should be noted that this might result in no processes if there are no
   # hooks attached to the cache at startup (meaning no supervisor either).
-  defp informant_spec(%Cache{ } = cache),
+  defp informant_spec(cache() = cache),
     do: [ supervisor(Services.Informant, [ cache ]) ]
 
   # Creates a specification for the Janitor service.
   #
   # This can be an empty list if the cleanup interval is set to nil, which
   # dictates that no Janitor should be enabled for the cache.
-  defp janitor_spec(%Cache{ expiration: expiration(interval: nil) }),
+  defp janitor_spec(cache(expiration: expiration(interval: nil))),
     do: []
-  defp janitor_spec(%Cache{ } = cache),
+  defp janitor_spec(cache() = cache),
     do: [ worker(Services.Janitor, [ cache ]) ]
 
   # Creates any require limit specifications for the supervision tree.
   #
   # This will rarely be used in the out-of-the-box experience, it's mainly
   # provided for use in custom limit implementations by developers.
-  defp limit_spec(%Cache{ limit: limit(size: nil) }),
+  defp limit_spec(cache(limit: limit(size: nil))),
     do: []
-  defp limit_spec(%Cache{ limit: limit(policy: policy) = limit }) do
+  defp limit_spec(cache(limit: limit(policy: policy) = limit)) do
     case apply(policy, :child_spec, [ limit ]) do
       [] -> []
       cs ->
@@ -89,7 +88,7 @@ defmodule Cachex.Services do
   # executed against. It should be noted that this does not start the
   # global (application-wide) Locksmith table; that should be started
   # separately on application startup using app_spec/0.
-  defp locksmith_spec(%Cache{ } = cache),
+  defp locksmith_spec(cache() = cache),
     do: [ worker(Services.Locksmith.Queue, [ cache ]) ]
 
   # Creates the required specifications for a backing cache table.
@@ -97,7 +96,7 @@ defmodule Cachex.Services do
   # This specification should be included in a cache tree before any others
   # are started as we should provide the guarantee that the table exists
   # before any other services are started (to avoid race conditions).
-  defp table_spec(%Cache{ name: name }) do
+  defp table_spec(cache(name: name)) do
     server_opts = [ name: name(name, :eternal), quiet: true ]
     [ supervisor(Eternal, [ name, const(:table_options), server_opts ]) ]
   end

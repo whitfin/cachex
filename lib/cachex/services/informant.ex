@@ -11,7 +11,6 @@ defmodule Cachex.Services.Informant do
   import Cachex.Spec
 
   # add any aliases
-  alias Cachex.Cache
   alias Supervisor.Spec
 
   @doc """
@@ -21,9 +20,9 @@ defmodule Cachex.Services.Informant do
   the parent supervisor. Otherwise all hooks are added to a supervisor
   to fold out into their own tree.
   """
-  def start_link(%Cache{ hooks: hooks(pre: [], post: []) }),
+  def start_link(cache(hooks: hooks(pre: [], post: []))),
     do: :ignore
-  def start_link(%Cache{ hooks: hooks(pre: pre_hooks, post: post_hooks) }) do
+  def start_link(cache(hooks: hooks(pre: pre_hooks, post: post_hooks))) do
     pre_hooks
     |> Enum.concat(post_hooks)
     |> Enum.map(&spec/1)
@@ -35,13 +34,13 @@ defmodule Cachex.Services.Informant do
 
   This will send a nil result, as the result does not yet exist.
   """
-  def broadcast(%Cache{ hooks: hooks(pre: pre_hooks) }, action),
+  def broadcast(cache(hooks: hooks(pre: pre_hooks)), action),
     do: notify(pre_hooks, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
-  def broadcast(%Cache{ hooks: hooks(post: post_hooks) }, action, result),
+  def broadcast(cache(hooks: hooks(post: post_hooks)), action, result),
     do: notify(post_hooks, action, result)
 
   @doc """
@@ -50,9 +49,9 @@ defmodule Cachex.Services.Informant do
   This is a required post-step as hooks are started independently and
   are not named in a deterministic way.
   """
-  def link(%Cache{ hooks: hooks(pre: [], post: []) } = cache),
+  def link(cache(hooks: hooks(pre: [], post: [])) = cache),
     do: { :ok, cache }
-  def link(%Cache{ name: name, hooks: hooks(pre: pre_hooks, post: post_hooks) } = cache) do
+  def link(cache(name: name, hooks: hooks(pre: pre_hooks, post: post_hooks)) = cache) do
     children =
       name
       |> Supervisor.which_children
@@ -62,7 +61,7 @@ defmodule Cachex.Services.Informant do
     link_pre  = attach_hook_pid(pre_hooks,  children)
     link_post = attach_hook_pid(post_hooks, children)
 
-    { :ok, %Cache{ cache | hooks: hooks(pre: link_pre, post: link_post) } }
+    { :ok, cache(cache, hooks: hooks(pre: link_pre, post: link_post)) }
   end
 
   @doc """
