@@ -1,135 +1,223 @@
 defmodule Cachex.Stats do
   @moduledoc false
-  # Controls the registration of new actions taken inside the cache. This is moved
-  # outside due to the use of `process_action/2` which is defined many times to
-  # match against actions efficiently.
+  # Hook module to control the gathering of cache statistics.
+  #
+  # This implementation of statistics tracking uses a hook to run asynchronously
+  # against a cache (so that it doesn't impact those who don't want it). It executes
+  # as a post hook and provides a solid example of what a hook can/should look like.
+  #
+  # This hook has zero knowledge of the cache it belongs to; it keeps track of an
+  # internal set of statistics based on the provided messages. This means that it
+  # can also be mocked easily using raw server calls to `handle_notify/3`.
+  use Cachex.Hook
+  import Cachex.Spec
 
-  @doc """
-  Registers an action with the stats, incrementing various fields as appropriate
-  and incrementing the global statistics map. Every action will increment the
-  global operation count, but all other changes are action-specific.
-  """
-  @spec register(action :: { }, result :: { }, stats :: %{ }) :: %{ }
-  def register(action, result, stats) do
-    action
-    |> process_action(result)
-    |> Enum.reduce(stats, &increment/2)
-    |> increment(:global, :opCount)
+  @doc false
+  # Initializes this hook with a new stats container.
+  #
+  # The `:creationDate` field is set inside the `:meta` field to contain the date
+  # at which the statistics container was first created (which is more of less
+  # equivalent to the start time of the cache).
+  def init(_options),
+    do: { :ok, %{ meta: %{ creationDate: now() } } }
+
+  @doc false
+  # Retrieves the current stats container.
+  #
+  # This will just return the internal state to the calling process.
+  def handle_call(:retrieve, _ctx, stats),
+    do: { :reply, stats, stats }
+
+  @doc false
+  # Registers an action against the stats container.
+  #
+  # This clause will match against any failed requests and short-circuit to
+  # avoid artificially adding errors to the statistics. In future it might
+  # be that we want to track this, so this might change at some point.
+  def handle_notify(_action, { :error, _result }, stats),
+    do: { :ok, stats }
+
+  @doc false
+  # Registers an action against the stats container.
+  #
+  # This clause will pull out the action from the cache call, as well as the
+  # result, and use both to increment various keys in the statistics container
+  # to signal exactly what the call represents.
+  #
+  # This is done by passing off to `register_action/2` internally as we use
+  # multiple function head definitions to easily separate action logic.
+  def handle_notify({ action, _options }, result, stats) do
+    stats
+    |> register_action(action, result)
+    |> increment(:global, :opCount, 1)
+    |> wrap(:ok)
   end
 
-  # Clearing a cache returns the number of entries removed, so we update both the
-  # total cleared as well as the global eviction count.
-  defp process_action(:clear, { _status, value }),
-    do: [ { :clear, :total, value }, { :global, :evictionCount, value } ]
+  # Handles registration of `clear()` command calls.
+  #
+  # A clear call returns the number of entries removed, so this will update both
+  # the total number of cleared entries as well as the global eviction count.
+  defp register_action(stats, :clear, { _status, value }) do
+    stats
+    |> increment(:clear, :total, value)
+    |> increment(:global, :evictionCount, value)
+  end
 
-  # Deleting a key should increment the delete count by 1 and the global eviction
-  # count by 1.
-  defp process_action(:del, { _status, value }) do
-    [ { :del, value, 1 } ] ++ if value do
-      [ { :global, :evictionCount, 1 } ]
-    else
-      []
+  # Handles registration of `del()` command calls.
+  #
+  # Deleting a cache entry should increment the delete count
+  # and also the global eviction count by 1.
+  defp register_action(stats, :del, { _status, value }) do
+    tmp = increment(stats, :del, value, 1)
+    case value do
+      true  -> increment(tmp, :global, :evictionCount, 1)
+      false -> tmp
     end
   end
 
-  # Checking if a key exists simply updates the global hit/miss count based on
-  # the value (which returns true or false depending on existence).
-  defp process_action(:exists?, { _status, value }) do
-    [ { :exists?, value, 1 } ] ++ if value do
-      [ { :global, :hitCount,  1 } ]
-    else
-      [ { :global, :missCount, 1 } ]
+  # Handles registration of `exists?()` command calls.
+  #
+  # This needs to increment the global hit/miss count based on the value
+  # boolean coming back. It will also increment the value key under the
+  # `:exists?` action namespace in the statistics container.
+  defp register_action(stats, :exists?, { _status, value }) do
+    stats
+    |> increment(:exists?, value, 1)
+    |> increment(:global, value && :hitCount || :missCount, 1)
+  end
+
+  # Handles registration of `purge()` command calls.
+  #
+  # A purge call returns the number of entries removed, so this will update both
+  # the total number of purged entries as well as the global expired count.
+  defp register_action(stats, :purge, { _status, value }) do
+    stats
+    |> increment(:purge, :total, value)
+    |> increment(:global, :expiredCount, value)
+  end
+
+  # Handles registration of `set()` command calls.
+  #
+  # Set calls will increment the result of the call in the `:set`
+  # namespace inside the statistics container. It will also
+  # increment the global entry set count.
+  defp register_action(stats, :set, { _status, value }) do
+    tmp = increment(stats, :set, value, 1)
+    case value do
+      true  -> increment(tmp, :global, :setCount, 1)
+      false -> tmp
     end
   end
 
-  # Purging receives the number of keys removed from the cache, so we use this
-  # number to increment the exiredCount in the global namespace.
-  defp process_action(:purge, { _status, value }),
-    do: [ { :purge, :total, value }, { :global, :expiredCount, value } ]
+  # Handles registration of `take()` command calls.
+  #
+  # Take calls are a little complicated because they need to increment the
+  # global eviction count (due to removal) but also increment the global
+  # hit/miss count, in addition to the status in the `:take` namespace.
+  defp register_action(stats, :take, { status, _value }) do
+    tmp =
+      stats
+      |> increment(:take, status, 1)
+      |> increment(:global, normalize_status(status), 1)
 
-  # Sets always update the global namespace and the setCount key.
-  defp process_action(:set, { _status, value }) do
-    [ { :set, value, 1 } ] ++ if value do
-      [ { :global, :setCount, 1 } ]
-    else
-      []
+    case status do
+      :ok -> increment(tmp, :global, :evictionCount, 1)
+      _na -> tmp
     end
   end
 
-  # Taking a key will update evictions if they exist, otherwise they'll just update
-  # the same stats as if :get were called.
-  defp process_action(:take, { status, _value }) do
-    [ { :take, status, 1 }, { :global, normalize_status(status), 1 } ] ++ if status == :ok do
-      [ { :global , :evictionCount, 1 } ]
-    else
-      []
+  # Handles registration of `ttl()` command calls.
+  #
+  # This will increment the status in the `:ttl` namespace as well
+  # as incrementing the global hit/miss count for the cache.
+  defp register_action(stats, :ttl, { status, _value }) do
+    stats
+    |> increment(:ttl, status, 1)
+    |> increment(:global, status == :ok && :hitCount || :missCount, 1)
+  end
+
+  # Handles registration of `update()` command calls.
+  #
+  # This will increment the global update count as well as the value
+  # inside the `:update` namespace, to represent an update hit.
+  defp register_action(stats, :update, { _status, value }) do
+    tmp = increment(stats, :update, value, 1)
+    case value do
+      true  -> increment(tmp, :global, :updateCount, 1)
+      false -> tmp
     end
   end
 
-  # Calling TTL has zero effect on the global stats, so we simply increment the
-  # action's statistics.
-  defp process_action(:ttl, { status, _value }) do
-    [ { :ttl, status, 1 } ] ++ if status == :ok do
-      [ { :global , :hitCount, 1 } ]
-    else
-      [ { :global , :missCount, 1 } ]
+  # Handles registration of `get()` and `fetch()` command calls.
+  #
+  # This needs to increment the status in the global container, in addition to adding
+  # the status to the namespace of the provided action (either `:get` or `:fetch`).
+  defp register_action(stats, action, { status, _value })
+  when action in [ :get, :fetch ] do
+    stats
+    |> increment(action, status, 1)
+    |> increment(:global, normalize_status(status), 1)
+  end
+
+  # Handles registration of `decr()` and `incr()` command calls.
+  #
+  # Both of these calls operate in the same way, just negative/positive. We use the
+  # status to determine if a new value was inserted or if it was updated. Aside from
+  # this we just increment the status in the action namespace, as always.
+  defp register_action(stats, action, { status, _value })
+  when action in [ :decr, :incr ] do
+    stats
+    |> increment(action, status, 1)
+    |> increment(:global, status == :ok && :updateCount || :setCount, 1)
+  end
+
+  # Handles registration of `expire()`, `expire_at()`, `persist()` and `refresh()` calls.
+  #
+  # This is a common set of updates which changes the global update count alongside the
+  # received value in the action namespace, as all of these actions are related and shared.
+  defp register_action(stats, action, { _status, value })
+  when action in [ :expire, :expire_at, :persist, :refresh ] do
+    tmp = increment(stats, action, value, 1)
+    case value do
+      true  -> increment(tmp, :global, :updateCount, 1)
+      false -> tmp
     end
   end
 
-  # An update will increment the update stats, and if it was successful we also
-  # register it in the global namespace as well.
-  defp process_action(:update, { _status, value }) do
-    [ { :update, value, 1 } ] ++ if value do
-      [ { :global , :updateCount, 1 } ]
-    else
-      []
-    end
-  end
+  # Handles the registration of any other calls.
+  #
+  # This purely increments the action call by 1.
+  defp register_action(stats, action, _result),
+    do: increment(stats, action, :calls, 1)
 
-  # Retriving a value will update the global stats to represent whether the key existed or not.
-  defp process_action(action, { status, _value }) when action in [ :get, :fetch ],
-    do: [ { action, status, 1 }, { :global, normalize_status(status), 1 } ]
+  # Increments a given set of statistics in the stats container.
+  #
+  # We accept a list of fields to work with to increment multiple statistics for
+  # an action at the same time, even though this isn't needed at the time of
+  # writing.
+  #
+  # This is a gross function due to the nesting but it's actually quite optimized
+  # as of Cachex v3. Further changes will happen later in order to make the stats
+  # collection a little more uniform to avoid the complexity involved.
+  defp increment(stats, action, fields, amount) do
+    { _, updated_stats } = Map.get_and_update(stats, action, fn(inner) ->
+      fields_list = List.wrap(fields)
 
-  # Both the get_and_update and increment calls do either an update or a set depending on whether
-  # the key existed in the cache before the operation.
-  defp process_action(action, { status, _value }) when action in [ :decr, :incr ],
-    do: [ { action, status, 1 }, { :global, status == :ok && :updateCount || :setCount, 1 } ]
-
-  # Any TTL based changes just carry out updates inside the cache, so we increment the update count
-  # in the global namespace.
-  defp process_action(action, { _status, value }) when action in [ :expire, :expire_at, :persist, :refresh ] do
-    [ { action, value, 1 } ] ++ if value do
-      [ { :global , :updateCount, 1 } ]
-    else
-      []
-    end
-  end
-
-  # Catch all stats should simply increment the call count by 1.
-  defp process_action(action, _result),
-    do: [ { action, :calls, 1 } ]
-
-  # Increments a given set of statistics by a given amount. If the amount is not
-  # provided, we default to a value of 1. We accept a list of fields to work with
-  # as it's not unusual for an action to increment various fields at the same time.
-  defp increment({ action, fields, amount }, stats),
-    do: increment(stats, action, List.wrap(fields), amount)
-  defp increment(stats, action, fields, amount \\ 1) do
-    { _, updated_stats } = Map.get_and_update(stats, action, fn(inner_stats) ->
       action_stats =
-        fields
-        |> List.wrap
-        |> Enum.reduce(inner_stats || %{}, fn(key, acc) ->
-            Map.update(acc, key, amount, &(amount + &1))
-           end)
+        Enum.reduce(fields_list, inner || %{}, fn(key, acc) ->
+          Map.update(acc, key, amount, &(amount + &1))
+        end)
 
       { nil, action_stats }
     end)
     updated_stats
   end
 
-  # Converts the result of a request into the type of count it should increment
-  # in the global statistics namespace.
+  # Normalizes a status atom into global fields.
+  #
+  # This is used to get a list of global fields to increment
+  # based on the status returned by an action as it's always
+  # the same behaviour regardless of the action executed.
   defp normalize_status(:ok),
     do: [ :hitCount ]
   defp normalize_status(:missing),

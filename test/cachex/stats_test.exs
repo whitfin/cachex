@@ -14,7 +14,7 @@ defmodule Cachex.StatsTest do
     payload = { :ok, 5 }
 
     # registry the payload
-    results = Cachex.Stats.register(:clear, payload, stats)
+    { :ok, results } = Cachex.Stats.handle_notify({ :clear, [] }, payload, stats)
 
     # verify the results
     assert(results == %{
@@ -40,10 +40,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :ok, false }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:del, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :del, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:del, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :del, [] }, payload2, results1)
 
     # verify the results
     assert(results2 == %{
@@ -70,10 +70,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :ok, false }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:exists?, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :exists?, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:exists?, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :exists?, [] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
@@ -100,10 +100,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :missing, nil }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:get, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :get, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:get, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :get, [] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
@@ -133,16 +133,16 @@ defmodule Cachex.StatsTest do
     payload4 = { :ignore, "na" }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:fetch, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :fetch, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:fetch, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :fetch, [] }, payload2, results1)
 
     # register the third payload
-    results3 = Cachex.Stats.register(:fetch, payload3, results2)
+    { :ok, results3 } = Cachex.Stats.handle_notify({ :fetch, [] }, payload3, results2)
 
     # register the fourth payload
-    results4 = Cachex.Stats.register(:fetch, payload4, results3)
+    { :ok, results4 } = Cachex.Stats.handle_notify({ :fetch, [] }, payload4, results3)
 
     # verify the combined results
     assert(results4 == %{
@@ -173,7 +173,7 @@ defmodule Cachex.StatsTest do
     payload = { :ok, 5 }
 
     # register the payload
-    results = Cachex.Stats.register(:purge, payload, stats)
+    { :ok, results } = Cachex.Stats.handle_notify({ :purge, [] }, payload, stats)
 
     # verify the combined results
     assert(results == %{
@@ -199,10 +199,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :ok, false }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:set, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :set, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:set, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :set, [] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
@@ -230,10 +230,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :missing, nil }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:take, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :take, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:take, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :take, [] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
@@ -262,10 +262,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :missing, nil }
 
     # register the first payload
-    results1 = Cachex.Stats.register(:ttl, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :ttl, [] }, payload1, stats)
 
     # register the second payload
-    results2 = Cachex.Stats.register(:ttl, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :ttl, [] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
@@ -293,16 +293,16 @@ defmodule Cachex.StatsTest do
     payload2 = { :missing, false }
 
     # register the results
-    new_stats = Cachex.Stats.register(:expire,    payload1,  stats)
-    new_stats = Cachex.Stats.register(:expire,    payload2,  new_stats)
-    new_stats = Cachex.Stats.register(:expire_at, payload1,  new_stats)
-    new_stats = Cachex.Stats.register(:expire_at, payload2,  new_stats)
-    new_stats = Cachex.Stats.register(:persist,   payload1,  new_stats)
-    new_stats = Cachex.Stats.register(:persist,   payload2,  new_stats)
-    new_stats = Cachex.Stats.register(:refresh,   payload1,  new_stats)
-    new_stats = Cachex.Stats.register(:refresh,   payload2,  new_stats)
-    new_stats = Cachex.Stats.register(:update,    payload1,  new_stats)
-    new_stats = Cachex.Stats.register(:update,    payload2,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :expire, [] },    payload1,  stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :expire, [] },    payload2,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :expire_at, [] }, payload1,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :expire_at, [] }, payload2,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :persist, [] },   payload1,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :persist, [] },   payload2,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :refresh, [] },   payload1,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :refresh, [] },   payload2,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :update, [] },    payload1,  new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :update, [] },    payload2,  new_stats)
 
     # verify the combined results
     assert(new_stats == %{
@@ -346,10 +346,10 @@ defmodule Cachex.StatsTest do
     payload2 = { :missing, false }
 
     # register the results
-    new_stats = Cachex.Stats.register(:incr, payload1, stats)
-    new_stats = Cachex.Stats.register(:incr, payload2, new_stats)
-    new_stats = Cachex.Stats.register(:decr, payload1, new_stats)
-    new_stats = Cachex.Stats.register(:decr, payload2, new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :incr, [] }, payload1, stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :incr, [] }, payload2, new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :decr, [] }, payload1, new_stats)
+    { :ok, new_stats } = Cachex.Stats.handle_notify({ :decr, [] }, payload2, new_stats)
 
     # verify the combined results
     assert(new_stats == %{
@@ -369,4 +369,31 @@ defmodule Cachex.StatsTest do
     })
   end
 
+  # There's nothing more to test inside this hook beyond the ability to retrieve
+  # the current state of the hook, and validate what it looks like after a couple
+  # of stats have been incremented. Incrementation is done via the Cachex.Stats
+  # module, so please refer to those tests for any issues with counters.
+  test "retrieving the state of a stats hook" do
+    # create a test cache
+    cache = Helper.create_cache([ stats: true ])
+
+    # retrieve the current time
+    ctime = now()
+
+    # carry out some cache operations
+    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok,    1 } = Cachex.get(cache, 1)
+
+    # generate the name of the stats hook
+    sname = name(cache, :stats)
+
+    # attempt to retrieve the cache stats
+    stats = GenServer.call(sname, :retrieve)
+
+    # verify the state of the stats
+    assert_in_delta(stats.meta.creationDate, ctime, 5)
+    assert(stats.get == %{ ok: 1 })
+    assert(stats.global == %{ hitCount: 1, opCount: 2, setCount: 1 })
+    assert(stats.set == %{ true: 1 })
+  end
 end

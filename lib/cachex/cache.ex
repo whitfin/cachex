@@ -160,7 +160,7 @@ defmodule Cachex.Cache do
       case !!options[:stats] do
         false -> []
         true  -> [ hook(
-          module: Cachex.Hook.Stats,
+          module: Cachex.Stats,
           options: [ name: name(name, :stats) ]
         ) ]
       end,

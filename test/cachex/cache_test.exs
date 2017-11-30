@@ -220,7 +220,7 @@ defmodule Cachex.CacheTest do
 
     # create a stats hook
     hook = hook(
-      module: Cachex.Hook.Stats,
+      module: Cachex.Stats,
       options: [ name: name(name, :stats) ]
     )
 

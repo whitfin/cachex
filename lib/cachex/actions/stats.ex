@@ -24,7 +24,7 @@ defmodule Cachex.Actions.Stats do
   end
 
   # Returns true if the provided value is a statistics hook.
-  defp find_stats_hooks(hook(module: Cachex.Hook.Stats)),
+  defp find_stats_hooks(hook(module: Cachex.Stats)),
     do: true
   defp find_stats_hooks(_hook),
     do: false
