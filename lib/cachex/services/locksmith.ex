@@ -1,21 +1,22 @@
 defmodule Cachex.Services.Locksmith do
-  @moduledoc false
-  # Locking service in charge of table transactions.
-  #
-  # This module acts as a global lock table against all cache. This is due to the
-  # fact that ETS tables are fairly expensive to construct if they're only going
-  # to store a few keys.
-  #
-  # Due to this we have a single global table in charge of locks, and we tag just
-  # the key in the table with the name of the cache it's associated with. This
-  # keyspace will typically be very small, so there should be almost no impact to
-  # operating in this way (except that we only have a single ETS table rather than
-  # a potentially large N).
-  #
-  # It should be noted that the behaviour in this module could easily live as a
-  # GenServer if it weren't for the speedup gained when using ETS. When using an
-  # ETS table, checking for a lock is typically 0.3-0.5µs/op whereas a call to a
-  # server process is roughly 10x this (due to the process interactions).
+  @moduledoc """
+  Locking service in charge of table transactions.
+
+  This module acts as a global lock table against all cache. This is due to the
+  fact that ETS tables are fairly expensive to construct if they're only going
+  to store a few keys.
+
+  Due to this we have a single global table in charge of locks, and we tag just
+  the key in the table with the name of the cache it's associated with. This
+  keyspace will typically be very small, so there should be almost no impact to
+  operating in this way (except that we only have a single ETS table rather than
+  a potentially large N).
+
+  It should be noted that the behaviour in this module could easily live as a
+  GenServer if it weren't for the speedup gained when using ETS. When using an
+  ETS table, checking for a lock is typically 0.3-0.5µs/op whereas a call to a
+  server process is roughly 10x this (due to the process interactions).
+  """
   alias Cachex.Services.Locksmith.Queue
 
   # we need records

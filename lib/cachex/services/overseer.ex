@@ -1,16 +1,17 @@
 defmodule Cachex.Services.Overseer do
-  @moduledoc false
-  # Service module overseeing the persistence of cache records.
-  #
-  # This module controls the state of caches being handled by Cachex. This was
-  # originally part of an experiment to see if it was viable to remove a process
-  # which backed each cache to avoid bottlenecking scenarios and grant the develop
-  # finer control over their concurrency.
-  #
-  # The result was much higher throughput with better flexibility, and so we kept
-  # this new design. Cache states are stored in a single ETS table backing this
-  # module and all cache calls will be routed through here first to ensure their
-  # state is up to date.
+  @moduledoc """
+  Service module overseeing the persistence of cache records.
+
+  This module controls the state of caches being handled by Cachex. This was
+  originally part of an experiment to see if it was viable to remove a process
+  which backed each cache to avoid bottlenecking scenarios and grant the develop
+  finer control over their concurrency.
+
+  The result was much higher throughput with better flexibility, and so we kept
+  this new design. Cache states are stored in a single ETS table backing this
+  module and all cache calls will be routed through here first to ensure their
+  state is up to date.
+  """
   import Cachex.Errors
   import Cachex.Spec
 

@@ -1,15 +1,16 @@
 defmodule Cachex.Services.Janitor do
-  @moduledoc false
-  # Expiration service to clean up expired cache records periodically.
-  #
-  # The Janitor provides the main expiration cleanup for Cachex, providing a
-  # very basic scheduler to repeatedly cleanup cache tables for all expired
-  # entries.
-  #
-  # This runs in a separate process to avoid any potential overhead in for
-  # a user, but uses existing functions in the API so manual cleanup is
-  # possible. It's possible that certain cleanups will result in full table
-  # scans, so it should be expected that this can take a while to execute.
+  @moduledoc """
+  Expiration service to clean up expired cache records periodically.
+
+  The Janitor provides the main expiration cleanup for Cachex, providing a
+  very basic scheduler to repeatedly cleanup cache tables for all expired
+  entries.
+
+  This runs in a separate process to avoid any potential overhead in for
+  a user, but uses existing functions in the API so manual cleanup is
+  possible. It's possible that certain cleanups will result in full table
+  scans, so it should be expected that this can take a while to execute.
+  """
   use GenServer
 
   # import parent macros

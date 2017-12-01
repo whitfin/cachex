@@ -1,23 +1,24 @@
 defmodule Cachex.Policy.LRW do
-  @moduledoc false
-  # Least recently written eviction policy for Cachex.
-  #
-  # This module provides an eviction policy for Cachex, evicting the least-recently
-  # written entries from the cache. This is determined by the touched time inside
-  # each cache record, which means that this eviction is almost zero cost, consuming
-  # no additional memory beyond that of the running GenServer.
-  #
-  # This policy accepts a reclaim space to determine how much of the cache to evict,
-  # allowing the user to determine exactly how much they'd like to trim in the event
-  # they've gone over the limit.
-  #
-  # The `:batch_size` option can be set in the limit options to dictate how many
-  # entries should be removed at once by this policy. This will default to a batch
-  # size of 100 entries at a time.
-  #
-  # This eviction is relatively fast, and should keep the cache below bounds at most
-  # times. Note that many writes in a very short amount of time can flood the cache,
-  # but it should recover given a few seconds.
+  @moduledoc """
+  Least recently written eviction policy for Cachex.
+
+  This module provides an eviction policy for Cachex, evicting the least-recently
+  written entries from the cache. This is determined by the touched time inside
+  each cache record, which means that this eviction is almost zero cost, consuming
+  no additional memory beyond that of the running GenServer.
+
+  This policy accepts a reclaim space to determine how much of the cache to evict,
+  allowing the user to determine exactly how much they'd like to trim in the event
+  they've gone over the limit.
+
+  The `:batch_size` option can be set in the limit options to dictate how many
+  entries should be removed at once by this policy. This will default to a batch
+  size of 100 entries at a time.
+
+  This eviction is relatively fast, and should keep the cache below bounds at most
+  times. Note that many writes in a very short amount of time can flood the cache,
+  but it should recover given a few seconds.
+  """
   use Cachex.Hook
   use Cachex.Policy
 
