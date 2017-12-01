@@ -13,6 +13,10 @@ defmodule Cachex.Actions.Get do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Retrieves a value from inside the cache.
 

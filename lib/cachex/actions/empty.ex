@@ -12,6 +12,10 @@ defmodule Cachex.Actions.Empty do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Checks whether any entries exist in the cache.
 

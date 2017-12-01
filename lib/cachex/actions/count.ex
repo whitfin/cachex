@@ -11,6 +11,10 @@ defmodule Cachex.Actions.Count do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Counts the number of items in a cache.
 

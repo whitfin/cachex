@@ -14,6 +14,10 @@ defmodule Cachex.Actions.Ttl do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Retrieves the remaining TTL for a cache item.
 

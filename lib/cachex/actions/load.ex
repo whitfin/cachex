@@ -12,6 +12,10 @@ defmodule Cachex.Actions.Load do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Loads a previously dumped cache from a file.
 

@@ -15,6 +15,10 @@ defmodule Cachex.Actions.Incr do
   import Cachex.Errors
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Increments a numeric value inside the cache.
 
@@ -44,6 +48,10 @@ defmodule Cachex.Actions.Incr do
       end
     end)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Handles the normalization of an incremented value.
   #

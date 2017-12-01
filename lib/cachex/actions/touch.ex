@@ -15,6 +15,10 @@ defmodule Cachex.Actions.Touch do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Updates the touch time of an entry inside a cache.
 
@@ -30,6 +34,10 @@ defmodule Cachex.Actions.Touch do
       |> handle_ttl(cache, key)
     end)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Handles the result of the TTL call.
   #

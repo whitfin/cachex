@@ -376,6 +376,7 @@ defmodule Cachex.StatsTest do
   test "retrieving the state of a stats hook" do
     # create a test cache
     cache = Helper.create_cache([ stats: true ])
+    cache = Services.Overseer.retrieve(cache)
 
     # retrieve the current time
     ctime = now()
@@ -384,11 +385,8 @@ defmodule Cachex.StatsTest do
     { :ok, true } = Cachex.set(cache, 1, 1)
     { :ok,    1 } = Cachex.get(cache, 1)
 
-    # generate the name of the stats hook
-    sname = name(cache, :stats)
-
     # attempt to retrieve the cache stats
-    stats = GenServer.call(sname, :retrieve)
+    { :ok, stats } = Cachex.Stats.retrieve(cache)
 
     # verify the state of the stats
     assert_in_delta(stats.meta.creationDate, ctime, 5)

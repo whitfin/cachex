@@ -16,6 +16,10 @@ defmodule Cachex.Actions.Refresh do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Refreshes an expiration on a cache entry.
 

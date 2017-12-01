@@ -73,9 +73,9 @@ defmodule Cachex.SpecTest do
   end
 
   test "nillable value verification" do
-    assert test_macro(&valid_nillable?/2, [   nil, &is_binary/1 ])
-    assert test_macro(&valid_nillable?/2, [ "key", &is_binary/1 ])
-    refute test_macro(&valid_nillable?/2, [ "key",   &is_list/1 ])
+    assert test_macro(&nillable?/2, [   nil, &is_binary/1 ])
+    assert test_macro(&nillable?/2, [ "key", &is_binary/1 ])
+    refute test_macro(&nillable?/2, [ "key",   &is_list/1 ])
   end
 
   test "negative integer validation" do

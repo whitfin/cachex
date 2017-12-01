@@ -18,6 +18,10 @@ defmodule Cachex.Actions.Fetch do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Retrieves an entry from a cache, falling back to fetch fetching on a miss.
 
@@ -36,6 +40,10 @@ defmodule Cachex.Actions.Fetch do
       |> handle_commit(cache, key)
     end
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Executes a fallback based on the arity of the fallback function.
   #

@@ -14,6 +14,10 @@ defmodule Cachex.Actions.GetAndUpdate do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Retrieves an entry and updates it inside the cache.
 
@@ -36,6 +40,10 @@ defmodule Cachex.Actions.GetAndUpdate do
       |> handle_commit(cache, key, status)
     end)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Handles a commit Tuple to ensure persistence.
   #

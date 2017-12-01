@@ -14,6 +14,10 @@ defmodule Cachex.Actions.Reset do
   # add the specification
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Resets the internal cache state.
 
@@ -39,6 +43,10 @@ defmodule Cachex.Actions.Reset do
       { :ok, true }
     end)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Handles reset of the backing cache table.
   #

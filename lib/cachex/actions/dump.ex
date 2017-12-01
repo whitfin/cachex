@@ -14,6 +14,10 @@ defmodule Cachex.Actions.Dump do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Dumps a cache to disk at the given location.
 

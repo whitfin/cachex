@@ -12,6 +12,10 @@ defmodule Cachex.Actions.Transaction do
   # import records
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Executes a transaction against the cache.
 

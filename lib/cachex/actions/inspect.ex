@@ -23,6 +23,10 @@ defmodule Cachex.Actions.Inspect do
                   { :memory, :binary } | { :memory, :words } |
                   { :record,     any } |   :cache
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Inspect various things about a cache.
 

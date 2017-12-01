@@ -1,14 +1,15 @@
 defmodule Cachex.Spec do
-  @moduledoc false
-  # Specification definitions based around records and utilities.
-  #
-  # This serves as the "parent" header file for Cachex, where all records
-  # and macros are located. It's designed as a single inclusion file which
-  # provides everything you might need to implement features in Cachex, and
-  # indeed when interacting with Cachex.
-  #
-  # Most macros in here should be treated as reserved for internal use only,
-  # but those based around records can be freely used by consumers of Cachex.
+  @moduledoc """
+  Specification definitions based around records and utilities.
+
+  This serves as the "parent" header file for Cachex, where all records
+  and macros are located. It's designed as a single inclusion file which
+  provides everything you might need to implement features in Cachex, and
+  indeed when interacting with Cachex.
+
+  Most macros in here should be treated as reserved for internal use only,
+  but those based around records can be freely used by consumers of Cachex.
+  """
   import Record
 
   #############
@@ -321,18 +322,18 @@ defmodule Cachex.Spec do
   #############
 
   @doc """
-  Determines if a value is a positive integer.
-  """
-  @spec is_positive_integer(integer) :: boolean
-  defmacro is_positive_integer(integer),
-    do: quote(do: is_integer(unquote(integer)) and unquote(integer) > 0)
-
-  @doc """
   Determines if a value is a negative integer.
   """
   @spec is_negative_integer(integer) :: boolean
   defmacro is_negative_integer(integer),
     do: quote(do: is_integer(unquote(integer)) and unquote(integer) < 0)
+
+  @doc """
+  Determines if a value is a positive integer.
+  """
+  @spec is_positive_integer(integer) :: boolean
+  defmacro is_positive_integer(integer),
+    do: quote(do: is_integer(unquote(integer)) and unquote(integer) > 0)
 
   @doc """
   Generates a named atom for a cache, using the provided suffix.
@@ -354,8 +355,8 @@ defmodule Cachex.Spec do
   @doc """
   Checks if a nillable value satisfies a provided condition.
   """
-  @spec valid_nillable?(any, (any -> boolean)) :: boolean
-  defmacro valid_nillable?(nillable, condition),
+  @spec nillable?(any, (any -> boolean)) :: boolean
+  defmacro nillable?(nillable, condition),
     do: quote(do: is_nil(unquote(nillable)) or apply(unquote(condition), [ unquote(nillable) ]))
 
   @doc """
@@ -397,8 +398,6 @@ defmodule Cachex.Spec do
     do: for pair <- updates,
       do: quote(do: entry_mod(unquote(pair)))
 
-  # update generation with touch time
-
   @doc """
   Generates a list of ETS modification Tuples with an updated touch time.
 
@@ -409,8 +408,6 @@ defmodule Cachex.Spec do
   @spec entry_mod_now([ { atom, any } ]) :: [ { integer, any } ]
   defmacro entry_mod_now(pairs \\ []),
     do: quote(do: entry_mod(unquote([ touched: quote(do: now()) ] ++ pairs)))
-
-  # generate entry with default touch time
 
   @doc """
   Creates an entry record with an updated touch time.

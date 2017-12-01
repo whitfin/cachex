@@ -17,6 +17,10 @@ defmodule Cachex.Actions.Invoke do
   import Cachex.Errors
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Invokes a custom command on a cache.
 
@@ -30,6 +34,10 @@ defmodule Cachex.Actions.Invoke do
     |> Map.get(cmd)
     |> invoke(cache, key)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Executes a read command on the backing cache table.
   #

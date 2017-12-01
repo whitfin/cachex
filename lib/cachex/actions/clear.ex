@@ -12,6 +12,10 @@ defmodule Cachex.Actions.Clear do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Clears all items in a cache.
 
@@ -33,6 +37,10 @@ defmodule Cachex.Actions.Clear do
       evicted
     end)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Handles the result of a size() call.
   #

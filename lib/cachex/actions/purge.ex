@@ -13,6 +13,10 @@ defmodule Cachex.Actions.Purge do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Purges all expired records from the cache.
 

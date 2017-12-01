@@ -1,22 +1,75 @@
 defmodule Cachex.Actions do
-  @moduledoc false
-  # This module contains common actions required to implement cache actions, such
-  # as typical CRUD-style operations on records. This module also provides the
-  # `defaction` macro which enables the implementation of cache actions without
-  # having to manually take care of things such as Hook notifications. This used
-  # to be a simple function call (and you would pass the body as an anonymous
-  # function), but it makes sense to macro to gain that extra little piece of
-  # performance.
+  @moduledoc """
+  Parent actions module for cache interactions.
 
-  # we need some constants
+  This module contains foundation actions required to implement cache actions,
+  such as typical CRUD style operations on cache entries. It also provides the
+  `defaction/2` macro which enables command definition which injects notifications
+  for cache hooks.
+  """
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Services
+  alias Cachex.Services.Informant
   alias Cachex.Util
 
-  # alias services
-  alias Services.Informant
+  ##############
+  # Public API #
+  ##############
+
+  @doc """
+  Retrieves an entry from a cache.
+
+  If the entry does not exist, a `nil` value will be returned. Likewise
+  if the  entry has expired, we lazily remove it (if enabled) and return
+  a `nil` value.
+
+  This will return an instance of an entry record as defined in the main
+  `Cachex.Spec` module, rather than just the raw value.
+  """
+  @spec read(Spec.cache, any) :: Spec.entry | nil
+  def read(cache(name: name) = cache, key) do
+    case :ets.lookup(name, key) do
+      [] ->
+        nil
+      [ entry ] ->
+        case Util.has_expired?(cache, entry) do
+          false ->
+            entry
+          true  ->
+            __MODULE__.Del.execute(cache, key, const(:purge_override))
+            nil
+        end
+    end
+  end
+
+  @doc """
+  Updates a collection of fields inside a cache entry.
+
+  This is done in a single call due to the use of `:ets.update_element/3` which
+  allows multiple changes in a group. This will return a boolean to represent
+  whether the update was successful or not.
+
+  Note that updates are atomic; either all updates will take place, or none will.
+  """
+  @spec update(Spec.cache, any, [ tuple ]) :: { :ok, boolean }
+  def update(cache(name: name), key, changes) do
+    case :ets.update_element(name, key, changes) do
+      true  -> { :ok, true }
+      false -> { :missing, false }
+    end
+  end
+
+  @doc """
+  Writes a new entry into a cache.
+  """
+  @spec write(Spec.cache, Spec.entry) :: { :ok, boolean }
+  def write(cache(name: name), entry() = entry),
+    do: { :ok, :ets.insert(name, entry) }
+
+  ##########
+  # Macros #
+  ##########
 
   @doc """
   This macro provides a base Action template.
@@ -27,7 +80,7 @@ defmodule Cachex.Actions do
   in the action declarations and notifications will be handled automatically.
 
   It should be noted that the function name will be `execute` with the defined
-  arity. This is because it makes little sense to do `Cachex.Actions.Ttl.ttl()`
+  arity. This is because it makes little sense to do `Cachex.Actions.Ttl.ttl()`,
   for example.
   """
   defmacro defaction({ name, _line, [ _cache | stateless_args ] = arguments }, do: body) do
@@ -60,61 +113,4 @@ defmodule Cachex.Actions do
       end
     end
   end
-
-  @doc """
-  Reads back a key from the cache.
-
-  If the key does not exist we return a `nil` value. If the key has expired, we
-  delete it from the cache using the `:purge` action as a notification.
-  """
-  @spec read(cache :: Spec.cache, key :: any) :: Spec.entry | nil
-  def read(cache(name: name) = cache, key) do
-    name
-    |> :ets.lookup(key)
-    |> handle_read(cache)
-  end
-
-  @doc """
-  Updates a number of fields in a record inside the cache, by key.
-
-  For ETS, we do this entirely in a single sweep. For Mnesia, we need to use a
-  two-step get/update from the Worker interface to accomplish the same. We then
-  use a reduction to modify the Tuple.
-  """
-  @spec update(cache :: Spec.cache, key :: any, changes :: [{}]) :: { :ok, true | false }
-  def update(cache(name: name), key, changes) do
-    name
-    |> :ets.update_element(key, changes)
-    |> handle_update
-  end
-
-  @doc """
-  Writes a record into the cache, and returns a result signifying whether the
-  write was successful or not.
-  """
-  @spec write(cache :: Spec.cache, entry :: Spec.entry) :: { :ok, true | false }
-  def write(cache(name: name), entry() = entry),
-    do: { :ok, :ets.insert(name, entry) }
-
-  # Handles the reesult from a read action in order to handle any expirations
-  # set against the key. If the key has expired, we purge it immediately to avoid
-  # any issues with consistency. If the record is valid, we just return it as is.
-  defp handle_read([ entry(key: key, touched: touched, ttl: ttl) = entry ], cache) do
-    if Util.has_expired?(cache, touched, ttl) do
-      __MODULE__.Del.execute(cache, key, const(:purge_override))
-      nil
-    else
-      entry
-    end
-  end
-  defp handle_read(_missing, _cache),
-    do: nil
-
-  # Handles an update result, converting a falsey result into a Tuple tagged with
-  # the :missing atom. If the result is true, we just return a Tuple tagged with
-  # the :ok atom.
-  defp handle_update(true),
-    do: { :ok, true }
-  defp handle_update(false),
-    do: { :missing, false }
 end

@@ -38,9 +38,9 @@ defmodule Cachex do
 
   # add some aliases
   alias Cachex.Actions
-  alias Cachex.Cache
   alias Cachex.Errors
   alias Cachex.ExecutionError
+  alias Cachex.Options
   alias Cachex.Services
 
   # alias any services
@@ -1203,7 +1203,7 @@ defmodule Cachex do
   # meaning that the Supervisor would crash and restart rather than returning
   # an error message explaining what had happened.
   defp setup_env(name, options) when is_list(options) do
-    with { :ok, cache } <- Cache.create(name, options) do
+    with { :ok, cache } <- Options.parse(name, options) do
       try do
         :ets.new(name, [ :named_table | const(:table_options) ])
         :ets.delete(name)

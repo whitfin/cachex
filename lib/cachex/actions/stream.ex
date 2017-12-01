@@ -16,6 +16,10 @@ defmodule Cachex.Actions.Stream do
   # our test record for testing matches
   @test { "key", now(), 1000, "value" }
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Creates a new `Stream` for a given cache.
 
@@ -46,6 +50,10 @@ defmodule Cachex.Actions.Stream do
         error(:invalid_match)
     end
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Initializes a `Stream` resource from an underlying ETS cursor.
   #

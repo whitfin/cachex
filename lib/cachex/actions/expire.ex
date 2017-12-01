@@ -14,6 +14,10 @@ defmodule Cachex.Actions.Expire do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Sets the expiration time on a given cache entry.
 
@@ -34,6 +38,10 @@ defmodule Cachex.Actions.Expire do
       do_expire(cache, key, expiration)
     end)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Updates/removes an expiration based on the provided expiration.
   #

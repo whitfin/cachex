@@ -16,6 +16,10 @@ defmodule Cachex.Actions.Take do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Takes an entry from a cache.
 
@@ -36,13 +40,17 @@ defmodule Cachex.Actions.Take do
     end)
   end
 
+  ###############
+  # Private API #
+  ###############
+
   # Handles the result of taking a key from the backing table.
   #
   # If an entry comes back from the call, we check for expiration before returning
   # back to the caller. If the entry has expired, we broadcast the expiry (as the
   # entry was already removed when we took if from the cache).
-  defp handle_take([ entry(touched: touched, ttl: ttl, value: value) ], cache) do
-    case Util.has_expired?(cache, touched, ttl) do
+  defp handle_take([ entry(value: value) = entry ], cache) do
+    case Util.has_expired?(cache, entry) do
       false ->
         { :ok, value }
       true ->

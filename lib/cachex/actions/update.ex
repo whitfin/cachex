@@ -14,6 +14,10 @@ defmodule Cachex.Actions.Update do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Updates an entry inside the cache.
 

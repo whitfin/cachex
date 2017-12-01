@@ -8,6 +8,10 @@ defmodule Cachex.Actions.Del do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Removes an entry from a cache by key.
 

@@ -1,42 +1,59 @@
 defmodule Cachex.Util do
   @moduledoc false
-  # A small collection of utilities for use throughout the library. Mainly things
-  # to do with response formatting and generally just common functions.
+  # Small utility module for common functions use through Cachex.
+  #
+  # This is 100% internal API, never use it from outside.
   import Cachex.Spec
 
-  # memory size suffixes
-  @sibs ["B", "KiB", "MiB", "GiB", "TiB"]
+  # pre-calculated memory size
+  @memory_exponent :math.log(1024)
 
-  # tags which allow Set actions
-  @stgs [ :missing, :new ]
+  # internal map of memory suffixes
+  @memory_suffixes %{
+    0.0 => "B",
+    1.0 => "KiB",
+    2.0 => "MiB",
+    3.0 => "GiB",
+    4.0 => "TiB"
+  }
+
+  # the number of suffixes stored (not including B)
+  @memory_sufcount map_size(@memory_suffixes) - 1 / 1
+
+  ##############
+  # Public API #
+  ##############
 
   @doc """
-  Converts a number of memory bytes to a binary representation.
+  Converts a number of bytes to a binary representation.
 
-  Several things to note here:
-
-    1. We only support up to TiB. Anything over will just group under TiB. For
-      example, a PiB would be `16384.00 TiB`.
-    2. The `/ 1` in the format call is to avoid an argument error, in case it
-      hasn't been floated already - e.g. if `size < 1024`.
-    3. The list weirdness with `next` is in order to support #1 above. Probably
-      more efficient ways, but that seems easiest for now.
-
+  Just to avoid confusion, binary here means human readable. We only support up
+  to TiB. Anything over will just group under TiB. For example, a PiB would be
+  `16384.00 TiB`.
   """
-  def bytes_to_readable(size, sibs \\ @sibs)
-  def bytes_to_readable(size, [ _, next |tail ]) when size >= 1024,
-    do: bytes_to_readable(size / 1024, [ next | tail ])
-  def bytes_to_readable(size, [ head | _ ]) do
+  @spec bytes_to_readable(integer) :: binary
+  def bytes_to_readable(bytes) when is_integer(bytes) do
+    index =
+      bytes
+      |> :math.log
+      |> :erlang./(@memory_exponent)
+      |> :math.floor
+      |> :erlang.min(@memory_sufcount)
+
+    abbrev = bytes / :math.pow(1024, index)
+    suffix = Map.get(@memory_suffixes, index)
+
     "~.2f ~s"
-    |> :io_lib.format([size / 1, head])
+    |> :io_lib.format([ abbrev, suffix ])
     |> IO.iodata_to_binary
   end
 
   @doc """
-  Creates a match spec for the cache using the provided rules, and returning the
-  provided return values. This is just shorthand for writing the same boilerplate
-  spec over and over again.
+  Creates a match specification using the provided rules.
+
+  This is a shorthand to write a cache-compatible ETS match.
   """
+  @spec create_match(any, any) :: [ { { }, [ any ], [ any ] }]
   def create_match(return, where) do
     nwhere = case where do
       [ where ] -> where
@@ -53,21 +70,25 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Pulls the expiration for a given cache/expiration combination.
+  Pulls an expiration associated with an entry.
   """
+  @spec get_expiration(Spec.cache, integer) :: integer
   def get_expiration(cache(expiration: expiration(default: default)), nil),
     do: default
   def get_expiration(_cache, expiration),
     do: expiration
 
   @doc """
-  Pulls a value from a set of options. If the value satisfies the condition passed
-  in, we return it. Otherwise we return a default value.
+  Retrieves a conditional option from a Keyword List.
+
+  If the value satisfies the condition provided, it will be returned. Otherwise
+  the default value provided is returned instead. Used for basic validations.
   """
+  @spec get_opt(Keyword.t, atom, (any -> boolean), any) :: any
   def get_opt(options, key, condition, default \\ nil) do
     opt_transform(options, key, fn(val) ->
       try do
-        if condition.(val), do: val, else: default
+        condition.(val) && val || default
       rescue
         _ -> default
       end
@@ -75,30 +96,42 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Small utility to figure out if a document has expired based on the last touched
-  time and the TTL of the document.
+  Determines if a cache entry has expired.
+
+  This will take cache lazy expiration settings into account.
   """
-  def has_expired?(cache(expiration: expiration(lazy: lazy)), touched, ttl),
-    do: lazy and has_expired?(touched, ttl)
-  def has_expired?(touched, ttl) when is_number(ttl),
+  @spec has_expired?(Spec.cache, Spec.entry) :: boolean
+  def has_expired?(cache(expiration: expiration(lazy: lazy)), entry() = entry),
+    do: lazy and has_expired?(entry)
+
+  @doc """
+  Determines if a cache entry has expired.
+
+  This will not cache lazy expiration settings into account.
+  """
+  @spec has_expired?(Spec.entry) :: boolean
+  def has_expired?(entry(touched: touched, ttl: ttl)) when is_number(ttl),
     do: touched + ttl < now()
-  def has_expired?(_touched, _ttl),
+  def has_expired?(_entry),
     do: false
 
   @doc """
-  Normalizes a commit result to determine whether we're going to signal to
-  commit the changes to the cache, or simply ignore the changes and return.
+  Normalizes a commit result to a Tuple tagged with `:commit` or `:ignore`.
   """
-  def normalize_commit({ :commit, _val } = val),
-    do: val
-  def normalize_commit({ :ignore, _val } = val),
-    do: val
-  def normalize_commit(val),
-    do: { :commit, val }
+  @spec normalize_commit({ :commit | :ignore, any } | any) :: { :commit | :ignore, any }
+  def normalize_commit(value) do
+    case value do
+      { status, _val } when status in [ :commit, :ignore ] ->
+        value
+      ^value ->
+        { :commit, value }
+    end
+  end
 
   @doc """
-  Transforms an option value from inside a Keyword list using a provided transformer.
+  Transforms and returns an option inside a Keyword List.
   """
+  @spec opt_transform(Keyword.t, atom, (any -> any)) :: any
   def opt_transform(options, key, transformer) do
     options
     |> Keyword.get(key)
@@ -106,9 +139,11 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Returns a selection to return the designated value for all rows. Enables things
-  like finding all stored keys and all stored values.
+  Returns a match for all entries in a table.
+
+  This allows you to customize what is returned using the return param.
   """
+  @spec retrieve_all_rows([ any ]) :: [ { { }, [ any ], [ any ] }]
   def retrieve_all_rows(return) do
     create_match(return, [
       {
@@ -120,8 +155,11 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Returns a selection to return the designated value for all expired rows.
+  Returns a match for all expired entries in a table.
+
+  This allows you to customize what is returned using the return param.
   """
+  @spec retrieve_expired_rows([ any ]) :: [ { { }, [ any ], [ any ] }]
   def retrieve_expired_rows(return) do
     create_match(return, [
       {
@@ -133,18 +171,25 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Finds the module to use for a write action based on the provided tag.
-
-  If the tag is either `:missing` or `:new`, we return the Set action, otherwise
-  we return the Update action.
+  Returns the module used for a write based on a status tag.
   """
-  def write_mod(tag) when tag in @stgs,
+  @spec write_mod(atom) :: atom
+  def write_mod(tag) when tag in [ :missing, :new ],
     do: Cachex.Actions.Set
   def write_mod(_tag),
     do: Cachex.Actions.Update
 
-  # Used to normalize some quick select syntax to valid Erlang handles. Used when
-  # creating match specifications instead of having `$` atoms everywhere.
+  ###############
+  # Private API #
+  ###############
+
+  # Normalizes select syntax to valid Erlang handles.
+  #
+  # This is used to reference field names from an entry using the name from
+  # the entry record. This is a recursive normalization to function all the
+  # way down (as matches are arbitrarily nested).
+  #
+  # TODO: we need to kill this with fire at some point
   defp do_field_normalize(fields) when is_tuple(fields) do
     fields
     |> Tuple.to_list
@@ -152,13 +197,13 @@ defmodule Cachex.Util do
     |> List.to_tuple
   end
   defp do_field_normalize(:key),
-    do: :"$1"
+    do: :"$#{entry(:key)}"
   defp do_field_normalize(:value),
-    do: :"$4"
+    do: :"$#{entry(:value)}"
   defp do_field_normalize(:touched),
-    do: :"$2"
+    do: :"$#{entry(:touched)}"
   defp do_field_normalize(:ttl),
-    do: :"$3"
+    do: :"$#{entry(:ttl)}"
   defp do_field_normalize(field),
     do: field
 end

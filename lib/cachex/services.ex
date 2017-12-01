@@ -1,19 +1,22 @@
 defmodule Cachex.Services do
-  @moduledoc false
-  # Service specification provider for Cachex caches.
-  #
-  # Services can either exist for the global Cachex application or on
-  # a cache level. This module provides access to both in an attempt
-  # to group all logic into one place to make it easier to see exactly
-  # what exists against a cache and what doesn't.
+  @moduledoc """
+  Service specification provider for Cachex caches.
+
+  Services can either exist for the global Cachex application or on
+  a cache level. This module provides access to both in an attempt
+  to group all logic into one place to make it easier to see exactly
+  what exists against a cache and what doesn't.
+  """
   import Cachex.Spec
+  import Supervisor.Spec
 
   # add some aliases
   alias Cachex.Services
   alias Supervisor.Spec
 
-  # import supervisor stuff
-  import Supervisor.Spec
+  ##############
+  # Public API #
+  ##############
 
   @doc """
   Returns a list of workers of supervisors for the global app.
@@ -49,6 +52,10 @@ defmodule Cachex.Services do
     |> Enum.concat(janitor_spec(cache))
     |> Enum.concat(limit_spec(cache))
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Creates a specification for the Informant supervisor.
   #

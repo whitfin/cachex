@@ -59,9 +59,9 @@ defmodule Cachex.Policy.LRW do
       )
     ]
 
-  ##################
-  # Initialization #
-  ##################
+  ####################
+  # Server Callbacks #
+  ####################
 
   @doc false
   # Initializes this policy using the limit being enforced.
@@ -81,10 +81,6 @@ defmodule Cachex.Policy.LRW do
     { :ok, { max_size, trim_bound, batch_size, nil } }
   end
 
-  #############
-  # Listeners #
-  #############
-
   @doc false
   # Handles notification of a cache action.
   #
@@ -93,8 +89,7 @@ defmodule Cachex.Policy.LRW do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify({ action, _options }, { status, _value }, opts)
-  when status != :error do
+  def handle_notify({ action, _options }, { status, _value }, opts) when status != :error do
     if MapSet.member?(@additives, action) do
       enforce_bounds(opts)
     end

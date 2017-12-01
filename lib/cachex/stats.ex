@@ -1,16 +1,56 @@
 defmodule Cachex.Stats do
-  @moduledoc false
-  # Hook module to control the gathering of cache statistics.
-  #
-  # This implementation of statistics tracking uses a hook to run asynchronously
-  # against a cache (so that it doesn't impact those who don't want it). It executes
-  # as a post hook and provides a solid example of what a hook can/should look like.
-  #
-  # This hook has zero knowledge of the cache it belongs to; it keeps track of an
-  # internal set of statistics based on the provided messages. This means that it
-  # can also be mocked easily using raw server calls to `handle_notify/3`.
+  @moduledoc """
+  Hook module to control the gathering of cache statistics.
+
+  This implementation of statistics tracking uses a hook to run asynchronously
+  against a cache (so that it doesn't impact those who don't want it). It executes
+  as a post hook and provides a solid example of what a hook can/should look like.
+
+  This hook has zero knowledge of the cache it belongs to; it keeps track of an
+  internal set of statistics based on the provided messages. This means that it
+  can also be mocked easily using raw server calls to `handle_notify/3`.
+  """
   use Cachex.Hook
+
+  # need our macros
   import Cachex.Spec
+  import Cachex.Errors
+
+  ##############
+  # Public API #
+  ##############
+
+  @doc """
+  Determines if stats are enabled for a cache.
+  """
+  @spec enabled?(Spec.cache) :: boolean
+  def enabled?(cache() = cache),
+    do: locate(cache) != nil
+
+  @doc """
+  Locates a stats hook for a cache, if enabled.
+  """
+  @spec locate(Spec.cache) :: Spec.hook | nil
+  def locate(cache(hooks: hooks(post: post_hooks))),
+    do: Enum.find(post_hooks, &match?(hook(module: Cachex.Stats), &1))
+
+  @doc """
+  Retrieves the latest statistics for a cache.
+  """
+  @spec retrieve(Spec.cache) :: %{ }
+  def retrieve(cache(name: name) = cache) do
+    case enabled?(cache) do
+      false -> error(:stats_disabled)
+      true  ->
+        name
+        |> name(:stats)
+        |> GenServer.call(:retrieve)
+    end
+  end
+
+  ####################
+  # Server Callbacks #
+  ####################
 
   @doc false
   # Initializes this hook with a new stats container.
@@ -26,7 +66,7 @@ defmodule Cachex.Stats do
   #
   # This will just return the internal state to the calling process.
   def handle_call(:retrieve, _ctx, stats),
-    do: { :reply, stats, stats }
+    do: { :reply, { :ok, stats }, stats }
 
   @doc false
   # Registers an action against the stats container.
@@ -52,6 +92,10 @@ defmodule Cachex.Stats do
     |> increment(:global, :opCount, 1)
     |> wrap(:ok)
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Handles registration of `clear()` command calls.
   #

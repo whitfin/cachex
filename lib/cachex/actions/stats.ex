@@ -6,8 +6,12 @@ defmodule Cachex.Actions.Stats do
   the cache, either via the stats option at startup or by providing the
   hook manually.
   """
-  import Cachex.Errors
+  alias Cachex.Stats
   import Cachex.Spec
+
+  ##############
+  # Public API #
+  ##############
 
   @doc """
   Retrieves statistics for a cache.
@@ -18,39 +22,21 @@ defmodule Cachex.Actions.Stats do
   If the provided cache does not have statistics enabled, an error will be returned.
   """
   @spec execute(Spec.cache, Keyword.t) :: { :ok, %{ } } | { :error, :stats_disabled }
-  def execute(cache(hooks: hooks(post: post_hooks)), options) do
-    post_hooks
-    |> Enum.find(&find_stats_hooks/1)
-    |> handle_hook(options)
-  end
-
-  # Returns true if the provided value is a statistics hook.
-  defp find_stats_hooks(hook(module: Cachex.Stats)),
-    do: true
-  defp find_stats_hooks(_hook),
-    do: false
-
-  # Retrieves statistics from the provided statistics hook.
-  #
-  # The statistics hook has built in support for retrieval, so we
-  # just make a call over to the hook to retrieve the data.
-  #
-  # If the provided hook is missing, an error will be returned.
-  defp handle_hook(nil, _options),
-    do: error(:stats_disabled)
-  defp handle_hook(hook(ref: ref), options) do
-    stats = GenServer.call(ref, :retrieve)
-
-    final =
+  def execute(cache() = cache, options) do
+    with { :ok, stats } <- Stats.retrieve(cache) do
       options
       |> Keyword.get(:for, [:overview])
       |> List.wrap
       |> normalize(stats)
       |> Enum.sort
       |> Enum.into(%{})
-
-    { :ok, final }
+      |> wrap(:ok)
+    end
   end
+
+  ###############
+  # Private API #
+  ###############
 
   # Normalizes the stats returned from the statistics hook.
   #

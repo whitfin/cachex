@@ -1,11 +1,16 @@
 defmodule Cachex.Errors do
-  @moduledoc false
-  # This module simply contains the necessary translations from the built in error
-  # message to their long (non-atom) form. Used to allow functions to return short
-  # errors such as `{ :error, :short_name }` and have them converted after the
-  # fact, rather than bloating actions with potentially large error messages.
+  @moduledoc """
+  Module containing all error definitions used in the codebase.
 
-  # internally recognised errors
+  All error messages (both shorthand and long form) can be found in this module,
+  including the ability to convert from the short form to the long form using the
+  `long_form/1` function.
+
+  This module is provided to allow functions to return short errors, using the
+  easy syntax of `error(:short_name)` to generate a tuple of `{ :error, :short_name }`
+  but also to allow them to be converted to a readable form as needed, rather
+  than bloating blocks with potentially large error messages.
+  """
   @known_errors [
     :invalid_command, :invalid_expiration, :invalid_fallback,
     :invalid_hook,    :invalid_limit,      :invalid_match,
@@ -14,27 +19,42 @@ defmodule Cachex.Errors do
     :stats_disabled,  :unreachable_file
   ]
 
+  ##########
+  # Macros #
+  ##########
+
   @doc """
   Generates a tagged `:error` Tuple at compile time.
+
+  The provided error key must be contained in the list of known
+  identifiers returned be `known/0`, otherwise this call will fail.
   """
+  @spec error(atom) :: { :error, atom }
   defmacro error(key) when key in @known_errors,
     do: quote(do: { :error, unquote(key) })
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
-  Returns the list of known (and raiseable) error names.
+  Returns the list of known error keys.
   """
+  @spec known :: [ atom ]
   def known,
     do: @known_errors
 
   @doc """
   Converts an error identifier to it's longer form.
 
-  Error identifiers should be atoms and consist of those errors inside the module
-  `Cachex.Constants`. The return type from this function will always be a binary.
+  Error identifiers should be atoms and should be contained in the
+  list of errors returned by `known/0`. The return type from this
+  function will always be a binary.
 
   If an invalid error identifer is provided, there will simply be an error due
   to no matching function head (and this is intended).
   """
+  @spec long_form(atom) :: binary
   def long_form(:invalid_command),
     do: "Invalid command definition provided"
   def long_form(:invalid_expiration),

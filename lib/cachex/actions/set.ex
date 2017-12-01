@@ -16,6 +16,10 @@ defmodule Cachex.Actions.Set do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Inserts a value into the cache.
 

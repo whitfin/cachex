@@ -1,12 +1,12 @@
-defmodule Cachex.Cache do
-  @moduledoc false
-  # Main struct module for a Cachex cache instance.
-  #
-  # This represents the state being passed around when dealing with a cache. Internally
-  # all calls will use an instance of this cache, even if the main API is dealing with
-  # only the name of the cache (to make it convenient for callers).
+defmodule Cachex.Options do
+  @moduledoc """
+  Binding module to parse options into a cache record.
 
-  # import records
+  This interim module is required to normalize the options passed to a
+  cache at startup into a well formed record instance, allowing the rest
+  of the codebase to make assumptions about what types of data are being
+  dealt with.
+  """
   import Cachex.Spec
   import Cachex.Errors
 
@@ -15,16 +15,20 @@ defmodule Cachex.Cache do
   alias Cachex.Util
   alias Spec.Validator
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
-  Parses a list of cache options into a `Cachex.Cache` instance.
+  Parses a list of cache options into a cache record.
 
   This will validate any options and error on anything we don't understand. The
   advantage of binding into a cache instance is that we can blindly use it in
   other areas of the library without needing to validate. As such, this code can
   easily become a little messy - but that's ok!
   """
-  @spec create(atom, Keyword.t) :: { :ok, Spec.cache } | { :error, atom }
-  def create(name, options) when is_list(options) do
+  @spec parse(atom, Keyword.t) :: { :ok, Spec.cache } | { :error, atom }
+  def parse(name, options) when is_list(options) do
     # complex parsing statements which can fail out early
     with { :ok,      limit } <- setup_limit(name, options),
          { :ok,      hooks } <- setup_hooks(name, options, limit),
@@ -47,12 +51,16 @@ defmodule Cachex.Cache do
       end
   end
 
+  ###############
+  # Private API #
+  ###############
+
   # Parses out any custom commands to be used for custom invocations.
   #
   # We delegate most of the parsing to the Commands module; here we just check
   # that we have a Keyword List to work with, and that there are not duplicate
   # command entries (we want to keep the first to match a typical Keyword behaviour).
-  def setup_commands(_name, options) do
+  defp setup_commands(_name, options) do
     commands =
       Util.opt_transform(options, :commands, fn
         # map parsing is allowed

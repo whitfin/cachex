@@ -1,26 +1,31 @@
 defmodule Cachex.Disk do
-  @moduledoc false
-  # This module contains interaction with disk for serializing terms directly to
-  # a given file path. This is mainly used for backing up a cache to disk in order
-  # to be able to export a cache to another instance. Writes can have a compression
-  # attached and will add basic compression by default.
+  @moduledoc """
+  Module dedicated to basic filesystem iteractions.
 
-  # we need constants for errors
+  This module contains the required interactions with a filesystem for serializing
+  terms directly to a given file path. This is mainly used by the backup/restore
+  feature of a cache in order to provide easy export functionality.
+
+  The behaviours in here are general enough that they can be used for various use
+  cases rather than just cache serialization, and compression can also be controlled.
+  """
   import Cachex.Errors
   import Cachex.Spec
 
-  # add a Util alias
-  alias Cachex.Util
+  ##############
+  # Public API #
+  ##############
 
   @doc """
-  Reads a file back into an Erlang term.
+  Reads a file from a filesystem using the Erlang Term Format.
 
   If there's an error reading the file, or the file is invalid ETF, an error will
-  be returned. Otherwise an :ok Tuple containing the terms will be returned.
+  be returned. Otherwise a Tuple containing the terms will be returned.
 
   As we can't be certain what we're reading from the file, we make sure to load
   it safely to avoid malicious content (although the chance of that is slim).
   """
+  @spec write(binary, Keyword.t) :: { :ok, any } | { :error, atom }
   def read(path, options \\ []) when is_binary(path) and is_list(options) do
     path
     |> File.read!
@@ -31,31 +36,27 @@ defmodule Cachex.Disk do
   end
 
   @doc """
-  Writes a set of Erlang terms to a location on disk.
+  Writes a value to a filesystem using the Erlang Term Format.
 
-  We allow the user to pass a `:compression` option in order to reduce the output,
-  but by default we'll compress using level 1 compression. If the `:compression`
-  is set to `0` then compression will be disabled, but be aware storage will
-  increase dramatically.
+  The compression can be controlled using the `:compression` option in order to
+  reduce the size of the output. By default this value will be set to level 1
+  compression. If set to 0, compression will be disabled but be aware storage
+  will increase dramatically.
   """
-  def write(val, path, options \\ []) when is_binary(path) and is_list(options) do
-    binopt =
-      options
-      |> Util.opt_transform(:compression, &fetch_compress_opt/1)
-      |> Keyword.put(:minor_version, 1)
+  @spec write(any, binary, Keyword.t) :: { :ok, true } | { :error, atom }
+  def write(value, path, options \\ []) when is_binary(path) and is_list(options) do
+    compression = Cachex.Util.get_opt(options, :compression, fn(val) ->
+      is_integer(val) and val > -1 and val < 10
+    end, 1)
 
-    insert = :erlang.term_to_binary(val, binopt)
+    insert = :erlang.term_to_binary(value, [
+      compressed: compression,
+      minor_version: 1
+    ])
 
     case File.write(path, insert) do
        :ok -> { :ok, true }
       _err -> error(:unreachable_file)
     end
   end
-
-  # Used to fetch a compression flag, but only if it's a valid integer between
-  # 1 and 9, otherwise we don't compress the output (for fastest performance).
-  defp fetch_compress_opt(val) when is_integer(val) and val > -1 and val < 10,
-    do: [ compressed: val ]
-  defp fetch_compress_opt(_val),
-    do: [ compressed: 1 ]
 end

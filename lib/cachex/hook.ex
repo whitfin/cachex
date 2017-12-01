@@ -1,12 +1,17 @@
 defmodule Cachex.Hook do
-  @moduledoc false
-  # Module controlling hook behaviour definitions.
-  #
-  # This module defines the hook implementations for Cachex, allowing the user to
-  # add hooks into the command execution. This means that users can build plugin
-  # style listeners in order to do things like logging. Hooks can be registered
-  # to execute either before or after the Cachex command, and can be blocking as
-  # needed.
+  @moduledoc """
+  Module controlling hook behaviour definitions.
+
+  This module defines the hook implementations for Cachex, allowing the user to
+  add hooks into the command execution. This means that users can build plugin
+  style listeners in order to do things like logging. Hooks can be registered
+  to execute either before or after the Cachex command, and can be blocking as
+  needed.
+  """
+
+  #############
+  # Behaviour #
+  #############
 
   @doc """
   Handles a cache notification.
@@ -25,6 +30,10 @@ defmodule Cachex.Hook do
   states required for hook executions (such as cache records).
   """
   @callback handle_provision({ atom, any }, any) :: { :ok, any }
+
+  ##################
+  # Implementation #
+  ##################
 
   @doc false
   defmacro __using__(_) do

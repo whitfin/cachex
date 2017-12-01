@@ -12,6 +12,10 @@ defmodule Cachex.Actions.Size do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Retrieves the size of the cache.
 

@@ -1,23 +1,22 @@
 defmodule Cachex.Application do
-  # define application
+  @moduledoc """
+  Application callback to start any global services.
+
+  This will start all needed services for Cachex using the `Cachex.Services`
+  module, rather than hardcoding any logic into this binding module.
+  """
   use Application
 
-  @moduledoc false
-  # Application callback to start any needed resources. We start all
-  # needed services using the services module, rather than hardcoding
-  # any logic into this application module.
-
-  # See http://elixir-lang.org/docs/stable/elixir/Application.html
-  # for more information on OTP Applications
+  @doc """
+  Starts the global services tree for Cachex.
+  """
   def start(_type, _args) do
-    import Supervisor.Spec, warn: false
-
-    # Define workers and child supervisors to be supervised
-    children = Cachex.Services.app_spec()
+    # Define child supervisors to be supervised
+    services = Cachex.Services.app_spec()
+    options  = [strategy: :one_for_one, name: __MODULE__]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: __MODULE__]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(services, options)
   end
 end

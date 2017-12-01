@@ -14,6 +14,10 @@ defmodule Cachex.Actions.Keys do
   import Cachex.Actions
   import Cachex.Spec
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
   Retrieves a list of all keys in the cache.
 

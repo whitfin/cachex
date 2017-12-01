@@ -118,16 +118,16 @@ defmodule Cachex.UtilTest do
     state2 = cache(expiration: expiration(lazy: false))
 
     # expired combination regardless of state
-    result1 = Cachex.Util.has_expired?(touched1, time_tl1)
+    result1 = Cachex.Util.has_expired?(entry(touched: touched1, ttl: time_tl1))
 
     # unexpired combination regardless of state
-    result2 = Cachex.Util.has_expired?(touched2, time_tl2)
+    result2 = Cachex.Util.has_expired?(entry(touched: touched2, ttl: time_tl2))
 
     # expired combination with state enabled
-    result3 = Cachex.Util.has_expired?(state1, touched1, time_tl1)
+    result3 = Cachex.Util.has_expired?(state1, entry(touched: touched1, ttl: time_tl1))
 
     # expired combination with state disabled
-    result4 = Cachex.Util.has_expired?(state2, touched1, time_tl1)
+    result4 = Cachex.Util.has_expired?(state2, entry(touched: touched1, ttl: time_tl1))
 
     # only the first and third should have expired
     assert(result1)
