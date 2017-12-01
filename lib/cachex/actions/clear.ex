@@ -1,9 +1,10 @@
 defmodule Cachex.Actions.Clear do
-  @moduledoc false
-  # Command module to allow the clearing of a cache.
-  #
-  # Clearing a cache means removing all items from inside the cache, regardless
-  # of whether they should have been evicted or not.
+  @moduledoc """
+  Command module to allow the clearing of a cache.
+
+  Clearing a cache means removing all items from inside the cache, regardless
+  of whether they should have been evicted or not.
+  """
   alias Cachex.Actions.Size
   alias Cachex.Services.Locksmith
 

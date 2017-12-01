@@ -1,6 +1,7 @@
 defmodule Cachex.Actions.Del do
-  @moduledoc false
-  # Command module to allow removal of a cache entry.
+  @moduledoc """
+  Command module to allow removal of a cache entry.
+  """
   alias Cachex.Services.Locksmith
 
   # import required macros

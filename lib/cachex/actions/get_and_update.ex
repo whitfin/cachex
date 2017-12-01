@@ -1,10 +1,11 @@
 defmodule Cachex.Actions.GetAndUpdate do
-  @moduledoc false
-  # Command module to enable transactional get/update semantics.
-  #
-  # This command is simply sugar, but is common enough that it deserved an explicit
-  # implementation inside the API. It does take care of the transactional context
-  # of the get/update semantics though, so it's potentially non-obvious.
+  @moduledoc """
+  Command module to enable transactional get/update semantics.
+
+  This command is simply sugar, but is common enough that it deserved an explicit
+  implementation inside the API. It does take care of the transactional context
+  of the get/update semantics though, so it's potentially non-obvious.
+  """
   alias Cachex.Actions.Get
   alias Cachex.Services.Locksmith
   alias Cachex.Util

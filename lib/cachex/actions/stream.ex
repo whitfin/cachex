@@ -1,10 +1,11 @@
 defmodule Cachex.Actions.Stream do
-  @moduledoc false
-  # Command module to allow streaming of cache entries.
-  #
-  # A cache `Stream` is a lazy consumer of a cache in that it allows iteration
-  # of a cache on an as-needed basis. It should be noted that streams do not
-  # currently support record expirations, although this may change in future.
+  @moduledoc """
+  Command module to allow streaming of cache entries.
+
+  A cache `Stream` is a lazy consumer of a cache in that it allows iteration
+  of a cache on an as-needed basis. It should be noted that streams do not
+  currently support record expirations, although this may change in future.
+  """
   alias Cachex.Util
 
   # we need our imports

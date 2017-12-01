@@ -1,10 +1,11 @@
 defmodule Cachex.Actions.Incr do
-  @moduledoc false
-  # Command module to enable incrementing cache entries.
-  #
-  # This operates on an ETS level for the actual update calls, rather than using
-  # a transactional context. The result is a faster throughput with the same
-  # behaviour aspects (but we still lock the key temporarily).
+  @moduledoc """
+  Command module to enable incrementing cache entries.
+
+  This operates on an ETS level for the actual update calls, rather than using
+  a transactional context. The result is a faster throughput with the same
+  behaviour aspects (but we still lock the key temporarily).
+  """
   alias Cachex.Actions.Exists
   alias Cachex.Services.Locksmith
   alias Cachex.Util

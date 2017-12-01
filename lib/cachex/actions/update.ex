@@ -1,11 +1,12 @@
 defmodule Cachex.Actions.Update do
-  @moduledoc false
-  # Command module to update existing cache entries.
-  #
-  # The only semantic difference between an `update()` call against a `set()`
-  # call is that the expiration time remains unchanged during an update. If
-  # you wish to have the expiration time modified, you can simply set your
-  # new value over the top of the existing one.
+  @moduledoc """
+  Command module to update existing cache entries.
+
+  The only semantic difference between an `update()` call against a `set()`
+  call is that the expiration time remains unchanged during an update. If
+  you wish to have the expiration time modified, you can simply set your
+  new value over the top of the existing one.
+  """
   alias Cachex.Actions
   alias Cachex.Services.Locksmith
 

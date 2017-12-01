@@ -1,12 +1,13 @@
 defmodule Cachex.Actions.Keys do
-  @moduledoc false
-  # Command module to allow retrieving keys from a cache.
-  #
-  # The execution of this command will be quite slow to execute. This is
-  # to be expected and so it should be used wisely, or `stream()` should
-  # be used instead.
-  #
-  # This command will take the expiration of entries into consideration.
+  @moduledoc """
+  Command module to allow retrieving keys from a cache.
+
+  The execution of this command will be quite slow to execute. This is
+  to be expected and so it should be used wisely, or `stream()` should
+  be used instead.
+
+  This command will take the expiration of entries into consideration.
+  """
   alias Cachex.Util
 
   # we need our imports

@@ -1,10 +1,11 @@
 defmodule Cachex.Actions.Purge do
-  @moduledoc false
-  # Command module to allow manual purging of expired records.
-  #
-  # This is highly optimized using native ETS behaviour to purge as many
-  # entries as possible at a high rate. It is used internally by the Janitor
-  # service when purging on a schedule.
+  @moduledoc """
+  Command module to allow manual purging of expired records.
+
+  This is highly optimized using native ETS behaviour to purge as many
+  entries as possible at a high rate. It is used internally by the Janitor
+  service when purging on a schedule.
+  """
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 

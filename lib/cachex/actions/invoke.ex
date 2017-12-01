@@ -1,12 +1,13 @@
 defmodule Cachex.Actions.Invoke do
-  @moduledoc false
-  # Command module to enable custom command invocation.
-  #
-  # This module relies on commands attached to a cache at startup, and
-  # does not allow for registration afterward.
-  #
-  # Invocations which require writes to the table are executed inside a
-  # transactional context to ensure consistency.
+  @moduledoc """
+  Command module to enable custom command invocation.
+
+  This module relies on commands attached to a cache at startup, and
+  does not allow for registration afterward.
+
+  Invocations which require writes to the table are executed inside a
+  transactional context to ensure consistency.
+  """
   alias Cachex.Actions.Get
   alias Cachex.Services.Locksmith
   alias Cachex.Util

@@ -1,10 +1,11 @@
 defmodule Cachex.Actions.Load do
-  @moduledoc false
-  # Command module to allow deserialization of a cache from disk.
-  #
-  # Loading a cache from disk requires that it was previously dumped using the
-  # `dump()` command (it does not support loading from DETS). Most of the heavy
-  # lifting inside this command is done via the `Cachex.Disk` module.
+  @moduledoc """
+  Command module to allow deserialization of a cache from disk.
+
+  Loading a cache from disk requires that it was previously dumped using the
+  `dump()` command (it does not support loading from DETS). Most of the heavy
+  lifting inside this command is done via the `Cachex.Disk` module.
+  """
   alias Cachex.Disk
 
   # we need our imports
