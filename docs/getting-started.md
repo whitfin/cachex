@@ -14,15 +14,15 @@ Supervisor.start_link(
 
 The second and third arguments are both optional and represent cache and server options respectively. Cache options can be set on a cache at startup and cannot be modified. They're defined on a per-cache basis and control the features available to the cache. This table contains a summary of most of the available options, but please look at the module documentation either in GitHub or on Hexdocs for full documentation on what each one can configure.
 
-|      Options     |          Values          |                                Description                               |
-|:----------------:|:------------------------:|:------------------------------------------------------------------------:|
-|     commands     |         %{} | []         |  A list or map of custom commands to attach to the cache for invocation. |
-|    expiration    |      `expiration()`      |         An expiration options record imported from Cachex.Spec.          |
-|     fallback     | function or `fallback()` |               A fallback record improved from Cachex.Spec.               |
-|       hooks      |     list of `hook()`     |     A list of execution hooks (see below) to listen on cache actions.    |
-|       limit      |    a `limit()` record    |       An integer or Limit struct to define the bounds of this cache.     |
-|       stats      |          boolean         |            Whether to track statistics for this cache or not.            |
-|   transactional  |          boolean         |              Whether to turn on transactions at cache start.             |
+|      Options     |          Values          |                             Description                            |
+|:----------------:|:------------------------:|:------------------------------------------------------------------:|
+|     commands     |      map or keyword      |       A collection of custom commands to attach to the cache.      |
+|    expiration    |      `expiration()`      |      An expiration options record imported from Cachex.Spec.       |
+|     fallback     | function or `fallback()` |            A fallback record improved from Cachex.Spec.            |
+|       hooks      |     list of `hook()`     |  A list of execution hooks (see below) to listen on cache actions. |
+|       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
+|       stats      |          boolean         |         Whether to track statistics for this cache or not.         |
+|   transactional  |          boolean         |           Whether to turn on transactions at cache start.          |
 
 ## Main Interface
 
