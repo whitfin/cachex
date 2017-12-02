@@ -18,7 +18,7 @@ defmodule Cachex.Util do
   }
 
   # the number of suffixes stored (not including B)
-  @memory_sufcount map_size(@memory_suffixes) - 1 / 1
+  @memory_sufcount map_size(@memory_suffixes) - 1.0
 
   ##############
   # Public API #
