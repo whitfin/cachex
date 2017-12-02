@@ -37,7 +37,7 @@ defmodule Cachex.Util do
       bytes
       |> :math.log
       |> :erlang./(@memory_exponent)
-      |> :math.floor
+      |> Float.floor
       |> :erlang.min(@memory_sufcount)
 
     abbrev = bytes / :math.pow(1024, index)
