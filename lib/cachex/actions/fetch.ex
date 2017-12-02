@@ -50,10 +50,13 @@ defmodule Cachex.Actions.Fetch do
   # If only a single argument is expected, the key alone is passed through. For
   # any other arity, we pass through the key and the default state (which can
   # be nil). This will therefore crash if the provided arity is invalid.
-  defp handle_fallback(_cache, fallback, key) when is_function(fallback, 1),
-    do: fallback.(key)
-  defp handle_fallback(cache(fallback: fallback(provide: provide)), fallback, key),
-    do: fallback.(key, provide)
+  defp handle_fallback(cache(fallback: fallback(provide: provide)), fallback, key) do
+    case :erlang.fun_info(fallback)[:arity] do
+      0 -> fallback.()
+      1 -> fallback.(key)
+      _ -> fallback.(key, provide)
+    end
+  end
 
   # Handles the result of a fallback execution.
   #

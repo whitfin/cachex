@@ -39,6 +39,25 @@ defmodule Cachex.Actions.Inspect do
   """
   def execute(cache, option)
 
+  # Retrieves the internal state of the cache.
+  #
+  # This is relatively easy to get via other methods, but it's available here
+  # as the "best" way for a developer to do so (outside of the internal API).
+  def execute(cache(name: name), :cache),
+    do: { :ok, Overseer.retrieve(name) }
+
+  # Retrieves a raw entry from the cache table.
+  #
+  # This is useful when you need access to a record which may have expired. If
+  # the entry does not exist, a nil value will be returned instead. Expirations
+  # are not taken into account (either lazily or otherwise) on this read call.
+  def execute(cache(name: name), { :entry, key }) do
+    case :ets.lookup(name, key) do
+      [ ] -> { :ok, nil }
+      [e] -> { :ok,   e }
+    end
+  end
+
   # Returns the number of expired entries currently inside the cache.
   #
   # The number of entries returned represents the number of records which will
@@ -93,25 +112,6 @@ defmodule Cachex.Actions.Inspect do
   # by other inspection methods there's no harm in exposing it in the API.
   def execute(cache(name: name), { :memory, :words }),
     do: { :ok, :ets.info(name, :memory) }
-
-  # Retrieves a raw entry from the cache table.
-  #
-  # This is useful when you need access to a record which may have expired. If
-  # the entry does not exist, a nil value will be returned instead. Expirations
-  # are not taken into account (either lazily or otherwise) on this read call.
-  def execute(cache(name: name), { :record, key }) do
-    case :ets.lookup(name, key) do
-      [ ] -> { :ok, nil }
-      [e] -> { :ok,   e }
-    end
-  end
-
-  # Retrieves the internal state of the cache.
-  #
-  # This is relatively easy to get via other methods, but it's available here
-  # as the "best" way for a developer to do so (outside of the internal API).
-  def execute(cache(name: name), :cache),
-    do: { :ok, Overseer.retrieve(name) }
 
   # Catch-all to return an error.
   def execute(_cache, _option),

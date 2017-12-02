@@ -94,131 +94,176 @@ defmodule Cachex do
     update:            [ 3, 4 ]
   ]
 
+  ##############
+  # Public API #
+  ##############
+
   @doc """
-  Initialize the Mnesia table and supervision tree for this cache, linking the
-  cache to the current process.
+  Creates a new Cachex cache service tree, linked to the current process.
 
-  We also allow the user to define their own options for the cache. We start a
-  Supervisor to look after all internal workers backing the cache, in order to
-  make sure everything is fault-tolerant.
+  This will link the cache to the current process, so if your process dies the
+  cache will also die. If you don't want this behaviour, please use `start/3`.
 
-  The first argument should be the name (as an atom) of the cache.
+  The first argument should be a unique atom, used as the name of the cache
+  service for future calls through to Cachex.
 
   ## Options
 
-    * `:commands` - A custom set of commands to attach to the cache in order to
-      provide shorthand execution. A cache command must be of the form
-      `{ :return | :modify, fn/1 }` and adhere to these rules:
+    * `:commands`
 
       </br>
-      - If you use `:return`, the return value of your command will simply be the
-        return value of your call to `:invoke` - very straightforward and easy.
-      - If you use `:modify`, your command must return a two-element Tuple, with
-        the first element being the return value of your command, and the second
-        being the modified value to write back into the cache. Anything that
-        doesn't fit this will cause an error intentionally (there's no way to
-        rescue this).
+      This option allows you to attach a set of custom commands to a cache in
+      order to provide shorthand execution. A cache command must be constructed
+      using the `:command` record provided by `Cachex.Spec`.
 
       </br>
-      Cache commands are set on a per-cache basis (for now), and can only be set
-      at cache start (though this may change).
+      A cache command will adhere to these basic rules:
 
-          iex> Cachex.start_link(:my_cache, [
+      </br>
+      - If you define a `:read` command, the return value of your command will
+        be passed through as the result of your call to `invoke/4`.
+      - If you define a `:write` command, your command must return a two-element
+        Tuple. The first element represents the value being returned from your
+        `invoke/4` call, and the second represents the value to write back into
+        the cache (as an update). If your command does not fit this, errors will
+        happen (intentionally).
+
+      </br>
+      Commands are set on a per-cache basis, but can be reused across caches. They're
+      set only on cache startup and cannot be modified after the cache tree is created.
+
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
           ...>   commands: [
-          ...>     last: { :return, &List.last/1 },
-          ...>     trim: { :modify, &String.trim/1 }
+          ...>     last: command(type:  :read, execute:   &List.last/1),
+          ...>     trim: command(type: :write, execute: &String.trim/1)
           ...>   ]
           ...> ])
           { :ok, _pid }
 
-    * `:default_ttl` - A default expiration time to place on any keys inside the
-      cache (this can be overridden when a key is set). This value is in **milliseconds**.
+      </br>
+      Either a `Keyword` or a `Map` can be provided against the `:commands` option as
+      we only use `Enum` to verify them before attaching them internally. Please see
+      the `Cachex.Spec.command/1` documentation for further customization options.
 
-          iex> Cachex.start_link(:my_cache, [ default_ttl: :timer.seconds(1) ])
+      </br>
+    * `:expiration`
 
-    * `:fallback` - A default fallback implementation to use when dealing with
-      multi-layered caches. This function is called with a key which has no value,
-      in order to allow loading from a different location.
-      </br></br>
-      You should tag the return value inside a `:commit` Tuple, to signal that you
-      wish to commit the changes to the cache. If you *don't* want to commit the
-      changes (for example if something goes wrong), you can use `{ :ignore, val }`
-      to only return the value and not persist it. If you don't specify either of
-      these flags, it will be assumed you are committing your changes.
-      </br></br>
-      You can also provide a state to your fallback by passing a List of options
-      rather than just a function. Using the `:state` key will provide your state
-      value as the second argument any time it is called. Any state which is set
-      to `nil` will not be provided as the second argument. Even if a default
-      fallback function is not set, you may still set a state - the state will
-      still be provided to any fallbacks which are command-specific.
-      </br></br>
-      When providing option syntax you should use the `:action` key to provide
-      your function. Should you prefer you can use this syntax even when you
-      don't need a state, simply by providing `[ action: function ]`. This is the
-      internal behaviour used when a simple function is provided anyway.
+      </br>
+      The expiration option provides the ability to customize record expiration at
+      a global cache level. The value provided here must be a valid `:expiration`
+      record provided by `Cachex.Spec`.
 
-          iex> Cachex.start_link(:my_cache, [
-          ...>   fallback: fn(key) ->
-          ...>     { :commit, generate_value(key) }
-          ...>   end
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
+          ...>   expiration: expiration(
+          ...>     # default record expiration
+          ...>     default: :timer.seconds(60),
+          ...>
+          ...>     # how often cleanup should occur
+          ...>     interval: :timer.seconds(30),
+          ...>
+          ...>     # whether to enable lazy checking
+          ...>     lazy: true
+          ...>   )
           ...> ])
-          { :ok, _pid1 }
+          { :ok, _pid }
 
-          iex> Cachex.start_link(:my_cache, [
-          ...>   fallback: [
-          ...>     state: my_state,
-          ...>     action: fn(key, state) ->
-          ...>       { :commit, generate_value(key) }
-          ...>     end
-          ...>   ]
+      Please see the `Cachex.Spec.expiration/1` documentation for further customization
+      options.
+
+      </br>
+    * `:fallback`
+
+      </br>
+      The fallback option allows global settings related to the `fetch/4` command
+      on a cache. The value provided here can either be a valid `:fallback` record
+      provided by `Cachex.Spec`, or a single function (which is turned into a record
+      internally).
+
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
+          ...>   fallback: fallback(
+          ...>     # default func to use with fetch/4
+          ...>     default: &String.reverse/1,
+          ...>
+          ...>     # anything to pass to fallbacks
+          ...>     provide: { }
+          ...>   )
           ...> ])
-          { :ok, _pid2 }
+          { :ok, _pid }
 
-    * `:hooks` - A list of hooks which will be executed either before or after a
-      Cachex action has taken place. These hooks should be instances of `Cachex.Hook`
-      and implement the hook behaviour. An example hook can be found in `Cachex.Stats`.
+      The `:default` function provided will be used if `fetch/2` is called, rather
+      than explicitly passing one at call time. The `:provide` function contains
+      state which can be passed to a fallback function if the arity is 2 rather than
+      1.
 
-          iex> hook = %Cachex.Hook{ module: MyHook, type: :post }
-          iex> Cachex.start_link(:my_cache, [ hooks: [hook] ])
+      </br>
+      Please see the documentation for `fetch/4`, and the `Cachex.Spec.fallback/1`
+      documentation for further information.
 
-    * `:limit` - A limit to cap the cache at. This can be an integer or a `Cachex.Limit`
-      structure.
+      </br>
+    * `:hooks`
 
-          iex> limit = %Cachex.Limit{ limit: 500, reclaim: 0.1 } # 10%
-          iex> Cachex.start_link(:my_cache, [ limit: limit ])
+      </br>
+      The `:hooks` option allow the user to attach a list of notification hooks to
+      enable listening on cache actions (either before or after they happen). These
+      hooks should be valid `:hook` records provided by `Cachex.Spec`. Example hook
+      implementations can be found in `Cachex.Stats` and `Cachex.Policy.LRW`.
 
-    * `:ode` -  If false, on-demand expiration will be disabled. Keys will
-      only be removed by Janitor processes, or by calling `purge/2` directly. Useful
-      in case you have a Janitor running and don't want potential deletes to impact
-      your reads. Defaults to `true`.
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
+          ...>   hooks: hook(module: MyHook, type: :post)
+          ...> ])
+          { :ok, _pid }
 
-          iex> Cachex.start_link(:my_cache, [ ode: false ])
+      Please see the `Cachex.Spec.hook/1` documentation for further customization options.
 
-    * `:stats` - Whether you wish this cache to record usage statistics or
-      not. This has only minor overhead due to being implemented as an asynchronous
-      hook (roughly 1µ/op). Stats can be retrieve from a running cache by using
-      `Cachex.stats/2`.
+      </br>
+    * `:limit`
+
+      </br>
+      A cache limit provides a maximum size to cap the cache keyspace at. This should
+      be either a positive integer, or a valid `:limit` record provided by `Cachex.Spec`.
+      Internally a provided interger will just be coerced to a `:limit` record with some
+      default values set.
+
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
+          ...>   limit: 500
+          ...> ])
+          { :ok, _pid }
+
+      Please see the `Cachex.Spec.limit/1` documentation for further customization options.
+
+      </br>
+    * `:stats`
+
+      </br>
+      This option can be used to toggle statistics gathering for a cache. This is a
+      shorthand option to avoid attaching the `Cachex.Stats` hook manually. Statistics
+      gathering has very minor overhead due to being implemented as a hook,
+
+      </br>
+      Stats can be retrieve from a running cache by using `Cachex.stats/2`.
 
           iex> Cachex.start_link(:my_cache, [ stats: true ])
 
-    * `:transactions` - Whether to have transactions and row locking enabled from
-      cache startup. Please note that even if this is false, it will be enabled
-      the moment a transaction is executed. It's recommended to leave this as the
-      default as it will handle most use cases in the most performant way possible.
+    * `:transactional`
+
+      </br>
+      This option will specify whether this cache should have transactions and row
+      locking enabled from cache startup. Please note that even if this is false,
+      it will be enabled the moment a transaction is executed. It's recommended to
+      leave this as default as it will handle most use cases in the most performant
+      way possible.
 
           iex> Cachex.start_link(:my_cache, [ transactions: true ])
-
-    * `:ttl_interval` - An interval to dicate how often to purge expired keys.
-      This value can be changed to customize the schedule that keys are purged on.
-      Be aware that if a key is accessed when it *should* have expired, but has
-      not yet been purged, it will be removed at that time.
-      </br></br>
-      The purge runs in a separate process so it doesn't have a negative effect
-      on the application, but it may make sense to lower the frequency if you don't
-      have many keys expiring at one time. This value is set in **milliseconds**.
-
-          iex> Cachex.start_link(:my_cache, [ ttl_interval: :timer.seconds(5) ])
 
   """
   @spec start_link(atom, Keyword.t) :: { atom, pid }
@@ -236,13 +281,14 @@ defmodule Cachex do
   end
 
   @doc """
-  Initialize the Mnesia table and supervision tree for this cache, without linking
-  the cache to the current process.
+  Creates a new Cachex cache service tree.
 
-  Supports all the same options as `start_link/3`. This is mainly used for testing
-  in order to keep caches around when processes may be torn down. You should try
-  to avoid using this in production applications and instead opt for a natural
-  Supervision tree.
+  This will not link the cache to the current process, so if your process dies
+  the cache will also die. If you don't want this behaviour, please use the
+  provided `start_link/3`.
+
+  This function is otherwise identical to `start_link/3` so please see that
+  documentation for further information and configuration.
   """
   @spec start(atom, Keyword.t) :: { atom, pid }
   def start(name, options \\ []) do
@@ -252,11 +298,11 @@ defmodule Cachex do
   end
 
   @doc false
-  # Basic initialization phase, being passed arguments by the Supervisor.
+  # Basic initialization phase for a cache.
   #
-  # This function sets up the Mnesia table and options are parsed before being used
-  # to setup the internal workers. Workers are then given to `supervise/2`.
-  @spec init(cache :: Spec.cache) :: { status, any }
+  # This will start all cache services required using the `Cachex.Services`
+  # module and attach them under a Supervisor instance backing the cache.
+  @spec init(cache :: Spec.cache) :: Supervisor.on_start
   def init(cache() = cache) do
     cache
     |> Services.cache_spec
@@ -264,7 +310,7 @@ defmodule Cachex do
   end
 
   @doc """
-  Retrieves a value from the cache using a given key.
+  Retrieves an entry from a cache.
 
   ## Examples
 
@@ -276,7 +322,7 @@ defmodule Cachex do
       { :missing, nil }
 
   """
-  @spec get(cache, any, Keyword.t) :: { status | :loaded, any }
+  @spec get(cache, any, Keyword.t) :: { atom, any }
   def get(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Get.execute(cache, key, options)
@@ -284,10 +330,10 @@ defmodule Cachex do
   end
 
   @doc """
-  Updates a value in the cache, feeding any existing values into an update function.
+  Retrieves and updates an entry in a cache.
 
-  This operation is an internal mutation, and as such any set TTL persists - i.e.
-  it is not refreshed on this operation.
+  This operation can be seen as an internal mutation, meaning that any previously
+  set expiration time is kept as-is.
 
   This function accepts the same return syntax as fallback functions, in that if
   you return a Tuple of the form `{ :ignore, value }`, the value is returned from
@@ -307,7 +353,7 @@ defmodule Cachex do
       { :missing, nil }
 
   """
-  @spec get_and_update(cache, any, function, Keyword.t) :: { status | :loaded, any }
+  @spec get_and_update(cache, any, function, Keyword.t) :: { status, any }
   def get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
     Overseer.enforce(cache) do
@@ -316,29 +362,31 @@ defmodule Cachex do
   end
 
   @doc """
-  Sets a value in the cache against a given key.
+  Places an entry in a cache.
 
   This will overwrite any value that was previously set against the provided key,
   and overwrite any TTLs which were already set.
 
   ## Options
 
-    * `:ttl` - a time-to-live for the provided key/value pair, overriding any
-      default ttl. This value should be in milliseconds.
+    * `:ttl`
+
+      </br>
+      An expiration time to set for the provided key (time-to-line), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
 
   ## Examples
 
       iex> Cachex.set(:my_cache, "key", "value")
       { :ok, true }
 
-      iex> Cachex.set(:my_cache, "key", "value", async: true)
-      { :ok, true }
-
       iex> Cachex.set(:my_cache, "key", "value", ttl: :timer.seconds(5))
-      { :ok, true }
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 5000 }
 
   """
-  @spec set(cache, any, any, Keyword.t) :: { status, true | false }
+  # TODO: maybe rename TTL to be expiration?
+  @spec set(cache, any, any, Keyword.t) :: { status, boolean }
   def set(cache, key, value, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Set.execute(cache, key, value, options)
@@ -346,11 +394,12 @@ defmodule Cachex do
   end
 
   @doc """
-  Updates a value in the cache. Unlike `get_and_update/4`, this does a blind
-  overwrite.
+  Updates an entry in a cache.
 
-  This operation is an internal mutation, and as such any set TTL persists - i.e.
-  it is not refreshed on this operation.
+  Unlike `get_and_update/4`, this does a blind overwrite of a value.
+
+  This operation can be seen as an internal mutation, meaning that any previously
+  set expiration time is kept as-is.
 
   ## Examples
 
@@ -361,10 +410,6 @@ defmodule Cachex do
       iex> Cachex.update(:my_cache, "key", "new_value")
       iex> Cachex.get(:my_cache, "key")
       { :ok, "new_value" }
-
-      iex> Cachex.update(:my_cache, "key", "final_value", async: true)
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "final_value" }
 
       iex> Cachex.update(:my_cache, "missing_key", "new_value")
       { :missing, false }
@@ -378,21 +423,25 @@ defmodule Cachex do
   end
 
   @doc """
-  Removes a value from the cache.
+  Removes an entry from a cache.
 
   This will return `{ :ok, true }` regardless of whether a key has been removed
-  or not. The `true` value can be thought of as "is value is no longer present?".
+  or not. The `true` value can be thought of as "is key no longer present?".
 
   ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
 
       iex> Cachex.del(:my_cache, "key")
       { :ok, true }
 
-      iex> Cachex.del(:my_cache, "key", async: true)
-      { :ok, true }
+      iex> Cachex.get(:my_cache, "key")
+      { :missing, nil }
 
   """
-  @spec del(cache, any, Keyword.t) :: { status, true | false }
+  @spec del(cache, any, Keyword.t) :: { status, boolean }
   def del(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Del.execute(cache, key, options)
@@ -400,23 +449,27 @@ defmodule Cachex do
   end
 
   @doc """
-  Removes all key/value pairs from the cache.
+  Removes all entries from a cache.
 
-  This function returns a tuple containing the total number of keys removed from
-  the internal cache. This is equivalent to running `size/2` before running `clear/2`.
+  The returned numeric value will contain the total number of keys removed
+  from the cache. This is equivalent to running `size/2` before running
+  the internal clear operation.
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      iex> Cachex.size(:my_cache)
+      { :ok, 1 }
+
       iex> Cachex.clear(:my_cache)
       { :ok, 1 }
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.clear(:my_cache, async: true)
-      { :ok, true }
+      iex> Cachex.size(:my_cache)
+      { :ok, 0 }
 
   """
-  @spec clear(cache, Keyword.t) :: { status, true | false }
+  @spec clear(cache, Keyword.t) :: { status, boolean }
   def clear(cache, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Clear.execute(cache, options)
@@ -424,11 +477,12 @@ defmodule Cachex do
   end
 
   @doc """
-  Determines the current size of the unexpired keyspace.
+  Retrieves the number of unexpired records in a cache.
 
-  Unlike `size/2`, this ignores keys which should have expired. Due to this taking
-  potentially expired keys into account, it is far more expensive than simply
-  calling `size/2` and should only be used when completely necessary.
+  Unlike `size/2`, this ignores keys which should have expired. Due
+  to this taking potentially expired keys into account, it is far more
+  expensive than simply calling `size/2` and should only be used when
+  the distinction is completely necessary.
 
   ## Examples
 
@@ -447,16 +501,24 @@ defmodule Cachex do
   end
 
   @doc """
-  Decrements a key directly in the cache.
+  Decrements an entry in the cache.
 
-  This operation is an internal mutation, and as such any set TTL persists - i.e.
-  it is not refreshed on this operation.
+  This will overwrite any value that was previously set against the provided key,
+  and overwrite any TTLs which were already set.
 
   ## Options
 
-    * `:amount` - an amount to decrement by. This will default to 1.
-    * `:initial` - if the key does not exist, it will be initialized to this amount.
-      Defaults to 0.
+    * `:amount`
+
+      </br>
+      An amount to decrement by, defaulting to 1.
+
+      </br>
+    * `:initial`
+
+      </br>
+      An initial value to set the key to if it does not exist. This will
+      take place *before* the decrement call. Defaults to 0.
 
   ## Examples
 
@@ -464,17 +526,15 @@ defmodule Cachex do
       iex> Cachex.decr(:my_cache, "my_key")
       { :ok, 9 }
 
-      iex> Cachex.decr(:my_cache, "my_key", async: true)
-      { :ok, true }
-
       iex> Cachex.set(:my_cache, "my_new_key", 10)
       iex> Cachex.decr(:my_cache, "my_new_key", amount: 5)
       { :ok, 5 }
 
-      iex> Cachex.decr(:my_cache, "missing_key", amount: 5, initial: 0)
-      { :missing, -5 }
+      iex> Cachex.decr(:my_cache, "missing_key", amount: 5, initial: 2)
+      { :missing, -3 }
 
   """
+  # TODO: amount as an optional argument
   @spec decr(cache, any, Keyword.t) :: { status, number }
   def decr(cache, key, options \\ []) do
     mod_opts = Keyword.update(options, :amount, -1, &(&1 * -1))
@@ -482,17 +542,26 @@ defmodule Cachex do
   end
 
   @doc """
-  Writes a cache to a location on disk.
+  Serializes a cache to a location on a filesystem.
 
-  This operation will flush the current state to the provided disk location, with
-  any issues being returned to the user. This dump can be loaded back into a new
-  cache instance in the future.
+  This operation will write the current state of a cache to a provided
+  location on a filesystem. The written state can be used alongside the
+  `load/3` command to import back in the future.
+
+  It is the responsibility of the user to ensure that the location is
+  able to be written to, not the responsibility of Cachex.
 
   ## Options
 
-    * `:compression` - a level of compression to apply to the backup (0-9). This
-      will default to 1, which is typically appropriate for most backups. Using
-      0 will disable compression completely at a cost of higher disk space.
+    * `:compression`
+
+      </br>
+      Specifies the level of compression to apply when serializing (0-9). This
+      will default to level 1 compression, which is appropriate for most dumps.
+
+      </br>
+      Using a compression level of 0 will disable compression completely. This
+      will result in a faster serialization but at the cost of higher space.
 
   ## Examples
 
@@ -513,11 +582,11 @@ defmodule Cachex do
   end
 
   @doc """
-  Checks whether the cache is empty.
+  Determines whether a cache contains any entries.
 
-  This operates based on keys living in the cache, regardless of whether they should
-  have expired previously or not. Internally this is just sugar for checking if
-  `size/2` returns 0.
+  This does not take the expiration time of keys into account. As such,
+  if there are any unremoved (but expired) entries in the cache, they
+  will be included in the returned determination.
 
   ## Examples
 
@@ -532,7 +601,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec empty?(cache, Keyword.t) :: { status, true | false }
+  @spec empty?(cache, Keyword.t) :: { status, boolean }
   def empty?(cache, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Empty.execute(cache, options)
@@ -540,15 +609,18 @@ defmodule Cachex do
   end
 
   @doc """
-  Executes a function in the context of a cache worker. This can be used when
-  carrying out several operations at once to avoid the jumps between processes.
+  Executes multiple functions in the context of a cache.
 
-  However this does **not** provide a transactional execution (i.e. no rollbacks),
-  it's simply to avoid the overhead of jumping between processes. For a transactional
-  implementation, see `transaction/3`.
+  This can be used when carrying out several cache operations at once
+  to avoid the overhead of cache loading and jumps between processes.
 
-  You **must** use the worker instance passed to the provided function when calling
-  the cache, otherwise this function will provide no benefits.
+  This does not provide a transactional execution, it simply avoids
+  the overhead involved in the initial calls to a cache. For a transactional
+  implementation, please see `transaction/3`.
+
+  To take advantage of the cache context, ensure to use the cache
+  instance provided when executing cache calls. If this is not done
+  you will see zero benefits from using `execute/3`.
 
   ## Examples
 
@@ -571,11 +643,10 @@ defmodule Cachex do
   end
 
   @doc """
-  Determines whether a given key exists inside the cache.
+  Determines whether an entry exists in a cache.
 
-  This only determines if the key lives in the keyspace of the cache. Note that
-  this determines existence within the bounds of TTLs; this means that if a key
-  doesn't "exist", it may still be occupying memory in the cache.
+  This will take expiration times into account, meaning that
+  expired entries will not be considered to exist.
 
   ## Examples
 
@@ -587,7 +658,7 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec exists?(cache, any, Keyword.t) :: { status, true | false }
+  @spec exists?(cache, any, Keyword.t) :: { status, boolean }
   def exists?(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Exists.execute(cache, key, options)
@@ -595,14 +666,13 @@ defmodule Cachex do
   end
 
   @doc """
-  Sets a TTL on a key in the cache in milliseconds.
+  Places an expiration time on an entry in a cache.
 
-  The following rules apply:
+  The provided expiration must be a integer value representing the
+  lifetime of the entry in milliseconds. If the provided value is
+  not positive, the entry will be immediately evicted.
 
-  - If the key does not exist in the cache, you will receive a result indicating
-    this.
-  - If the value provided is `nil`, the TTL is removed.
-  - If the value is less than `0`, the key is immediately evicted.
+  If the entry does not exist, no changes will be made in the cache.
 
   ## Examples
 
@@ -613,14 +683,8 @@ defmodule Cachex do
       iex> Cachex.expire(:my_cache, "missing_key", :timer.seconds(5))
       { :missing, false }
 
-      iex> Cachex.expire(:my_cache, "key", :timer.seconds(5), async: true)
-      { :ok, true }
-
-      iex> Cachex.expire(:my_cache, "missing_key", :timer.seconds(5), async: true)
-      { :ok, true }
-
   """
-  @spec expire(cache, any, number, Keyword.t) :: { status, true | false }
+  @spec expire(cache, any, number, Keyword.t) :: { status, boolean }
   def expire(cache, key, expiration, options \\ [])
   when (is_nil(expiration) or is_number(expiration)) and is_list(options) do
     Overseer.enforce(cache) do
@@ -629,11 +693,11 @@ defmodule Cachex do
   end
 
   @doc """
-  Updates the expiration time on a given cache entry to expire at the time provided.
+  Updates an entry in a cache to expire at a given time.
 
-  If the key does not exist in the cache, you will receive a result indicating
-  this. If the expiration date is in the past, the key will be immediately evicted
-  when this function is called.
+  Unlike `expire/4` this call uses an instant in time, rather than a
+  duration. The same semantics apply as calls to `expire/4` in that
+  instants which have passed will result in immediate eviction.
 
   ## Examples
 
@@ -644,14 +708,8 @@ defmodule Cachex do
       iex> Cachex.expire_at(:my_cache, "missing_key", 1455728085502)
       { :missing, false }
 
-      iex> Cachex.expire_at(:my_cache, "key", 1455728085502, async: true)
-      { :ok, true }
-
-      iex> Cachex.expire_at(:my_cache, "missing_key", 1455728085502, async: true)
-      { :ok, true }
-
   """
-  @spec expire_at(cache, binary, number, Keyword.t) :: { status, true | false }
+  @spec expire_at(cache, binary, number, Keyword.t) :: { status, boolean }
   def expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
     via_opts = via({ :expire_at, [ key, timestamp, options ] }, options)
@@ -659,11 +717,33 @@ defmodule Cachex do
   end
 
   @doc """
-  Fetches a value from the cache, executing the fallback on cache miss.
+  Fetches an entry from a cache, generating a value on cache miss.
 
-  If the fallback is executed, the return value will be placed in the cache. You
-  should use a return value of `{ :ignore, value }` to avoid writing to the cache.
-  This can be used to abandon writes if required.
+  If the entry requested is found in the cache, this function will
+  operate in the same way as `get/3`. If the entry is not contained
+  in the cache, the provided fallback function will be executed.
+
+  A fallback function is a function used to lazily generate a value
+  to place inside a cache on miss. Consider it a way to achieve the
+  ability to create a read-through cache.
+
+  A fallback function should return a Tuple consisting of a `:commit`
+  or `:ignore` tag and a value. If the Tuple is tagged `:commit` the
+  value will be placed into the cache and then returned. If tagged
+  `:ignore` the value will be returned without being written to the
+  cache. If you return a value which does not fit this structure, it
+  will be assumed that you are committing the value.
+
+  If a fallback function has an arity of 1, the requested entry key
+  will be passed through to allow for contextual computation. If a
+  function has an arity of 2, the `:provide` option from the global
+  `:fallback` cache option will be provided as the second argument.
+  This is to allow easy state sharing, such as remote clients. If a
+  function has an arity of 0, it will be executed without arguments.
+
+  If a cache has been initialized with a default fallback function
+  in the `:fallback` option at cache startup, the third argument to
+  this call becomes optional.
 
   ## Examples
 
@@ -697,7 +777,9 @@ defmodule Cachex do
   end
 
   @doc """
-  Retrieves all keys from the cache, and returns them as an (unordered) list.
+  Retrieves a list of all entry keys from a cache.
+
+  The order these keys are returned should be regarded as unordered.
 
   ## Examples
 
@@ -720,16 +802,24 @@ defmodule Cachex do
   end
 
   @doc """
-  Increments a key directly in the cache.
+  Increments an entry in the cache.
 
-  This operation is an internal mutation, and as such any set TTL persists - i.e.
-  it is not refreshed on this operation.
+  This will overwrite any value that was previously set against the provided key,
+  and overwrite any TTLs which were already set.
 
   ## Options
 
-    * `:amount` - an amount to increment by. This will default to 1.
-    * `:initial` - if the key does not exist, it will be initialized to this amount
-      before being modified. Defaults to 0.
+    * `:amount`
+
+      </br>
+      An amount to increment by, defaulting to 1.
+
+      </br>
+    * `:initial`
+
+      </br>
+      An initial value to set the key to if it does not exist. This will
+      take place *before* the increment call. Defaults to 0.
 
   ## Examples
 
@@ -737,17 +827,15 @@ defmodule Cachex do
       iex> Cachex.incr(:my_cache, "my_key")
       { :ok, 11 }
 
-      iex> Cachex.incr(:my_cache, "my_key", async: true)
-      { :ok, true }
-
       iex> Cachex.set(:my_cache, "my_new_key", 10)
       iex> Cachex.incr(:my_cache, "my_new_key", amount: 5)
       { :ok, 15 }
 
-      iex> Cachex.incr(:my_cache, "missing_key", amount: 5, initial: 0)
-      { :missing, 5 }
+      iex> Cachex.incr(:my_cache, "missing_key", amount: 5, initial: 2)
+      { :missing, 7 }
 
   """
+  # TODO: amount as an optional argument
   @spec incr(cache, any, Keyword.t) :: { status, number }
   def incr(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
@@ -756,36 +844,80 @@ defmodule Cachex do
   end
 
   @doc """
-  Various debug operations for a cache.
+  Inspects various aspects of a cache.
 
-  These operations typically happen outside of the worker process (i.e. in the
-  calling process). As such they have no impact on the actions being taken by the
-  worker. This means that these operations are safe for use with hot caches, but
-  come with a stricter set of limitations.
+  These operations should be regarded as debug tools, and should really
+  only happen outside of production code (unless absolutely) necessary.
 
-  Accepted options are only provided for convenience and should not be relied upon.
-  They are not part of the public interface (despite being documented) and as such
-  may be removed at any time (however this does not mean that they will be).
+  Accepted options are only provided for convenience and should not be
+  heavily relied upon.  They are not part of the public interface
+  (despite being documented) and as such  may be removed at any time
+  (however this does not mean that they will be).
 
   Please use cautiously. `inspect/2` is provided mainly for testing purposes and
   so performance isn't as much of a concern.
 
   ## Options
 
-    * `{ :expired, :count }` - the number of keys which have expired but have not
-      yet been removed by TTL handlers.
-    * `{ :expired, :keys }` - the list of unordered keys which have expired but
-      have not yet been removed by TTL handlers.
-    * `{ :janitor, :last }` - returns various information about the last run of
-      a Janitor process.
-    * `{ :memory, :bytes }` - the memory footprint of the cache in bytes.
-    * `{ :memory, :binary }` - the memory footprint of the cache in binary format.
-    * `{ :memory, :words }` - the memory footprint of the cache as a number of
-      Erlang words.
-    * `{ :record, key }` - the raw record of a key inside the cache.
-    * `:state` - the internal state of the cache.
+    * `:cache`
+
+      </br>
+      Retrieves the internal cache record for a cache.
+
+      </br>
+    * `{ :entry, key }`
+
+      </br>
+      Retrieves a raw entry record from inside a cache.
+
+    * `{ :expired, :count }`
+
+      </br>
+      Retrieves the number of expired entries which currently live in the cache
+      but have not yet been removed by cleanup tasks (either scheduled or lazy).
+
+      </br>
+    * `{ :expired, :keys }`
+
+      </br>
+      Retrieves the list of expired entry keys which current live in the cache
+      but have not yet been removed by cleanup tasks (either scheduled or lazy).
+
+      </br>
+    * `{ :janitor, :last }`
+
+      </br>
+      Retrieves metadata about the last execution of the Janitor service for
+      the specified cache.
+
+      </br>
+    * `{ :memory, :bytes }`
+
+      </br>
+      Retrieves an approximate memory footprint of a cache in bytes.
+
+      </br>
+    * `{ :memory, :binary }`
+
+      </br>
+      Retrieves an approximate memory footprint of a cache in binary format.
+
+      </br>
+    * `{ :memory, :words }`
+
+      </br>
+      Retrieve an approximate memory footprint of a cache as a number of
+      machine words.
 
   ## Examples
+
+      iex> Cachex.inspect(:my_cache, :cache)
+      {:ok,
+       {:cache, :my_cache, %{}, {:expiration, nil, 3000, true}, {:fallback, nil, nil},
+        {:hooks, [], []}, {:limit, nil, Cachex.Policy.LRW, 0.1, []}, false}}
+
+      iex> Cachex.inspect(:my_cache, { :entry, "my_key" } )
+      { :ok, { :entry, "my_key", 1475476615662, 1, "my_value" } }
 
       iex> Cachex.inspect(:my_cache, { :expired, :count })
       { :ok, 0 }
@@ -805,18 +937,6 @@ defmodule Cachex do
       iex> Cachex.inspect(:my_cache, { :memory, :words })
       { :ok, 1328 }
 
-      iex> Cachex.inspect(:my_cache, { :record, "my_key" } )
-      { :ok, { "my_key", 1475476615662, 1, "my_value" } }
-
-      iex> Cachex.inspect(:my_cache, :state)
-      {:ok,
-       %Cachex.Cache{name: :name, commands: %{}, default_ttl: nil,
-        fallback: %Cachex.Fallback{action: nil, state: nil},
-        janitor: :my_cache_janitor,
-        limit: %Cachex.Limit{limit: nil, policy: Cachex.Policy.LRW, reclaim: 0.1},
-        manager: :my_cache_manager, ode: true, post_hooks: [], pre_hooks: [],
-        transactions: false, ttl_interval: nil}}
-
   """
   @spec inspect(cache, atom | tuple) :: { status, any }
   def inspect(cache, option) do
@@ -826,16 +946,20 @@ defmodule Cachex do
   end
 
   @doc """
-  Invokes a custom command against a key inside a cache.
+  Invokes a custom command against a cache entry.
 
-  The chosen command must be a valid command as defined in the `start_link/3`
-  call when setting up your cache. The return value of this function depends
-  almost entirely on the return value of your command, but with `{ :ok, _res }`
-  syntax.
+  The provided command name must be a valid command which was
+  previously attached to the cache in calls to `start_link/3`.
 
   ## Examples
 
-      iex> Cachex.start_link(:my_cache, [ commands: [ last: { :return, &List.last/1 } ] ])
+      iex> import Cachex.Spec
+      iex>
+      iex> Cachex.start_link(:my_cache, [
+      ...>    commands: [
+      ...>      last: command(type: :read, execute: &List.last/1)
+      ...>    ]
+      ...> ])
       iex> Cachex.set(:my_cache, "my_list", [ 1, 2, 3 ])
       iex> Cachex.invoke(:my_cache, "my_list", :last)
       { :ok, 3 }
@@ -849,10 +973,14 @@ defmodule Cachex do
   end
 
   @doc """
-  Loads a cache backup file from a location on disk.
+  Deserializes a cache from a location on a filesystem.
 
-  This operation will only succeed if a valid backup file is provided, otherwise
-  an error will be returned.
+  This operation will read the current state of a cache from a provided
+  location on a filesystem. This function will only understand files
+  which have previously been created using `dump/3`.
+
+  It is the responsibility of the user to ensure that the location is
+  able to be read from, not the responsibility of Cachex.
 
   ## Examples
 
@@ -872,7 +1000,7 @@ defmodule Cachex do
   end
 
   @doc """
-  Removes a TTL on a given document.
+  Removes an expiration time from an entry in a cache.
 
   ## Examples
 
@@ -883,28 +1011,23 @@ defmodule Cachex do
       iex> Cachex.persist(:my_cache, "missing_key")
       { :missing, false }
 
-      iex> Cachex.persist(:my_cache, "missing_key", async: true)
-      { :ok, true }
-
   """
-  @spec persist(cache, any, Keyword.t) :: { status, true | false }
+  @spec persist(cache, any, Keyword.t) :: { status, boolean }
   def persist(cache, key, options \\ []) when is_list(options),
-  do: expire(cache, key, nil, via({ :persist, [ key, options ] }, options))
+    do: expire(cache, key, nil, via({ :persist, [ key, options ] }, options))
 
   @doc """
-  Triggers a mass deletion of all expired keys.
+  Triggers a cleanup of all expired entries in a cache.
 
-  This can be used to implement custom eviction policies rather than relying on
-  the internal policy. Be careful though, calling `purge/2` manually will result
-  in the purge firing inside the main process rather than inside the TTL worker.
+  This can be used to implement custom eviction policies rather than
+  relying on the internal Janitor service. Take care when using this
+  method though; calling `purge/2` manually will result in a purge
+  firing inside the calling process.
 
   ## Examples
 
       iex> Cachex.purge(:my_cache)
       { :ok, 15 }
-
-      iex> Cachex.purge(:my_cache, async: true)
-      { :ok, true }
 
   """
   @spec purge(cache, Keyword.t) :: { status, number }
@@ -915,13 +1038,20 @@ defmodule Cachex do
   end
 
   @doc """
-  Refreshes the TTL for the provided key. This will reset the TTL to begin from
-  the current time.
+  Refreshes an expiration for an entry in a cache.
+
+  Refreshing an expiration will reset the existing expiration with an offset
+  from the current time - i.e. if you set an expiration of 5 minutes and wait
+  3 minutes before refreshing, the entry will expire 8 minutes after the initial
+  insertion.
 
   ## Examples
 
       iex> Cachex.set(:my_cache, "my_key", "my_value", ttl: :timer.seconds(5))
       iex> :timer.sleep(4)
+      iex> Cachex.ttl(:my_cache, "my_key")
+      { :ok, 1000 }
+
       iex> Cachex.refresh(:my_cache, "my_key")
       iex> Cachex.ttl(:my_cache, "my_key")
       { :ok, 5000 }
@@ -929,14 +1059,8 @@ defmodule Cachex do
       iex> Cachex.refresh(:my_cache, "missing_key")
       { :missing, false }
 
-      iex> Cachex.refresh(:my_cache, "my_key", async: true)
-      { :ok, true }
-
-      iex> Cachex.refresh(:my_cache, "missing_key", async: true)
-      { :ok, true }
-
   """
-  @spec refresh(cache, any, Keyword.t) :: { status, true | false }
+  @spec refresh(cache, any, Keyword.t) :: { status, boolean }
   def refresh(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Refresh.execute(cache, key, options)
@@ -948,9 +1072,21 @@ defmodule Cachex do
 
   ## Options
 
-    * `:hooks` - a whitelist of hooks to reset. Defaults to all hooks.
-    * `:only` - a whitelist of components to clear. Currently this can only be
-      either of `:cache` or `:hooks`. Defaults to `[ :cache, :hooks ]`.
+    * `:hooks`
+
+      </br>
+      A whitelist of hooks to reset on the cache instance (call the
+      initialization phase of a hook again). This will default to
+      resetting all hooks associated with a cache, which is usually
+      the desired behaviour.
+
+      </br>
+    * `:only`
+
+      </br>
+      A whitelist of components to reset, which can currently contain
+      either the `:cache` or `:hooks` tag to determine what to reset.
+      This will default to `[ :cache, :hooks ]`.
 
   ## Examples
 
@@ -977,10 +1113,12 @@ defmodule Cachex do
   end
 
   @doc """
-  Determines the total size of the cache.
+  Retrieves the total size of a cache.
 
-  This includes any expired but unevicted keys. For a more representation which
-  doesn't include expired keys, use `count/2`.
+  This does not take into account the expiration time of any entries
+  inside the cache. Due to this, this call is O(1) rather than the more
+  expensive O(n) algorithm used by `count/3`. Which you use depends on
+  exactly what you want the returned number to represent.
 
   ## Examples
 
@@ -999,13 +1137,17 @@ defmodule Cachex do
   end
 
   @doc """
-  Retrieves the statistics of a cache.
+  Retrieves statistics about a cache.
 
-  If statistics gathering is not enabled, an error is returned.
+  This will only provide statistics if the `:stats` option was
+  provided on cache startup in `start_link/3`.
 
   ## Options
 
-    * `:for` - a specific set of actions to retrieve statistics for.
+    * `:for`
+
+      </br>
+      Allows customization of exactly which statistics to retrieve.
 
   ## Examples
 
@@ -1035,17 +1177,23 @@ defmodule Cachex do
   end
 
   @doc """
-  Returns a Stream which can be used to iterate through a cache.
+  Creates a `Stream` of entries in a cache.
 
-  This operates entirely on an ETS level in order to provide a moving view of the
-  cache. As such, if you wish to operate on any keys as a result of this Stream,
-  please buffer them up and execute using `transaction/3`.
+  The returned stream operates entirely on an ETS level in order
+  to provide a moving view of a cache. As such, if you wish to
+  operate on any keys as a result of the stream, please execute
+  your modifications inside a transactional context.
 
   ## Options
 
-    * `:of` - allows you to return a stream of a custom format, however usually
-      only `:key` or `:value` will be needed. This can be an atom or a tuple and
-      defaults to using `{ :key, :value }` if unset.
+    * `:of`
+
+      </br>
+      Specifies the format of the entries to stream, allowing the
+      caller to customize the seeded entry format. This will usually
+      be `:key` or `:value` as users only interact with those fields
+      directly. This can also be a Tuple and defaults to the pair of
+      `{ :key, :value }`.
 
   ## Examples
 
@@ -1075,9 +1223,10 @@ defmodule Cachex do
   end
 
   @doc """
-  Takes a key from the cache.
+  Takes an entry from a cache.
 
-  This is equivalent to running `get/3` followed by `del/3` in a single action.
+  This is conceptually equivalent to running `get/3` followed
+  by an atomic `del/3` call.
 
   ## Examples
 
@@ -1100,11 +1249,12 @@ defmodule Cachex do
   end
 
   @doc """
-  Touches the last write time on a key.
+  Updates the last write time on a cache entry.
 
-  This is similar to `refresh/3` except that TTLs are maintained.
+  This is very similar to `refresh/3` except that the expiration
+  time is maintained inside the record (using a calculated offset).
   """
-  @spec touch(cache, any, Keyword.t) :: { status, true | false }
+  @spec touch(cache, any, Keyword.t) :: { status, boolean }
   def touch(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Touch.execute(cache, key, options)
@@ -1112,11 +1262,14 @@ defmodule Cachex do
   end
 
   @doc """
-  Transactional equivalent of `execute/3`.
+  Executes multiple functions in the context of a transaction.
 
-  You **must** use the worker instance passed to the provided function when calling
-  the cache, otherwise your request will time out. This is due to the blocking
-  nature of the execution, and can not be avoided (at this time).
+  This will operate in the same way as `execute/3`, except that writes
+  to the specified keys will be blocked on the execution of this transaction.
+
+  The keys parameter should be a list of keys you wish to lock whilst
+  your transaction is executed. Any keys not in this list can still be
+  written even during your transaction.
 
   ## Examples
 
@@ -1129,38 +1282,38 @@ defmodule Cachex do
       ...> end)
       { :ok, [ "value1", "value2" ] }
 
-      iex> Cachex.transaction(:my_cache, fn(worker) ->
-      ...>   Cachex.set(worker, "key3", "value3")
-      ...>   Cachex.abort(:exit_early)
-      ...> end)
-      { :error, :exit_early }
-
-      iex> Cachex.get(:my_cache, "key3")
-      { :missing, nil }
-
   """
   @spec transaction(cache, [ any ], function, Keyword.t) :: { status, any }
   def transaction(cache, keys, operation, options \\ [])
   when is_function(operation, 1) and is_list(keys) and is_list(options) do
     Overseer.enforce(cache) do
-      if cache(cache, :transactional) do
-        Actions.Transaction.execute(cache, keys, operation, options)
-      else
-        cache
-        |> cache(:name)
-        |> Overseer.update(&cache(&1, transactional: true))
-        |> Actions.Transaction.execute(keys, operation, options)
-      end
+      trans_cache =
+        case cache(cache, :transactional) do
+          true  -> cache
+          false ->
+            cache
+            |> cache(:name)
+            |> Overseer.update(&cache(&1, transactional: true))
+        end
+
+      Actions.Transaction.execute(trans_cache, keys, operation, options)
     end
   end
 
   @doc """
-  Returns the TTL for a cache entry in milliseconds.
+  Retrieves the expiration for an entry in a cache.
+
+  This is a millisecond value (if set) representing the time a
+  cache entry has left to live in a cache. It can return `nil`
+  if the entry does not have a set expiration.
 
   ## Examples
 
       iex> Cachex.ttl(:my_cache, "my_key")
       { :ok, 13985 }
+
+      iex> Cachex.ttl(:my_cache, "my_key_with_no_ttl")
+      { :ok, nil }
 
       iex> Cachex.ttl(:my_cache, "missing_key")
       { :missing, nil }
@@ -1173,12 +1326,14 @@ defmodule Cachex do
     end
   end
 
-  ###
-  # Private utility functions.
-  ###
+  ###############
+  # Private API #
+  ###############
 
-  # Determines whether the Cachex application state has been started or not. If
-  # not, we return an error to tell the user to start it appropriately.
+  # Determines whether the Cachex application has been started.
+  #
+  # This will return an error if the application has not been
+  # started, otherwise a truthy result will be returned.
   defp ensure_started do
     if Overseer.started?() do
       { :ok, true }
@@ -1187,8 +1342,9 @@ defmodule Cachex do
     end
   end
 
-  # Ensures that the designated cache name is not currently in use. To determine
-  # this we check to see if the name is in use by an existing GenServer.
+  # Determines if a cache name is already in use.
+  #
+  # If the name is in use, we return an error.
   defp ensure_unused(cache) do
     case GenServer.whereis(cache) do
       nil -> { :ok, true }
@@ -1196,12 +1352,16 @@ defmodule Cachex do
     end
   end
 
-  # Runs through the initial setup for a cache, parsing a list of options into
-  # a set of Cachex options, We then try to create a base ETS table to ensure
-  # that all options are valid, remove it, and report back that everything is
-  # ready to go. This cannot be done later, as Eternal is started in the tree -
-  # meaning that the Supervisor would crash and restart rather than returning
-  # an error message explaining what had happened.
+  # Configures the environment for a new cache.
+  #
+  # This will first parse all provided options into a cache record, if
+  # the options provided are valid (errors if not). Then we create a
+  # new base ETS table to validate the ETS options, before deleting
+  # the table and reporting that everything is ready.
+  #
+  # At a glance this seems very strange, but we use Eternal to manage
+  # our table and so the Supervisor would simply crash on invalid
+  # table options, which does not allow us to explain to the user.
   defp setup_env(name, options) when is_list(options) do
     with { :ok, cache } <- Options.parse(name, options) do
       try do
@@ -1214,18 +1374,16 @@ defmodule Cachex do
     end
   end
 
-  # Unwraps a result coming back from a cache function to raise any errors as
-  # required, or return the raw value being represented. This is never called
-  # directly but rather passed through to the :unsafe library to generate bang
-  # functions at compile time and then route proxy results through to here.
+  # Unwraps a command result into an unsafe form.
+  #
+  # This is used alongside the Unsafe library to generate shorthand
+  # bang functions for the API. This will expand error messages and
+  # remove the binding Tuples in order to allow for easy piping of
+  # results from cache calls.
   defp unwrap_unsafe({ :error, value }) when is_atom(value),
     do: raise ExecutionError, message: Errors.long_form(value)
   defp unwrap_unsafe({ :error, value }) when is_binary(value),
     do: raise ExecutionError, message: value
   defp unwrap_unsafe({ _state, value }),
     do: value
-
-  # Simply adds a "via" param to the options to allow the use of delegates.
-  defp via(module, options),
-    do: [ { :via, module } | options ]
 end

@@ -360,6 +360,13 @@ defmodule Cachex.Spec do
     do: quote(do: is_nil(unquote(nillable)) or apply(unquote(condition), [ unquote(nillable) ]))
 
   @doc """
+  Adds a :via delegation to a Keyword List.
+  """
+  @spec via(atom, Keyword.t) :: Keyword.t
+  defmacro via(action, options),
+    do: quote(do: [ { :via, unquote(action) } | unquote(options) ])
+
+  @doc """
   Wraps a value inside a tagged Tuple using the provided tag.
   """
   @spec wrap(any, atom) :: { atom, any }

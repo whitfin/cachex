@@ -33,6 +33,7 @@ defmodule Cachex.Actions.FetchTest do
     fb_opt1 = &String.reverse/1
     fb_opt2 = &({ :commit, String.reverse(&1) })
     fb_opt3 = &({ :ignore, String.reverse(&1) })
+    fb_opt4 = fn -> "6yek" end
 
     # fetch the first and second keys
     result1 = Cachex.fetch(cache1, "key1", fb_opt1)
@@ -48,17 +49,19 @@ defmodule Cachex.Actions.FetchTest do
     result3 = Cachex.fetch(cache1, "key3", fb_opt1)
     result4 = Cachex.fetch(cache1, "key4", fb_opt2)
     result5 = Cachex.fetch(cache1, "key5", fb_opt3)
+    result6 = Cachex.fetch(cache1, "key6", fb_opt4)
 
     # verify the fallback fetches
     assert(result3 == { :commit, "3yek" })
     assert(result4 == { :commit, "4yek" })
     assert(result5 == { :ignore, "5yek" })
+    assert(result6 == { :commit, "6yek" })
 
     # test using a default fallback state
-    result6 = Cachex.fetch(cache2, "key6")
+    result7 = Cachex.fetch(cache2, "key7")
 
     # verify that it executes and ignores state
-    assert(result6 == { :commit, "key6_val" })
+    assert(result7 == { :commit, "key7_val" })
 
     # assert we receive valid notifications
     assert_receive({ { :fetch, [ "key1", ^fb_opt1, [ ] ] }, ^result1 })
@@ -66,7 +69,8 @@ defmodule Cachex.Actions.FetchTest do
     assert_receive({ { :fetch, [ "key3", ^fb_opt1, [ ] ] }, ^result3 })
     assert_receive({ { :fetch, [ "key4", ^fb_opt2, [ ] ] }, ^result4 })
     assert_receive({ { :fetch, [ "key5", ^fb_opt3, [ ] ] }, ^result5 })
-    assert_receive({ { :fetch, [ "key6",  ^concat, [ ] ] }, ^result6 })
+    assert_receive({ { :fetch, [ "key6", ^fb_opt4, [ ] ] }, ^result6 })
+    assert_receive({ { :fetch, [ "key7",  ^concat, [ ] ] }, ^result7 })
 
     # check we received valid purge actions for the TTL
     assert_receive({ { :purge, [[]] }, { :ok, 1 } })
@@ -84,11 +88,11 @@ defmodule Cachex.Actions.FetchTest do
     assert(value3 == { :missing, nil })
 
     # check using a missing fallback
-    result7 = Cachex.fetch(cache1, "key7")
-    result8 = Cachex.fetch(cache1, "key8", "val")
+    result8 = Cachex.fetch(cache1, "key7")
+    result9 = Cachex.fetch(cache1, "key8", "val")
 
     # both should be an error for invalid function
-    assert(result7 == { :error, :invalid_fallback })
     assert(result8 == { :error, :invalid_fallback })
+    assert(result9 == { :error, :invalid_fallback })
   end
 end

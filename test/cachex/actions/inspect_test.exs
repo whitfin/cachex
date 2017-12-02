@@ -109,8 +109,8 @@ defmodule Cachex.Actions.InspectTest do
     { :ok, true } = Cachex.set(cache, 1, "one", ttl: 1000)
 
     # fetch some records
-    record1 = Cachex.inspect(cache, { :record, 1 })
-    record2 = Cachex.inspect(cache, { :record, 2 })
+    record1 = Cachex.inspect(cache, { :entry, 1 })
+    record2 = Cachex.inspect(cache, { :entry, 2 })
 
     # break down the first record
     { :ok, { :entry, key, touched, ttl, value } } = record1
