@@ -63,7 +63,7 @@ defmodule Cachex do
   @unsafe [
     clear:             [ 1, 2 ],
     count:             [ 1, 2 ],
-    decr:              [ 2, 3 ],
+    decr:           [ 2, 3, 4 ],
     del:               [ 2, 3 ],
     dump:              [ 2, 3 ],
     empty?:            [ 1, 2 ],
@@ -74,7 +74,7 @@ defmodule Cachex do
     fetch:          [ 2, 3, 4 ],
     get:               [ 2, 3 ],
     get_and_update:    [ 3, 4 ],
-    incr:              [ 2, 3 ],
+    incr:           [ 2, 3, 4 ],
     inspect:              [ 2 ],
     invoke:            [ 3, 4 ],
     keys:              [ 1, 2 ],
@@ -508,12 +508,6 @@ defmodule Cachex do
 
   ## Options
 
-    * `:amount`
-
-      </br>
-      An amount to decrement by, defaulting to 1.
-
-      </br>
     * `:initial`
 
       </br>
@@ -527,18 +521,18 @@ defmodule Cachex do
       { :ok, 9 }
 
       iex> Cachex.set(:my_cache, "my_new_key", 10)
-      iex> Cachex.decr(:my_cache, "my_new_key", amount: 5)
+      iex> Cachex.decr(:my_cache, "my_new_key", 5)
       { :ok, 5 }
 
-      iex> Cachex.decr(:my_cache, "missing_key", amount: 5, initial: 2)
+      iex> Cachex.decr(:my_cache, "missing_key", 5, initial: 2)
       { :missing, -3 }
 
   """
-  # TODO: amount as an optional argument
-  @spec decr(cache, any, Keyword.t) :: { status, number }
-  def decr(cache, key, options \\ []) do
-    mod_opts = Keyword.update(options, :amount, -1, &(&1 * -1))
-    incr(cache, key, via({ :decr, [ key, options ] }, mod_opts))
+  @spec decr(cache, any, integer, Keyword.t) :: { status, integer }
+  def decr(cache, key, amount \\ 1, options \\ [])
+  when is_integer(amount) and is_list(options) do
+    via_opt = via({ :decr, [ key, amount, options ] }, options)
+    incr(cache, key, amount * -1, via_opt)
   end
 
   @doc """
@@ -809,12 +803,6 @@ defmodule Cachex do
 
   ## Options
 
-    * `:amount`
-
-      </br>
-      An amount to increment by, defaulting to 1.
-
-      </br>
     * `:initial`
 
       </br>
@@ -828,18 +816,18 @@ defmodule Cachex do
       { :ok, 11 }
 
       iex> Cachex.set(:my_cache, "my_new_key", 10)
-      iex> Cachex.incr(:my_cache, "my_new_key", amount: 5)
+      iex> Cachex.incr(:my_cache, "my_new_key", 5)
       { :ok, 15 }
 
-      iex> Cachex.incr(:my_cache, "missing_key", amount: 5, initial: 2)
+      iex> Cachex.incr(:my_cache, "missing_key", 5, initial: 2)
       { :missing, 7 }
 
   """
-  # TODO: amount as an optional argument
-  @spec incr(cache, any, Keyword.t) :: { status, number }
-  def incr(cache, key, options \\ []) when is_list(options) do
+  @spec incr(cache, any, integer, Keyword.t) :: { status, integer }
+  def incr(cache, key, amount \\ 1, options \\ [])
+  when is_integer(amount) and is_list(options) do
     Overseer.enforce(cache) do
-      Actions.Incr.execute(cache, key, options)
+      Actions.Incr.execute(cache, key, amount, options)
     end
   end
 

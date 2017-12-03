@@ -12,16 +12,12 @@ defmodule Cachex.Actions.IncrTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # define write options
-    opts1 = []
-    opts2 = [ amount: 2 ]
-    opts3 = [ initial: 10 ]
-    opts4 = [ initial: 10, amount: 5 ]
+    opts1 = [ initial: 10 ]
 
     # increment some items
-    incr1 = Cachex.incr(cache, "key1", opts1)
-    incr2 = Cachex.incr(cache, "key1", opts2)
-    incr3 = Cachex.incr(cache, "key2", opts3)
-    incr4 = Cachex.incr(cache, "key3", opts4)
+    incr1 = Cachex.incr(cache, "key1")
+    incr2 = Cachex.incr(cache, "key1", 2)
+    incr3 = Cachex.incr(cache, "key2", 1, opts1)
 
     # the first result should be 1
     assert(incr1 == { :missing, 1 })
@@ -32,24 +28,18 @@ defmodule Cachex.Actions.IncrTest do
     # the third result should be 11
     assert(incr3 == { :missing, 11 })
 
-    # the fourth result should be 15
-    assert(incr4 == { :missing, 15 })
-
     # verify the hooks were updated with the increment
-    assert_receive({ { :incr, [ "key1", ^opts1 ] }, ^incr1 })
-    assert_receive({ { :incr, [ "key1", ^opts2 ] }, ^incr2 })
-    assert_receive({ { :incr, [ "key2", ^opts3 ] }, ^incr3 })
-    assert_receive({ { :incr, [ "key3", ^opts4 ] }, ^incr4 })
+    assert_receive({ { :incr, [ "key1", 1,     [] ] }, ^incr1 })
+    assert_receive({ { :incr, [ "key1", 2,     [] ] }, ^incr2 })
+    assert_receive({ { :incr, [ "key2", 1, ^opts1 ] }, ^incr3 })
 
     # retrieve all items
     value1 = Cachex.get(cache, "key1")
     value2 = Cachex.get(cache, "key2")
-    value3 = Cachex.get(cache, "key3")
 
     # verify the items match
     assert(value1 == { :ok,  3 })
     assert(value2 == { :ok, 11 })
-    assert(value3 == { :ok, 15 })
   end
 
   # This test covers the negative case where a value exists but is not an integer,

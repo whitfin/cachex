@@ -29,8 +29,7 @@ defmodule Cachex.Actions.Incr do
 
   This command will return an error if called on a non-numeric value.
   """
-  defaction incr(cache(name: name) = cache, key, options) do
-    amount  = Util.get_opt(options,  :amount, &is_integer/1, 1)
+  defaction incr(cache(name: name) = cache, key, amount, options) do
     initial = Util.get_opt(options, :initial, &is_integer/1, 0)
     expiry  = Util.get_expiration(cache, nil)
 
