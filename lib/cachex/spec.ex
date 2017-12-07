@@ -13,6 +13,13 @@ defmodule Cachex.Spec do
   import Record
 
   #############
+  # Constants #
+  #############
+
+  # a list of accepted service suffixes for a cache instance
+  @services [ :courier, :eternal, :janitor, :locksmith, :stats ]
+
+  #############
   # Typespecs #
   #############
 
@@ -317,65 +324,9 @@ defmodule Cachex.Spec do
       write_concurrency: true
     ])
 
-  #############
-  # Utilities #
-  #############
-
-  @doc """
-  Determines if a value is a negative integer.
-  """
-  @spec is_negative_integer(integer) :: boolean
-  defmacro is_negative_integer(integer),
-    do: quote(do: is_integer(unquote(integer)) and unquote(integer) < 0)
-
-  @doc """
-  Determines if a value is a positive integer.
-  """
-  @spec is_positive_integer(integer) :: boolean
-  defmacro is_positive_integer(integer),
-    do: quote(do: is_integer(unquote(integer)) and unquote(integer) > 0)
-
-  @doc """
-  Generates a named atom for a cache, using the provided suffix.
-
-  The list of suffixes is narrowly defined to avoid bloating the atom table as it's
-  never garbage collected. This macro is only used when naming cache services.
-  """
-  @spec name(atom | binary, atom) :: atom
-  defmacro name(name, suffix) when suffix in [ :eternal, :janitor, :locksmith, :stats ],
-    do: quote(do: :"#{unquote(name)}_#{unquote(suffix)}")
-
-  @doc """
-  Retrieves the current system time in milliseconds.
-  """
-  @spec now :: integer
-  defmacro now,
-    do: quote(do: :os.system_time(1000))
-
-  @doc """
-  Checks if a nillable value satisfies a provided condition.
-  """
-  @spec nillable?(any, (any -> boolean)) :: boolean
-  defmacro nillable?(nillable, condition),
-    do: quote(do: is_nil(unquote(nillable)) or apply(unquote(condition), [ unquote(nillable) ]))
-
-  @doc """
-  Adds a :via delegation to a Keyword List.
-  """
-  @spec via(atom, Keyword.t) :: Keyword.t
-  defmacro via(action, options),
-    do: quote(do: [ { :via, unquote(action) } | unquote(options) ])
-
-  @doc """
-  Wraps a value inside a tagged Tuple using the provided tag.
-  """
-  @spec wrap(any, atom) :: { atom, any }
-  defmacro wrap(value, tag) when is_atom(tag),
-    do: quote(do: { unquote(tag), unquote(value) })
-
-  ##################
-  # ETS Generation #
-  ##################
+  ####################
+  # Entry Generation #
+  ####################
 
   @doc """
   Retrieves the ETS index for an entry field.
@@ -425,4 +376,81 @@ defmodule Cachex.Spec do
   @spec entry_now([ { atom, any } ]) :: [ { integer, any } ]
   defmacro entry_now(pairs \\ []),
     do: quote(do: entry(unquote([ touched: quote(do: now()) ] ++ pairs)))
+
+  ############
+  # Services #
+  ############
+
+  @doc """
+  Generates a service call for a cache.
+
+  This will generate the service name for the provided cache and call
+  the service with the provided message. The timeout for these service
+  calls is `:infinity` as they're all able to block the caller.
+  """
+  @spec service_call(cache, atom, any) :: any
+  defmacro service_call(cache, service, message) when service in @services do
+    quote do
+      cache(name: name) = unquote(cache)
+      name
+      |> name(unquote(service))
+      |> GenServer.call(unquote(message), :infinity)
+    end
+  end
+
+  #############
+  # Utilities #
+  #############
+
+  @doc """
+  Determines if a value is a negative integer.
+  """
+  @spec is_negative_integer(integer) :: boolean
+  defmacro is_negative_integer(integer),
+    do: quote(do: is_integer(unquote(integer)) and unquote(integer) < 0)
+
+  @doc """
+  Determines if a value is a positive integer.
+  """
+  @spec is_positive_integer(integer) :: boolean
+  defmacro is_positive_integer(integer),
+    do: quote(do: is_integer(unquote(integer)) and unquote(integer) > 0)
+
+  @doc """
+  Generates a named atom for a cache, using the provided service.
+
+  The list of services is narrowly defined to avoid bloating the atom table as
+  it's not garbage collected. This macro is only used when naming services.
+  """
+  @spec name(atom | binary, atom) :: atom
+  defmacro name(name, service) when service in @services,
+    do: quote(do: :"#{unquote(name)}_#{unquote(service)}")
+
+  @doc """
+  Retrieves the current system time in milliseconds.
+  """
+  @spec now :: integer
+  defmacro now,
+    do: quote(do: :os.system_time(1000))
+
+  @doc """
+  Checks if a nillable value satisfies a provided condition.
+  """
+  @spec nillable?(any, (any -> boolean)) :: boolean
+  defmacro nillable?(nillable, condition),
+    do: quote(do: is_nil(unquote(nillable)) or apply(unquote(condition), [ unquote(nillable) ]))
+
+  @doc """
+  Adds a :via delegation to a Keyword List.
+  """
+  @spec via(atom, Keyword.t) :: Keyword.t
+  defmacro via(action, options),
+    do: quote(do: [ { :via, unquote(action) } | unquote(options) ])
+
+  @doc """
+  Wraps a value inside a tagged Tuple using the provided tag.
+  """
+  @spec wrap(any, atom) :: { atom, any }
+  defmacro wrap(value, tag) when is_atom(tag),
+    do: quote(do: { unquote(tag), unquote(value) })
 end

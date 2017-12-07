@@ -11,8 +11,7 @@ defmodule Cachex.Actions.Fetch do
   exist, an error will be returned.
   """
   alias Cachex.Actions.Get
-  alias Cachex.Actions.Set
-  alias Cachex.Util
+  alias Cachex.Services.Courier
 
   # provide needed macros
   import Cachex.Actions
@@ -34,10 +33,7 @@ defmodule Cachex.Actions.Fetch do
   """
   defaction fetch(cache() = cache, key, fallback, options) do
     with { :missing, nil } <- Get.execute(cache, key, const(:notify_false)) do
-      cache
-      |> handle_fallback(fallback, key)
-      |> Util.normalize_commit
-      |> handle_commit(cache, key)
+      Courier.dispatch(cache, key, generate_task(cache, fallback, key))
     end
   end
 
@@ -45,28 +41,16 @@ defmodule Cachex.Actions.Fetch do
   # Private API #
   ###############
 
-  # Executes a fallback based on the arity of the fallback function.
+  # Generates a courier task based on the arity of the fallback function.
   #
   # If only a single argument is expected, the key alone is passed through. For
   # any other arity, we pass through the key and the default state (which can
   # be nil). This will therefore crash if the provided arity is invalid.
-  defp handle_fallback(cache(fallback: fallback(provide: provide)), fallback, key) do
+  defp generate_task(cache(fallback: fallback(provide: provide)), fallback, key) do
     case :erlang.fun_info(fallback)[:arity] do
-      0 -> fallback.()
-      1 -> fallback.(key)
-      _ -> fallback.(key, provide)
+      0 -> fn -> fallback.() end
+      1 -> fn -> fallback.(key) end
+      _ -> fn -> fallback.(key, provide) end
     end
-  end
-
-  # Handles the result of a fallback execution.
-  #
-  # If the returned Tuple is tagged with the `:commit` flag, the value is
-  # persisted to the cache table. If no, the result is returned as it without
-  # being stored inside the cache.
-  defp handle_commit(result, cache, key) do
-    with { :commit, val } <- result do
-      Set.execute(cache, key, val, const(:notify_false))
-    end
-    result
   end
 end

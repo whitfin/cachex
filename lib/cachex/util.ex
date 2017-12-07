@@ -20,9 +20,15 @@ defmodule Cachex.Util do
   # the number of suffixes stored (not including B)
   @memory_sufcount map_size(@memory_suffixes) - 1.0
 
+  # available result tuple tag list
+  @result_tags [ :commit, :ignore, :error ]
+
   ##############
   # Public API #
   ##############
+
+  # result tuple tag type
+  @type result_tag :: :commit | :ignore | :error
 
   @doc """
   Converts a number of bytes to a binary representation.
@@ -116,12 +122,13 @@ defmodule Cachex.Util do
     do: false
 
   @doc """
-  Normalizes a commit result to a Tuple tagged with `:commit` or `:ignore`.
+  Normalizes a commit result to a Tuple tagged with `:commit`, `:ignore`
+  or `:error`.
   """
-  @spec normalize_commit({ :commit | :ignore, any } | any) :: { :commit | :ignore, any }
+  @spec normalize_commit({ result_tag, any } | any) :: { result_tag, any }
   def normalize_commit(value) do
     case value do
-      { status, _val } when status in [ :commit, :ignore ] ->
+      { status, _val } when status in @result_tags ->
         value
       ^value ->
         { :commit, value }

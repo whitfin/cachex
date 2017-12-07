@@ -23,7 +23,7 @@ defmodule Cachex.Services.Locksmith.Queue do
   This is little more than starting a GenServer process using this module,
   although it does use the provided cache record to name the new server.
   """
-  @spec start_link(Spec.cache) :: [ Supervisor.Spec.spec ]
+  @spec start_link(Spec.cache) :: [ GenServer.on_start ]
   def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :locksmith) ])
 
@@ -32,7 +32,7 @@ defmodule Cachex.Services.Locksmith.Queue do
   """
   @spec execute(Spec.cache, (() -> any)) :: any
   def execute(cache() = cache, func) when is_function(func, 0),
-    do: call(cache, { :exec, func })
+    do: service_call(cache, :locksmith, { :exec, func })
 
   @doc """
   Executes a function in a transactional context.
@@ -40,7 +40,7 @@ defmodule Cachex.Services.Locksmith.Queue do
   @spec transaction(Spec.cache, [ any ], (() -> any)) :: any
   def transaction(cache() = cache, keys, func)
   when is_list(keys) and is_function(func, 0),
-    do: call(cache, { :transaction, keys, func })
+    do: service_call(cache, :locksmith, { :transaction, keys, func })
 
   ####################
   # Server Callbacks #
@@ -84,16 +84,6 @@ defmodule Cachex.Services.Locksmith.Queue do
   ###############
   # Private API #
   ###############
-
-  # Calls the internal locksmith queue for a cache.
-  #
-  # The name of the cache is used to determine the name for the locksmith,
-  # and the message provided can be arbitrary as long as it's a Tuple.
-  defp call(cache(name: name), message) when is_tuple(message) do
-    name
-    |> name(:locksmith)
-    |> GenServer.call(message, :infinity)
-  end
 
   # Wraps a function in a rescue clause to provide safety.
   #

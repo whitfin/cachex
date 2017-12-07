@@ -44,11 +44,8 @@ defmodule Cachex.Services.Janitor do
   @spec last_run(Spec.cache) :: %{}
   def last_run(cache(expiration: expiration(interval: nil))),
     do: error(:janitor_disabled)
-  def last_run(cache(name: name)) do
-    name
-    |> name(:janitor)
-    |> GenServer.call(:last)
-  end
+  def last_run(cache() = cache),
+    do: service_call(cache, :janitor, :last)
 
   ####################
   # Server Callbacks #
