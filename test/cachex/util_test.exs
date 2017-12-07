@@ -145,6 +145,7 @@ defmodule Cachex.UtilTest do
     # define our base Tuples to test against
     tuple1 = { :commit, true }
     tuple2 = { :ignore, true }
+    tuple3 = { :error,  true }
 
     # define our base value
     value1 = true
@@ -152,14 +153,16 @@ defmodule Cachex.UtilTest do
     # normalize all values
     result1 = Cachex.Util.normalize_commit(tuple1)
     result2 = Cachex.Util.normalize_commit(tuple2)
-    result3 = Cachex.Util.normalize_commit(value1)
+    result3 = Cachex.Util.normalize_commit(tuple3)
+    result4 = Cachex.Util.normalize_commit(value1)
 
-    # the first two should persist
+    # the first three should persist
     assert(result1 == tuple1)
     assert(result2 == tuple2)
+    assert(result3 == tuple3)
 
     # the value should be converted to the first
-    assert(result3 == tuple1)
+    assert(result4 == tuple1)
   end
 
   # This test just provides basic coverage of the write_mod function, by using

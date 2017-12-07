@@ -49,6 +49,7 @@ defmodule Cachex.Services do
     |> Enum.concat(table_spec(cache))
     |> Enum.concat(locksmith_spec(cache))
     |> Enum.concat(informant_spec(cache))
+    |> Enum.concat(courier_spec(cache))
     |> Enum.concat(janitor_spec(cache))
     |> Enum.concat(limit_spec(cache))
   end
@@ -56,6 +57,14 @@ defmodule Cachex.Services do
   ###############
   # Private API #
   ###############
+
+  # Creates a specification for the Courier service.
+  #
+  # The courier acts as a synchronised way to retrieve values computed via
+  # fallback functions to avoid clashing. Each cache should have a courier
+  # by default as fallbacks are enabled by default (not behind a flag).
+  defp courier_spec(cache() = cache),
+    do: [ worker(Services.Courier, [ cache ]) ]
 
   # Creates a specification for the Informant supervisor.
   #
