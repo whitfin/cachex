@@ -187,7 +187,7 @@ defmodule CachexTest do
       # generate the new definition
       inverse =
         if String.ends_with?(name_st, "!") do
-          :"#{String.trim_trailing(name_st, "!")}"
+          :"#{String.replace_trailing(name_st, "!", "")}"
         else
           :"#{name_st}!"
         end
