@@ -79,14 +79,15 @@ defmodule Cachex.Spec.Validator do
   # It might be that this is too strict for basic validation, but seeing
   # as the cache creation requires valid hooks it seemse to make sense to
   # be this strict at this point.
-  def valid?(:hook, hook(async: async, module: module, options: options) = h) do
+  def valid?(:hook, hook(actions: actions, async: async, module: module) = h) do
     # unpack the extra properties we need to validate
-    hook(provide: provide, ref: ref, timeout: timeout, type: type) = h
+    hook(options: options, provide: provide, ref: ref, timeout: timeout, type: type) = h
 
     # run the rest of the basic validations
     with true <- (type in [ :post, :pre ]),
          true <- module?(module),
          true <- nillable?(ref, &is_pid/1),
+         true <- nillable?(actions, &is_list/1),
          true <- nillable?(timeout, &is_positive_integer/1),
          true <- is_list(provide),
          true <- is_boolean(async),
