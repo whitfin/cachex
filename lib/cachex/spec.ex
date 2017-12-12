@@ -191,6 +191,7 @@ defmodule Cachex.Spec do
   in future with just a behaviour and a set of macros (as this record is very noisy now).
   """
   defrecord :hook,
+    actions: nil,
     args: nil,
     async: true,
     module: nil,

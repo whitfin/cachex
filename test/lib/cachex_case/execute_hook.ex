@@ -18,7 +18,7 @@ defmodule CachexCase.ExecuteHook do
   @doc false
   # Forwards the received message on to the test process, and simply returns the
   # state as it was to start with.
-  def handle_notify(fun, _results, proc) do
+  def handle_notify({ _tag, fun }, _results, proc) do
     handle_info(fun.(), proc)
     { :ok, proc }
   end

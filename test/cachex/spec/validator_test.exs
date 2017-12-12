@@ -103,27 +103,29 @@ defmodule Cachex.Spec.ValidatorTest do
     hook2 = hook(module: __MODULE__, ref:    nil, timeout: nil, type: :post)
     hook3 = hook(module: __MODULE__, ref:    nil, timeout: 100, type:  :pre)
     hook4 = hook(module: __MODULE__, ref: self(), timeout: 100, type:  :pre)
+    hook5 = hook(module: __MODULE__, ref: self(), actions:  [], type:  :pre)
 
     # ensure all records are valid
     assert Validator.valid?(:hook, hook1)
     assert Validator.valid?(:hook, hook2)
     assert Validator.valid?(:hook, hook3)
     assert Validator.valid?(:hook, hook4)
+    assert Validator.valid?(:hook, hook5)
 
     # define some invalid records
-    hook5  = hook(module: :missing)
-    hook6  = hook(module: __MODULE__, async: "true")
-    hook7  = hook(module: __MODULE__, options: nil)
-    hook8  = hook(module: __MODULE__, options: [1])
-    hook9  = hook(module: __MODULE__, provide: nil)
-    hook10 = hook(module: __MODULE__, ref: " ")
-    hook11 = hook(module: __MODULE__, timeout: -1)
-    hook12 = hook(module: __MODULE__, timeout: " ")
-    hook13 = hook(module: __MODULE__, type: " ")
-    hook14 = hook(module: __MODULE__, type: :missing)
+    hook6  = hook(module: :missing)
+    hook7  = hook(module: __MODULE__, actions: "true")
+    hook8  = hook(module: __MODULE__, async: "true")
+    hook9  = hook(module: __MODULE__, options: nil)
+    hook10 = hook(module: __MODULE__, options: [1])
+    hook11 = hook(module: __MODULE__, provide: nil)
+    hook12 = hook(module: __MODULE__, ref: " ")
+    hook13 = hook(module: __MODULE__, timeout: -1)
+    hook14 = hook(module: __MODULE__, timeout: " ")
+    hook15 = hook(module: __MODULE__, type: " ")
+    hook16 = hook(module: __MODULE__, type: :missing)
 
     # ensure all records are invalid
-    refute Validator.valid?(:hook, hook5)
     refute Validator.valid?(:hook, hook6)
     refute Validator.valid?(:hook, hook7)
     refute Validator.valid?(:hook, hook8)
@@ -133,6 +135,8 @@ defmodule Cachex.Spec.ValidatorTest do
     refute Validator.valid?(:hook, hook12)
     refute Validator.valid?(:hook, hook13)
     refute Validator.valid?(:hook, hook14)
+    refute Validator.valid?(:hook, hook15)
+    refute Validator.valid?(:hook, hook16)
   end
 
   test "validation of hooks records" do

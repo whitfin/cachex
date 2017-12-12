@@ -37,14 +37,14 @@ defmodule Cachex.Services.Informant do
   """
   @spec broadcast(Spec.cache, tuple) :: :ok
   def broadcast(cache(hooks: hooks(pre: pre_hooks)), action),
-    do: notify(pre_hooks, action, nil)
+    do: broadcast_action(pre_hooks, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
   @spec broadcast(Spec.cache, tuple, any) :: :ok
   def broadcast(cache(hooks: hooks(post: post_hooks)), action, result),
-    do: notify(post_hooks, action, result)
+    do: broadcast_action(post_hooks, action, result)
 
   @doc """
   Links all hooks in a cache to their running process.
@@ -76,7 +76,7 @@ defmodule Cachex.Services.Informant do
   but it's general purpose enough that it's exposed as part of the public API.
   """
   @spec notify([ Spec.hook ], tuple, any) :: :ok
-  def notify(hooks, action, result) when is_list(hooks) do
+  def notify(hooks, { _name, _args } = action, result) when is_list(hooks) do
     Enum.each(hooks, fn
       # not running, so skip
       (hook(ref: nil)) -> nil
@@ -106,6 +106,22 @@ defmodule Cachex.Services.Informant do
     Enum.map(hooks, fn(hook(module: module) = hook) ->
       hook(hook, ref: find_pid(children, module))
    end)
+  end
+
+  # Broadcasts an action to hooks listening for it.
+  #
+  # This will enforce the actions list inside a hook definition to ensure
+  # that hooks only receive actions that they currently care about.
+  defp broadcast_action(hooks, { action, _args } = msg, result) do
+    actionable =
+      Enum.filter(hooks, fn
+        hook(actions: nil) ->
+          true
+        hook(actions: actions) ->
+          action in actions
+      end)
+
+    notify(actionable, msg, result)
   end
 
   # Locates a process identifier for the given module.

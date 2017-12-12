@@ -14,7 +14,7 @@ defmodule Cachex.SpecTest do
     do: assert expiration() == { :expiration, nil, 3000, true }
 
   test "default hook record values",
-    do: assert hook() == { :hook, nil, true, nil, [], [], nil, nil, :post }
+    do: assert hook() == { :hook, nil, nil, true, nil, [], [], nil, nil, :post }
 
   test "default hooks record values",
     do: assert hooks() == { :hooks, [], [] }

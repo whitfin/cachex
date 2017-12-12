@@ -29,15 +29,6 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Services.Informant
   alias Cachex.Util
 
-  # A list of actions which add items to the cache.
-  #
-  # We only need to operate on these actions, allowing us to optimize and
-  # avoid checking cache bounds when there's no change of a change.
-  #
-  # This will become moot once we have the ability to subscribe to a subset
-  # of actions from inside a hook definition (planned for the future).
-  @additives MapSet.new([ :set, :update, :incr, :get_and_update, :decr ])
-
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Util.create_match([ { { :"$1", :"$2" } } ], [ ])
 
@@ -53,6 +44,11 @@ defmodule Cachex.Policy.LRW do
     do: [
       hook(
         args: limit,
+        actions: [
+          :decr, :incr,
+          :set, :update,
+          :get_and_update
+        ],
         module: __MODULE__,
         provide: [ :cache ],
         type: :post
@@ -89,12 +85,8 @@ defmodule Cachex.Policy.LRW do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify({ action, _options }, { status, _value }, opts) when status != :error do
-    if MapSet.member?(@additives, action) do
-      enforce_bounds(opts)
-    end
-    { :ok, opts }
-  end
+  def handle_notify(_message, { status, _value }, opts) when status != :error,
+    do: enforce_bounds(opts) && { :ok, opts }
 
   @doc false
   # Receives a provisioned cache instance.
