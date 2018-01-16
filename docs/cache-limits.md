@@ -11,6 +11,7 @@ Limits are defined at cache startup and cannot be changed at this point in time.
 Cachex.start(:my_cache, [ limit: 500 ])
 
 # maximum 500 entries, LRW eviction, trim to 250
+import Cachex.Spec
 Cachex.start(:my_cache, [ limit: limit(size: 500, policy: Cachex.Policy.LRW, reclaim: 0.5) ])
 ```
 
