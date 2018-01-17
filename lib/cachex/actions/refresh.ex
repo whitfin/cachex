@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Refresh do
   on the same key during execution.
   """
   defaction refresh(cache() = cache, key, options) do
-    Locksmith.write(cache, key, fn ->
+    Locksmith.write(cache, [ key ], fn ->
       Actions.update(cache, key, entry_mod_now())
     end)
   end

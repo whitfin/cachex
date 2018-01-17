@@ -63,9 +63,9 @@ defmodule Cachex.Actions do
   @doc """
   Writes a new entry into a cache.
   """
-  @spec write(Spec.cache, Spec.entry) :: { :ok, boolean }
-  def write(cache(name: name), entry() = entry),
-    do: { :ok, :ets.insert(name, entry) }
+  @spec write(Spec.cache, [ Spec.entry ]) :: { :ok, boolean }
+  def write(cache(name: name), entries),
+    do: { :ok, :ets.insert(name, entries) }
 
   ##########
   # Macros #

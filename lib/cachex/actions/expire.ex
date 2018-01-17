@@ -34,7 +34,7 @@ defmodule Cachex.Actions.Expire do
   being used/modified/removed from another process in the application.
   """
   defaction expire(cache() = cache, key, expiration, options) do
-    Locksmith.write(cache, key, fn ->
+    Locksmith.write(cache, [ key ], fn ->
       do_expire(cache, key, expiration)
     end)
   end

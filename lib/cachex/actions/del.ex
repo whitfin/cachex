@@ -22,7 +22,7 @@ defmodule Cachex.Actions.Del do
   being used inside a transaction in other places in the codebase.
   """
   defaction del(cache(name: name) = cache, key, options) do
-    Locksmith.write(cache, key, fn ->
+    Locksmith.write(cache, [ key ], fn ->
       { :ok, :ets.delete(name, key) }
     end)
   end

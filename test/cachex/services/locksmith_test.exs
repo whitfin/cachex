@@ -41,8 +41,8 @@ defmodule Cachex.Services.LocksmithTest do
     write = &Services.Locksmith.transaction?/0
 
     # execute writes against unlocked keys
-    write1 = Services.Locksmith.write(state1, "key", write)
-    write2 = Services.Locksmith.write(state2, "key", write)
+    write1 = Services.Locksmith.write(state1, [ "key" ], write)
+    write2 = Services.Locksmith.write(state2, [ "key" ], write)
 
     # neither should be transactional
     assert(write1 == false)
@@ -87,7 +87,7 @@ defmodule Cachex.Services.LocksmithTest do
     # value after incrementing as well as whether the write took place in a
     # transaction, this demonstrating the key locking.
     write = fn(state) ->
-      Services.Locksmith.write(state, "key", fn ->
+      Services.Locksmith.write(state, [ "key" ], fn ->
         {
           Cachex.incr!(state, "key"),
           Services.Locksmith.transaction?()

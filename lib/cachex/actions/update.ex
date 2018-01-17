@@ -27,7 +27,7 @@ defmodule Cachex.Actions.Update do
   of doing an update.
   """
   defaction update(cache() = cache, key, value, options) do
-    Locksmith.write(cache, key, fn ->
+    Locksmith.write(cache, [ key ], fn ->
       Actions.update(cache, key, entry_mod(value: value))
     end)
   end

@@ -310,145 +310,6 @@ defmodule Cachex do
   end
 
   @doc """
-  Retrieves an entry from a cache.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
-
-      iex> Cachex.get(:my_cache, "missing_key")
-      { :missing, nil }
-
-  """
-  @spec get(cache, any, Keyword.t) :: { atom, any }
-  def get(cache, key, options \\ []) when is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.Get.execute(cache, key, options)
-    end
-  end
-
-  @doc """
-  Retrieves and updates an entry in a cache.
-
-  This operation can be seen as an internal mutation, meaning that any previously
-  set expiration time is kept as-is.
-
-  This function accepts the same return syntax as fallback functions, in that if
-  you return a Tuple of the form `{ :ignore, value }`, the value is returned from
-  the call but is not written to the cache. You can use this to abandon writes
-  which began eagerly (for example if a key is actually missing).
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", [2])
-      iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
-      { :ok, [1, 2] }
-
-      iex> Cachex.get_and_update(:my_cache, "missing_key", fn
-      ...>   (nil) -> { :ignore, nil }
-      ...>   (val) -> { :commit, [ "value" | val ] }
-      ...> end)
-      { :missing, nil }
-
-  """
-  @spec get_and_update(cache, any, function, Keyword.t) :: { status, any }
-  def get_and_update(cache, key, update_function, options \\ [])
-  when is_function(update_function) and is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.GetAndUpdate.execute(cache, key, update_function, options)
-    end
-  end
-
-  @doc """
-  Places an entry in a cache.
-
-  This will overwrite any value that was previously set against the provided key,
-  and overwrite any TTLs which were already set.
-
-  ## Options
-
-    * `:ttl`
-
-      </br>
-      An expiration time to set for the provided key (time-to-line), overriding
-      any default expirations set on a cache. This value should be in milliseconds.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", "value")
-      { :ok, true }
-
-      iex> Cachex.set(:my_cache, "key", "value", ttl: :timer.seconds(5))
-      iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
-
-  """
-  # TODO: maybe rename TTL to be expiration?
-  @spec set(cache, any, any, Keyword.t) :: { status, boolean }
-  def set(cache, key, value, options \\ []) when is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.Set.execute(cache, key, value, options)
-    end
-  end
-
-  @doc """
-  Updates an entry in a cache.
-
-  Unlike `get_and_update/4`, this does a blind overwrite of a value.
-
-  This operation can be seen as an internal mutation, meaning that any previously
-  set expiration time is kept as-is.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
-
-      iex> Cachex.update(:my_cache, "key", "new_value")
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "new_value" }
-
-      iex> Cachex.update(:my_cache, "missing_key", "new_value")
-      { :missing, false }
-
-  """
-  @spec update(cache, any, any, Keyword.t) :: { status, any }
-  def update(cache, key, value, options \\ []) when is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.Update.execute(cache, key, value, options)
-    end
-  end
-
-  @doc """
-  Removes an entry from a cache.
-
-  This will return `{ :ok, true }` regardless of whether a key has been removed
-  or not. The `true` value can be thought of as "is key no longer present?".
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
-
-      iex> Cachex.del(:my_cache, "key")
-      { :ok, true }
-
-      iex> Cachex.get(:my_cache, "key")
-      { :missing, nil }
-
-  """
-  @spec del(cache, any, Keyword.t) :: { status, boolean }
-  def del(cache, key, options \\ []) when is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.Del.execute(cache, key, options)
-    end
-  end
-
-  @doc """
   Removes all entries from a cache.
 
   The returned numeric value will contain the total number of keys removed
@@ -533,6 +394,32 @@ defmodule Cachex do
   when is_integer(amount) and is_list(options) do
     via_opt = via({ :decr, [ key, amount, options ] }, options)
     incr(cache, key, amount * -1, via_opt)
+  end
+
+  @doc """
+  Removes an entry from a cache.
+
+  This will return `{ :ok, true }` regardless of whether a key has been removed
+  or not. The `true` value can be thought of as "is key no longer present?".
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.del(:my_cache, "key")
+      { :ok, true }
+
+      iex> Cachex.get(:my_cache, "key")
+      { :missing, nil }
+
+  """
+  @spec del(cache, any, Keyword.t) :: { status, boolean }
+  def del(cache, key, options \\ []) when is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.Del.execute(cache, key, options)
+    end
   end
 
   @doc """
@@ -767,6 +654,58 @@ defmodule Cachex do
         _na ->
           error(:invalid_fallback)
       end
+    end
+  end
+
+  @doc """
+  Retrieves an entry from a cache.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.get(:my_cache, "missing_key")
+      { :missing, nil }
+
+  """
+  @spec get(cache, any, Keyword.t) :: { atom, any }
+  def get(cache, key, options \\ []) when is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.Get.execute(cache, key, options)
+    end
+  end
+
+  @doc """
+  Retrieves and updates an entry in a cache.
+
+  This operation can be seen as an internal mutation, meaning that any previously
+  set expiration time is kept as-is.
+
+  This function accepts the same return syntax as fallback functions, in that if
+  you return a Tuple of the form `{ :ignore, value }`, the value is returned from
+  the call but is not written to the cache. You can use this to abandon writes
+  which began eagerly (for example if a key is actually missing).
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", [2])
+      iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
+      { :ok, [1, 2] }
+
+      iex> Cachex.get_and_update(:my_cache, "missing_key", fn
+      ...>   (nil) -> { :ignore, nil }
+      ...>   (val) -> { :commit, [ "value" | val ] }
+      ...> end)
+      { :missing, nil }
+
+  """
+  @spec get_and_update(cache, any, function, Keyword.t) :: { status, any }
+  def get_and_update(cache, key, update_function, options \\ [])
+  when is_function(update_function) and is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.GetAndUpdate.execute(cache, key, update_function, options)
     end
   end
 
@@ -1101,6 +1040,38 @@ defmodule Cachex do
   end
 
   @doc """
+  Places an entry in a cache.
+
+  This will overwrite any value that was previously set against the provided key,
+  and overwrite any TTLs which were already set.
+
+  ## Options
+
+    * `:ttl`
+
+      </br>
+      An expiration time to set for the provided key (time-to-line), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      { :ok, true }
+
+      iex> Cachex.set(:my_cache, "key", "value", ttl: :timer.seconds(5))
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 5000 }
+
+  """
+  # TODO: maybe rename TTL to be expiration?
+  @spec set(cache, any, any, Keyword.t) :: { status, boolean }
+  def set(cache, key, value, options \\ []) when is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.Set.execute(cache, key, value, options)
+    end
+  end
+
+  @doc """
   Retrieves the total size of a cache.
 
   This does not take into account the expiration time of any entries
@@ -1311,6 +1282,35 @@ defmodule Cachex do
   def ttl(cache, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Ttl.execute(cache, key, options)
+    end
+  end
+
+  @doc """
+  Updates an entry in a cache.
+
+  Unlike `get_and_update/4`, this does a blind overwrite of a value.
+
+  This operation can be seen as an internal mutation, meaning that any previously
+  set expiration time is kept as-is.
+
+  ## Examples
+
+      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "value" }
+
+      iex> Cachex.update(:my_cache, "key", "new_value")
+      iex> Cachex.get(:my_cache, "key")
+      { :ok, "new_value" }
+
+      iex> Cachex.update(:my_cache, "missing_key", "new_value")
+      { :missing, false }
+
+  """
+  @spec update(cache, any, any, Keyword.t) :: { status, any }
+  def update(cache, key, value, options \\ []) when is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.Update.execute(cache, key, value, options)
     end
   end
 

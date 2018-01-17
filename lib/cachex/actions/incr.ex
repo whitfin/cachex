@@ -35,7 +35,7 @@ defmodule Cachex.Actions.Incr do
 
     default = entry_now(key: key, ttl: expiry, value: initial)
 
-    Locksmith.write(cache, key, fn ->
+    Locksmith.write(cache, [ key ], fn ->
       existed = Exists.execute(cache, key, const(:notify_false))
 
       try do

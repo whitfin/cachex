@@ -33,7 +33,7 @@ defmodule Cachex.Actions.Take do
   being currently locked by another write sequence.
   """
   defaction take(cache(name: name) = cache, key, options) do
-    Locksmith.write(cache, key, fn ->
+    Locksmith.write(cache, [ key ], fn ->
       name
       |> :ets.take(key)
       |> handle_take(cache)

@@ -74,6 +74,24 @@ defmodule Cachex.Services.Locksmith do
     do: :ets.select(@table_name, [ { { { name, :"$1" }, :_ }, [], [ :"$1" ] } ])
 
   @doc """
+  Determines if a key is able to be written to by the current process.
+
+  For a key to be writeable, it must either have no lock or be locked by the
+  calling process.
+  """
+  @spec locked?(Spec.cache, [ any ]) :: true | false
+  def locked?(cache(name: name), keys) when is_list(keys) do
+    Enum.any?(keys, fn(key) ->
+      case :ets.lookup(@table_name, { name, key }) do
+        [{ _key, proc }] ->
+          proc != self()
+        _else ->
+          false
+      end
+    end)
+  end
+
+  @doc """
   Executes a transaction against a cache table.
 
   If the process is already in a transactional context, the provided function
@@ -127,22 +145,6 @@ defmodule Cachex.Services.Locksmith do
   end
 
   @doc """
-  Determines if a key is able to be written to by the current process.
-
-  For a key to be writeable, it must either have no lock or be locked by the
-  calling process.
-  """
-  @spec writable?(Spec.cache, any) :: true | false
-  def writable?(cache(name: name), key) do
-    case :ets.lookup(@table_name, { name, key }) do
-      [{ _key, proc }] ->
-        proc == self()
-      _else ->
-        true
-    end
-  end
-
-  @doc """
   Performs a write against the given key inside the table.
 
   If the key is locked, the write is queued inside the lock server
@@ -153,10 +155,10 @@ defmodule Cachex.Services.Locksmith do
   our ETS writes are atomic and so do not require a lock.
   """
   @spec write(Spec.cache, any, (() -> any)) :: any
-  def write(cache(transactional: false), _key, fun),
+  def write(cache(transactional: false), _keys, fun),
     do: fun.()
-  def write(cache() = cache, key, fun) do
-    case transaction?() or writable?(cache, key) do
+  def write(cache() = cache, keys, fun) do
+    case transaction?() or !locked?(cache, keys) do
       true  -> fun.()
       false -> Queue.execute(cache, fun)
     end
