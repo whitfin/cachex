@@ -84,6 +84,7 @@ defmodule Cachex do
     refresh:           [ 2, 3 ],
     reset:             [ 1, 2 ],
     set:               [ 3, 4 ],
+    set_many:          [ 2, 3 ],
     size:              [ 1, 2 ],
     stats:             [ 1, 2 ],
     stream:            [ 1, 2 ],
@@ -1068,6 +1069,41 @@ defmodule Cachex do
   def set(cache, key, value, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Set.execute(cache, key, value, options)
+    end
+  end
+
+  @doc """
+  Places a batch of entries in a cache.
+
+  This operates in the same way as `set/4`, except that multiple keys can be
+  inserted in a single atomic batch. This is a performance gain over writing
+  keys using multiple calls to `set/4`, however it's a performance penalty
+  when writing a single key pair due to some batching overhead.
+
+  ## Options
+
+    * `:ttl`
+
+      </br>
+      An expiration time to set for the provided keys (time-to-line), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
+
+  ## Examples
+
+      iex> Cachex.set_many(:my_cache, [ { "key", "value" } ])
+      { :ok, true }
+
+      iex> Cachex.set_many(:my_cache, [ { "key", "value" } ], ttl: :timer.seconds(5))
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 5000 }
+
+  """
+  # TODO: maybe rename TTL to be expiration?
+  @spec set_many(cache, [ { any, any } ], Keyword.t) :: { status, boolean }
+  def set_many(cache, pairs, options \\ [])
+  when is_list(pairs) and is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.SetMany.execute(cache, pairs, options)
     end
   end
 

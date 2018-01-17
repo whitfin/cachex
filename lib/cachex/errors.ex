@@ -12,11 +12,11 @@ defmodule Cachex.Errors do
   than bloating blocks with potentially large error messages.
   """
   @known_errors [
-    :invalid_command, :invalid_expiration, :invalid_fallback,
-    :invalid_hook,    :invalid_limit,      :invalid_match,
-    :invalid_name,    :invalid_option,     :janitor_disabled,
-    :no_cache,        :non_numeric_value,  :not_started,
-    :stats_disabled,  :unreachable_file
+    :invalid_command,  :invalid_expiration, :invalid_fallback,
+    :invalid_hook,     :invalid_limit,      :invalid_match,
+    :invalid_name,     :invalid_option,     :invalid_pairs,
+    :janitor_disabled, :no_cache,           :non_numeric_value,
+    :not_started,      :stats_disabled,     :unreachable_file
   ]
 
   ##########
@@ -71,6 +71,8 @@ defmodule Cachex.Errors do
     do: "Invalid cache name provided"
   def long_form(:invalid_option),
     do: "Invalid option syntax provided"
+  def long_form(:invalid_pairs),
+    do: "Invalid insertion pairs provided"
   def long_form(:janitor_disabled),
     do: "Specified janitor process running"
   def long_form(:no_cache),

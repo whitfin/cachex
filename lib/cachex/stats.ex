@@ -86,7 +86,7 @@ defmodule Cachex.Stats do
   #
   # This is done by passing off to `register_action/2` internally as we use
   # multiple function head definitions to easily separate action logic.
-  def handle_notify({ action, _options }, result, stats) do
+  def handle_notify(action, result, stats) do
     stats
     |> register_action(action, result)
     |> increment(:global, :opCount, 1)
@@ -101,7 +101,7 @@ defmodule Cachex.Stats do
   #
   # A clear call returns the number of entries removed, so this will update both
   # the total number of cleared entries as well as the global eviction count.
-  defp register_action(stats, :clear, { _status, value }) do
+  defp register_action(stats, { :clear, _args }, { _status, value }) do
     stats
     |> increment(:clear, :total, value)
     |> increment(:global, :evictionCount, value)
@@ -111,7 +111,7 @@ defmodule Cachex.Stats do
   #
   # Deleting a cache entry should increment the delete count
   # and also the global eviction count by 1.
-  defp register_action(stats, :del, { _status, value }) do
+  defp register_action(stats, { :del, _args }, { _status, value }) do
     tmp = increment(stats, :del, value, 1)
     case value do
       true  -> increment(tmp, :global, :evictionCount, 1)
@@ -124,7 +124,7 @@ defmodule Cachex.Stats do
   # This needs to increment the global hit/miss count based on the value
   # boolean coming back. It will also increment the value key under the
   # `:exists?` action namespace in the statistics container.
-  defp register_action(stats, :exists?, { _status, value }) do
+  defp register_action(stats, { :exists?, _args }, { _status, value }) do
     stats
     |> increment(:exists?, value, 1)
     |> increment(:global, value && :hitCount || :missCount, 1)
@@ -134,7 +134,7 @@ defmodule Cachex.Stats do
   #
   # A purge call returns the number of entries removed, so this will update both
   # the total number of purged entries as well as the global expired count.
-  defp register_action(stats, :purge, { _status, value }) do
+  defp register_action(stats, { :purge, _args }, { _status, value }) do
     stats
     |> increment(:purge, :total, value)
     |> increment(:global, :expiredCount, value)
@@ -145,10 +145,22 @@ defmodule Cachex.Stats do
   # Set calls will increment the result of the call in the `:set`
   # namespace inside the statistics container. It will also
   # increment the global entry set count.
-  defp register_action(stats, :set, { _status, value }) do
+  defp register_action(stats, { :set, _args }, { _status, value }) do
     tmp = increment(stats, :set, value, 1)
     case value do
       true  -> increment(tmp, :global, :setCount, 1)
+      false -> tmp
+    end
+  end
+
+  # Handles registration of `set_many()` command calls.
+  #
+  # This is the same as the `set()` handler except that it
+  # will count the number of pairs being processed.
+  defp register_action(stats, { :set_many, [ pairs | _ ] }, { _status, value }) do
+    tmp = increment(stats, :set_many, value, 1)
+    case value do
+      true  -> increment(tmp, :global, :setCount, length(pairs))
       false -> tmp
     end
   end
@@ -158,7 +170,7 @@ defmodule Cachex.Stats do
   # Take calls are a little complicated because they need to increment the
   # global eviction count (due to removal) but also increment the global
   # hit/miss count, in addition to the status in the `:take` namespace.
-  defp register_action(stats, :take, { status, _value }) do
+  defp register_action(stats, { :take, _args }, { status, _value }) do
     tmp =
       stats
       |> increment(:take, status, 1)
@@ -174,7 +186,7 @@ defmodule Cachex.Stats do
   #
   # This will increment the status in the `:ttl` namespace as well
   # as incrementing the global hit/miss count for the cache.
-  defp register_action(stats, :ttl, { status, _value }) do
+  defp register_action(stats, { :ttl, _args }, { status, _value }) do
     stats
     |> increment(:ttl, status, 1)
     |> increment(:global, status == :ok && :hitCount || :missCount, 1)
@@ -184,7 +196,7 @@ defmodule Cachex.Stats do
   #
   # This will increment the global update count as well as the value
   # inside the `:update` namespace, to represent an update hit.
-  defp register_action(stats, :update, { _status, value }) do
+  defp register_action(stats, { :update, _args }, { _status, value }) do
     tmp = increment(stats, :update, value, 1)
     case value do
       true  -> increment(tmp, :global, :updateCount, 1)
@@ -196,7 +208,7 @@ defmodule Cachex.Stats do
   #
   # This needs to increment the status in the global container, in addition to adding
   # the status to the namespace of the provided action (either `:get` or `:fetch`).
-  defp register_action(stats, action, { status, _value })
+  defp register_action(stats, { action, _args }, { status, _value })
   when action in [ :get, :fetch ] do
     stats
     |> increment(action, status, 1)
@@ -208,7 +220,7 @@ defmodule Cachex.Stats do
   # Both of these calls operate in the same way, just negative/positive. We use the
   # status to determine if a new value was inserted or if it was updated. Aside from
   # this we just increment the status in the action namespace, as always.
-  defp register_action(stats, action, { status, _value })
+  defp register_action(stats, { action, _args }, { status, _value })
   when action in [ :decr, :incr ] do
     stats
     |> increment(action, status, 1)
@@ -219,7 +231,7 @@ defmodule Cachex.Stats do
   #
   # This is a common set of updates which changes the global update count alongside the
   # received value in the action namespace, as all of these actions are related and shared.
-  defp register_action(stats, action, { _status, value })
+  defp register_action(stats, { action, _args }, { _status, value })
   when action in [ :expire, :expire_at, :persist, :refresh ] do
     tmp = increment(stats, action, value, 1)
     case value do
@@ -231,7 +243,7 @@ defmodule Cachex.Stats do
   # Handles the registration of any other calls.
   #
   # This purely increments the action call by 1.
-  defp register_action(stats, action, _result),
+  defp register_action(stats, { action, _args }, _result),
     do: increment(stats, action, :calls, 1)
 
   # Increments a given set of statistics in the stats container.
