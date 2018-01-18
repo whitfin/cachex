@@ -10,6 +10,7 @@ defmodule CachexCase do
       alias Cachex.Services
 
       import Cachex.Spec
+      import Cachex.Errors
       import ExUnit.CaptureLog
 
       require ExecuteHook

@@ -217,6 +217,39 @@ defmodule Cachex.StatsTest do
     })
   end
 
+  # This operates in the same way as the test cases above, but verifies that
+  # writing a batch will correctly count using the length of the batch itself.
+  test "registering set_many actions" do
+    # create our base stats
+    stats = %{ }
+
+    # define our results
+    payload1 = { :ok, false }
+    payload2 = { :ok, true }
+
+    # define our batches
+    batch1 = [ { "key", "value" } ]
+    batch2 = [ { "key", "value" }, { "yek", "eulav" } ]
+
+    # register the first payload
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :set_many, [ batch1 ] }, payload1, stats)
+
+    # register the second payload
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :set_many, [ batch2 ] }, payload2, results1)
+
+    # verify the combined results
+    assert(results2 == %{
+      set_many: %{
+        true: 1,
+        false: 1
+      },
+      global: %{
+        opCount: 2,
+        setCount: 2
+      }
+    })
+  end
+
   # This test verifies the take action and the incremenation of the necessary keys.
   # We need to increment the evictionCount when a key is removed from the cache,
   # as well as the hitCount. If the key is not in the cache, then we increment the
