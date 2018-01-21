@@ -8,7 +8,7 @@ defmodule Cachex.OptionsTest do
     name = Helper.create_name()
 
     # parse the options into a validated cache state
-    assert { :ok, cache(name: ^name) } = Cachex.Options.parse(name, [])
+    assert match?({ :ok, cache(name: ^name) }, Cachex.Options.parse(name, []))
   end
 
   # This test makes sure that we can correctly parse out commands which are to

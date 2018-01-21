@@ -80,6 +80,19 @@ defmodule Cachex.Actions.SetManyTest do
     assert_in_delta(ttl8, 5000, 10)
   end
 
+  # This should no-op to avoid a crashing write, whilst
+  # short circuiting in order to speed up the empty batch.
+  test "handling empty pairs in a batch" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # try set some values in the cache
+    result = Cachex.set_many(cache, [])
+
+    # should work, but no writes
+    assert(result == { :ok, false })
+  end
+
   # Since we have a hard requirement on the format of a batch, we
   # need a quick test to ensure that everything is rejected as
   # necessary if they do not match the correct pair format.

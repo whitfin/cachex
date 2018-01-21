@@ -55,6 +55,8 @@ defmodule Cachex.Actions.SetMany do
     entry = entry_now(key: key, ttl: ttl, value: value)
     map_entries(ttl, pairs, [ key | keys ], [ entry | entries ])
   end
+  defp map_entries(_ttl, [], [], _entries),
+    do: { :ok, false }
   defp map_entries(_ttl, [], keys, entries),
     do: { :ok, keys, entries }
   defp map_entries(_ttl, _inv, _keys, _entries),
