@@ -67,38 +67,6 @@ defmodule Cachex.UtilTest do
     ])
   end
 
-  # This test ensures the integrity of the basic option parser provided for use
-  # when parsing cache options. We need to test the ability to retrieve a value
-  # based on a condition, but also returning default values in case of condition
-  # failure or error.
-  test "getting options from a Keyword List" do
-    # our base option set
-    options = [ positive: 10, negative: -10 ]
-
-    # our base condition
-    condition = &(is_number(&1) and &1 > 0)
-
-    # parse out using a true condition
-    result1 = Cachex.Util.get_opt(options, :positive, condition)
-
-    # parse out using a false condition (should return a default)
-    result2 = Cachex.Util.get_opt(options, :negative, condition)
-
-    # parse out using an error condition (should return a custom default)
-    result3 = Cachex.Util.get_opt(options, :negative, fn(_) ->
-      raise ArgumentError
-    end, 0)
-
-    # condition true means we return the value
-    assert(result1 == 10)
-
-    # condition false and no default means we return nil
-    assert(result2 == nil)
-
-    # condition false with a default returns the default
-    assert(result3 == 0)
-  end
-
   # We have a common utility to check whether a TTL has passed or not based on
   # an input of a write time and a TTL length. This test ensures that this returns
   # true or false based on whether we should expire or not. There's also additional
@@ -230,25 +198,5 @@ defmodule Cachex.UtilTest do
     # validate both results (as they should be the same)
     validate.(result1)
     validate.(result2)
-  end
-
-  # This test simply validates the ability to retrieve and transform an option
-  # from inside a Keyword List. We validate both existing and missing options in
-  # order to make sure there are no issues when retrieving. We also verify the
-  # result of the call is the transformed result.
-  test "transforming an option value in a Keyword List" do
-    # define our list of options
-    options = [ key: "value" ]
-
-    # define a transformer
-    transformer = &({ &1 })
-
-    # transformer various options
-    result1 = Cachex.Util.opt_transform(options, :key, transformer)
-    result2 = Cachex.Util.opt_transform(options, :nah, transformer)
-
-    # only the first should come back
-    assert(result1 == { "value" })
-    assert(result2 == {   nil  })
   end
 end

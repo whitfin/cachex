@@ -82,7 +82,7 @@ defmodule Cachex.Mixfile do
       { :benchfella,  "0.3.4",  optional: true, only: [ :dev, :test ] },
       { :bmark,       "~> 1.0", optional: true, only: [ :dev, :test ] },
       { :credo,       "~> 0.8", optional: true, only: [ :dev, :test ] },
-      { :excoveralls, "~> 0.7", optional: true, only: [ :dev, :test ] },
+      { :excoveralls, "~> 0.8", optional: true, only: [ :dev, :test ] },
       { :exprof,      "~> 0.2", optional: true, only: [ :dev, :test ] },
       # Documentation dependencies
       { :ex_doc, "~> 0.16", optional: true, only: [ :docs ] }

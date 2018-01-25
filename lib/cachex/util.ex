@@ -85,23 +85,6 @@ defmodule Cachex.Util do
     do: expiration
 
   @doc """
-  Retrieves a conditional option from a Keyword List.
-
-  If the value satisfies the condition provided, it will be returned. Otherwise
-  the default value provided is returned instead. Used for basic validations.
-  """
-  @spec get_opt(Keyword.t, atom, (any -> boolean), any) :: any
-  def get_opt(options, key, condition, default \\ nil) do
-    opt_transform(options, key, fn(val) ->
-      try do
-        condition.(val) && val || default
-      rescue
-        _ -> default
-      end
-    end)
-  end
-
-  @doc """
   Determines if a cache entry has expired.
 
   This will take cache lazy expiration settings into account.
@@ -133,16 +116,6 @@ defmodule Cachex.Util do
       ^value ->
         { :commit, value }
     end
-  end
-
-  @doc """
-  Transforms and returns an option inside a Keyword List.
-  """
-  @spec opt_transform(Keyword.t, atom, (any -> any)) :: any
-  def opt_transform(options, key, transformer) do
-    options
-    |> Keyword.get(key)
-    |> transformer.()
   end
 
   @doc """

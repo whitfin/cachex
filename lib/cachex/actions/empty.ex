@@ -27,8 +27,7 @@ defmodule Cachex.Actions.Empty do
   returned numeric value is just "cast" to a boolean value.
   """
   defaction empty?(cache() = cache, options) do
-    with { :ok, size } <- Size.execute(cache, const(:notify_false)) do
-      { :ok, size == 0 }
-    end
+    { :ok, size } = Size.execute(cache, const(:notify_false))
+    { :ok, size == 0 }
   end
 end

@@ -7,6 +7,7 @@ defmodule Cachex.Actions.Incr do
   behaviour aspects (but we still lock the key temporarily).
   """
   alias Cachex.Actions.Exists
+  alias Cachex.Options
   alias Cachex.Services.Locksmith
   alias Cachex.Util
 
@@ -30,7 +31,7 @@ defmodule Cachex.Actions.Incr do
   This command will return an error if called on a non-numeric value.
   """
   defaction incr(cache(name: name) = cache, key, amount, options) do
-    initial = Util.get_opt(options, :initial, &is_integer/1, 0)
+    initial = Options.get(options, :initial, &is_integer/1, 0)
     expiry  = Util.get_expiration(cache, nil)
 
     default = entry_now(key: key, ttl: expiry, value: initial)
