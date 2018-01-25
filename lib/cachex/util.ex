@@ -5,21 +5,6 @@ defmodule Cachex.Util do
   # This is 100% internal API, never use it from outside.
   import Cachex.Spec
 
-  # pre-calculated memory size
-  @memory_exponent :math.log(1024)
-
-  # internal map of memory suffixes
-  @memory_suffixes %{
-    0.0 => "B",
-    1.0 => "KiB",
-    2.0 => "MiB",
-    3.0 => "GiB",
-    4.0 => "TiB"
-  }
-
-  # the number of suffixes stored (not including B)
-  @memory_sufcount map_size(@memory_suffixes) - 1.0
-
   # available result tuple tag list
   @result_tags [ :commit, :ignore, :error ]
 
@@ -29,30 +14,6 @@ defmodule Cachex.Util do
 
   # result tuple tag type
   @type result_tag :: :commit | :ignore | :error
-
-  @doc """
-  Converts a number of bytes to a binary representation.
-
-  Just to avoid confusion, binary here means human readable. We only support up
-  to TiB. Anything over will just group under TiB. For example, a PiB would be
-  `16384.00 TiB`.
-  """
-  @spec bytes_to_readable(integer) :: binary
-  def bytes_to_readable(bytes) when is_integer(bytes) do
-    index =
-      bytes
-      |> :math.log
-      |> :erlang./(@memory_exponent)
-      |> Float.floor
-      |> :erlang.min(@memory_sufcount)
-
-    abbrev = bytes / :math.pow(1024, index)
-    suffix = Map.get(@memory_suffixes, index)
-
-    "~.2f ~s"
-    |> :io_lib.format([ abbrev, suffix ])
-    |> IO.iodata_to_binary
-  end
 
   @doc """
   Creates a match specification using the provided rules.

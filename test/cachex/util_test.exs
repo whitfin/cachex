@@ -1,36 +1,6 @@
 defmodule Cachex.UtilTest do
   use CachexCase
 
-  # This test ensures that we have an appropriate result when convering a number
-  # of bytes to a human readable format. The function can recursively handle any
-  # magnitude up to a TiB, so we need to make sure we test each level. Note that
-  # all results are expected to be two decimal places (even if .00).
-  test "converting bytes to a readable format" do
-    # our magic numbers
-    bibs = 512
-    kibs = bibs * 512
-    mibs = kibs * 512
-    gibs = mibs * 512
-    tibs = gibs * 512
-    pibs = tibs * 512
-
-    # our conversions
-    bibs_bin = Cachex.Util.bytes_to_readable(bibs)
-    kibs_bin = Cachex.Util.bytes_to_readable(kibs)
-    mibs_bin = Cachex.Util.bytes_to_readable(mibs)
-    gibs_bin = Cachex.Util.bytes_to_readable(gibs)
-    tibs_bin = Cachex.Util.bytes_to_readable(tibs)
-    pibs_bin = Cachex.Util.bytes_to_readable(pibs)
-
-    # assertions
-    assert(bibs_bin == "512.00 B")
-    assert(kibs_bin == "256.00 KiB")
-    assert(mibs_bin == "128.00 MiB")
-    assert(gibs_bin == "64.00 GiB")
-    assert(tibs_bin == "32.00 TiB")
-    assert(pibs_bin == "16384.00 TiB")
-  end
-
   # Match statements are heavily used, so we need to make sure they all compile
   # correctly when called in the utilities. There are several cases to cover here,
   # including those with and without field aliases (for example using :key instead)
