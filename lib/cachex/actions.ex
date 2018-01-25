@@ -67,6 +67,16 @@ defmodule Cachex.Actions do
   def write(cache(name: name), entries),
     do: { :ok, :ets.insert(name, entries) }
 
+  @doc """
+  Returns the module used for a write based on a status tag.
+  """
+  @spec write_mod(atom) :: atom
+  def write_mod(tag) when tag in [ :missing, :new ],
+    do: __MODULE__.Set
+  def write_mod(_tag),
+    do: __MODULE__.Update
+
+
   ##########
   # Macros #
   ##########

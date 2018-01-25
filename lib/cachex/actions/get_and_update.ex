@@ -53,10 +53,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   defp handle_commit({ :ignore, tempv }, _cache, _key, status),
     do: { status, tempv }
   defp handle_commit({ :commit, tempv }, cache, key, status) do
-    Util
-      .write_mod(status)
-      .execute(cache, key, tempv, const(:notify_false))
-
+    write_mod(status).execute(cache, key, tempv, const(:notify_false))
     { status, tempv }
   end
 end

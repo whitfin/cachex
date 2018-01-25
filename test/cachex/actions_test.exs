@@ -139,4 +139,21 @@ defmodule Cachex.ActionsTest do
   # Use our actions Macro internally as a test example for scoping.
   defaction test(cache, value, options),
     do: value
+
+  # This test just provides basic coverage of the write_mod function, by using
+  # tags to determine the correct Action to use to write a value. We make sure
+  # that the :missing and :new tags define a Set and the others define an Update.
+  test "retrieving a module name to write with" do
+    # ask for some modules
+    result1 = Cachex.Actions.write_mod(:new)
+    result2 = Cachex.Actions.write_mod(:missing)
+    result3 = Cachex.Actions.write_mod(:unknown)
+
+    # the first two should be Set actions
+    assert(result1 == Cachex.Actions.Set)
+    assert(result2 == Cachex.Actions.Set)
+
+    # the third should be an Update
+    assert(result3 == Cachex.Actions.Update)
+  end
 end

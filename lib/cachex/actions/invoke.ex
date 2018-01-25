@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Invoke do
   """
   alias Cachex.Actions.Get
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # add our imports
   import Cachex.Actions
@@ -60,8 +59,7 @@ defmodule Cachex.Actions.Invoke do
       { status, value } = Get.execute(cache, key, const(:notify_false))
       { return, tempv } = exec.(value)
 
-      tempv == value || Util
-        .write_mod(status)
+      tempv == value || write_mod(status)
         .execute(cache, key, tempv, const(:notify_false))
 
       { :ok, return }

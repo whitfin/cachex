@@ -177,15 +177,6 @@ defmodule Cachex.Util do
     ])
   end
 
-  @doc """
-  Returns the module used for a write based on a status tag.
-  """
-  @spec write_mod(atom) :: atom
-  def write_mod(tag) when tag in [ :missing, :new ],
-    do: Cachex.Actions.Set
-  def write_mod(_tag),
-    do: Cachex.Actions.Update
-
   ###############
   # Private API #
   ###############
