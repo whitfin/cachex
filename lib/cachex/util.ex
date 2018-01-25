@@ -76,35 +76,6 @@ defmodule Cachex.Util do
   end
 
   @doc """
-  Pulls an expiration associated with an entry.
-  """
-  @spec get_expiration(Spec.cache, integer) :: integer
-  def get_expiration(cache(expiration: expiration(default: default)), nil),
-    do: default
-  def get_expiration(_cache, expiration),
-    do: expiration
-
-  @doc """
-  Determines if a cache entry has expired.
-
-  This will take cache lazy expiration settings into account.
-  """
-  @spec has_expired?(Spec.cache, Spec.entry) :: boolean
-  def has_expired?(cache(expiration: expiration(lazy: lazy)), entry() = entry),
-    do: lazy and has_expired?(entry)
-
-  @doc """
-  Determines if a cache entry has expired.
-
-  This will not cache lazy expiration settings into account.
-  """
-  @spec has_expired?(Spec.entry) :: boolean
-  def has_expired?(entry(touched: touched, ttl: ttl)) when is_number(ttl),
-    do: touched + ttl < now()
-  def has_expired?(_entry),
-    do: false
-
-  @doc """
   Normalizes a commit result to a Tuple tagged with `:commit`, `:ignore`
   or `:error`.
   """

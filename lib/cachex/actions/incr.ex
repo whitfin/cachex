@@ -8,8 +8,8 @@ defmodule Cachex.Actions.Incr do
   """
   alias Cachex.Actions.Exists
   alias Cachex.Options
+  alias Cachex.Services.Janitor
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # we need some imports
   import Cachex.Actions
@@ -32,7 +32,7 @@ defmodule Cachex.Actions.Incr do
   """
   defaction incr(cache(name: name) = cache, key, amount, options) do
     initial = Options.get(options, :initial, &is_integer/1, 0)
-    expiry  = Util.get_expiration(cache, nil)
+    expiry  = Janitor.expiration(cache, nil)
 
     default = entry_now(key: key, ttl: expiry, value: initial)
 

@@ -11,8 +11,8 @@ defmodule Cachex.Actions.SetMany do
   """
   alias Cachex.Actions
   alias Cachex.Options
+  alias Cachex.Services.Janitor
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # add our macros
   import Cachex.Actions
@@ -31,7 +31,7 @@ defmodule Cachex.Actions.SetMany do
   """
   defaction set_many(cache() = cache, pairs, options) do
     ttlval = Options.get(options, :ttl, &is_integer/1)
-    expiry = Util.get_expiration(cache, ttlval)
+    expiry = Janitor.expiration(cache, ttlval)
 
     with { :ok, keys, entries } <- map_entries(expiry, pairs, [], []) do
       Locksmith.write(cache, keys, fn ->

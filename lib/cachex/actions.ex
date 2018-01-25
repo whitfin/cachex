@@ -11,7 +11,7 @@ defmodule Cachex.Actions do
 
   # add some aliases
   alias Cachex.Services.Informant
-  alias Cachex.Util
+  alias Cachex.Services.Janitor
 
   ##############
   # Public API #
@@ -33,7 +33,7 @@ defmodule Cachex.Actions do
       [] ->
         nil
       [ entry ] ->
-        case Util.has_expired?(cache, entry) do
+        case Janitor.expired?(cache, entry) do
           false ->
             entry
           true  ->
