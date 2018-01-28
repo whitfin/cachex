@@ -123,4 +123,26 @@ defmodule Cachex.Actions do
       end
     end
   end
+
+  @doc """
+  Normalizes a value into a Courier-friendly tagged Tuple.
+
+  If the value is tagged with `:commit`, `:ignore` or `:error`,
+  it will be left alone; otherwise it will be wrapped and treated
+  as a `:commit` Tuple.
+  """
+  defmacro normalize_commit(value) do
+    quote do
+      case unquote(value) do
+        { :error, _value } ->
+          unquote(value)
+        { :commit, _value } ->
+          unquote(value)
+        { :ignore, _value } ->
+          unquote(value)
+        raw_value ->
+          { :commit, raw_value }
+      end
+    end
+  end
 end

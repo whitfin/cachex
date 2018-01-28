@@ -37,33 +37,6 @@ defmodule Cachex.UtilTest do
     ])
   end
 
-  # This test just ensures that we correctly convert return values to either a
-  # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
-  # behaviour is a :commit Tuple for backwards compatibility.
-  test "normalizing commit/ignore return values" do
-    # define our base Tuples to test against
-    tuple1 = { :commit, true }
-    tuple2 = { :ignore, true }
-    tuple3 = { :error,  true }
-
-    # define our base value
-    value1 = true
-
-    # normalize all values
-    result1 = Cachex.Util.normalize_commit(tuple1)
-    result2 = Cachex.Util.normalize_commit(tuple2)
-    result3 = Cachex.Util.normalize_commit(tuple3)
-    result4 = Cachex.Util.normalize_commit(value1)
-
-    # the first three should persist
-    assert(result1 == tuple1)
-    assert(result2 == tuple2)
-    assert(result3 == tuple3)
-
-    # the value should be converted to the first
-    assert(result4 == tuple1)
-  end
-
   # There are several places we wish to fetch all rows from a cache, so this util
   # just generates a spec which takes a return set. All we can do here is check
   # that a specification is correctly generated with and without field indexes.

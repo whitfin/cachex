@@ -14,11 +14,11 @@ defmodule Cachex.Services.Courier do
   use GenServer
 
   # import spec macros
+  import Cachex.Actions
   import Cachex.Spec
 
   # add some aliases
   alias Cachex.Actions.Set
-  alias Cachex.Util
 
   ##############
   # Public API #
@@ -92,7 +92,7 @@ defmodule Cachex.Services.Courier do
   # This will update all processes waiting for the result of the
   # specified task, and remove the task from the tracked state.
   def handle_info({ :notify, key, result }, { cache, tasks }) do
-    normalized = Util.normalize_commit(result)
+    normalized = normalize_commit(result)
 
     with { :commit, val } <- normalized do
       Set.execute(cache, key, val, const(:notify_false))

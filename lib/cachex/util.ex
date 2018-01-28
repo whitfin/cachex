@@ -5,9 +5,6 @@ defmodule Cachex.Util do
   # This is 100% internal API, never use it from outside.
   import Cachex.Spec
 
-  # available result tuple tag list
-  @result_tags [ :commit, :ignore, :error ]
-
   ##############
   # Public API #
   ##############
@@ -34,20 +31,6 @@ defmodule Cachex.Util do
         List.wrap(do_field_normalize(return))
       }
     ]
-  end
-
-  @doc """
-  Normalizes a commit result to a Tuple tagged with `:commit`, `:ignore`
-  or `:error`.
-  """
-  @spec normalize_commit({ result_tag, any } | any) :: { result_tag, any }
-  def normalize_commit(value) do
-    case value do
-      { status, _val } when status in @result_tags ->
-        value
-      ^value ->
-        { :commit, value }
-    end
   end
 
   @doc """

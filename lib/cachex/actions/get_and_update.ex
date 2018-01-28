@@ -8,7 +8,6 @@ defmodule Cachex.Actions.GetAndUpdate do
   """
   alias Cachex.Actions.Get
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # add needed imports
   import Cachex.Actions
@@ -36,7 +35,7 @@ defmodule Cachex.Actions.GetAndUpdate do
 
       value
       |> update_fun.()
-      |> Util.normalize_commit
+      |> normalize_commit
       |> handle_commit(cache, key, status)
     end)
   end

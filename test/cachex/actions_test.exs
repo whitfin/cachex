@@ -140,6 +140,33 @@ defmodule Cachex.ActionsTest do
   defaction test(cache, value, options),
     do: value
 
+  # This test just ensures that we correctly convert return values to either a
+  # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
+  # behaviour is a :commit Tuple for backwards compatibility.
+  test "normalizing commit/ignore return values" do
+    # define our base Tuples to test against
+    tuple1 = { :commit, true }
+    tuple2 = { :ignore, true }
+    tuple3 = { :error,  true }
+
+    # define our base value
+    value1 = true
+
+    # normalize all values
+    result1 = Cachex.Actions.normalize_commit(tuple1)
+    result2 = Cachex.Actions.normalize_commit(tuple2)
+    result3 = Cachex.Actions.normalize_commit(tuple3)
+    result4 = Cachex.Actions.normalize_commit(value1)
+
+    # the first three should persist
+    assert(result1 == tuple1)
+    assert(result2 == tuple2)
+    assert(result3 == tuple3)
+
+    # the value should be converted to the first
+    assert(result4 == tuple1)
+  end
+
   # This test just provides basic coverage of the write_mod function, by using
   # tags to determine the correct Action to use to write a value. We make sure
   # that the :missing and :new tags define a Set and the others define an Update.
