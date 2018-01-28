@@ -76,7 +76,6 @@ defmodule Cachex.Actions do
   def write_mod(_tag),
     do: __MODULE__.Update
 
-
   ##########
   # Macros #
   ##########
