@@ -151,11 +151,13 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:hooks, hooks3)
 
     # define some invalid records
-    hooks4 = hooks(pre: [ "test" ], post: [ ])
-    hooks5 = hooks(pre: [ ], post: [ "test" ])
-    hooks6 = hooks(pre: [1], post: [ ])
-    hooks7 = hooks(pre: [ ], post: [1])
-    hooks8 = hooks(pre: [ hook() ], post: [ hook() ])
+    hooks4  = hooks(pre: [ "test" ], post: [ ])
+    hooks5  = hooks(pre: [ ], post: [ "test" ])
+    hooks6  = hooks(pre: [1], post: [ ])
+    hooks7  = hooks(pre: [ ], post: [1])
+    hooks8  = hooks(pre: [ hook() ], post: [ hook() ])
+    hooks9  = hooks(pre: "test", post: [])
+    hooks10 = hooks(pre: [], post: "test")
 
     # ensure all records are invalid
     refute Validator.valid?(:hooks, hooks4)
@@ -163,6 +165,8 @@ defmodule Cachex.Spec.ValidatorTest do
     refute Validator.valid?(:hooks, hooks6)
     refute Validator.valid?(:hooks, hooks7)
     refute Validator.valid?(:hooks, hooks8)
+    refute Validator.valid?(:hooks, hooks9)
+    refute Validator.valid?(:hooks, hooks10)
   end
 
   test "validation of limit records" do

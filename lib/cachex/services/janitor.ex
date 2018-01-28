@@ -37,6 +37,35 @@ defmodule Cachex.Services.Janitor do
     do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :janitor) ])
 
   @doc """
+  Pulls an expiration associated with an entry.
+  """
+  @spec expiration(Spec.cache, integer) :: integer
+  def expiration(cache(expiration: expiration(default: default)), nil),
+    do: default
+  def expiration(_cache, expiration),
+    do: expiration
+
+  @doc """
+  Determines if a cache entry has expired.
+
+  This will take cache lazy expiration settings into account.
+  """
+  @spec expired?(Spec.cache, Spec.entry) :: boolean
+  def expired?(cache(expiration: expiration(lazy: lazy)), entry() = entry),
+    do: lazy and expired?(entry)
+
+  @doc """
+  Determines if a cache entry has expired.
+
+  This will not cache lazy expiration settings into account.
+  """
+  @spec expired?(Spec.entry) :: boolean
+  def expired?(entry(touched: touched, ttl: ttl)) when is_number(ttl),
+    do: touched + ttl < now()
+  def expired?(_entry),
+    do: false
+
+  @doc """
   Retrieves information about the latest Janitor run for a cache.
 
   If the service is disabled on the cache, an error is returned.

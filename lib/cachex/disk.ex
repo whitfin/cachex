@@ -9,6 +9,7 @@ defmodule Cachex.Disk do
   The behaviours in here are general enough that they can be used for various use
   cases rather than just cache serialization, and compression can also be controlled.
   """
+  alias Cachex.Options
   import Cachex.Errors
   import Cachex.Spec
 
@@ -45,7 +46,7 @@ defmodule Cachex.Disk do
   """
   @spec write(any, binary, Keyword.t) :: { :ok, true } | { :error, atom }
   def write(value, path, options \\ []) when is_binary(path) and is_list(options) do
-    compression = Cachex.Util.get_opt(options, :compression, fn(val) ->
+    compression = Options.get(options, :compression, fn(val) ->
       is_integer(val) and val > -1 and val < 10
     end, 1)
 

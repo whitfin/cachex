@@ -5,54 +5,12 @@ defmodule Cachex.Util do
   # This is 100% internal API, never use it from outside.
   import Cachex.Spec
 
-  # pre-calculated memory size
-  @memory_exponent :math.log(1024)
-
-  # internal map of memory suffixes
-  @memory_suffixes %{
-    0.0 => "B",
-    1.0 => "KiB",
-    2.0 => "MiB",
-    3.0 => "GiB",
-    4.0 => "TiB"
-  }
-
-  # the number of suffixes stored (not including B)
-  @memory_sufcount map_size(@memory_suffixes) - 1.0
-
-  # available result tuple tag list
-  @result_tags [ :commit, :ignore, :error ]
-
   ##############
   # Public API #
   ##############
 
   # result tuple tag type
   @type result_tag :: :commit | :ignore | :error
-
-  @doc """
-  Converts a number of bytes to a binary representation.
-
-  Just to avoid confusion, binary here means human readable. We only support up
-  to TiB. Anything over will just group under TiB. For example, a PiB would be
-  `16384.00 TiB`.
-  """
-  @spec bytes_to_readable(integer) :: binary
-  def bytes_to_readable(bytes) when is_integer(bytes) do
-    index =
-      bytes
-      |> :math.log
-      |> :erlang./(@memory_exponent)
-      |> Float.floor
-      |> :erlang.min(@memory_sufcount)
-
-    abbrev = bytes / :math.pow(1024, index)
-    suffix = Map.get(@memory_suffixes, index)
-
-    "~.2f ~s"
-    |> :io_lib.format([ abbrev, suffix ])
-    |> IO.iodata_to_binary
-  end
 
   @doc """
   Creates a match specification using the provided rules.
@@ -73,76 +31,6 @@ defmodule Cachex.Util do
         List.wrap(do_field_normalize(return))
       }
     ]
-  end
-
-  @doc """
-  Pulls an expiration associated with an entry.
-  """
-  @spec get_expiration(Spec.cache, integer) :: integer
-  def get_expiration(cache(expiration: expiration(default: default)), nil),
-    do: default
-  def get_expiration(_cache, expiration),
-    do: expiration
-
-  @doc """
-  Retrieves a conditional option from a Keyword List.
-
-  If the value satisfies the condition provided, it will be returned. Otherwise
-  the default value provided is returned instead. Used for basic validations.
-  """
-  @spec get_opt(Keyword.t, atom, (any -> boolean), any) :: any
-  def get_opt(options, key, condition, default \\ nil) do
-    opt_transform(options, key, fn(val) ->
-      try do
-        condition.(val) && val || default
-      rescue
-        _ -> default
-      end
-    end)
-  end
-
-  @doc """
-  Determines if a cache entry has expired.
-
-  This will take cache lazy expiration settings into account.
-  """
-  @spec has_expired?(Spec.cache, Spec.entry) :: boolean
-  def has_expired?(cache(expiration: expiration(lazy: lazy)), entry() = entry),
-    do: lazy and has_expired?(entry)
-
-  @doc """
-  Determines if a cache entry has expired.
-
-  This will not cache lazy expiration settings into account.
-  """
-  @spec has_expired?(Spec.entry) :: boolean
-  def has_expired?(entry(touched: touched, ttl: ttl)) when is_number(ttl),
-    do: touched + ttl < now()
-  def has_expired?(_entry),
-    do: false
-
-  @doc """
-  Normalizes a commit result to a Tuple tagged with `:commit`, `:ignore`
-  or `:error`.
-  """
-  @spec normalize_commit({ result_tag, any } | any) :: { result_tag, any }
-  def normalize_commit(value) do
-    case value do
-      { status, _val } when status in @result_tags ->
-        value
-      ^value ->
-        { :commit, value }
-    end
-  end
-
-  @doc """
-  Transforms and returns an option inside a Keyword List.
-  """
-  @spec opt_transform(Keyword.t, atom, (any -> any)) :: any
-  def opt_transform(options, key, transformer) do
-    options
-    |> Keyword.get(key)
-    |> transformer.()
   end
 
   @doc """
@@ -176,15 +64,6 @@ defmodule Cachex.Util do
       }
     ])
   end
-
-  @doc """
-  Returns the module used for a write based on a status tag.
-  """
-  @spec write_mod(atom) :: atom
-  def write_mod(tag) when tag in [ :missing, :new ],
-    do: Cachex.Actions.Set
-  def write_mod(_tag),
-    do: Cachex.Actions.Update
 
   ###############
   # Private API #

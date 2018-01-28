@@ -11,7 +11,7 @@ defmodule Cachex.Actions do
 
   # add some aliases
   alias Cachex.Services.Informant
-  alias Cachex.Util
+  alias Cachex.Services.Janitor
 
   ##############
   # Public API #
@@ -33,7 +33,7 @@ defmodule Cachex.Actions do
       [] ->
         nil
       [ entry ] ->
-        case Util.has_expired?(cache, entry) do
+        case Janitor.expired?(cache, entry) do
           false ->
             entry
           true  ->
@@ -66,6 +66,15 @@ defmodule Cachex.Actions do
   @spec write(Spec.cache, [ Spec.entry ]) :: { :ok, boolean }
   def write(cache(name: name), entries),
     do: { :ok, :ets.insert(name, entries) }
+
+  @doc """
+  Returns the module used for a write based on a status tag.
+  """
+  @spec write_mod(atom) :: atom
+  def write_mod(tag) when tag in [ :missing, :new ],
+    do: __MODULE__.Set
+  def write_mod(_tag),
+    do: __MODULE__.Update
 
   ##########
   # Macros #
@@ -110,6 +119,28 @@ defmodule Cachex.Actions do
         end
 
         result
+      end
+    end
+  end
+
+  @doc """
+  Normalizes a value into a Courier-friendly tagged Tuple.
+
+  If the value is tagged with `:commit`, `:ignore` or `:error`,
+  it will be left alone; otherwise it will be wrapped and treated
+  as a `:commit` Tuple.
+  """
+  defmacro normalize_commit(value) do
+    quote do
+      case unquote(value) do
+        { :error, _value } ->
+          unquote(value)
+        { :commit, _value } ->
+          unquote(value)
+        { :ignore, _value } ->
+          unquote(value)
+        raw_value ->
+          { :commit, raw_value }
       end
     end
   end

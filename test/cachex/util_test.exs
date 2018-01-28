@@ -1,36 +1,6 @@
 defmodule Cachex.UtilTest do
   use CachexCase
 
-  # This test ensures that we have an appropriate result when convering a number
-  # of bytes to a human readable format. The function can recursively handle any
-  # magnitude up to a TiB, so we need to make sure we test each level. Note that
-  # all results are expected to be two decimal places (even if .00).
-  test "converting bytes to a readable format" do
-    # our magic numbers
-    bibs = 512
-    kibs = bibs * 512
-    mibs = kibs * 512
-    gibs = mibs * 512
-    tibs = gibs * 512
-    pibs = tibs * 512
-
-    # our conversions
-    bibs_bin = Cachex.Util.bytes_to_readable(bibs)
-    kibs_bin = Cachex.Util.bytes_to_readable(kibs)
-    mibs_bin = Cachex.Util.bytes_to_readable(mibs)
-    gibs_bin = Cachex.Util.bytes_to_readable(gibs)
-    tibs_bin = Cachex.Util.bytes_to_readable(tibs)
-    pibs_bin = Cachex.Util.bytes_to_readable(pibs)
-
-    # assertions
-    assert(bibs_bin == "512.00 B")
-    assert(kibs_bin == "256.00 KiB")
-    assert(mibs_bin == "128.00 MiB")
-    assert(gibs_bin == "64.00 GiB")
-    assert(tibs_bin == "32.00 TiB")
-    assert(pibs_bin == "16384.00 TiB")
-  end
-
   # Match statements are heavily used, so we need to make sure they all compile
   # correctly when called in the utilities. There are several cases to cover here,
   # including those with and without field aliases (for example using :key instead)
@@ -65,121 +35,6 @@ defmodule Cachex.UtilTest do
         [ { { :"$1", :"$2", :"$3", :"$4" } } ]
       }
     ])
-  end
-
-  # This test ensures the integrity of the basic option parser provided for use
-  # when parsing cache options. We need to test the ability to retrieve a value
-  # based on a condition, but also returning default values in case of condition
-  # failure or error.
-  test "getting options from a Keyword List" do
-    # our base option set
-    options = [ positive: 10, negative: -10 ]
-
-    # our base condition
-    condition = &(is_number(&1) and &1 > 0)
-
-    # parse out using a true condition
-    result1 = Cachex.Util.get_opt(options, :positive, condition)
-
-    # parse out using a false condition (should return a default)
-    result2 = Cachex.Util.get_opt(options, :negative, condition)
-
-    # parse out using an error condition (should return a custom default)
-    result3 = Cachex.Util.get_opt(options, :negative, fn(_) ->
-      raise ArgumentError
-    end, 0)
-
-    # condition true means we return the value
-    assert(result1 == 10)
-
-    # condition false and no default means we return nil
-    assert(result2 == nil)
-
-    # condition false with a default returns the default
-    assert(result3 == 0)
-  end
-
-  # We have a common utility to check whether a TTL has passed or not based on
-  # an input of a write time and a TTL length. This test ensures that this returns
-  # true or false based on whether we should expire or not. There's also additional
-  # logic that a cache can have expiration disabled, and so if we pass a state with
-  # it disabled, it should return false regardless of the date deltas.
-  test "has_expired? checking whether an expiration has passed" do
-    # this combination has expired
-    touched1 = 5000
-    time_tl1 = 5000
-
-    # this combination has not
-    touched2 = :os.system_time(:milli_seconds)
-    time_tl2 = 100_000_000
-
-    # define both an enabled and disabled state
-    state1 = cache(expiration: expiration(lazy: true))
-    state2 = cache(expiration: expiration(lazy: false))
-
-    # expired combination regardless of state
-    result1 = Cachex.Util.has_expired?(entry(touched: touched1, ttl: time_tl1))
-
-    # unexpired combination regardless of state
-    result2 = Cachex.Util.has_expired?(entry(touched: touched2, ttl: time_tl2))
-
-    # expired combination with state enabled
-    result3 = Cachex.Util.has_expired?(state1, entry(touched: touched1, ttl: time_tl1))
-
-    # expired combination with state disabled
-    result4 = Cachex.Util.has_expired?(state2, entry(touched: touched1, ttl: time_tl1))
-
-    # only the first and third should have expired
-    assert(result1)
-    assert(result3)
-
-    # the second and fourth should not have
-    refute(result2)
-    refute(result4)
-  end
-
-  # This test just ensures that we correctly convert return values to either a
-  # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
-  # behaviour is a :commit Tuple for backwards compatibility.
-  test "normalizing commit/ignore return values" do
-    # define our base Tuples to test against
-    tuple1 = { :commit, true }
-    tuple2 = { :ignore, true }
-    tuple3 = { :error,  true }
-
-    # define our base value
-    value1 = true
-
-    # normalize all values
-    result1 = Cachex.Util.normalize_commit(tuple1)
-    result2 = Cachex.Util.normalize_commit(tuple2)
-    result3 = Cachex.Util.normalize_commit(tuple3)
-    result4 = Cachex.Util.normalize_commit(value1)
-
-    # the first three should persist
-    assert(result1 == tuple1)
-    assert(result2 == tuple2)
-    assert(result3 == tuple3)
-
-    # the value should be converted to the first
-    assert(result4 == tuple1)
-  end
-
-  # This test just provides basic coverage of the write_mod function, by using
-  # tags to determine the correct Action to use to write a value. We make sure
-  # that the :missing and :new tags define a Set and the others define an Update.
-  test "retrieving a module name to write with" do
-    # ask for some modules
-    result1 = Cachex.Util.write_mod(:new)
-    result2 = Cachex.Util.write_mod(:missing)
-    result3 = Cachex.Util.write_mod(:unknown)
-
-    # the first two should be Set actions
-    assert(result1 == Cachex.Actions.Set)
-    assert(result2 == Cachex.Actions.Set)
-
-    # the third should be an Update
-    assert(result3 == Cachex.Actions.Update)
   end
 
   # There are several places we wish to fetch all rows from a cache, so this util
@@ -247,25 +102,5 @@ defmodule Cachex.UtilTest do
     # validate both results (as they should be the same)
     validate.(result1)
     validate.(result2)
-  end
-
-  # This test simply validates the ability to retrieve and transform an option
-  # from inside a Keyword List. We validate both existing and missing options in
-  # order to make sure there are no issues when retrieving. We also verify the
-  # result of the call is the transformed result.
-  test "transforming an option value in a Keyword List" do
-    # define our list of options
-    options = [ key: "value" ]
-
-    # define a transformer
-    transformer = &({ &1 })
-
-    # transformer various options
-    result1 = Cachex.Util.opt_transform(options, :key, transformer)
-    result2 = Cachex.Util.opt_transform(options, :nah, transformer)
-
-    # only the first should come back
-    assert(result1 == { "value" })
-    assert(result2 == {   nil  })
   end
 end

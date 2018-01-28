@@ -10,8 +10,9 @@ defmodule Cachex.Actions.SetMany do
   clashes when writing values to the cache.
   """
   alias Cachex.Actions
+  alias Cachex.Options
+  alias Cachex.Services.Janitor
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # add our macros
   import Cachex.Actions
@@ -29,8 +30,8 @@ defmodule Cachex.Actions.SetMany do
   inside a lock aware context to avoid clashing with other processes.
   """
   defaction set_many(cache() = cache, pairs, options) do
-    ttlval = Util.get_opt(options, :ttl, &is_integer/1)
-    expiry = Util.get_expiration(cache, ttlval)
+    ttlval = Options.get(options, :ttl, &is_integer/1)
+    expiry = Janitor.expiration(cache, ttlval)
 
     with { :ok, keys, entries } <- map_entries(expiry, pairs, [], []) do
       Locksmith.write(cache, keys, fn ->

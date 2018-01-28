@@ -12,12 +12,28 @@ defmodule Cachex.Options do
 
   # add some aliases
   alias Cachex.Spec
-  alias Cachex.Util
   alias Spec.Validator
 
   ##############
   # Public API #
   ##############
+
+  @doc """
+  Retrieves a conditional option from a Keyword List.
+
+  If the value satisfies the condition provided, it will be returned. Otherwise
+  the default value provided is returned instead. Used for basic validations.
+  """
+  @spec get(Keyword.t, atom, (any -> boolean), any) :: any
+  def get(options, key, condition, default \\ nil) do
+    transform(options, key, fn(val) ->
+      try do
+        condition.(val) && val || default
+      rescue
+        _ -> default
+      end
+    end)
+  end
 
   @doc """
   Parses a list of cache options into a cache record.
@@ -37,7 +53,7 @@ defmodule Cachex.Options do
          { :ok, expiration } <- setup_expiration(name, options),
 
          # basic parsing which doesn't have the opportunity to fail
-         transactional = Util.get_opt(options, :transactional, &is_boolean/1, false)
+         transactional = get(options, :transactional, &is_boolean/1, false)
       do
         { :ok, cache([
           name: name,
@@ -51,6 +67,16 @@ defmodule Cachex.Options do
       end
   end
 
+  @doc """
+  Transforms and returns an option inside a Keyword List.
+  """
+  @spec transform(Keyword.t, atom, (any -> any)) :: any
+  def transform(options, key, transformer) do
+    options
+    |> Keyword.get(key)
+    |> transformer.()
+  end
+
   ###############
   # Private API #
   ###############
@@ -62,7 +88,7 @@ defmodule Cachex.Options do
   # command entries (we want to keep the first to match a typical Keyword behaviour).
   defp setup_commands(_name, options) do
     commands =
-      Util.opt_transform(options, :commands, fn
+      transform(options, :commands, fn
         # map parsing is allowed
         (map) when is_map(map) -> map
 
@@ -105,7 +131,7 @@ defmodule Cachex.Options do
   # it'll fail validation and return an error to the caller.
   defp setup_expiration(_name, options) do
     expiration =
-      Util.opt_transform(options, :expiration, fn
+      transform(options, :expiration, fn
         # provided expiration, woohoo!
         (expiration() = expiration) ->
           expiration
@@ -133,7 +159,7 @@ defmodule Cachex.Options do
   # fallback record which is run through the specification validation.
   defp setup_fallbacks(_name, options) do
     fallback =
-      Util.opt_transform(options, :fallback, fn
+      transform(options, :fallback, fn
         # provided fallback is great!
         (fallback() = fallback) ->
           fallback

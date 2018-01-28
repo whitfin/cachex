@@ -9,8 +9,8 @@ defmodule Cachex.Actions.Take do
   Taking a key is clearly destructive, so it operates in a lock context.
   """
   alias Cachex.Services.Informant
+  alias Cachex.Services.Janitor
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # we need our imports
   import Cachex.Actions
@@ -50,7 +50,7 @@ defmodule Cachex.Actions.Take do
   # back to the caller. If the entry has expired, we broadcast the expiry (as the
   # entry was already removed when we took if from the cache).
   defp handle_take([ entry(value: value) = entry ], cache) do
-    case Util.has_expired?(cache, entry) do
+    case Janitor.expired?(cache, entry) do
       false ->
         { :ok, value }
       true ->
