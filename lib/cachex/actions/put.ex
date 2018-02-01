@@ -1,4 +1,4 @@
-defmodule Cachex.Actions.Set do
+defmodule Cachex.Actions.Put do
   @moduledoc """
   Command module to enable insertion of cache entries.
 
@@ -27,7 +27,7 @@ defmodule Cachex.Actions.Set do
   This takes expiration times into account before insertion and will operate
   inside a lock aware context to avoid clashing with other processes.
   """
-  defaction set(cache() = cache, key, value, options) do
+  defaction put(cache() = cache, key, value, options) do
     ttlval = Options.get(options, :ttl, &is_integer/1)
     expiry = Janitor.expiration(cache, ttlval)
 

@@ -1,4 +1,4 @@
-defmodule Cachex.Actions.SetManyTest do
+defmodule Cachex.Actions.PutManyTest do
   use CachexCase
 
   # This test verifies the addition of many new entries to a cache. It will
@@ -16,10 +16,10 @@ defmodule Cachex.Actions.SetManyTest do
     cache2 = Helper.create_cache([ hooks: [ hook ], expiration: expiration(default: 10000) ])
 
     # set some values in the cache
-    set1 = Cachex.set_many(cache1, [ { 1, 1 }, { 2, 2 } ])
-    set2 = Cachex.set_many(cache1, [ { 3, 3 }, { 4, 4 } ], ttl: 5000)
-    set3 = Cachex.set_many(cache2, [ { 1, 1 }, { 2, 2 } ])
-    set4 = Cachex.set_many(cache2, [ { 3, 3 }, { 4, 4 } ], ttl: 5000)
+    set1 = Cachex.put_many(cache1, [ { 1, 1 }, { 2, 2 } ])
+    set2 = Cachex.put_many(cache1, [ { 3, 3 }, { 4, 4 } ], ttl: 5000)
+    set3 = Cachex.put_many(cache2, [ { 1, 1 }, { 2, 2 } ])
+    set4 = Cachex.put_many(cache2, [ { 3, 3 }, { 4, 4 } ], ttl: 5000)
 
     # ensure all set actions worked
     assert(set1 == { :ok, true })
@@ -28,10 +28,10 @@ defmodule Cachex.Actions.SetManyTest do
     assert(set4 == { :ok, true })
 
     # verify the hooks were updated with the message
-    assert_receive({ { :set_many, [ [ { 1, 1 }, { 2, 2 } ], [] ] }, ^set1 })
-    assert_receive({ { :set_many, [ [ { 1, 1 }, { 2, 2 } ], [] ] }, ^set3 })
-    assert_receive({ { :set_many, [ [ { 3, 3 }, { 4, 4 } ], [ ttl: 5000 ] ] }, ^set2 })
-    assert_receive({ { :set_many, [ [ { 3, 3 }, { 4, 4 } ], [ ttl: 5000 ] ] }, ^set4 })
+    assert_receive({ { :put_many, [ [ { 1, 1 }, { 2, 2 } ], [] ] }, ^set1 })
+    assert_receive({ { :put_many, [ [ { 1, 1 }, { 2, 2 } ], [] ] }, ^set3 })
+    assert_receive({ { :put_many, [ [ { 3, 3 }, { 4, 4 } ], [ ttl: 5000 ] ] }, ^set2 })
+    assert_receive({ { :put_many, [ [ { 3, 3 }, { 4, 4 } ], [ ttl: 5000 ] ] }, ^set4 })
 
     # read back all values from the cache
     value1 = Cachex.get(cache1, 1)
@@ -87,7 +87,7 @@ defmodule Cachex.Actions.SetManyTest do
     cache = Helper.create_cache()
 
     # try set some values in the cache
-    result = Cachex.set_many(cache, [])
+    result = Cachex.put_many(cache, [])
 
     # should work, but no writes
     assert(result == { :ok, false })
@@ -104,8 +104,8 @@ defmodule Cachex.Actions.SetManyTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # try set some values in the cache
-    set1 = Cachex.set_many(cache, [ { 1, 1 }, "key" ])
-    set2 = Cachex.set_many(cache, [ { 1, 1 }, { 2, 2, 2} ])
+    set1 = Cachex.put_many(cache, [ { 1, 1 }, "key" ])
+    set2 = Cachex.put_many(cache, [ { 1, 1 }, { 2, 2, 2} ])
 
     # ensure all set actions failed
     assert(set1 == error(:invalid_pairs))
@@ -113,7 +113,7 @@ defmodule Cachex.Actions.SetManyTest do
 
     # try without a list of pairs
     assert_raise(FunctionClauseError, fn ->
-      Cachex.set_many(cache, { 1, 1 })
+      Cachex.put_many(cache, { 1, 1 })
     end)
   end
 end

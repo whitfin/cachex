@@ -29,7 +29,7 @@ It's very important to note that even though you're executing a block, other act
 # start our execution block
 Cachex.execute!(:my_cache, fn(cache) ->
   # set a base value in the cache
-  Cachex.set!(cache, "key", "value")
+  Cachex.put!(cache, "key", "value")
   # we're paused but other stuff can happen
   :timer.sleep(5000)
   # this may have have been set elsewhere by this point
@@ -47,7 +47,7 @@ One of the most useful blocks is the transactional block. These blocks will bind
 # start our execution block
 Cachex.transaction!(:my_cache, [ "key" ], fn(cache) ->
   # set a base value in the cache
-  Cachex.set!(cache, "key", "value")
+  Cachex.put!(cache, "key", "value")
   # we're paused but other stuff can not happen
   :timer.sleep(5000)
   # this will be guaranteed to return "value"

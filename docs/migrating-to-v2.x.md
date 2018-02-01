@@ -105,7 +105,7 @@ The first change is down to optimizations of key locking, and requires that you 
 Cachex.transaction(:my_cache, [ "key1" ], fn(state) ->
   old_val = Cachex.get!("key1")
   new_val = do_something(old_val)
-  Cachex.set!("key1", new_val)
+  Cachex.put!("key1", new_val)
 end)
 ```
 

@@ -1,4 +1,4 @@
-defmodule Cachex.Actions.SetMany do
+defmodule Cachex.Actions.PutMany do
   @moduledoc """
   Command module to enable batch insertion of cache entries.
 
@@ -29,7 +29,7 @@ defmodule Cachex.Actions.SetMany do
   This takes expiration times into account before insertion and will operate
   inside a lock aware context to avoid clashing with other processes.
   """
-  defaction set_many(cache() = cache, pairs, options) do
+  defaction put_many(cache() = cache, pairs, options) do
     ttlval = Options.get(options, :ttl, &is_integer/1)
     expiry = Janitor.expiration(cache, ttlval)
 

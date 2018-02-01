@@ -6,7 +6,7 @@ defmodule Cachex.ExecutionError do
   block to other errors/exceptions rather than using stdlib errors.
 
       iex> try do
-      ...>   Cachex.set!(:cache, "key", "value")
+      ...>   Cachex.put!(:cache, "key", "value")
       ...> rescue
       ...>   e in Cachex.ExecutionError -> e
       ...> end

@@ -177,8 +177,8 @@ defmodule Cachex.ActionsTest do
     result3 = Cachex.Actions.write_mod(:unknown)
 
     # the first two should be Set actions
-    assert(result1 == Cachex.Actions.Set)
-    assert(result2 == Cachex.Actions.Set)
+    assert(result1 == Cachex.Actions.Put)
+    assert(result2 == Cachex.Actions.Put)
 
     # the third should be an Update
     assert(result3 == Cachex.Actions.Update)

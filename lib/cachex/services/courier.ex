@@ -18,7 +18,7 @@ defmodule Cachex.Services.Courier do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Actions.Set
+  alias Cachex.Actions.Put
 
   ##############
   # Public API #
@@ -95,7 +95,7 @@ defmodule Cachex.Services.Courier do
     normalized = normalize_commit(result)
 
     with { :commit, val } <- normalized do
-      Set.execute(cache, key, val, const(:notify_false))
+      Put.execute(cache, key, val, const(:notify_false))
     end
 
     for caller <- Map.get(tasks, key, []) do

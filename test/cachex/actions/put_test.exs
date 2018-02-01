@@ -1,4 +1,4 @@
-defmodule Cachex.Actions.SetTest do
+defmodule Cachex.Actions.PutTest do
   use CachexCase
 
   # This test verifies the addition of new entries to the cache. We ensure that
@@ -16,10 +16,10 @@ defmodule Cachex.Actions.SetTest do
     cache2 = Helper.create_cache([ hooks: [ hook ], expiration: expiration(default: 10000) ])
 
     # set some values in the cache
-    set1 = Cachex.set(cache1, 1, 1)
-    set2 = Cachex.set(cache1, 2, 2, ttl: 5000)
-    set3 = Cachex.set(cache2, 1, 1)
-    set4 = Cachex.set(cache2, 2, 2, ttl: 5000)
+    set1 = Cachex.put(cache1, 1, 1)
+    set2 = Cachex.put(cache1, 2, 2, ttl: 5000)
+    set3 = Cachex.put(cache2, 1, 1)
+    set4 = Cachex.put(cache2, 2, 2, ttl: 5000)
 
     # ensure all set actions worked
     assert(set1 == { :ok, true })
@@ -28,10 +28,10 @@ defmodule Cachex.Actions.SetTest do
     assert(set4 == { :ok, true })
 
     # verify the hooks were updated with the message
-    assert_receive({ { :set, [ 1, 1, [] ] }, ^set1 })
-    assert_receive({ { :set, [ 1, 1, [] ] }, ^set3 })
-    assert_receive({ { :set, [ 2, 2, [ ttl: 5000 ] ] }, ^set2 })
-    assert_receive({ { :set, [ 2, 2, [ ttl: 5000 ] ] }, ^set4 })
+    assert_receive({ { :put, [ 1, 1, [] ] }, ^set1 })
+    assert_receive({ { :put, [ 1, 1, [] ] }, ^set3 })
+    assert_receive({ { :put, [ 2, 2, [ ttl: 5000 ] ] }, ^set2 })
+    assert_receive({ { :put, [ 2, 2, [ ttl: 5000 ] ] }, ^set4 })
 
     # read back all values from the cache
     value1 = Cachex.get(cache1, 1)
