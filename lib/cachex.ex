@@ -1109,13 +1109,15 @@ defmodule Cachex do
     end
   end
 
-  @doc false
-  # Deprecated implementation delegate of `put/4`
+  @doc """
+  Deprecated implementation delegate of `put/4`.
+  """
   @deprecated "Please migrate to using put/4 instead"
   defdelegate set(cache, key, value, options \\ []), to: Cachex, as: :put
 
-  @doc false
-  # Deprecated implementation delegate of `put_many/3`
+  @doc """
+  Deprecated implementation delegate of `put_many/3`.
+  """
   @deprecated "Please migrate to using put_many/3 instead"
   defdelegate set_many(cache, pairs, options \\ []), to: Cachex, as: :put_many
 
