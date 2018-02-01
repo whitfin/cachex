@@ -20,8 +20,8 @@ defmodule Cachex.Actions.FetchTest do
     ])
 
     # set some keys in the cache
-    { :ok, true } = Cachex.set(cache1, "key1", 1)
-    { :ok, true } = Cachex.set(cache1, "key2", 2, ttl: 1)
+    { :ok, true } = Cachex.put(cache1, "key1", 1)
+    { :ok, true } = Cachex.put(cache1, "key2", 2, ttl: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)

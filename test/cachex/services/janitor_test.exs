@@ -59,7 +59,7 @@ defmodule Cachex.Services.JanitorTest do
     cache = Services.Overseer.retrieve(cache)
 
     # add a new cache entry
-    { :ok, true } = Cachex.set(cache, "key", "value", ttl: ttl_value)
+    { :ok, true } = Cachex.put(cache, "key", "value", ttl: ttl_value)
 
     # check that the key exists
     exists1 = Cachex.exists?(cache, "key")

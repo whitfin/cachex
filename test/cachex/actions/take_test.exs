@@ -12,8 +12,8 @@ defmodule Cachex.Actions.TakeTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # set some keys in the cache
-    { :ok, true } = Cachex.set(cache, 1, 1)
-    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)

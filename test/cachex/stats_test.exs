@@ -415,7 +415,7 @@ defmodule Cachex.StatsTest do
     ctime = now()
 
     # carry out some cache operations
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
     { :ok,    1 } = Cachex.get(cache, 1)
 
     # attempt to retrieve the cache stats

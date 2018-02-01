@@ -20,8 +20,8 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    { :ok, true } = Cachex.set(cache1, 1, 1)
-    { :ok, true } = Cachex.set(cache2, 1, 1)
+    { :ok, true } = Cachex.put(cache1, 1, 1)
+    { :ok, true } = Cachex.put(cache2, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache1)
@@ -70,7 +70,7 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)
@@ -111,7 +111,7 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)

@@ -22,7 +22,7 @@ defmodule Cachex.Actions.EmptyTest do
     assert_receive({ { :empty?, [[]] }, ^result1 })
 
     # add some cache entries
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
 
     # check if the cache is empty
     result2 = Cachex.empty?(cache)

@@ -9,8 +9,8 @@ defmodule Cachex.Actions.TtlTest do
     cache = Helper.create_cache()
 
     # set several keys in the cache
-    { :ok, true } = Cachex.set(cache, 1, 1)
-    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 10000)
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 10000)
 
     # verify the TTL of both keys
     ttl1 = Cachex.ttl(cache, 1)
