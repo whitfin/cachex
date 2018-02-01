@@ -1113,13 +1113,15 @@ defmodule Cachex do
   Deprecated implementation delegate of `put/4`.
   """
   @deprecated "Please migrate to using put/4 instead"
-  defdelegate set(cache, key, value, options \\ []), to: Cachex, as: :put
+  def set(cache, key, value, options \\ []),
+    do: put(cache, key, value, options)
 
   @doc """
   Deprecated implementation delegate of `put_many/3`.
   """
   @deprecated "Please migrate to using put_many/3 instead"
-  defdelegate set_many(cache, pairs, options \\ []), to: Cachex, as: :put_many
+  def set_many(cache, pairs, options \\ []),
+    do: put_many(cache, pairs, options)
 
   @doc """
   Retrieves the total size of a cache.
