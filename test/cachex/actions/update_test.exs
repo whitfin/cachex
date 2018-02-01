@@ -10,10 +10,10 @@ defmodule Cachex.Actions.UpdateTest do
     cache = Helper.create_cache()
 
     # set a value with no TTL inside the cache
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
 
     # set a value with a TTL in the cache
-    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 10000)
+    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 10000)
 
     # attempt to update both keys
     update1 = Cachex.update(cache, 1, 3)

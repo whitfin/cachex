@@ -140,25 +140,25 @@ defmodule Cachex.Stats do
     |> increment(:global, :expiredCount, value)
   end
 
-  # Handles registration of `set()` command calls.
+  # Handles registration of `put()` command calls.
   #
-  # Set calls will increment the result of the call in the `:set`
+  # Set calls will increment the result of the call in the `:put`
   # namespace inside the statistics container. It will also
   # increment the global entry set count.
-  defp register_action(stats, { :set, _args }, { _status, value }) do
-    tmp = increment(stats, :set, value, 1)
+  defp register_action(stats, { :put, _args }, { _status, value }) do
+    tmp = increment(stats, :put, value, 1)
     case value do
       true  -> increment(tmp, :global, :setCount, 1)
       false -> tmp
     end
   end
 
-  # Handles registration of `set_many()` command calls.
+  # Handles registration of `put_many()` command calls.
   #
-  # This is the same as the `set()` handler except that it
+  # This is the same as the `put()` handler except that it
   # will count the number of pairs being processed.
-  defp register_action(stats, { :set_many, [ pairs | _ ] }, { _status, value }) do
-    tmp = increment(stats, :set_many, value, 1)
+  defp register_action(stats, { :put_many, [ pairs | _ ] }, { _status, value }) do
+    tmp = increment(stats, :put_many, value, 1)
     case value do
       true  -> increment(tmp, :global, :setCount, length(pairs))
       false -> tmp

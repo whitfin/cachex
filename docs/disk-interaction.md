@@ -9,7 +9,7 @@ To use a dump to seed a new cache, you can use the `load/2` function. Please not
 ```elixir
 # set some values in a cache
 :ok = Enum.each(1..5, fn(x) ->
-  { :ok, true } = Cachex.set(:my_cache, x, x)
+  { :ok, true } = Cachex.put(:my_cache, x, x)
 end)
 
 # verify the size of the cache == 5

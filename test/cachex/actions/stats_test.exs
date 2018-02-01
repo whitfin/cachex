@@ -12,7 +12,7 @@ defmodule Cachex.Actions.StatsTest do
     ctime = now()
 
     # execute some cache actions
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
     { :ok,    1 } = Cachex.get(cache, 1)
 
     # retrieve default stats
@@ -22,7 +22,7 @@ defmodule Cachex.Actions.StatsTest do
     stats2 = Cachex.stats!(cache, [ for: [ :global, :get ] ])
 
     # retrieve specific stats
-    stats3 = Cachex.stats!(cache, [ for: [ :get, :set ] ])
+    stats3 = Cachex.stats!(cache, [ for: [ :get, :put ] ])
 
     # retrieve raw stats
     stats4 = Cachex.stats!(cache, [ for: :raw ])
@@ -52,7 +52,7 @@ defmodule Cachex.Actions.StatsTest do
       get: %{
         ok: 1
       },
-      set: %{
+      put: %{
         true: 1
       }
     })
@@ -65,7 +65,7 @@ defmodule Cachex.Actions.StatsTest do
       opCount: 2,
       setCount: 1
     })
-    assert(stats4.set == %{ true: 1 })
+    assert(stats4.put == %{ true: 1 })
   end
 
   # This test just verifies that we receive an error trying to retrieve stats
@@ -104,11 +104,11 @@ defmodule Cachex.Actions.StatsTest do
     { :missing, nil } = Cachex.get(cache1, 1)
 
     # set cache2 to 100% hits
-    { :ok, true } = Cachex.set(cache2, 1, 1)
+    { :ok, true } = Cachex.put(cache2, 1, 1)
     { :ok,    1 } = Cachex.get(cache2, 1)
 
     # set cache3 to be 50% each way
-    { :ok, true } = Cachex.set(cache3, 1, 1)
+    { :ok, true } = Cachex.put(cache3, 1, 1)
     { :ok,    1 } = Cachex.get(cache3, 1)
     { :missing, nil } = Cachex.get(cache3, 2)
 

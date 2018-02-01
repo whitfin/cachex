@@ -16,8 +16,8 @@ defmodule Cachex.Actions.TouchTest do
     state = Services.Overseer.retrieve(cache)
 
     # add some keys to the cache
-    { :ok, true } = Cachex.set(cache, 1, 1)
-    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1000)
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1000)
 
     # clear messages
     Helper.flush()

@@ -13,7 +13,7 @@ defmodule Cachex.Actions.DumpTest do
     cache = Helper.create_cache()
 
     # add some cache entries
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
 
     # create a local path to write to
     path = Path.join(tmp, Helper.gen_rand_bytes(8))

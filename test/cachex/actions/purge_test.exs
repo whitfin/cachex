@@ -13,7 +13,7 @@ defmodule Cachex.Actions.PurgeTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # add a new cache entry
-    { :ok, true } = Cachex.set(cache, "key", "value", ttl: 25)
+    { :ok, true } = Cachex.put(cache, "key", "value", ttl: 25)
 
     # flush messages
     Helper.flush()

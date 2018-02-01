@@ -16,7 +16,7 @@ defmodule Cachex.Actions.InvokeTest do
     ])
 
     # set a list inside the cache
-    { :ok, true } = Cachex.set(cache, "list", [ 1, 2, 3, 4 ])
+    { :ok, true } = Cachex.put(cache, "list", [ 1, 2, 3, 4 ])
 
     # retrieve the raw record
     { :entry, "list", touched, nil, _val } = Cachex.inspect!(cache, { :entry, "list" })
@@ -62,7 +62,7 @@ defmodule Cachex.Actions.InvokeTest do
     # define a validation function
     validate = fn(list, expected) ->
       # set a list inside the cache
-      { :ok, true } = Cachex.set(cache, "list", list)
+      { :ok, true } = Cachex.put(cache, "list", list)
 
       # retrieve the last value
       last = Cachex.invoke(cache, "list", :last)

@@ -190,7 +190,7 @@ defmodule Cachex.StatsTest do
   # This test ensures that a successful write will increment the setCount in the
   # global namespace, but otherwise only the false key is incremented inside the
   # set namespace, in order to avoid false positives.
-  test "registering set actions" do
+  test "registering put actions" do
     # create our base stats
     stats = %{ }
 
@@ -199,14 +199,14 @@ defmodule Cachex.StatsTest do
     payload2 = { :ok, false }
 
     # register the first payload
-    { :ok, results1 } = Cachex.Stats.handle_notify({ :set, [] }, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :put, [] }, payload1, stats)
 
     # register the second payload
-    { :ok, results2 } = Cachex.Stats.handle_notify({ :set, [] }, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :put, [] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
-      set: %{
+      put: %{
         true: 1,
         false: 1
       },
@@ -219,7 +219,7 @@ defmodule Cachex.StatsTest do
 
   # This operates in the same way as the test cases above, but verifies that
   # writing a batch will correctly count using the length of the batch itself.
-  test "registering set_many actions" do
+  test "registering put_many actions" do
     # create our base stats
     stats = %{ }
 
@@ -232,14 +232,14 @@ defmodule Cachex.StatsTest do
     batch2 = [ { "key", "value" }, { "yek", "eulav" } ]
 
     # register the first payload
-    { :ok, results1 } = Cachex.Stats.handle_notify({ :set_many, [ batch1 ] }, payload1, stats)
+    { :ok, results1 } = Cachex.Stats.handle_notify({ :put_many, [ batch1 ] }, payload1, stats)
 
     # register the second payload
-    { :ok, results2 } = Cachex.Stats.handle_notify({ :set_many, [ batch2 ] }, payload2, results1)
+    { :ok, results2 } = Cachex.Stats.handle_notify({ :put_many, [ batch2 ] }, payload2, results1)
 
     # verify the combined results
     assert(results2 == %{
-      set_many: %{
+      put_many: %{
         true: 1,
         false: 1
       },
@@ -415,7 +415,7 @@ defmodule Cachex.StatsTest do
     ctime = now()
 
     # carry out some cache operations
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
     { :ok,    1 } = Cachex.get(cache, 1)
 
     # attempt to retrieve the cache stats
@@ -425,6 +425,6 @@ defmodule Cachex.StatsTest do
     assert_in_delta(stats.meta.creationDate, ctime, 5)
     assert(stats.get == %{ ok: 1 })
     assert(stats.global == %{ hitCount: 1, opCount: 2, setCount: 1 })
-    assert(stats.set == %{ true: 1 })
+    assert(stats.put == %{ true: 1 })
   end
 end

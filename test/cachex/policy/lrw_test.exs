@@ -13,7 +13,7 @@ defmodule Cachex.Policy.LRWTest do
 
     # add 5000 keys to the cache
     for x <- 1..5000 do
-      { :ok, true } = Cachex.set(state, x, x)
+      { :ok, true } = Cachex.put(state, x, x)
     end
 
     # retrieve the cache size
@@ -49,7 +49,7 @@ defmodule Cachex.Policy.LRWTest do
     # add 1000 keys to the cache
     for x <- 1..100 do
       # add the entry to the cache
-      { :ok, true } = Cachex.set(state, x, x)
+      { :ok, true } = Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -65,7 +65,7 @@ defmodule Cachex.Policy.LRWTest do
     Helper.flush()
 
     # add a new key to the cache to trigger evictions
-    { :ok, true } = Cachex.set(state, 101, 101)
+    { :ok, true } = Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 25%
     Helper.poll(250, 25, fn ->
@@ -117,7 +117,7 @@ defmodule Cachex.Policy.LRWTest do
     # set 50 keys without ttl
     for x <- 1..50 do
       # set the key
-      { :ok, true } = Cachex.set(state, x, x)
+      { :ok, true } = Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -126,7 +126,7 @@ defmodule Cachex.Policy.LRWTest do
     # set a more recent 50 keys
     for x <- 51..100 do
       # set the key
-      { :ok, true } = Cachex.set(state, x, x, ttl: 1)
+      { :ok, true } = Cachex.put(state, x, x, ttl: 1)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -139,7 +139,7 @@ defmodule Cachex.Policy.LRWTest do
     assert(size1 == 100)
 
     # add a new key to the cache to trigger evictions
-    { :ok, true } = Cachex.set(state, 101, 101)
+    { :ok, true } = Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 51%
     Helper.poll(250, 51, fn ->

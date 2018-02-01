@@ -12,9 +12,9 @@ defmodule Cachex.Actions.ClearTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # fill with some items
-    { :ok, true } = Cachex.set(cache, 1, 1)
-    { :ok, true } = Cachex.set(cache, 2, 2)
-    { :ok, true } = Cachex.set(cache, 3, 3)
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+    { :ok, true } = Cachex.put(cache, 3, 3)
 
     # clear all hook
     Helper.flush()

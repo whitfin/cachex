@@ -9,9 +9,9 @@ defmodule Cachex.Actions.StreamTest do
     cache = Helper.create_cache()
 
     # add some keys to the cache
-    { :ok, true } = Cachex.set(cache, "key1", "value1")
-    { :ok, true } = Cachex.set(cache, "key2", "value2")
-    { :ok, true } = Cachex.set(cache, "key3", "value3")
+    { :ok, true } = Cachex.put(cache, "key1", "value1")
+    { :ok, true } = Cachex.put(cache, "key2", "value2")
+    { :ok, true } = Cachex.put(cache, "key3", "value3")
 
     # create a cache stream
     { :ok, stream } = Cachex.stream(cache)
@@ -35,9 +35,9 @@ defmodule Cachex.Actions.StreamTest do
     cache = Helper.create_cache()
 
     # add some keys to the cache
-    { :ok, true } = Cachex.set(cache, "key1", "value1")
-    { :ok, true } = Cachex.set(cache, "key2", "value2")
-    { :ok, true } = Cachex.set(cache, "key3", "value3")
+    { :ok, true } = Cachex.put(cache, "key1", "value1")
+    { :ok, true } = Cachex.put(cache, "key2", "value2")
+    { :ok, true } = Cachex.put(cache, "key3", "value3")
 
     # create cache streams
     { :ok, stream1 } = Cachex.stream(cache, [ of: { { :key, :value, :key, :ttl } } ])

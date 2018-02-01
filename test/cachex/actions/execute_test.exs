@@ -11,9 +11,9 @@ defmodule Cachex.Actions.ExecuteTest do
     # start an execution block
     result = Cachex.execute(cache, fn(cache) ->
       [
-        Cachex.set!(cache, 1, 1),
-        Cachex.set!(cache, 2, 2),
-        Cachex.set!(cache, 3, 3)
+        Cachex.put!(cache, 1, 1),
+        Cachex.put!(cache, 2, 2),
+        Cachex.put!(cache, 3, 3)
       ]
     end)
 

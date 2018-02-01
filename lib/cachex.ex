@@ -81,6 +81,8 @@ defmodule Cachex do
     load:              [ 2, 3 ],
     persist:           [ 2, 3 ],
     purge:             [ 1, 2 ],
+    put:               [ 3, 4 ],
+    put_many:          [ 2, 3 ],
     refresh:           [ 2, 3 ],
     reset:             [ 1, 2 ],
     set:               [ 3, 4 ],
@@ -319,7 +321,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
       iex> Cachex.size(:my_cache)
       { :ok, 1 }
@@ -348,9 +350,9 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
-      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.put(:my_cache, "key1", "value1")
+      iex> Cachex.put(:my_cache, "key2", "value2")
+      iex> Cachex.put(:my_cache, "key3", "value3")
       iex> Cachex.count(:my_cache)
       { :ok, 3 }
 
@@ -378,11 +380,11 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.decr(:my_cache, "my_key")
       { :ok, 9 }
 
-      iex> Cachex.set(:my_cache, "my_new_key", 10)
+      iex> Cachex.put(:my_cache, "my_new_key", 10)
       iex> Cachex.decr(:my_cache, "my_new_key", 5)
       { :ok, 5 }
 
@@ -405,7 +407,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
       { :ok, "value" }
 
@@ -447,7 +449,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.dump(:my_cache, "/tmp/my_default_backup")
       { :ok, true }
 
@@ -472,7 +474,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
+      iex> Cachex.put(:my_cache, "key1", "value1")
       iex> Cachex.empty?(:my_cache)
       { :ok, false }
 
@@ -506,8 +508,8 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.put(:my_cache, "key1", "value1")
+      iex> Cachex.put(:my_cache, "key2", "value2")
       iex> Cachex.execute(:my_cache, fn(worker) ->
       ...>   val1 = Cachex.get!(worker, "key1")
       ...>   val2 = Cachex.get!(worker, "key2")
@@ -532,7 +534,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.exists?(:my_cache, "key")
       { :ok, true }
 
@@ -558,7 +560,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.expire(:my_cache, "key", :timer.seconds(5))
       { :ok, true }
 
@@ -583,7 +585,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.expire_at(:my_cache, "key", 1455728085502)
       { :ok, true }
 
@@ -629,7 +631,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.fetch(:my_cache, "key", fn(key) ->
       ...>   { :commit, String.reverse(key) }
       ...> end)
@@ -663,7 +665,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
       { :ok, "value" }
 
@@ -691,7 +693,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", [2])
+      iex> Cachex.put(:my_cache, "key", [2])
       iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
       { :ok, [1, 2] }
 
@@ -717,9 +719,9 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
-      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.put(:my_cache, "key1", "value1")
+      iex> Cachex.put(:my_cache, "key2", "value2")
+      iex> Cachex.put(:my_cache, "key3", "value3")
       iex> Cachex.keys(:my_cache)
       { :ok, [ "key2", "key1", "key3" ] }
 
@@ -751,11 +753,11 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.incr(:my_cache, "my_key")
       { :ok, 11 }
 
-      iex> Cachex.set(:my_cache, "my_new_key", 10)
+      iex> Cachex.put(:my_cache, "my_new_key", 10)
       iex> Cachex.incr(:my_cache, "my_new_key", 5)
       { :ok, 15 }
 
@@ -888,7 +890,7 @@ defmodule Cachex do
       ...>      last: command(type: :read, execute: &List.last/1)
       ...>    ]
       ...> ])
-      iex> Cachex.set(:my_cache, "my_list", [ 1, 2, 3 ])
+      iex> Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
       iex> Cachex.invoke(:my_cache, "my_list", :last)
       { :ok, 3 }
 
@@ -912,7 +914,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", 10)
+      iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.dump(:my_cache, "/tmp/my_backup")
       iex> Cachex.clear(:my_cache)
       iex> Cachex.load(:my_cache, "/tmp/my_backup")
@@ -932,7 +934,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value", ttl: 1000)
+      iex> Cachex.put(:my_cache, "key", "value", ttl: 1000)
       iex> Cachex.persist(:my_cache, "key")
       { :ok, true }
 
@@ -966,6 +968,73 @@ defmodule Cachex do
   end
 
   @doc """
+  Places an entry in a cache.
+
+  This will overwrite any value that was previously set against the provided key,
+  and overwrite any TTLs which were already set.
+
+  ## Options
+
+    * `:ttl`
+
+      </br>
+      An expiration time to set for the provided key (time-to-line), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
+
+  ## Examples
+
+      iex> Cachex.put(:my_cache, "key", "value")
+      { :ok, true }
+
+      iex> Cachex.put(:my_cache, "key", "value", ttl: :timer.seconds(5))
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 5000 }
+
+  """
+  # TODO: maybe rename TTL to be expiration?
+  @spec put(cache, any, any, Keyword.t) :: { status, boolean }
+  def put(cache, key, value, options \\ []) when is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.Put.execute(cache, key, value, options)
+    end
+  end
+
+  @doc """
+  Places a batch of entries in a cache.
+
+  This operates in the same way as `put/4`, except that multiple keys can be
+  inserted in a single atomic batch. This is a performance gain over writing
+  keys using multiple calls to `put/4`, however it's a performance penalty
+  when writing a single key pair due to some batching overhead.
+
+  ## Options
+
+    * `:ttl`
+
+      </br>
+      An expiration time to set for the provided keys (time-to-line), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
+
+  ## Examples
+
+      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
+      { :ok, true }
+
+      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], ttl: :timer.seconds(5))
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 5000 }
+
+  """
+  # TODO: maybe rename TTL to be expiration?
+  @spec put_many(cache, [ { any, any } ], Keyword.t) :: { status, boolean }
+  def put_many(cache, pairs, options \\ [])
+  when is_list(pairs) and is_list(options) do
+    Overseer.enforce(cache) do
+      Actions.PutMany.execute(cache, pairs, options)
+    end
+  end
+
+  @doc """
   Refreshes an expiration for an entry in a cache.
 
   Refreshing an expiration will reset the existing expiration with an offset
@@ -975,7 +1044,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", "my_value", ttl: :timer.seconds(5))
+      iex> Cachex.put(:my_cache, "my_key", "my_value", ttl: :timer.seconds(5))
       iex> :timer.sleep(4)
       iex> Cachex.ttl(:my_cache, "my_key")
       { :ok, 1000 }
@@ -1018,7 +1087,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "my_key", "my_value")
+      iex> Cachex.put(:my_cache, "my_key", "my_value")
       iex> Cachex.reset(:my_cache)
       iex> Cachex.size(:my_cache)
       { :ok, 0 }
@@ -1041,71 +1110,18 @@ defmodule Cachex do
   end
 
   @doc """
-  Places an entry in a cache.
-
-  This will overwrite any value that was previously set against the provided key,
-  and overwrite any TTLs which were already set.
-
-  ## Options
-
-    * `:ttl`
-
-      </br>
-      An expiration time to set for the provided key (time-to-line), overriding
-      any default expirations set on a cache. This value should be in milliseconds.
-
-  ## Examples
-
-      iex> Cachex.set(:my_cache, "key", "value")
-      { :ok, true }
-
-      iex> Cachex.set(:my_cache, "key", "value", ttl: :timer.seconds(5))
-      iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
-
+  Deprecated implementation delegate of `put/4`.
   """
-  # TODO: maybe rename TTL to be expiration?
-  @spec set(cache, any, any, Keyword.t) :: { status, boolean }
-  def set(cache, key, value, options \\ []) when is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.Set.execute(cache, key, value, options)
-    end
-  end
+  @deprecated "Please migrate to using put/4 instead"
+  def set(cache, key, value, options \\ []),
+    do: put(cache, key, value, options)
 
   @doc """
-  Places a batch of entries in a cache.
-
-  This operates in the same way as `set/4`, except that multiple keys can be
-  inserted in a single atomic batch. This is a performance gain over writing
-  keys using multiple calls to `set/4`, however it's a performance penalty
-  when writing a single key pair due to some batching overhead.
-
-  ## Options
-
-    * `:ttl`
-
-      </br>
-      An expiration time to set for the provided keys (time-to-line), overriding
-      any default expirations set on a cache. This value should be in milliseconds.
-
-  ## Examples
-
-      iex> Cachex.set_many(:my_cache, [ { "key", "value" } ])
-      { :ok, true }
-
-      iex> Cachex.set_many(:my_cache, [ { "key", "value" } ], ttl: :timer.seconds(5))
-      iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
-
+  Deprecated implementation delegate of `put_many/3`.
   """
-  # TODO: maybe rename TTL to be expiration?
-  @spec set_many(cache, [ { any, any } ], Keyword.t) :: { status, boolean }
-  def set_many(cache, pairs, options \\ [])
-  when is_list(pairs) and is_list(options) do
-    Overseer.enforce(cache) do
-      Actions.SetMany.execute(cache, pairs, options)
-    end
-  end
+  @deprecated "Please migrate to using put_many/3 instead"
+  def set_many(cache, pairs, options \\ []),
+    do: put_many(cache, pairs, options)
 
   @doc """
   Retrieves the total size of a cache.
@@ -1117,9 +1133,9 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
-      iex> Cachex.set(:my_cache, "key3", "value3")
+      iex> Cachex.put(:my_cache, "key1", "value1")
+      iex> Cachex.put(:my_cache, "key2", "value2")
+      iex> Cachex.put(:my_cache, "key3", "value3")
       iex> Cachex.size(:my_cache)
       { :ok, 3 }
 
@@ -1192,9 +1208,9 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "a", 1)
-      iex> Cachex.set(:my_cache, "b", 2)
-      iex> Cachex.set(:my_cache, "c", 3)
+      iex> Cachex.put(:my_cache, "a", 1)
+      iex> Cachex.put(:my_cache, "b", 2)
+      iex> Cachex.put(:my_cache, "c", 3)
       {:ok, true}
 
       iex> :my_cache |> Cachex.stream! |> Enum.to_list
@@ -1225,7 +1241,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.take(:my_cache, "key")
       { :ok, "value" }
 
@@ -1268,8 +1284,8 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key1", "value1")
-      iex> Cachex.set(:my_cache, "key2", "value2")
+      iex> Cachex.put(:my_cache, "key1", "value1")
+      iex> Cachex.put(:my_cache, "key2", "value2")
       iex> Cachex.transaction(:my_cache, fn(worker) ->
       ...>   val1 = Cachex.get(worker, "key1")
       ...>   val2 = Cachex.get(worker, "key2")
@@ -1331,7 +1347,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.set(:my_cache, "key", "value")
+      iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
       { :ok, "value" }
 

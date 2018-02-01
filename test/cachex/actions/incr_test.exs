@@ -50,7 +50,7 @@ defmodule Cachex.Actions.IncrTest do
     cache = Helper.create_cache()
 
     # set a non-numeric value
-    { :ok, true } = Cachex.set(cache, "key", "value")
+    { :ok, true } = Cachex.put(cache, "key", "value")
 
     # try to increment the value
     result = Cachex.incr(cache, "key")

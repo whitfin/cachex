@@ -46,8 +46,8 @@ defmodule Cachex.Policy.LRW do
         args: limit,
         actions: [
           :decr, :incr,
-          :set, :update,
-          :get_and_update
+          :put, :put_many,
+          :update, :get_and_update
         ],
         module: __MODULE__,
         provide: [ :cache ],

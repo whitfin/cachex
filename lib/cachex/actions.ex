@@ -72,7 +72,7 @@ defmodule Cachex.Actions do
   """
   @spec write_mod(atom) :: atom
   def write_mod(tag) when tag in [ :missing, :new ],
-    do: __MODULE__.Set
+    do: __MODULE__.Put
   def write_mod(_tag),
     do: __MODULE__.Update
 

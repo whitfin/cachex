@@ -53,7 +53,7 @@ Cachex.start_link(:my_cache, [
   commands: [ lpop: command(type: :write, execute: lpop) ]
 ])
 
-{ :ok, true } = Cachex.set(:my_cache, "my_list", [ 1, 2, 3 ])
+{ :ok, true } = Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
 { :ok,    1 } = Cachex.invoke(:my_cache, "my_list", :lpop)
 { :ok,    2 } = Cachex.invoke(:my_cache, "my_list", :lpop)
 { :ok,    3 } = Cachex.invoke(:my_cache, "my_list", :lpop)

@@ -15,8 +15,8 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.retrieve(cache)
 
     # write several values
-    { :ok, true } = Cachex.set(cache, 1, 1)
-    { :ok, true } = Cachex.set(cache, 2, 2, ttl: 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1)
 
     # let the TTL expire
     :timer.sleep(2)
@@ -177,8 +177,8 @@ defmodule Cachex.ActionsTest do
     result3 = Cachex.Actions.write_mod(:unknown)
 
     # the first two should be Set actions
-    assert(result1 == Cachex.Actions.Set)
-    assert(result2 == Cachex.Actions.Set)
+    assert(result1 == Cachex.Actions.Put)
+    assert(result2 == Cachex.Actions.Put)
 
     # the third should be an Update
     assert(result3 == Cachex.Actions.Update)

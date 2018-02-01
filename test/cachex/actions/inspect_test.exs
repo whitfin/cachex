@@ -10,7 +10,7 @@ defmodule Cachex.Actions.InspectTest do
 
     # set several values in the cache
     for x <- 1..3 do
-      { :ok, true } = Cachex.set(cache, "key#{x}", "value#{x}", ttl: 1)
+      { :ok, true } = Cachex.put(cache, "key#{x}", "value#{x}", ttl: 1)
     end
 
     # make sure they expire
@@ -106,7 +106,7 @@ defmodule Cachex.Actions.InspectTest do
     ctime = now()
 
     # set a cache record
-    { :ok, true } = Cachex.set(cache, 1, "one", ttl: 1000)
+    { :ok, true } = Cachex.put(cache, 1, "one", ttl: 1000)
 
     # fetch some records
     record1 = Cachex.inspect(cache, { :entry, 1 })

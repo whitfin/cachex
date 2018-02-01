@@ -12,7 +12,7 @@ defmodule Cachex.Actions.DelTest do
     cache = Helper.create_cache([ hooks: [ hook ] ])
 
     # add some cache entries
-    { :ok, true } = Cachex.set(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 1, 1)
 
     # delete some entries
     result1 = Cachex.del(cache, 1)
