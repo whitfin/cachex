@@ -38,7 +38,7 @@ defmodule Cachex.Hook do
   This should always return an enumerable of atoms; in the case of no required
   provisions an empty enumerable should be returned.
   """
-  @callback provisions() :: [ atom ]
+  @callback provisions :: [ atom ]
 
   @doc """
   Returns the timeout for all calls to this hook.
