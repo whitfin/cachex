@@ -1,6 +1,15 @@
 defmodule Cachex.OptionsTest do
   use CachexCase
 
+  # Bind any required hooks for test execution
+  setup_all do
+    ForwardHook.bind([
+      options_pre_forward_hook: [ type: :pre ],
+      options_post_forward_hook: [ type: :post ]
+    ])
+    :ok
+  end
+
   # Options parsing should add the cache name to the returned state, so this test
   # will just ensure that this is done correctly.
   test "adding a cache name to the state" do
@@ -179,10 +188,10 @@ defmodule Cachex.OptionsTest do
     name = Helper.create_name()
 
     # create our pre hook
-    pre_hook = ForwardHook.create(type: :pre)
+    pre_hook = ForwardHook.create(:options_pre_forward_hook)
 
     # create our post hook
-    post_hook = ForwardHook.create(type: :post)
+    post_hook = ForwardHook.create(:options_post_forward_hook)
 
     # parse out valid hook combinations
     { :ok, cache(hooks: hooks1) } = Cachex.Options.parse(name, [ hooks: [ pre_hook, post_hook ] ])
@@ -253,7 +262,7 @@ defmodule Cachex.OptionsTest do
     # create a stats hook
     hook = hook(
       module: Cachex.Stats,
-      options: [ name: name(name, :stats) ]
+      name: name(name, :stats)
     )
 
     # parse the stats recording flags

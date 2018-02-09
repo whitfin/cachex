@@ -1,6 +1,16 @@
 defmodule Cachex.OverseerTest do
   use CachexCase
 
+  # Bind any required hooks for test execution
+  setup_all do
+    ForwardHook.bind([
+      overseer_forward_hook_provision: [
+        provisions: [ :cache ]
+      ]
+    ])
+    :ok
+  end
+
   # This test case just covers the addition of a new state into the state table.
   # We also cover removal just to avoid duplicating a lot of test code again.
   test "adding and removing state in the table" do
@@ -74,7 +84,7 @@ defmodule Cachex.OverseerTest do
   # that provisioned hooks receive the new state they're working with.
   test "updating a state in the table" do
     # create a hook listener
-    hook = ForwardHook.create(provide: [ :cache ])
+    hook = ForwardHook.create(:overseer_forward_hook_provision)
 
     # start up our cache using the helper
     name = Helper.create_cache([ hooks: hook ])

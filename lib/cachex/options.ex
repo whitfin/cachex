@@ -195,7 +195,7 @@ defmodule Cachex.Options do
         false -> []
         true  -> [ hook(
           module: Cachex.Stats,
-          options: [ name: name(name, :stats) ]
+          name: name(name, :stats)
         ) ]
       end,
 
@@ -218,7 +218,7 @@ defmodule Cachex.Options do
       false ->
         error(:invalid_hook)
       true  ->
-        type = Enum.group_by(hooks, &hook(&1, :type))
+        type = Enum.group_by(hooks, &hook(&1, :module).type())
 
         pre  = Map.get(type,  :pre, [])
         post = Map.get(type, :post, [])

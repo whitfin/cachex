@@ -79,19 +79,18 @@ defmodule Cachex.Services.Informant do
   def notify(hooks, { _name, _args } = action, result) when is_list(hooks) do
     Enum.each(hooks, fn
       # not running, so skip
-      (hook(ref: nil)) -> nil
+      (hook(name: nil)) -> nil
 
-      # handling of asynchronous hooks
-      (hook(async: true, ref: ref)) ->
-        send(ref, { :cachex_notify, { action, result } })
+      # handling of running hooks
+      (hook(name: name, module: module)) ->
+        # define the base payload, regardless of type
+        payload = { :cachex_notify, { action, result } }
 
-      # handle hooks without a timeout
-      (hook(timeout: nil, ref: ref)) ->
-        GenServer.call(ref, { :cachex_notify, { action, result } }, :infinity)
-
-      # handle hooks with a timeout
-      (hook(timeout: val, ref: ref)) ->
-        GenServer.call(ref, { :cachex_notify, { action, result }, val }, :infinity)
+        # handle async vs. sync
+        case module.async?() do
+          true  -> send(name, payload)
+          false -> GenServer.call(name, payload, :infinity)
+        end
     end)
   end
 
@@ -103,8 +102,11 @@ defmodule Cachex.Services.Informant do
   #
   # When there is a reference found, the hook is updated with the new PID.
   defp attach_hook_pid(hooks, children) do
-    Enum.map(hooks, fn(hook(module: module) = hook) ->
-      hook(hook, ref: find_pid(children, module))
+    Enum.map(hooks, fn
+      (hook(module: module, name: nil) = hook) ->
+        hook(hook, name: find_pid(children, module))
+      (hook) ->
+        hook
    end)
   end
 
@@ -114,11 +116,11 @@ defmodule Cachex.Services.Informant do
   # that hooks only receive actions that they currently care about.
   defp broadcast_action(hooks, { action, _args } = msg, result) do
     actionable =
-      Enum.filter(hooks, fn
-        hook(actions: nil) ->
-          true
-        hook(actions: actions) ->
-          action in actions
+      Enum.filter(hooks, fn(hook(module: module)) ->
+        case module.actions() do
+          :all -> true
+          enum -> action in enum
+        end
       end)
 
     notify(actionable, msg, result)
@@ -136,6 +138,13 @@ defmodule Cachex.Services.Informant do
   end
 
   # Generates a Supervisor specification for a hook.
-  defp spec(hook(module: module, args: args, options: options)),
-    do: Supervisor.Spec.worker(GenServer, [ module, args, options ], [ id: module ])
+  defp spec(hook(module: module, name: name, state: state)) do
+    options =
+      case name do
+        nil -> [ module, state ]
+        val -> [ module, state, [ name: val ] ]
+      end
+
+    Supervisor.Spec.worker(GenServer, options, [ id: module ])
+  end
 end
