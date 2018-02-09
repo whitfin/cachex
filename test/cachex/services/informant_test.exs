@@ -1,13 +1,32 @@
 defmodule Cachex.Services.InformantTest do
   use CachexCase
 
+  # Bind any required hooks for test execution
+  setup_all do
+    # bind the required forward hooks for testing
+    ForwardHook.bind([
+      informant_forward_hook_pre: [ type: :pre ],
+      informant_forward_hook_post: [ type: :post ],
+      informant_forward_hook_actions_get: [ actions: [ :get ] ]
+    ])
+
+    # bind the required execute hooks for testing
+    ExecuteHook.bind([
+      informant_execute_hook_sync: [ async: false ],
+      informant_execute_hook_sync_timeout: [ async: false, timeout: 50 ]
+    ])
+
+    # done
+    :ok
+  end
+
   # This test ensures that we are able to broadcast a set of results from an out
   # of bound process to all post_hooks (and only post_hooks).
   test "broadcasting results to a list of hooks" do
     # create a pre and post hook
-    hook1 = ForwardHook.create(type: :pre)
-    hook2 = ForwardHook.create(type: :post)
-    hook3 = ForwardHook.create(type: :post, actions: [ :get ])
+    hook1 = ForwardHook.create(:informant_forward_hook_pre)
+    hook2 = ForwardHook.create(:informant_forward_hook_post)
+    hook3 = ForwardHook.create(:informant_forward_hook_actions_get)
 
     # start a cache with the hooks
     cache1 = Helper.create_cache([ hooks: [ hook1 ] ])
@@ -48,16 +67,16 @@ defmodule Cachex.Services.InformantTest do
   # allow a delta of 10ms just because of Erlang's timers not being overly accurate.
   test "notifying a list of Hooks" do
     # create a pre Hook
-    hook1 = ForwardHook.create(type: :pre)
+    hook1 = ForwardHook.create(:informant_forward_hook_pre)
 
     # create a post Hook
-    hook2 = ForwardHook.create(type: :post)
+    hook2 = ForwardHook.create(:informant_forward_hook_post)
 
     # create a synchronous hook
-    hook3 = ExecuteHook.create(async: false, timeout: nil)
+    hook3 = ExecuteHook.create(:informant_execute_hook_sync)
 
     # create a synchronous hook
-    hook4 = ExecuteHook.create(async: false, timeout: 50)
+    hook4 = ExecuteHook.create(:informant_execute_hook_sync_timeout)
 
     # create a hook without initializing
     hook5 = ForwardHook.create()

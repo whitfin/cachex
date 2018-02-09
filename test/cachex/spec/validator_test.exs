@@ -3,6 +3,24 @@ defmodule Cachex.Spec.ValidatorTest do
 
   alias Cachex.Spec.Validator
 
+  # Bind any required hooks for test execution
+  setup_all do
+    # bind the required hooks for testing
+    ForwardHook.bind([
+      validator_hook_pre: [ type: :pre ],
+      validator_hook_post: [ type: :post ],
+      validator_hook_timeout: [ timeout: 100 ],
+      validator_hook_actions: [ actions: [ :get ] ],
+      validator_invalid_hook_actions: [ actions: "true" ],
+      validator_invalid_hook_async: [ async: "true" ],
+      validator_invalid_hook_provisions: [ provisions: nil ],
+      validator_invalid_hook_timeout: [ timeout: " " ],
+      validator_invalid_hook_timeout_negative: [ timeout: -1 ],
+      validator_invalid_hook_type: [ type: :missing ]
+    ])
+    :ok
+  end
+
   test "validation of command records" do
     # define some valid records
     command1 = command(type:  :read, execute: &String.reverse/1)
@@ -99,33 +117,29 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of hook records" do
     # define some valid records
-    hook1 = hook(module: __MODULE__, ref:    nil, timeout: nil, type:  :pre)
-    hook2 = hook(module: __MODULE__, ref:    nil, timeout: nil, type: :post)
-    hook3 = hook(module: __MODULE__, ref:    nil, timeout: 100, type:  :pre)
-    hook4 = hook(module: __MODULE__, ref: self(), timeout: 100, type:  :pre)
-    hook5 = hook(module: __MODULE__, ref: self(), actions:  [], type:  :pre)
+    hook1 = hook(module: :validator_hook_pre)
+    hook2 = hook(module: :validator_hook_post)
+    hook3 = hook(module: :validator_hook_timeout)
+    hook4 = hook(module: :validator_hook_actions)
 
     # ensure all records are valid
     assert Validator.valid?(:hook, hook1)
     assert Validator.valid?(:hook, hook2)
     assert Validator.valid?(:hook, hook3)
     assert Validator.valid?(:hook, hook4)
-    assert Validator.valid?(:hook, hook5)
 
     # define some invalid records
+    hook5  = hook(name: " ")
     hook6  = hook(module: :missing)
-    hook7  = hook(module: __MODULE__, actions: "true")
-    hook8  = hook(module: __MODULE__, async: "true")
-    hook9  = hook(module: __MODULE__, options: nil)
-    hook10 = hook(module: __MODULE__, options: [1])
-    hook11 = hook(module: __MODULE__, provide: nil)
-    hook12 = hook(module: __MODULE__, ref: " ")
-    hook13 = hook(module: __MODULE__, timeout: -1)
-    hook14 = hook(module: __MODULE__, timeout: " ")
-    hook15 = hook(module: __MODULE__, type: " ")
-    hook16 = hook(module: __MODULE__, type: :missing)
+    hook7  = hook(module: :validator_invalid_hook_actions)
+    hook8  = hook(module: :validator_invalid_hook_async)
+    hook9  = hook(module: :validator_invalid_hook_provisions)
+    hook10 = hook(module: :validator_invalid_hook_timeout)
+    hook11 = hook(module: :validator_invalid_hook_timeout_negative)
+    hook12 = hook(module: :validator_invalid_hook_type)
 
     # ensure all records are invalid
+    refute Validator.valid?(:hook, hook5)
     refute Validator.valid?(:hook, hook6)
     refute Validator.valid?(:hook, hook7)
     refute Validator.valid?(:hook, hook8)
@@ -133,17 +147,13 @@ defmodule Cachex.Spec.ValidatorTest do
     refute Validator.valid?(:hook, hook10)
     refute Validator.valid?(:hook, hook11)
     refute Validator.valid?(:hook, hook12)
-    refute Validator.valid?(:hook, hook13)
-    refute Validator.valid?(:hook, hook14)
-    refute Validator.valid?(:hook, hook15)
-    refute Validator.valid?(:hook, hook16)
   end
 
   test "validation of hooks records" do
     # define some valid records
     hooks1 = hooks(pre: [], post: [])
-    hooks2 = hooks(pre: [hook(module: __MODULE__)], post: [])
-    hooks3 = hooks(pre: [], post: [hook(module: __MODULE__)])
+    hooks2 = hooks(pre: [hook(module: :validator_hook_pre)], post: [])
+    hooks3 = hooks(pre: [], post: [hook(module: :validator_hook_post)])
 
     # ensure all records are valid
     assert Validator.valid?(:hooks, hooks1)

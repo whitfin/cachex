@@ -41,19 +41,32 @@ defmodule Cachex.Policy.LRW do
   """
   @spec hooks(Spec.limit) :: [ Spec.hook ]
   def hooks(limit),
-    do: [
-      hook(
-        args: limit,
-        actions: [
-          :decr, :incr,
-          :put, :put_many,
-          :update, :get_and_update
-        ],
-        module: __MODULE__,
-        provide: [ :cache ],
-        type: :post
-      )
-    ]
+    do: [ hook(module: __MODULE__, state: limit) ]
+
+  ######################
+  # Hook Configuration #
+  ######################
+
+  @doc """
+  Returns the actions this policy should listen on.
+
+  This returns as a `MapSet` to optimize the lookups
+  on actions to O(n) in the broadcasting algorithm.
+  """
+  @spec actions :: MapSet.t
+  def actions,
+    do: MapSet.new([
+      :decr, :incr,
+      :put, :put_many,
+      :update, :get_and_update
+    ])
+
+  @doc """
+  Returns the provisions this policy requires.
+  """
+  @spec provisions :: MapSet.t
+  def provisions,
+    do: MapSet.new([ :cache ])
 
   ####################
   # Server Callbacks #

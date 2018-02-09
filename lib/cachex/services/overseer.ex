@@ -140,7 +140,7 @@ defmodule Cachex.Services.Overseer do
         pre_hooks
         |> Enum.concat(post_hooks)
         |> Enum.filter(&requires_state?/1)
-        |> Enum.map(&hook(&1, :ref))
+        |> Enum.map(&hook(&1, :name))
         |> Enum.each(&send(&1, { :cachex_provision, { :cache, nstate } }))
       end
 
@@ -184,6 +184,6 @@ defmodule Cachex.Services.Overseer do
   ###############
 
   # Verifies if a hook has a cache provisioned.
-  defp requires_state?(hook(provide: provide)),
-    do: :cache in provide
+  defp requires_state?(hook(module: module)),
+    do: :cache in module.provisions()
 end

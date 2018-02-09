@@ -4,6 +4,15 @@ defmodule Cachex.ActionsTest do
   # for our Action macros
   import Cachex.Actions
 
+  # Bind any required hooks for test execution
+  setup_all do
+    ForwardHook.bind([
+      actions_forward_hook_pre: [ type: :pre ],
+      actions_forward_hook_post: [ type: :post ]
+    ])
+    :ok
+  end
+
   test "carrying out generic read actions" do
     # create a forwarding hook
     hook = ForwardHook.create()
@@ -98,10 +107,10 @@ defmodule Cachex.ActionsTest do
   # appropriately and with the correct messages.
   test "executing actions inside a notify scope" do
     # define a pre hook
-    hook1 = ForwardHook.create(type: :pre)
+    hook1 = ForwardHook.create(:actions_forward_hook_pre)
 
     # define a post hook
-    hook2 = ForwardHook.create(type: :post)
+    hook2 = ForwardHook.create(:actions_forward_hook_post)
 
     # create a cache for each hook
     cache1 = Helper.create_cache([ hooks: [ hook1 ] ])

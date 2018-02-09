@@ -77,21 +77,25 @@ defmodule Cachex.Spec.Validator do
   # 6. The type value is either :pre or :post
   #
   # It might be that this is too strict for basic validation, but seeing
-  # as the cache creation requires valid hooks it seemse to make sense to
+  # as the cache creation requires valid hooks it seems to make sense to
   # be this strict at this point.
-  def valid?(:hook, hook(actions: actions, async: async, module: module) = h) do
+  def valid?(:hook, hook(module: module, name: name)) do
     # unpack the extra properties we need to validate
-    hook(options: options, provide: provide, ref: ref, timeout: timeout, type: type) = h
+    type = module.type()
+    async = module.async?()
+    actions = module.actions()
+    timeout = module.timeout()
+    provisions = module.provisions()
 
     # run the rest of the basic validations
-    with true <- (type in [ :post, :pre ]),
-         true <- module?(module),
-         true <- nillable?(ref, &is_pid/1),
-         true <- nillable?(actions, &is_list/1),
+    with true <- is_boolean(async),
+         true <- nillable?(name, &(is_atom(&1) or is_pid(&1))),
          true <- nillable?(timeout, &is_positive_integer/1),
-         true <- is_list(provide),
-         true <- is_boolean(async),
-     do: Keyword.keyword?(options)
+         true <- enum?(actions, &is_atom/1) or actions == :all,
+         true <- enum?(provisions, &is_atom/1),
+     do: (type in [ :post, :pre ])
+  rescue
+    _ -> false
   end
 
   # Validates a hooks specification record.
@@ -102,7 +106,7 @@ defmodule Cachex.Spec.Validator do
   def valid?(:hooks, hooks(pre: pre, post: post)),
     do: is_list(pre) and
         is_list(post) and
-        Enum.all?(pre ++ post, &valid?(:hook, &1))
+        enum?(pre ++ post, &valid?(:hook, &1))
 
   # Validates a limit specification record.
   #
@@ -114,6 +118,8 @@ defmodule Cachex.Spec.Validator do
          true <- nillable?(size, &is_positive_integer/1),
          true <- (is_number(reclaim) and reclaim > 0 and reclaim <= 1),
      do: Keyword.keyword?(options)
+  rescue
+    _ -> false
   end
 
   # Catch-all for invalid records.
@@ -125,12 +131,24 @@ defmodule Cachex.Spec.Validator do
   ###############
 
   @doc false
+  # Determines if the provided value is an enum.
+  defp enum?(enum, condition),
+    do: unsafe?(fn -> Enum.all?(enum, condition) end)
+
+  @doc false
   # Determines if the provided value is a valid module.
   #
-  # This is done by attempting to retrieve the module info
-  # using the __info__/1 macro only available to valid Elixir modules.
-  defp module?(module) do
-    !!module.__info__(:module)
+  # This is done by attempting to retrieve the module info using
+  # the __info__/1 macro only available to valid Elixir modules.
+  defp module?(module),
+    do: unsafe?(fn -> !!module.__info__(:module) end)
+
+  @doc false
+  # Determines if a condition is truthy.
+  #
+  # This will catch any errors and return false.
+  defp unsafe?(condition) do
+    condition.()
   rescue
     _ -> false
   end

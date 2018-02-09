@@ -63,14 +63,9 @@ defmodule Cachex.Spec do
 
   # Record specification for a cache hook
   @type hook :: record(:hook,
-    args: any,
-    async: boolean,
     module: atom,
-    options: Keyword.t,
-    provide: [ atom ],
-    ref: pid,
-    timeout: integer,
-    type: :pre | :post
+    state: any,
+    name: GenServer.server
   )
 
   # Record specification for multiple cache hooks
@@ -191,15 +186,9 @@ defmodule Cachex.Spec do
   in future with just a behaviour and a set of macros (as this record is very noisy now).
   """
   defrecord :hook,
-    actions: nil,
-    args: nil,
-    async: true,
     module: nil,
-    options: [],
-    provide: [],
-    ref: nil,
-    timeout: nil,
-    type: :post
+    state: nil,
+    name: nil
 
   @doc """
   Creates a hooks collection record from the provided values.
