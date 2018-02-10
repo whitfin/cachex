@@ -18,6 +18,7 @@ defmodule Cachex.ServicesTest do
       { Eternal, _, _, _, _, _ },
       { Services.Locksmith.Queue, _, _, _, _, _ },
       { Services.Informant, _, _, _, _, _ },
+      { Services.Incubator, _, _, _, _, _ },
       { Services.Courier, _, _, _, _, _ },
       { Services.Janitor, _, _, _, _, _ }
     ] = Services.cache_spec(cache)
@@ -33,6 +34,7 @@ defmodule Cachex.ServicesTest do
       { Eternal, _, _, _, _, _ },
       { Services.Locksmith.Queue, _, _, _, _, _ },
       { Services.Informant, _, _, _, _, _ },
+      { Services.Incubator, _, _, _, _, _ },
       { Services.Courier, _, _, _, _, _ },
       { Services.Janitor, _, _, _, _, _ },
       { Supervisor, { Supervisor, _, [ [ { __MODULE__.TestPolicy, _, _, _, _, _ } ], _ ] }, _, _, _, _ }
@@ -49,6 +51,7 @@ defmodule Cachex.ServicesTest do
       { Eternal, _, _, _, _, _ },
       { Services.Locksmith.Queue, _, _, _, _, _ },
       { Services.Informant, _, _, _, _, _ },
+      { Services.Incubator, _, _, _, _, _ },
       { Services.Courier, _, _, _, _, _ },
     ] = Services.cache_spec(cache)
   end

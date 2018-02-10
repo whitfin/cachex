@@ -49,6 +49,7 @@ defmodule Cachex.Services do
     |> Enum.concat(table_spec(cache))
     |> Enum.concat(locksmith_spec(cache))
     |> Enum.concat(informant_spec(cache))
+    |> Enum.concat(incubator_spec(cache))
     |> Enum.concat(courier_spec(cache))
     |> Enum.concat(janitor_spec(cache))
     |> Enum.concat(limit_spec(cache))
@@ -65,6 +66,14 @@ defmodule Cachex.Services do
   # by default as fallbacks are enabled by default (not behind a flag).
   defp courier_spec(cache() = cache),
     do: [ worker(Services.Courier, [ cache ]) ]
+
+  # Creates a specification for the Incubator supervisor.
+  #
+  # The incubator is essentially a supervisor around all warmers in assigned
+  # to a cache so they're managed correctly. If no warmers are associated to
+  # the cache, this supervisor will essentially no-op at startup.
+  defp incubator_spec(cache() = cache),
+    do: [ supervisor(Services.Incubator, [ cache ]) ]
 
   # Creates a specification for the Informant supervisor.
   #

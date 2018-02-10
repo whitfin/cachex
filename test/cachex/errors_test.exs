@@ -15,6 +15,7 @@ defmodule Cachex.ErrorsTest do
       invalid_name:       "Invalid cache name provided",
       invalid_option:     "Invalid option syntax provided",
       invalid_pairs:      "Invalid insertion pairs provided",
+      invalid_warmer:     "Invalid warmer definition provided",
       janitor_disabled:   "Specified janitor process running",
       no_cache:           "Specified cache not running",
       non_numeric_value:  "Attempted arithmetic operations on a non-numeric value",
