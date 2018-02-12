@@ -14,6 +14,18 @@ defmodule Cachex.Options do
   alias Cachex.Spec
   alias Spec.Validator
 
+  # option parser order
+  @option_parsers [
+    :name,
+    :limit,
+    :hooks,
+    :commands,
+    :fallback,
+    :expiration,
+    :transactional,
+    :warmers
+  ]
+
   ##############
   # Public API #
   ##############
@@ -45,28 +57,20 @@ defmodule Cachex.Options do
   """
   @spec parse(atom, Keyword.t) :: { :ok, Spec.cache } | { :error, atom }
   def parse(name, options) when is_list(options) do
-    # complex parsing statements which can fail out early
-    with { :ok,      limit } <- setup_limit(name, options),
-         { :ok,      hooks } <- setup_hooks(name, options, limit),
-         { :ok,   commands } <- setup_commands(name, options),
-         { :ok,   fallback } <- setup_fallbacks(name, options),
-         { :ok, expiration } <- setup_expiration(name, options),
-         { :ok,    warmers } <- setup_warmers(name, options),
+    parsed =
+      # iterate all option parsers and accumulate a cache record
+      Enum.reduce_while(@option_parsers, name, fn(type, state) ->
+        case parse_type(type, state, options) do
+          cache() = new_state ->
+            { :cont, new_state }
+          error ->
+            { :halt, error }
+        end
+      end)
 
-         # basic parsing which doesn't have the opportunity to fail
-         transactional = get(options, :transactional, &is_boolean/1, false)
-      do
-        { :ok, cache([
-          name: name,
-          commands: commands,
-          expiration: expiration,
-          fallback: fallback,
-          hooks: hooks,
-          limit: limit,
-          transactional: transactional,
-          warmers: warmers
-        ]) }
-      end
+    # wrap for compatibility
+    with cache() <- parsed,
+      do: { :ok, parsed }
   end
 
   @doc """
@@ -88,7 +92,7 @@ defmodule Cachex.Options do
   # We delegate most of the parsing to the Commands module; here we just check
   # that we have a Keyword List to work with, and that there are not duplicate
   # command entries (we want to keep the first to match a typical Keyword behaviour).
-  defp setup_commands(_name, options) do
+  defp parse_type(:commands, cache, options) do
     commands =
       transform(options, :commands, fn
         # map parsing is allowed
@@ -118,10 +122,12 @@ defmodule Cachex.Options do
       case validated do
         false -> error(:invalid_command)
         true  ->
-          cmds
-          |> Enum.reverse
-          |> Enum.into(%{})
-          |> wrap(:ok)
+          cmds_to_set =
+            cmds
+            |> Enum.reverse
+            |> Enum.into(%{})
+
+          cache(cache, commands: cmds_to_set)
       end
     end
   end
@@ -131,7 +137,7 @@ defmodule Cachex.Options do
   # We don't allow any shorthands here because there's no logical
   # default to use. Therefore an expiration must be provided, otherwise
   # it'll fail validation and return an error to the caller.
-  defp setup_expiration(_name, options) do
+  defp parse_type(:expiration, cache, options) do
     expiration =
       transform(options, :expiration, fn
         # provided expiration, woohoo!
@@ -150,7 +156,7 @@ defmodule Cachex.Options do
     # validate using the spec validator
     case Validator.valid?(:expiration, expiration) do
       false -> error(:invalid_expiration)
-      true  -> { :ok, expiration }
+      true  -> cache(cache, expiration: expiration)
     end
   end
 
@@ -159,7 +165,7 @@ defmodule Cachex.Options do
   # This will allow the shorthanding of a function to act as a default
   # fallback implementation; otherwise the provided value must be a
   # fallback record which is run through the specification validation.
-  defp setup_fallbacks(_name, options) do
+  defp parse_type(:fallback, cache, options) do
     fallback =
       transform(options, :fallback, fn
         # provided fallback is great!
@@ -182,7 +188,7 @@ defmodule Cachex.Options do
     # validate using the spec validator
     case Validator.valid?(:fallback, fallback) do
       false -> error(:invalid_fallback)
-      true  -> { :ok, fallback }
+      true  -> cache(cache, fallback: fallback)
     end
   end
 
@@ -190,7 +196,7 @@ defmodule Cachex.Options do
   #
   # In addition to the hooks already provided, this will also deal with the
   # notion of statistics hooks and limits, as they can both define hooks.
-  defp setup_hooks(name, options, limit) do
+  defp parse_type(:hooks, cache(name: name, limit: limit) = cache, options) do
     hooks = Enum.concat([
       # stats hook generation
       case !!options[:stats] do
@@ -225,7 +231,7 @@ defmodule Cachex.Options do
         pre  = Map.get(type,  :pre, [])
         post = Map.get(type, :post, [])
 
-        { :ok, hooks(pre: pre, post: post) }
+        cache(cache, hooks: hooks(pre: pre, post: post))
     end
   end
 
@@ -234,7 +240,7 @@ defmodule Cachex.Options do
   # This will allow shorthanding of a numeric value to act as a size
   # to bound the cache to. This will provide defaults for all other
   # fields in the limit structure.
-  defp setup_limit(_name, options) do
+  defp parse_type(:limit, cache, options) do
     limit =
       case Keyword.get(options, :limit) do
         limit() = limit -> limit
@@ -243,16 +249,32 @@ defmodule Cachex.Options do
 
     case Validator.valid?(:limit, limit) do
       false -> error(:invalid_limit)
-      true  -> { :ok, limit }
+      true  -> cache(cache, limit: limit)
     end
   end
+
+  # Creates a base cache record from a cache name.
+  #
+  # This is separated out just to allow being part of the parse pipeline
+  # rather than having to special cache the parsing of the name.
+  defp parse_type(:name, name, _options),
+    do: cache(name: name)
+
+  # Configures a cache based on transaction flags.
+  #
+  # This will simply configure the `:transactional` field in the cache
+  # record and return the modified record with the flag attached.
+  defp parse_type(:transactional, cache, options),
+    do: cache(cache, [
+      transactional: get(options, :transactional, &is_boolean/1, false)
+    ])
 
   # Configures any warmers assigned to the cache.
   #
   # This will return a list of warmer records to be associated to the
   # cache at startup in the incubator service. All warmer records are
   # passed through validation beforehand in order to ensure correctness.
-  defp setup_warmers(_name, options) do
+  defp parse_type(:warmers, cache, options) do
     # pull warmers
     warmers =
       options
@@ -262,7 +284,7 @@ defmodule Cachex.Options do
     # validation of all warmer records
     case validated?(warmers, :warmer) do
       false -> error(:invalid_warmer)
-      true  -> { :ok, warmers }
+      true  -> cache(cache, warmers: warmers)
     end
   end
 
