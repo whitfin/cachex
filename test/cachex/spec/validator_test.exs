@@ -204,4 +204,23 @@ defmodule Cachex.Spec.ValidatorTest do
     refute Validator.valid?(:limit, limit7)
     refute Validator.valid?(:limit, limit8)
   end
+
+  test "validation of warmer records" do
+    # create a warmer for validation
+    Helper.create_warmer(:validator_warmer, 1000, fn(_) ->
+      :ignore
+    end)
+
+    # define some records
+    warmer1 = warmer(module: :validator_warmer)
+    warmer2 = warmer(module: __MODULE__)
+    warmer3 = warmer(module: :missing)
+
+    # ensure the first is valid
+    assert Validator.valid?(:warmer, warmer1)
+
+    # the others are all invalid
+    refute Validator.valid?(:warmer, warmer2)
+    refute Validator.valid?(:warmer, warmer3)
+  end
 end

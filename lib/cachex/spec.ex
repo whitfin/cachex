@@ -31,7 +31,8 @@ defmodule Cachex.Spec do
     fallback: fallback,
     hooks: hooks,
     limit: limit,
-    transactional: boolean
+    transactional: boolean,
+    warmers: [ warmer ]
   )
 
   # Record specification for a command instance
@@ -82,6 +83,12 @@ defmodule Cachex.Spec do
     options: Keyword.t
   )
 
+  # Record specification for a cache warmer
+  @type warmer :: record(:warmer,
+    module: atom,
+    state: any
+  )
+
   ###########
   # Records #
   ###########
@@ -100,7 +107,8 @@ defmodule Cachex.Spec do
     fallback: nil,
     hooks: nil,
     limit: nil,
-    transactional: false
+    transactional: false,
+    warmers: []
 
   @doc """
   Creates a command record from the provided values.
@@ -219,6 +227,19 @@ defmodule Cachex.Spec do
     reclaim: 0.1,
     options: []
 
+  @doc """
+  Creates a warmer record from the provided values.
+
+  A warmer record represents cache warmer processes to be run to populate keys.
+
+  A warmer should have a valid module provided, which correctly implements the behaviour
+  associated with `Cachex.Warmer`. A state can also be provided, which will be passed
+  to the execution callback of the provided module (which defaults to `nil`).
+  """
+  defrecord :warmer,
+    module: nil,
+    state: nil
+
   ###############
   # Record Docs #
   ###############
@@ -270,6 +291,12 @@ defmodule Cachex.Spec do
   """
   @spec limit(limit, Keyword.t) :: limit
   defmacro limit(record, args)
+
+  @doc """
+  Updates a warmer record from the provided values.
+  """
+  @spec warmer(warmer, Keyword.t) :: warmer
+  defmacro warmer(record, args)
 
   #############
   # Constants #

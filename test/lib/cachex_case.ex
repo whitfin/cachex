@@ -13,6 +13,7 @@ defmodule CachexCase do
       import Cachex.Errors
       import ExUnit.CaptureLog
 
+      require Helper
       require ExecuteHook
       require ForwardHook
     end

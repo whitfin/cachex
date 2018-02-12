@@ -291,6 +291,35 @@ defmodule Cachex.OptionsTest do
     refute trans3
   end
 
+  test "parsing :warmers flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # define our warmer to pass through to the cache
+    Helper.create_warmer(:options_test_warmer, 50, fn(_) ->
+      :ignore
+    end)
+
+    # parse some warmers using the options parser
+    results1 = Cachex.Options.parse(name, [ warmers: [] ])
+    results2 = Cachex.Options.parse(name, [ warmers: warmer(module: :options_test_warmer) ])
+    results3 = Cachex.Options.parse(name, [ warmers: [ warmer(module: :options_test_warmer) ] ])
+    results4 = Cachex.Options.parse(name, [ warmers: [ "warmer" ] ])
+
+    # the first three should all be valid
+    { :ok, cache(warmers: warmers1) } = results1
+    { :ok, cache(warmers: warmers2) } = results2
+    { :ok, cache(warmers: warmers3) } = results3
+
+    # and then we check the warmers...
+    assert warmers1 == []
+    assert warmers2 == [ warmer(module: :options_test_warmer) ]
+    assert warmers3 == warmers2
+
+    # the last one should be invalid
+    assert results4 == { :error, :invalid_warmer }
+  end
+
   # This test simply validates the ability to retrieve and transform an option
   # from inside a Keyword List. We validate both existing and missing options in
   # order to make sure there are no issues when retrieving. We also verify the

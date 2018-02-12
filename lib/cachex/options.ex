@@ -51,6 +51,7 @@ defmodule Cachex.Options do
          { :ok,   commands } <- setup_commands(name, options),
          { :ok,   fallback } <- setup_fallbacks(name, options),
          { :ok, expiration } <- setup_expiration(name, options),
+         { :ok,    warmers } <- setup_warmers(name, options),
 
          # basic parsing which doesn't have the opportunity to fail
          transactional = get(options, :transactional, &is_boolean/1, false)
@@ -62,7 +63,8 @@ defmodule Cachex.Options do
           fallback: fallback,
           hooks: hooks,
           limit: limit,
-          transactional: transactional
+          transactional: transactional,
+          warmers: warmers
         ]) }
       end
   end
@@ -213,8 +215,8 @@ defmodule Cachex.Options do
       |> List.wrap
     ])
 
-    # validation of all hooks and division into a hooks record
-    case Enum.all?(hooks, &Validator.valid?(:hook, &1)) do
+    # validation and division into a hooks record
+    case validated?(hooks, :hook) do
       false ->
         error(:invalid_hook)
       true  ->
@@ -244,4 +246,30 @@ defmodule Cachex.Options do
       true  -> { :ok, limit }
     end
   end
+
+  # Configures any warmers assigned to the cache.
+  #
+  # This will return a list of warmer records to be associated to the
+  # cache at startup in the incubator service. All warmer records are
+  # passed through validation beforehand in order to ensure correctness.
+  defp setup_warmers(_name, options) do
+    # pull warmers
+    warmers =
+      options
+      |> Keyword.get(:warmers, [])
+      |> List.wrap
+
+    # validation of all warmer records
+    case validated?(warmers, :warmer) do
+      false -> error(:invalid_warmer)
+      true  -> { :ok, warmers }
+    end
+  end
+
+  # Shorthand validation of a record type.
+  #
+  # This just iterates and ensures all elements in the provided enum
+  # are validated using the specification validation for the given type.
+  defp validated?(enum, type),
+    do: Enum.all?(enum, &Validator.valid?(type, &1))
 end
