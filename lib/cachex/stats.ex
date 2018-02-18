@@ -19,6 +19,7 @@ defmodule Cachex.Stats do
   # add our aliases
   alias Cachex.Options
 
+  # update incrementers
   @update_calls [
     :expire,
     :expire_at,
@@ -134,7 +135,6 @@ defmodule Cachex.Stats do
   # number of pairs being processed when incrementing the `:writes` key.
   defp register_action(stats, { :put_many, [ pairs | _ ] }, { _tag, true }),
     do: increment(stats, [ :writes ], length(pairs))
-
 
   # Handles registration of `del()` command calls.
   #
