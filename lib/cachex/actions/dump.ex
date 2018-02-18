@@ -1,13 +1,12 @@
 defmodule Cachex.Actions.Dump do
-  @moduledoc """
-  Command module to allow serialization of a cache to disk.
-
-  Rather than using DETS to back up the internal ETS table, this module will
-  serialize the entire table using the ETF via the `Cachex.Disk` module.
-
-  Backups can be imported again using the `load()` command, and should be
-  able to be transferred between processes and physical nodes.
-  """
+  @moduledoc false
+  # Command module to allow serialization of a cache to disk.
+  #
+  # Rather than using DETS to back up the internal ETS table, this module will
+  # serialize the entire table using the ETF via the `Cachex.Disk` module.
+  #
+  # Backups can be imported again using the `load()` command, and should be
+  # able to be transferred between processes and physical nodes.
   alias Cachex.Disk
 
   # import our macros

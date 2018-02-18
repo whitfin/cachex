@@ -1,13 +1,12 @@
 defmodule Cachex.Actions.Put do
-  @moduledoc """
-  Command module to enable insertion of cache entries.
-
-  This is the main entry point for adding new entries to the cache table. New
-  entries are inserted taking an optional expiration time into account.
-
-  This command will use lock aware contexts to ensure that there are no key
-  clashes when writing values to the cache.
-  """
+  @moduledoc false
+  # Command module to enable insertion of cache entries.
+  #
+  # This is the main entry point for adding new entries to the cache table. New
+  # entries are inserted taking an optional expiration time into account.
+  #
+  # This command will use lock aware contexts to ensure that there are no key
+  # clashes when writing values to the cache.
   alias Cachex.Actions
   alias Cachex.Options
   alias Cachex.Services.Janitor

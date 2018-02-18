@@ -108,7 +108,8 @@ defmodule Cachex do
   cache will also die. If you don't want this behaviour, please use `start/3`.
 
   The first argument should be a unique atom, used as the name of the cache
-  service for future calls through to Cachex.
+  service for future calls through to Cachex. For all options requiring a record
+  argument, please import `Cachex.Spec` in advance.
 
   ## Options
 
@@ -220,7 +221,9 @@ defmodule Cachex do
           iex> import Cachex.Spec
           ...>
           ...> Cachex.start_link(:my_cache, [
-          ...>   hooks: hook(module: MyHook, type: :post)
+          ...>   hooks: [
+          ...>     hook(module: MyHook, name: :my_hook, state: { })
+          ...>   ]
           ...> ])
           { :ok, _pid }
 
@@ -238,7 +241,16 @@ defmodule Cachex do
           iex> import Cachex.Spec
           ...>
           ...> Cachex.start_link(:my_cache, [
-          ...>   limit: 500
+          ...>   # simple limit
+          ...>   limit: 500,
+          ...>
+          ...>   # complex limit
+          ...>   limit: limit(
+          ...>     size: 500,
+          ...>     policy: Cachex.Policy.LRW,
+          ...>     reclaim: 0.5,
+          ...>     options: []
+          ...>   )
           ...> ])
           { :ok, _pid }
 
@@ -256,6 +268,7 @@ defmodule Cachex do
       Stats can be retrieve from a running cache by using `Cachex.stats/2`.
 
           iex> Cachex.start_link(:my_cache, [ stats: true ])
+          { :ok, _pid }
 
     * `:transactional`
 
@@ -267,6 +280,7 @@ defmodule Cachex do
       way possible.
 
           iex> Cachex.start_link(:my_cache, [ transactions: true ])
+          { :ok, _pid }
 
   """
   @spec start_link(atom, Keyword.t) :: { atom, pid }
@@ -449,7 +463,6 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.dump(:my_cache, "/tmp/my_default_backup")
       { :ok, true }
 
@@ -479,8 +492,6 @@ defmodule Cachex do
       { :ok, false }
 
       iex> Cachex.clear(:my_cache)
-      { :ok, 1 }
-
       iex> Cachex.empty?(:my_cache)
       { :ok, true }
 
@@ -695,13 +706,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", [2])
       iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
-      { :ok, [1, 2] }
+      { :commit, [1, 2] }
 
       iex> Cachex.get_and_update(:my_cache, "missing_key", fn
       ...>   (nil) -> { :ignore, nil }
       ...>   (val) -> { :commit, [ "value" | val ] }
       ...> end)
-      { :ok, nil }
+      { :ignore, nil }
 
   """
   @spec get_and_update(cache, any, function, Keyword.t) :: { status, any }
@@ -843,8 +854,8 @@ defmodule Cachex do
 
       iex> Cachex.inspect(:my_cache, :cache)
       {:ok,
-       {:cache, :my_cache, %{}, {:expiration, nil, 3000, true}, {:fallback, nil, nil},
-        {:hooks, [], []}, {:limit, nil, Cachex.Policy.LRW, 0.1, []}, false}}
+        {:cache, :my_cache, %{}, {:expiration, nil, 3000, true}, {:fallback, nil, nil},
+          {:hooks, [], []}, {:limit, nil, Cachex.Policy.LRW, 0.1, []}, false, []}}
 
       iex> Cachex.inspect(:my_cache, { :entry, "my_key" } )
       { :ok, { :entry, "my_key", 1475476615662, 1, "my_value" } }
@@ -890,6 +901,8 @@ defmodule Cachex do
       ...>      last: command(type: :read, execute: &List.last/1)
       ...>    ]
       ...> ])
+      { :ok, _pid }
+
       iex> Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
       iex> Cachex.invoke(:my_cache, :last, "my_list")
       { :ok, 3 }
@@ -916,9 +929,20 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.dump(:my_cache, "/tmp/my_backup")
+      { :ok, true }
+
+      iex> Cachex.size(:my_cache)
+      { :ok, 1 }
+
       iex> Cachex.clear(:my_cache)
+      iex> Cachex.size(:my_cache)
+      { :ok, 0 }
+
       iex> Cachex.load(:my_cache, "/tmp/my_backup")
       { :ok, true }
+
+      iex> Cachex.size(:my_cache)
+      { :ok, 1 }
 
   """
   @spec load(cache, binary, Keyword.t) :: { status, any }
@@ -1045,7 +1069,7 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put(:my_cache, "my_key", "my_value", ttl: :timer.seconds(5))
-      iex> :timer.sleep(4)
+      iex> Process.sleep(4)
       iex> Cachex.ttl(:my_cache, "my_key")
       { :ok, 1000 }
 
@@ -1163,18 +1187,7 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.stats(:my_cache)
-      {:ok, %{creationDate: 1460312824198, missCount: 1, opCount: 2, setCount: 1}}
-
-      iex> Cachex.stats(:my_cache, for: :get)
-      {:ok, %{creationDate: 1460312824198, get: %{missing: 1}}}
-
-      iex> Cachex.stats(:my_cache, for: :raw)
-      {:ok,
-       %{get: %{missing: 1}, global: %{missCount: 1, opCount: 2, setCount: 1},
-         meta: %{creationDate: 1460312824198}, set: %{true: 1}}}
-
-      iex> Cachex.stats(:my_cache, for: [ :get, :set ])
-      {:ok, %{creationDate: 1460312824198, get: %{missing: 1}, set: %{true: 1}}}
+      {:ok, %{meta: %{creation_date: 1518984857331}}}
 
       iex> Cachex.stats(:cache_with_no_stats)
       { :error, :stats_disabled }
@@ -1222,7 +1235,7 @@ defmodule Cachex do
       iex> :my_cache |> Cachex.stream!(of: :value) |> Enum.to_list
       [2, 3, 1]
 
-      iex> :my_cache |> Cachex.stream!(of: { :key, :ttl }) |> Enum.to_list
+      iex> :my_cache |> Cachex.stream!(of: { { :key, :ttl } }) |> Enum.to_list
       [{"b", nil}, {"c", nil}, {"a", nil}]
 
   """
@@ -1286,7 +1299,7 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key1", "value1")
       iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.transaction(:my_cache, fn(worker) ->
+      iex> Cachex.transaction(:my_cache, [ "key1", "key2" ], fn(worker) ->
       ...>   val1 = Cachex.get(worker, "key1")
       ...>   val2 = Cachex.get(worker, "key2")
       ...>   [val1, val2]

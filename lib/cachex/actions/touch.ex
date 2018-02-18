@@ -1,12 +1,11 @@
 defmodule Cachex.Actions.Touch do
-  @moduledoc """
-  Command module to update the touch time of cache entries.
-
-  Touching an entry is the act of resetting the touch time to the current
-  time, without affecting the expiration set against the record. As such
-  it's incredibly useful for implementing least-recently used caching
-  systems without breaking expiration based constracts.
-  """
+  @moduledoc false
+  # Command module to update the touch time of cache entries.
+  #
+  # Touching an entry is the act of resetting the touch time to the current
+  # time, without affecting the expiration set against the record. As such
+  # it's incredibly useful for implementing least-recently used caching
+  # systems without breaking expiration based constracts.
   alias Cachex.Actions
   alias Cachex.Actions.Ttl
   alias Cachex.Services.Locksmith

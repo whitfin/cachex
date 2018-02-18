@@ -1,13 +1,12 @@
 defmodule Cachex.Actions.Ttl do
-  @moduledoc """
-  Command module to retrieve the TTL for a cache entry.
-
-  TTL retrieval for cache records is determined by calculating the offset
-  between the touch time and the expiration set against an entry instance.
-
-  Lazy expiration is also taken into account in this module to avoid giving
-  negative TTL values back to the caller.
-  """
+  @moduledoc false
+  # Command module to retrieve the TTL for a cache entry.
+  #
+  # TTL retrieval for cache records is determined by calculating the offset
+  # between the touch time and the expiration set against an entry instance.
+  #
+  # Lazy expiration is also taken into account in this module to avoid giving
+  # negative TTL values back to the caller.
   alias Cachex.Actions
 
   # we need our imports

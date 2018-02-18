@@ -1,12 +1,11 @@
 defmodule Cachex.Actions.Transaction do
-  @moduledoc """
-  Command module to enable transactional execution against a cache.
-
-  This command handles the (very) small implementation of transactions. The
-  reason for it being so small is that we simply pass values through to the
-  Locksmith service to do the heavy lifting. All that's provided here is a
-  little bit of massaging.
-  """
+  @moduledoc false
+  # Command module to enable transactional execution against a cache.
+  #
+  # This command handles the (very) small implementation of transactions. The
+  # reason for it being so small is that we simply pass values through to the
+  # Locksmith service to do the heavy lifting. All that's provided here is a
+  # little bit of massaging.
   alias Cachex.Services.Locksmith
 
   # import records

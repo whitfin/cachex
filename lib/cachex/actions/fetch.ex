@@ -1,15 +1,14 @@
 defmodule Cachex.Actions.Fetch do
-  @moduledoc """
-  Command module to enable fetching on cache misses.
-
-  This is a replacement for the `get()` command in Cachex v2 which would accept
-  a `:fallback` option to fetch on cache miss. It operates in the same way, except
-  that the function to use when fetching is an explicit argument.
-
-  If the fetch function is not provided, the `fetch()` command will try to lookup
-  a default fetch function from the cache state and use that instead. If neither
-  exist, an error will be returned.
-  """
+  @moduledoc false
+  # Command module to enable fetching on cache misses.
+  #
+  # This is a replacement for the `get()` command in Cachex v2 which would accept
+  # a `:fallback` option to fetch on cache miss. It operates in the same way, except
+  # that the function to use when fetching is an explicit argument.
+  #
+  # If the fetch function is not provided, the `fetch()` command will try to lookup
+  # a default fetch function from the cache state and use that instead. If neither
+  # exist, an error will be returned.
   alias Cachex.Actions.Get
   alias Cachex.Services.Courier
 

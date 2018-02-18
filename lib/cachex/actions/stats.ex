@@ -1,11 +1,10 @@
 defmodule Cachex.Actions.Stats do
-  @moduledoc """
-  Command module to allow cache statistics retrieval.
-
-  This module is only active if the statistics hook has been enabled in
-  the cache, either via the stats option at startup or by providing the
-  hook manually.
-  """
+  @moduledoc false
+  # Command module to allow cache statistics retrieval.
+  #
+  # This module is only active if the statistics hook has been enabled in
+  # the cache, either via the stats option at startup or by providing the
+  # hook manually.
   alias Cachex.Stats
   import Cachex.Spec
 
