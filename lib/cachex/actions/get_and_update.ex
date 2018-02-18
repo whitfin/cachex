@@ -31,28 +31,18 @@ defmodule Cachex.Actions.GetAndUpdate do
   """
   defaction get_and_update(cache() = cache, key, update_fun, options) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { status, value } = Get.execute(cache, key, const(:notify_false))
+      { _label, value } = Get.execute(cache, key, [])
 
-      value
-      |> update_fun.()
-      |> normalize_commit
-      |> handle_commit(cache, key, status)
+      normalized =
+        value
+        |> update_fun.()
+        |> normalize_commit
+
+      with { :commit, new_value } <- normalized do
+        write_mod(value).execute(cache, key, new_value, [])
+      end
+
+      normalized
     end)
-  end
-
-  ###############
-  # Private API #
-  ###############
-
-  # Handles a commit Tuple to ensure persistence.
-  #
-  # If the Tuple is tagged with the `:ignore` atom, it is not persisted and it
-  # simply returned as-is. If it's tagged as `:commit`, we use the status from
-  # the initial `get()` call to determine if we need to update or set the value.
-  defp handle_commit({ :ignore, tempv }, _cache, _key, status),
-    do: { status, tempv }
-  defp handle_commit({ :commit, tempv }, cache, key, status) do
-    write_mod(status).execute(cache, key, tempv, const(:notify_false))
-    { status, tempv }
   end
 end

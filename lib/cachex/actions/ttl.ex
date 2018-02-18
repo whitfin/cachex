@@ -26,12 +26,10 @@ defmodule Cachex.Actions.Ttl do
   """
   defaction ttl(cache() = cache, key, options) do
     case Actions.read(cache, key) do
-      entry(ttl: nil) ->
-        { :ok, nil }
-      entry(touched: touched, ttl: ttl) ->
+      entry(touched: touched, ttl: ttl) when not is_nil(ttl) ->
         { :ok, touched + ttl - now() }
-      _missing ->
-        { :missing, nil }
+      _anything_else ->
+        { :ok, nil }
     end
   end
 end

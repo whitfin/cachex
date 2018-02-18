@@ -6,7 +6,6 @@ defmodule Cachex.Actions.Incr do
   a transactional context. The result is a faster throughput with the same
   behaviour aspects (but we still lock the key temporarily).
   """
-  alias Cachex.Actions.Exists
   alias Cachex.Options
   alias Cachex.Services.Janitor
   alias Cachex.Services.Locksmith
@@ -37,28 +36,13 @@ defmodule Cachex.Actions.Incr do
     default = entry_now(key: key, ttl: expiry, value: initial)
 
     Locksmith.write(cache, [ key ], fn ->
-      existed = Exists.execute(cache, key, const(:notify_false))
-
       try do
         name
         |> :ets.update_counter(key, entry_mod({ :value, amount }), default)
-        |> handle_existed(existed)
+        |> wrap(:ok)
       rescue
         _ -> error(:non_numeric_value)
       end
     end)
   end
-
-  ###############
-  # Private API #
-  ###############
-
-  # Handles the normalization of an incremented value.
-  #
-  # If the value already existed we return an `:ok` tag,
-  # otherwise we return a `:missing` tag.
-  defp handle_existed(val, { :ok, true }),
-    do: { :ok, val }
-  defp handle_existed(val, { :ok, false }),
-    do: { :missing, val }
 end

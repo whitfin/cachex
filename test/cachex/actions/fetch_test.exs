@@ -85,7 +85,7 @@ defmodule Cachex.Actions.FetchTest do
     assert(value2 == { :ok, "4yek" })
 
     # ignored keys should not exist
-    assert(value3 == { :missing, nil })
+    assert(value3 == { :ok, nil })
 
     # check using a missing fallback
     result8 = Cachex.fetch(cache1, "key7")

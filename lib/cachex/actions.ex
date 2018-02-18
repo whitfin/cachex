@@ -53,12 +53,8 @@ defmodule Cachex.Actions do
   Note that updates are atomic; either all updates will take place, or none will.
   """
   @spec update(Spec.cache, any, [ tuple ]) :: { :ok, boolean }
-  def update(cache(name: name), key, changes) do
-    case :ets.update_element(name, key, changes) do
-      true  -> { :ok, true }
-      false -> { :missing, false }
-    end
-  end
+  def update(cache(name: name), key, changes),
+    do: { :ok, :ets.update_element(name, key, changes) }
 
   @doc """
   Writes a new entry into a cache.
@@ -68,10 +64,10 @@ defmodule Cachex.Actions do
     do: { :ok, :ets.insert(name, entries) }
 
   @doc """
-  Returns the module used for a write based on a status tag.
+  Returns the module used for a write based on a prior value.
   """
   @spec write_mod(atom) :: atom
-  def write_mod(tag) when tag in [ :missing, :new ],
+  def write_mod(nil),
     do: __MODULE__.Put
   def write_mod(_tag),
     do: __MODULE__.Update
@@ -114,8 +110,8 @@ defmodule Cachex.Actions do
         result = (unquote(body))
 
         if notify do
-           results = Keyword.get(local_opts, :hook_result, result)
-           Informant.broadcast(local_state, message, results)
+          results = Keyword.get(local_opts, :hook_result, result)
+          Informant.broadcast(local_state, message, results)
         end
 
         result

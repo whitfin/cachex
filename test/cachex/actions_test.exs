@@ -89,7 +89,7 @@ defmodule Cachex.ActionsTest do
     assert(update1 == { :ok, true })
 
     # the second is missing
-    assert(update2 == { :missing, false })
+    assert(update2 == { :ok, false })
 
     # retrieve the value
     value2 = Cachex.Actions.read(state, "key")
@@ -177,19 +177,16 @@ defmodule Cachex.ActionsTest do
   end
 
   # This test just provides basic coverage of the write_mod function, by using
-  # tags to determine the correct Action to use to write a value. We make sure
-  # that the :missing and :new tags define a Set and the others define an Update.
+  # a prior value to determine the correct Action to use to write a value.
   test "retrieving a module name to write with" do
     # ask for some modules
-    result1 = Cachex.Actions.write_mod(:new)
-    result2 = Cachex.Actions.write_mod(:missing)
-    result3 = Cachex.Actions.write_mod(:unknown)
+    result1 = Cachex.Actions.write_mod(nil)
+    result2 = Cachex.Actions.write_mod("value")
 
-    # the first two should be Set actions
+    # the first should be Set actions
     assert(result1 == Cachex.Actions.Put)
-    assert(result2 == Cachex.Actions.Put)
 
-    # the third should be an Update
-    assert(result3 == Cachex.Actions.Update)
+    # the second should be an Update
+    assert(result2 == Cachex.Actions.Update)
   end
 end

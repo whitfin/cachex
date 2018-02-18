@@ -42,7 +42,7 @@ defmodule Cachex.Actions.RefreshTest do
     assert(refresh2 == { :ok, true })
 
     # the third shouldn't, as it's missing
-    assert(refresh3 == { :missing, false })
+    assert(refresh3 == { :ok, false })
 
     # verify the hooks were updated with the message
     assert_receive({ { :refresh, [ 1, [] ] }, ^refresh1 })

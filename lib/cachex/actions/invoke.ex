@@ -28,7 +28,7 @@ defmodule Cachex.Actions.Invoke do
   to a custom command for a given key, and based on the type of command might be
   written back into the cache table.
   """
-  defaction invoke(cache(commands: commands) = cache, key, cmd, options) do
+  defaction invoke(cache(commands: commands) = cache, cmd, key, options) do
     commands
     |> Map.get(cmd)
     |> invoke(cache, key)
@@ -44,7 +44,7 @@ defmodule Cachex.Actions.Invoke do
   # It should be noted that expirations are taken into account, and nil will be
   # passed through in expired/missing cases.
   defp invoke(command(type: :read, execute: exec), cache, key) do
-    { _status_, value } = Get.execute(cache, key, const(:notify_false))
+    { _status_, value } = Get.execute(cache, key, [])
     { :ok, exec.(value) }
   end
 
@@ -56,11 +56,11 @@ defmodule Cachex.Actions.Invoke do
   # is returned (i.e. a non-Tuple, or a Tuple with invalid size).
   defp invoke(command(type: :write, execute: exec), cache() = cache, key) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { status, value } = Get.execute(cache, key, const(:notify_false))
+      { _label, value } = Get.execute(cache, key, [])
       { return, tempv } = exec.(value)
 
-      tempv == value || write_mod(status)
-        .execute(cache, key, tempv, const(:notify_false))
+      tempv == value || write_mod(value)
+        .execute(cache, key, tempv, [])
 
       { :ok, return }
     end)

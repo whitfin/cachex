@@ -38,7 +38,7 @@ defmodule Cachex.Actions.PersistTest do
     assert(persist2 == { :ok, true })
 
     # the third shouldn't, as it's missing
-    assert(persist3 == { :missing, false })
+    assert(persist3 == { :ok, false })
 
     # verify the hooks were updated with the message
     assert_receive({ { :persist, [ 1, [] ] }, ^persist1 })

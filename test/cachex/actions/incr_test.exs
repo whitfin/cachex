@@ -20,13 +20,13 @@ defmodule Cachex.Actions.IncrTest do
     incr3 = Cachex.incr(cache, "key2", 1, opts1)
 
     # the first result should be 1
-    assert(incr1 == { :missing, 1 })
+    assert(incr1 == { :ok, 1 })
 
     # the second result should be 3
     assert(incr2 == { :ok, 3 })
 
     # the third result should be 11
-    assert(incr3 == { :missing, 11 })
+    assert(incr3 == { :ok, 11 })
 
     # verify the hooks were updated with the increment
     assert_receive({ { :incr, [ "key1", 1,     [] ] }, ^incr1 })

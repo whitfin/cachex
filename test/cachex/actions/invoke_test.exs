@@ -22,10 +22,10 @@ defmodule Cachex.Actions.InvokeTest do
     { :entry, "list", touched, nil, _val } = Cachex.inspect!(cache, { :entry, "list" })
 
     # execute some custom commands
-    lpop1 = Cachex.invoke(cache, "list", :lpop)
-    lpop2 = Cachex.invoke(cache, "list", :lpop)
-    rpop1 = Cachex.invoke(cache, "list", :rpop)
-    rpop2 = Cachex.invoke(cache, "list", :rpop)
+    lpop1 = Cachex.invoke(cache, :lpop, "list")
+    lpop2 = Cachex.invoke(cache, :lpop, "list")
+    rpop1 = Cachex.invoke(cache, :rpop, "list")
+    rpop2 = Cachex.invoke(cache, :rpop, "list")
 
     # verify that all results are as expected
     assert(lpop1 == { :ok, 1 })
@@ -40,8 +40,8 @@ defmodule Cachex.Actions.InvokeTest do
     assert(inspect1 == { :entry, "list", touched, nil, [ ] })
 
     # pop some extras to test avoiding writes
-    lpop3 = Cachex.invoke(cache, "list", :lpop)
-    rpop3 = Cachex.invoke(cache, "list", :rpop)
+    lpop3 = Cachex.invoke(cache, :lpop, "list")
+    rpop3 = Cachex.invoke(cache, :rpop, "list")
 
     # verify we stayed the same
     assert(lpop3 == { :ok, nil })
@@ -65,7 +65,7 @@ defmodule Cachex.Actions.InvokeTest do
       { :ok, true } = Cachex.put(cache, "list", list)
 
       # retrieve the last value
-      last = Cachex.invoke(cache, "list", :last)
+      last = Cachex.invoke(cache, :last, "list")
 
       # compare with the expected
       assert(last == { :ok, expected })
@@ -96,11 +96,11 @@ defmodule Cachex.Actions.InvokeTest do
     })
 
     # try to invoke a missing command
-    invoke1 = Cachex.invoke(state, "heh", :unknowns)
+    invoke1 = Cachex.invoke(state, :unknowns, "heh")
 
     # try to invoke bad arity commands
-    invoke2 = Cachex.invoke(state, "heh", :fake_mod)
-    invoke3 = Cachex.invoke(state, "heh", :fake_ret)
+    invoke2 = Cachex.invoke(state, :fake_mod, "heh")
+    invoke3 = Cachex.invoke(state, :fake_ret, "heh")
 
     # all should error
     assert(invoke1 == { :error, :invalid_command })

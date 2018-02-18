@@ -32,7 +32,7 @@ defmodule Cachex.Actions.Fetch do
   placed in the cache in order to allow read-through caches.
   """
   defaction fetch(cache() = cache, key, fallback, options) do
-    with { :missing, nil } <- Get.execute(cache, key, const(:notify_false)) do
+    with { :ok, nil } <- Get.execute(cache, key, const(:notify_false)) do
       Courier.dispatch(cache, key, generate_task(cache, fallback, key))
     end
   end

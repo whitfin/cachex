@@ -48,7 +48,7 @@ defmodule Cachex.Actions.ExistsTest do
 
     # verify the second was removed
     assert(value1 == { :ok, 1 })
-    assert(value2 == { :missing, nil })
-    assert(value3 == { :missing, nil })
+    assert(value2 == { :ok, nil })
+    assert(value3 == { :ok, nil })
   end
 end

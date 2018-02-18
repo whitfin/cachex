@@ -35,20 +35,10 @@ defmodule Cachex.Actions.Expire do
   """
   defaction expire(cache() = cache, key, expiration, options) do
     Locksmith.write(cache, [ key ], fn ->
-      do_expire(cache, key, expiration)
+      case expiration > -1 do
+        true  -> Actions.update(cache, key, entry_mod_now(ttl: expiration))
+        false -> Del.execute(cache, key, const(:purge_override))
+      end
     end)
   end
-
-  ###############
-  # Private API #
-  ###############
-
-  # Updates/removes an expiration based on the provided expiration.
-  #
-  # If the expiration is non-negative, it's set directly in the cache with the
-  # touch time updates. Otherwise the entry is immediately removed instead.
-  defp do_expire(cache, key, exp) when exp > -1,
-    do: Actions.update(cache, key, entry_mod_now(ttl: exp))
-  defp do_expire(cache, key, _exp),
-    do: Del.execute(cache, key, const(:purge_override))
 end
