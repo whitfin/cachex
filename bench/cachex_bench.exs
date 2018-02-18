@@ -84,7 +84,7 @@ defmodule CachexBench do
   end
 
   bench "fetch" do
-    Cachex.fetch(bench_context, "fetch_test")
+    Cachex.fetch(bench_context, "fetch_test", &(&1))
     :ok
   end
 
