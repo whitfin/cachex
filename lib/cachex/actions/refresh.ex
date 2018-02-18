@@ -1,14 +1,13 @@
 defmodule Cachex.Actions.Refresh do
-  @moduledoc """
-  Command module to allow refreshing an expiration value.
-
-  Refreshing an expiration is the notion of resetting an expiration time
-  as if it were just set. This is done by updating the touched time (as
-  this is used to calculate expiration offsets).
-
-  The main advantage of this command is the ability to refresh an existing
-  expiration without knowing in advance what it was previously set to.
-  """
+  @moduledoc false
+  # Command module to allow refreshing an expiration value.
+  #
+  # Refreshing an expiration is the notion of resetting an expiration time
+  # as if it were just set. This is done by updating the touched time (as
+  # this is used to calculate expiration offsets).
+  #
+  # The main advantage of this command is the ability to refresh an existing
+  # expiration without knowing in advance what it was previously set to.
   alias Cachex.Actions
   alias Cachex.Services.Locksmith
 

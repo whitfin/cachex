@@ -1,13 +1,12 @@
 defmodule Cachex.Actions.Take do
-  @moduledoc """
-  Command module to allow taking of cache entries.
-
-  The notion of taking a key is the act of retrieving a key and deleting it
-  in a single atomic action. It's useful when used to guarantee that a given
-  process retrieves the final value of an entry.
-
-  Taking a key is clearly destructive, so it operates in a lock context.
-  """
+  @moduledoc false
+  # Command module to allow taking of cache entries.
+  #
+  # The notion of taking a key is the act of retrieving a key and deleting it
+  # in a single atomic action. It's useful when used to guarantee that a given
+  # process retrieves the final value of an entry.
+  #
+  # Taking a key is clearly destructive, so it operates in a lock context.
   alias Cachex.Services.Informant
   alias Cachex.Services.Janitor
   alias Cachex.Services.Locksmith

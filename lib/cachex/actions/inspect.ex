@@ -1,13 +1,12 @@
 defmodule Cachex.Actions.Inspect do
-  @moduledoc """
-  Command module to enable cache inspection.
-
-  Cache inspection can be anything from checking the current size of the
-  expired keyspace to pulling raw entry records back from the table.
-
-  Due to the nature of inspection, behaviour in this module can change
-  at any time - not only with major increments of the library version.
-  """
+  @moduledoc false
+  # Command module to enable cache inspection.
+  #
+  # Cache inspection can be anything from checking the current size of the
+  # expired keyspace to pulling raw entry records back from the table.
+  #
+  # Due to the nature of inspection, behaviour in this module can change
+  # at any time - not only with major increments of the library version.
   alias Cachex.Services
   alias Cachex.Util
   alias Services.Janitor

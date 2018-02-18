@@ -1,14 +1,13 @@
 defmodule Cachex.Actions.PutMany do
-  @moduledoc """
-  Command module to enable batch insertion of cache entries.
-
-  This is an alternative entry point for adding new entries to the cache,
-  specifically in the case of multiple entries at the same time. Performance
-  is enhanced in this use case, but lowered in the case of single entries.
-
-  This command will use lock aware contexts to ensure that there are no key
-  clashes when writing values to the cache.
-  """
+  @moduledoc false
+  # Command module to enable batch insertion of cache entries.
+  #
+  # This is an alternative entry point for adding new entries to the cache,
+  # specifically in the case of multiple entries at the same time. Performance
+  # is enhanced in this use case, but lowered in the case of single entries.
+  #
+  # This command will use lock aware contexts to ensure that there are no key
+  # clashes when writing values to the cache.
   alias Cachex.Actions
   alias Cachex.Options
   alias Cachex.Services.Janitor

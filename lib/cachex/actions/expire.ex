@@ -1,11 +1,10 @@
 defmodule Cachex.Actions.Expire do
-  @moduledoc """
-  Command module to allow setting entry expiration.
-
-  This module is a little more involved than it would be as it's used as a
-  binding for other actions (such as removing expirations). As such, we have
-  to handle several edge cases with nil values.
-  """
+  @moduledoc false
+  # Command module to allow setting entry expiration.
+  #
+  # This module is a little more involved than it would be as it's used as a
+  # binding for other actions (such as removing expirations). As such, we have
+  # to handle several edge cases with nil values.
   alias Cachex.Actions
   alias Cachex.Actions.Del
   alias Cachex.Services.Locksmith

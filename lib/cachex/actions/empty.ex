@@ -1,11 +1,10 @@
 defmodule Cachex.Actions.Empty do
-  @moduledoc """
-  Command module to allow checking for cache population.
-
-  This command is basically just sugar around the `size()` command by turning
-  the response into a boolean. This means that expiration of records is not
-  taken into account (lazy expiration has no effect here).
-  """
+  @moduledoc false
+  # Command module to allow checking for cache population.
+  #
+  # This command is basically just sugar around the `size()` command by turning
+  # the response into a boolean. This means that expiration of records is not
+  # taken into account (lazy expiration has no effect here).
   alias Cachex.Actions.Size
 
   # we need our imports

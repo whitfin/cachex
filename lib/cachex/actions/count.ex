@@ -1,10 +1,9 @@
 defmodule Cachex.Actions.Count do
-  @moduledoc """
-  Command module to allow the counting of a cache.
-
-  Counting a cache will make sure to take the expiration time of items into
-  consideration, making the semantics different to those of the `size()` calls.
-  """
+  @moduledoc false
+  # Command module to allow the counting of a cache.
+  #
+  # Counting a cache will make sure to take the expiration time of items into
+  # consideration, making the semantics different to those of the `size()` calls.
   alias Cachex.Util
 
   # import needed macros

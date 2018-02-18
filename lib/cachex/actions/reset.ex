@@ -1,13 +1,12 @@
 defmodule Cachex.Actions.Reset do
-  @moduledoc """
-  Command module to enable complete reset of a cache.
-
-  This command allows the caller to reset a cache to an empty state, reset
-  the hooks associated with a cache, or both.
-
-  This is not executed inside an action context as there is no need to
-  notify on reset (as otherwise a reset would always be the first message).
-  """
+  @moduledoc false
+  # Command module to enable complete reset of a cache.
+  #
+  # This command allows the caller to reset a cache to an empty state, reset
+  # the hooks associated with a cache, or both.
+  #
+  # This is not executed inside an action context as there is no need to
+  # notify on reset (as otherwise a reset would always be the first message).
   alias Cachex.Actions.Clear
   alias Cachex.Services.Locksmith
 
