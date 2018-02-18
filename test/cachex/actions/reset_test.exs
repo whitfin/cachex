@@ -4,7 +4,7 @@ defmodule Cachex.Actions.ResetTest do
   # This test ensures that we can reset a cache completely, resetting the state
   # of all hooks and emptying the cache of keys. We verify this using the stats
   # hook and checking the creaionDate (which is set when the hook is started),
-  # and ensuring that the creationDate resets when the cache does. We also verify
+  # and ensuring that the creation_date resets when the cache does. We also verify
   # that the cache is empty after being reset. The second cache here with no hooks
   # is to ensure coverage of clearing a cache with no hooks, as there are optimizations
   # which avoid this from wasting time - this can sadly only be verified using
@@ -27,7 +27,7 @@ defmodule Cachex.Actions.ResetTest do
     stats1 = Cachex.stats!(cache1)
 
     # verify the stats
-    assert_in_delta(stats1.creationDate, ctime1, 10)
+    assert_in_delta(stats1.meta.creation_date, ctime1, 10)
 
     # ensure the cache is not empty
     refute(Cachex."empty?!"(cache1))
@@ -55,7 +55,7 @@ defmodule Cachex.Actions.ResetTest do
     stats2 = Cachex.stats!(cache1)
 
     # verify they reset properly
-    assert_in_delta(stats2.creationDate, ctime2, 10)
+    assert_in_delta(stats2.meta.creation_date, ctime2, 10)
   end
 
   # This test ensures that we can reset a cache without touching any of the hooks
@@ -76,7 +76,7 @@ defmodule Cachex.Actions.ResetTest do
     stats1 = Cachex.stats!(cache)
 
     # verify the stats
-    assert_in_delta(stats1.creationDate, ctime1, 5)
+    assert_in_delta(stats1.meta.creation_date, ctime1, 5)
 
     # ensure the cache is not empty
     refute(Cachex."empty?!"(cache))
@@ -94,15 +94,15 @@ defmodule Cachex.Actions.ResetTest do
     stats2 = Cachex.stats!(cache)
 
     # verify they didn't change
-    assert(stats2.creationDate == stats1.creationDate)
+    assert(stats2.meta.creation_date == stats1.meta.creation_date)
   end
 
   # This test covers the resetting of a cache's hooks, but not resetting the cache
   # itself. We do this by ensuring that the cache never becomes empty, but the
-  # creationDate on the stats hook is reset. Firstly we do a reset with a whitelist
+  # creation_date on the stats hook is reset. Firstly we do a reset with a whitelist
   # of hooks to reset to ensure that this does not reset the stats hook (thus
   # verifying that this works correctly), and then we reset all hooks and check
-  # that the creationDate of the stats hook is reset properly.
+  # that the creation_date of the stats hook is reset properly.
   test "resetting only a cache's hooks" do
     # create a test cache
     cache = Helper.create_cache([ stats: true ])
@@ -117,7 +117,7 @@ defmodule Cachex.Actions.ResetTest do
     stats1 = Cachex.stats!(cache)
 
     # verify the stats
-    assert_in_delta(stats1.creationDate, ctime1, 5)
+    assert_in_delta(stats1.meta.creation_date, ctime1, 5)
 
     # ensure the cache is not empty
     refute(Cachex."empty?!"(cache))
@@ -141,7 +141,7 @@ defmodule Cachex.Actions.ResetTest do
     stats2 = Cachex.stats!(cache)
 
     # verify they don't reset
-    assert(stats2.creationDate == stats1.creationDate)
+    assert(stats2.meta.creation_date == stats1.meta.creation_date)
 
     # reset without a hooks list
     reset2 = Cachex.reset(cache, [ only: :hooks ])
@@ -156,6 +156,6 @@ defmodule Cachex.Actions.ResetTest do
     stats3 = Cachex.stats!(cache)
 
     # verify they don't reset
-    assert_in_delta(stats3.creationDate, ctime2, 5)
+    assert_in_delta(stats3.meta.creation_date, ctime2, 5)
   end
 end

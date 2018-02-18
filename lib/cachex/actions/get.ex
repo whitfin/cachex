@@ -19,17 +19,13 @@ defmodule Cachex.Actions.Get do
 
   @doc """
   Retrieves a value from inside the cache.
-
-  The returned value will be wrapped in a tagged Tuple to communicate
-  whether it was found in the cache or not. If the Tuple is tagged with
-  the `:missing` tag, the value was not found.
   """
   defaction get(cache() = cache, key, options) do
     case Actions.read(cache, key) do
       entry(value: value) ->
         { :ok, value }
-      _missing ->
-        { :missing, nil }
+      nil ->
+        { :ok, nil }
     end
   end
 end

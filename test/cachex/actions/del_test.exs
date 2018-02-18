@@ -31,7 +31,7 @@ defmodule Cachex.Actions.DelTest do
     value2 = Cachex.get(cache, 2)
 
     # verify the items are gone
-    assert(value1 == { :missing, nil })
-    assert(value2 == { :missing, nil })
+    assert(value1 == { :ok, nil })
+    assert(value2 == { :ok, nil })
   end
 end

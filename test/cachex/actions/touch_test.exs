@@ -45,7 +45,7 @@ defmodule Cachex.Actions.TouchTest do
     assert(touch2 == { :ok, true })
 
     # the third shouldn't, as it's missing
-    assert(touch3 == { :missing, false })
+    assert(touch3 == { :ok, false })
 
     # verify the hooks were updated with the message
     assert_receive({ { :touch, [ 1, [] ] }, ^touch1 })

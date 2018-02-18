@@ -26,6 +26,6 @@ defmodule Cachex.Actions.TtlTest do
     assert_in_delta(ttl2, 10000, 10)
 
     # the third should return a missing value
-    assert(ttl3 == { :missing, nil })
+    assert(ttl3 == { :ok, nil })
   end
 end

@@ -57,7 +57,7 @@ defmodule Cachex do
   @type cache :: atom | Spec.cache
 
   # custom status type
-  @type status :: :ok | :error | :missing
+  @type status :: :ok | :error
 
   # generate unsafe definitions
   @unsafe [
@@ -389,7 +389,7 @@ defmodule Cachex do
       { :ok, 5 }
 
       iex> Cachex.decr(:my_cache, "missing_key", 5, initial: 2)
-      { :missing, -3 }
+      { :ok, -3 }
 
   """
   @spec decr(cache, any, integer, Keyword.t) :: { status, integer }
@@ -415,7 +415,7 @@ defmodule Cachex do
       { :ok, true }
 
       iex> Cachex.get(:my_cache, "key")
-      { :missing, nil }
+      { :ok, nil }
 
   """
   @spec del(cache, any, Keyword.t) :: { status, boolean }
@@ -565,7 +565,7 @@ defmodule Cachex do
       { :ok, true }
 
       iex> Cachex.expire(:my_cache, "missing_key", :timer.seconds(5))
-      { :missing, false }
+      { :ok, false }
 
   """
   @spec expire(cache, any, number, Keyword.t) :: { status, boolean }
@@ -590,7 +590,7 @@ defmodule Cachex do
       { :ok, true }
 
       iex> Cachex.expire_at(:my_cache, "missing_key", 1455728085502)
-      { :missing, false }
+      { :ok, false }
 
   """
   @spec expire_at(cache, binary, number, Keyword.t) :: { status, boolean }
@@ -670,7 +670,7 @@ defmodule Cachex do
       { :ok, "value" }
 
       iex> Cachex.get(:my_cache, "missing_key")
-      { :missing, nil }
+      { :ok, nil }
 
   """
   @spec get(cache, any, Keyword.t) :: { atom, any }
@@ -701,7 +701,7 @@ defmodule Cachex do
       ...>   (nil) -> { :ignore, nil }
       ...>   (val) -> { :commit, [ "value" | val ] }
       ...> end)
-      { :missing, nil }
+      { :ok, nil }
 
   """
   @spec get_and_update(cache, any, function, Keyword.t) :: { status, any }
@@ -762,7 +762,7 @@ defmodule Cachex do
       { :ok, 15 }
 
       iex> Cachex.incr(:my_cache, "missing_key", 5, initial: 2)
-      { :missing, 7 }
+      { :ok, 7 }
 
   """
   @spec incr(cache, any, integer, Keyword.t) :: { status, integer }
@@ -891,14 +891,14 @@ defmodule Cachex do
       ...>    ]
       ...> ])
       iex> Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
-      iex> Cachex.invoke(:my_cache, "my_list", :last)
+      iex> Cachex.invoke(:my_cache, :last, "my_list")
       { :ok, 3 }
 
   """
-  @spec invoke(cache, any, atom, Keyword.t) :: any
-  def invoke(cache, key, cmd, options \\ []) when is_list(options) do
+  @spec invoke(cache, atom, any, Keyword.t) :: any
+  def invoke(cache, cmd, key, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
-      Actions.Invoke.execute(cache, key, cmd, options)
+      Actions.Invoke.execute(cache, cmd, key, options)
     end
   end
 
@@ -939,7 +939,7 @@ defmodule Cachex do
       { :ok, true }
 
       iex> Cachex.persist(:my_cache, "missing_key")
-      { :missing, false }
+      { :ok, false }
 
   """
   @spec persist(cache, any, Keyword.t) :: { status, boolean }
@@ -1054,7 +1054,7 @@ defmodule Cachex do
       { :ok, 5000 }
 
       iex> Cachex.refresh(:my_cache, "missing_key")
-      { :missing, false }
+      { :ok, false }
 
   """
   @spec refresh(cache, any, Keyword.t) :: { status, boolean }
@@ -1246,10 +1246,10 @@ defmodule Cachex do
       { :ok, "value" }
 
       iex> Cachex.get(:my_cache, "key")
-      { :missing, nil }
+      { :ok, nil }
 
       iex> Cachex.take(:my_cache, "missing_key")
-      { :missing, nil }
+      { :ok, nil }
 
   """
   @spec take(cache, any, Keyword.t) :: { status, any }
@@ -1327,7 +1327,7 @@ defmodule Cachex do
       { :ok, nil }
 
       iex> Cachex.ttl(:my_cache, "missing_key")
-      { :missing, nil }
+      { :ok, nil }
 
   """
   @spec ttl(cache, any, Keyword.t) :: { status, number }
@@ -1356,7 +1356,7 @@ defmodule Cachex do
       { :ok, "new_value" }
 
       iex> Cachex.update(:my_cache, "missing_key", "new_value")
-      { :missing, false }
+      { :ok, false }
 
   """
   @spec update(cache, any, any, Keyword.t) :: { status, any }

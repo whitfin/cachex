@@ -20,13 +20,13 @@ defmodule Cachex.Actions.DecrTest do
     decr3 = Cachex.decr(cache, "key2", 1, opts1)
 
     # the first result should be -1
-    assert(decr1 == { :missing, -1 })
+    assert(decr1 == { :ok, -1 })
 
     # the second result should be -3
     assert(decr2 == { :ok, -3 })
 
     # the third result should be 9
-    assert(decr3 == { :missing, 9 })
+    assert(decr3 == { :ok, 9 })
 
     # verify the hooks were updated with the decrement
     assert_receive({ { :decr, [ "key1", 1,     [] ] }, ^decr1 })

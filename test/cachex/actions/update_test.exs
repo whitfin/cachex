@@ -53,7 +53,7 @@ defmodule Cachex.Actions.UpdateTest do
     update2 = Cachex.update(cache, 2, 3)
 
     # ensure both failed
-    assert(update1 == { :missing, false })
-    assert(update2 == { :missing, false })
+    assert(update1 == { :ok, false })
+    assert(update2 == { :ok, false })
   end
 end

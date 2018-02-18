@@ -59,9 +59,9 @@ defmodule Cachex.Actions.Take do
           const(:purge_override_call),
           const(:purge_override_result)
         )
-        { :missing, nil }
+        { :ok, nil }
     end
   end
-  defp handle_take(_missing, _cache),
-    do: { :missing, nil }
+  defp handle_take([], _cache),
+    do: { :ok, nil }
 end

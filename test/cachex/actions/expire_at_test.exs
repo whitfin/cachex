@@ -41,7 +41,7 @@ defmodule Cachex.Actions.ExpireAtTest do
     assert(result3 == { :ok, true })
 
     # the last one is missing and should fail
-    assert(result4 == { :missing, false })
+    assert(result4 == { :ok, false })
 
     # verify the hooks were updated with the message
     assert_receive({ { :expire_at, [ 1, ^f_expire_time, [] ] }, ^result1 })
@@ -63,7 +63,7 @@ defmodule Cachex.Actions.ExpireAtTest do
     assert_in_delta(ttl2, 10000, 25)
 
     # assert the last two keys don't exist
-    assert(ttl3 == { :missing, nil })
-    assert(ttl4 == { :missing, nil })
+    assert(ttl3 == { :ok, nil })
+    assert(ttl4 == { :ok, nil })
   end
 end

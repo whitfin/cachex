@@ -32,8 +32,8 @@ defmodule Cachex.Actions.TakeTest do
     assert(result1 == { :ok, 1 })
 
     # verify the second and third keys are missing
-    assert(result2 == { :missing, nil })
-    assert(result3 == { :missing, nil })
+    assert(result2 == { :ok, nil })
+    assert(result3 == { :ok, nil })
 
     # assert we receive valid notifications
     assert_receive({ { :take, [ 1, [ ] ] }, ^result1 })

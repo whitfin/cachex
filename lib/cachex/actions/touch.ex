@@ -50,6 +50,4 @@ defmodule Cachex.Actions.Touch do
       ttl -> entry_mod_now(ttl: ttl)
     end)
   end
-  defp handle_ttl({ :missing, nil }, _cache, _key),
-    do: { :missing, false }
 end

@@ -37,8 +37,8 @@ defmodule Cachex.Actions.ClearTest do
     value3 = Cachex.get(cache, 3)
 
     # verify the items are gone
-    assert(value1 == { :missing, nil })
-    assert(value2 == { :missing, nil })
-    assert(value3 == { :missing, nil })
+    assert(value1 == { :ok, nil })
+    assert(value2 == { :ok, nil })
+    assert(value3 == { :ok, nil })
   end
 end
