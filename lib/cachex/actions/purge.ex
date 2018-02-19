@@ -30,7 +30,7 @@ defmodule Cachex.Actions.Purge do
   """
   defaction purge(cache(name: name) = cache, options) do
     Locksmith.transaction(cache, [ ], fn ->
-      { :ok, :ets.select_delete(name, Query.create_expired_query(true)) }
+      { :ok, :ets.select_delete(name, Query.expired(true)) }
     end)
   end
 end

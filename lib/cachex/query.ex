@@ -20,15 +20,29 @@ defmodule Cachex.Query do
   @doc """
   Creates an expiration-aware query.
   """
-  @spec create_query(any, any) :: [ { tuple, [ tuple ], [ any ] } ]
-  def create_query(condition, output \\ :"$_"),
-    do: create_raw_query({ :andalso, create_unexpired_clause(), condition }, output)
+  @spec create(any, any) :: [ { tuple, [ tuple ], [ any ] } ]
+  def create(condition, output \\ :"$_"),
+    do: raw({ :andalso, unexpired_clause(), condition }, output)
+
+  @doc """
+  Creates a query to retrieve all expired records.
+  """
+  @spec expired(any) :: [ { tuple, [ tuple ], [ any ] } ]
+  def expired(output \\ :"$_"),
+    do: raw(expired_clause(), output)
+
+  @doc """
+  Creates a match condition for expired records.
+  """
+  @spec expired_clause :: tuple
+  def expired_clause,
+    do: { :not, unexpired_clause() }
 
   @doc """
   Creates a raw query, ignoring expiration.
   """
-  @spec create_raw_query(any, any) :: [ { tuple, [ tuple ], [ any ] } ]
-  def create_raw_query(condition, output \\ :"$_"),
+  @spec raw(any, any) :: [ { tuple, [ tuple ], [ any ] } ]
+  def raw(condition, output \\ :"$_"),
     do: [ {
       { :_, :"$1", :"$2", :"$3", :"$4" },
       [ map_clauses(condition) ],
@@ -36,32 +50,18 @@ defmodule Cachex.Query do
     } ]
 
   @doc """
-  Creates a match condition for expired records.
+  Creates a query to retrieve all unexpired records.
   """
-  @spec create_expired_clause :: tuple
-  def create_expired_clause,
-    do: { :not, create_unexpired_clause() }
-
-  @doc """
-  Creates a query to retrieve all expired records.
-  """
-  @spec create_expired_query(any) :: [ { tuple, [ tuple ], [ any ] } ]
-  def create_expired_query(output \\ :"$_"),
-    do: create_raw_query(create_expired_clause(), output)
+  @spec unexpired(any) :: [ { tuple, [ tuple ], [ any ] } ]
+  def unexpired(output \\ :"$_"),
+    do: raw(unexpired_clause(), output)
 
   @doc """
   Creates a match condition for unexpired records.
   """
-  @spec create_unexpired_clause :: tuple
-  def create_unexpired_clause,
+  @spec unexpired_clause :: tuple
+  def unexpired_clause,
     do: { :orelse, { :==, :"$3", nil }, { :>, { :+, :"$2", :"$3" }, now() } }
-
-  @doc """
-  Creates a query to retrieve all unexpired records.
-  """
-  @spec create_unexpired_query(any) :: [ { tuple, [ tuple ], [ any ] } ]
-  def create_unexpired_query(output \\ :"$_"),
-    do: create_raw_query(create_unexpired_clause(), output)
 
   ###############
   # Private API #

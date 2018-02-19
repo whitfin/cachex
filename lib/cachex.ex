@@ -1231,21 +1231,21 @@ defmodule Cachex do
         {:entry, "c", 1519015805679, nil, 3},
         {:entry, "a", 1519015794445, nil, 1}]
 
-      iex> query = Cachex.Query.create_query(true, :key)
+      iex> query = Cachex.Query.create(true, :key)
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       ["b", "c", "a"]
 
-      iex> query = Cachex.Query.create_query(true, :value)
+      iex> query = Cachex.Query.create(true, :value)
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [2, 3, 1]
 
-      iex> query = Cachex.Query.create_query(true, { :key, :value })
+      iex> query = Cachex.Query.create(true, { :key, :value })
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [{"b", 2}, {"c", 3}, {"a", 1}]
 
   """
   @spec stream(cache, any, Keyword.t) :: { status, Enumerable.t }
-  def stream(cache, query \\ Query.create_query(true), options \\ [])
+  def stream(cache, query \\ Query.create(true), options \\ [])
   when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Stream.execute(cache, query, options)
