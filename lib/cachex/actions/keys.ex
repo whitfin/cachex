@@ -7,7 +7,7 @@ defmodule Cachex.Actions.Keys do
   # be used instead.
   #
   # This command will take the expiration of entries into consideration.
-  alias Cachex.Util
+  alias Cachex.Query
 
   # we need our imports
   import Cachex.Actions
@@ -25,5 +25,5 @@ defmodule Cachex.Actions.Keys do
   will not be included.
   """
   defaction keys(cache(name: name) = cache, options),
-    do: { :ok, :ets.select(name, Util.retrieve_all_rows(:key)) }
+    do: { :ok, :ets.select(name, Query.create_query(true, :key)) }
 end
