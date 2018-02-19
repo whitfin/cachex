@@ -7,6 +7,9 @@ Cache limits are restrictions on a cache to ensure that it stays within given bo
 Limits are defined at cache startup and cannot be changed at this point in time. You can provide either an integer or a `limit` record to the `:limit` option in the Cachex interface.
 
 ```elixir
+# include records
+import Cachex.Spec
+
 # maximum 500 entries, default eviction, default trim
 Cachex.start(:my_cache, [ limit: 500 ])
 
@@ -25,7 +28,7 @@ limit(
   policy: Cachex.Policy.LRW,
   # how much to reclaim on bound expiration
   reclaim: 0.1,
-  # options to pass to the policy server
+  # options to pass to the policy
   options: []
 }
 ```
@@ -34,7 +37,7 @@ To expound a little on the above, it defines that the cache should aim to store 
 
 ## Policies
 
-The policy above is a built-in Cachex eviction policy which removes the oldest values first. This means that we calculate the first `N` oldest entries, where `N` is roughly equal to `limit * reclaim`, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" in this context means "those written or updated longest ago". This is currently the only policy implemented within Cachex, although it's likely that more will follow (and you can write them yourself too).
+The policy `Cachex.Policy.LRW` above is a built-in Cachex eviction policy which removes the oldest values first. This means that we calculate the first `N` oldest entries, where `N` is roughly equal to `limit * reclaim`, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" in this context means "those written or updated longest ago". This is currently the only policy implemented within Cachex, although it's likely that more will follow (and you can write them yourself too).
 
 You should be aware that eviction is not instant - it happens in reaction to events which are additive to the cache and is extremely quick, however if you have a cache limit of 500 keys and you add 500,000 keys, the cleanup does take a few hundred milliseconds to occur (that's a lot to clean). This shouldn't affect most users, but it is something to point out and be aware of.
 

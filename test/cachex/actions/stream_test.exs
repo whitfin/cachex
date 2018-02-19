@@ -41,8 +41,8 @@ defmodule Cachex.Actions.StreamTest do
     { :ok, true } = Cachex.put(cache, "key3", "value3")
 
     # create two test queries
-    query1 = Cachex.Query.create_query(true, { :key, :value })
-    query2 = Cachex.Query.create_query(true, :key)
+    query1 = Cachex.Query.create(true, { :key, :value })
+    query2 = Cachex.Query.create(true, :key)
 
     # create cache streams
     { :ok, stream1 } = Cachex.stream(cache, query1)

@@ -2,13 +2,11 @@
 
 ## Starting Your Cache
 
-To start a cache you can use either `start/3` or `start_link/3`, and in general you should place it into your Supervision trees for fault tolerance. The first argument is the name of the cache and defines how you will communicate with your cache.
+To start a cache you can use either `start/2` or `start_link/2`, and in general you should place it into your Supervision trees for fault tolerance. The first argument is the name of the cache and defines how you will communicate with your cache.
 
 ```elixir
 Supervisor.start_link(
-  [
-    worker(Cachex, [ :my_cache, [], [] ])
-  ]
+  [ worker(Cachex, [ :my_cache, [] ]) ]
 )
 ```
 
@@ -18,11 +16,12 @@ The second and third arguments are both optional and represent cache and server 
 |:----------------:|:------------------------:|:------------------------------------------------------------------:|
 |     commands     |      map or keyword      |       A collection of custom commands to attach to the cache.      |
 |    expiration    |      `expiration()`      |      An expiration options record imported from Cachex.Spec.       |
-|     fallback     | function or `fallback()` |            A fallback record improved from Cachex.Spec.            |
-|       hooks      |     list of `hook()`     |  A list of execution hooks (see below) to listen on cache actions. |
+|     fallback     | function or `fallback()` |            A fallback record imported from Cachex.Spec.            |
+|       hooks      |     list of `hook()`     |        A list of execution hooks to listen on cache actions.       |
 |       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
 |       stats      |          boolean         |         Whether to track statistics for this cache or not.         |
 |   transactional  |          boolean         |           Whether to turn on transactions at cache start.          |
+|      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.          |
 
 ## Main Interface
 
