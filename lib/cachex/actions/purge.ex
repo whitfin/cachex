@@ -5,8 +5,8 @@ defmodule Cachex.Actions.Purge do
   # This is highly optimized using native ETS behaviour to purge as many
   # entries as possible at a high rate. It is used internally by the Janitor
   # service when purging on a schedule.
+  alias Cachex.Query
   alias Cachex.Services.Locksmith
-  alias Cachex.Util
 
   # we need our imports
   import Cachex.Actions
@@ -20,7 +20,7 @@ defmodule Cachex.Actions.Purge do
   Purges all expired records from the cache.
 
   This is optimizes to use native ETS batch deletes using match specifications,
-  which are compiled using the utility functions found in `Cachex.Util`.
+  which are compiled using the utility functions found in `Cachex.Query`.
 
   This function is used by the Janitor process internally to sync behaviour in
   both places rather than reimplementing the same logic in two places.
@@ -30,7 +30,7 @@ defmodule Cachex.Actions.Purge do
   """
   defaction purge(cache(name: name) = cache, options) do
     Locksmith.transaction(cache, [ ], fn ->
-      { :ok, :ets.select_delete(name, Util.retrieve_expired_rows(true)) }
+      { :ok, :ets.select_delete(name, Query.create_expired_query(true)) }
     end)
   end
 end

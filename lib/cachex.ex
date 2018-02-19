@@ -41,6 +41,7 @@ defmodule Cachex do
   alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Options
+  alias Cachex.Query
   alias Cachex.Services
 
   # alias any services
@@ -89,7 +90,7 @@ defmodule Cachex do
     set_many:          [ 2, 3 ],
     size:              [ 1, 2 ],
     stats:             [ 1, 2 ],
-    stream:            [ 1, 2 ],
+    stream:         [ 1, 2, 3 ],
     take:              [ 2, 3 ],
     touch:             [ 2, 3 ],
     transaction:       [ 3, 4 ],
@@ -1203,21 +1204,20 @@ defmodule Cachex do
   @doc """
   Creates a `Stream` of entries in a cache.
 
-  The returned stream operates entirely on an ETS level in order
-  to provide a moving view of a cache. As such, if you wish to
-  operate on any keys as a result of the stream, please execute
-  your modifications inside a transactional context.
+  This will stream all entries matching the provided match specification
+  as the second argument. If none if provided, it will default to all entries
+  which are yet to expire (in no particular order).
+
+  Consider using `Cachex.Query` to generate match specifications used when
+  querying the contents of a cache table.
 
   ## Options
 
-    * `:of`
+    * `:batch_size`
 
       </br>
-      Specifies the format of the entries to stream, allowing the
-      caller to customize the seeded entry format. This will usually
-      be `:key` or `:value` as users only interact with those fields
-      directly. This can also be a Tuple and defaults to the pair of
-      `{ :key, :value }`.
+      Allows customization of the internal batching when paginating the QLC
+      cursor coming back from ETS. It's unlikely this will ever need changing.
 
   ## Examples
 
@@ -1227,22 +1227,28 @@ defmodule Cachex do
       {:ok, true}
 
       iex> :my_cache |> Cachex.stream! |> Enum.to_list
-      [{"b", 2}, {"c", 3}, {"a", 1}]
+      [{:entry, "b", 1519015801794, nil, 2},
+        {:entry, "c", 1519015805679, nil, 3},
+        {:entry, "a", 1519015794445, nil, 1}]
 
-      iex> :my_cache |> Cachex.stream!(of: :key) |> Enum.to_list
+      iex> query = Cachex.Query.create_query(true, :key)
+      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       ["b", "c", "a"]
 
-      iex> :my_cache |> Cachex.stream!(of: :value) |> Enum.to_list
+      iex> query = Cachex.Query.create_query(true, :value)
+      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [2, 3, 1]
 
-      iex> :my_cache |> Cachex.stream!(of: { { :key, :ttl } }) |> Enum.to_list
-      [{"b", nil}, {"c", nil}, {"a", nil}]
+      iex> query = Cachex.Query.create_query(true, { :key, :value })
+      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      [{"b", 2}, {"c", 3}, {"a", 1}]
 
   """
-  @spec stream(cache, Keyword.t) :: { status, Enumerable.t }
-  def stream(cache, options \\ []) when is_list(options) do
+  @spec stream(cache, any, Keyword.t) :: { status, Enumerable.t }
+  def stream(cache, query \\ Query.create_query(true), options \\ [])
+  when is_list(options) do
     Overseer.enforce(cache) do
-      Actions.Stream.execute(cache, options)
+      Actions.Stream.execute(cache, query, options)
     end
   end
 

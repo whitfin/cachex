@@ -177,7 +177,7 @@ defmodule CachexTest do
     assert(is_even(length(definitions)))
 
     # verify the size to cause errors on addition/removal
-    assert(length(definitions) == 140)
+    assert(length(definitions) == 142)
 
     # validate all definitions
     for { name, arity } <- definitions do

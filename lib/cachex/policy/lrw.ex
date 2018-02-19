@@ -26,11 +26,11 @@ defmodule Cachex.Policy.LRW do
   import Cachex.Spec
 
   # add internal aliases
+  alias Cachex.Query
   alias Cachex.Services.Informant
-  alias Cachex.Util
 
   # compile our QLC match at runtime to avoid recalculating
-  @qlc_match Util.create_match([ { { :"$1", :"$2" } } ], [ ])
+  @qlc_match Query.create_query(true, { :key, :touched })
 
   ####################
   # Policy Behaviour #

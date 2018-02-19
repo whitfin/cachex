@@ -4,7 +4,7 @@ defmodule Cachex.Actions.Count do
   #
   # Counting a cache will make sure to take the expiration time of items into
   # consideration, making the semantics different to those of the `size()` calls.
-  alias Cachex.Util
+  alias Cachex.Query
 
   # import needed macros
   import Cachex.Actions
@@ -22,5 +22,5 @@ defmodule Cachex.Actions.Count do
   to the count. Lazy expiration does not apply to this call.
   """
   defaction count(cache(name: name) = cache, options),
-    do: { :ok, :ets.select_count(name, Util.retrieve_all_rows(true)) }
+    do: { :ok, :ets.select_count(name, Query.create_unexpired_query(true)) }
 end

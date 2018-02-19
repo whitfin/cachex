@@ -3,17 +3,22 @@ defmodule Cachex.Actions.Stream do
   # Command module to allow streaming of cache entries.
   #
   # A cache `Stream` is a lazy consumer of a cache in that it allows iteration
-  # of a cache on an as-needed basis. It should be noted that streams do not
-  # currently support record expirations, although this may change in future.
-  alias Cachex.Util
+  # of a cache on an as-needed basis. It acts as any other `Stream` from Elixir,
+  # and is fully compatible with the functions found in the `Enum` module.
+  alias Cachex.Options
 
-  # we need our imports
+  # need our imports
   import Cachex.Actions
   import Cachex.Errors
   import Cachex.Spec
 
   # our test record for testing matches
-  @test { "key", now(), 1000, "value" }
+  @test entry([
+    key: "key",
+    touched: now(),
+    ttl: 1000,
+    value: "value"
+  ])
 
   ##############
   # Public API #
@@ -27,24 +32,18 @@ defmodule Cachex.Actions.Stream do
   and consume it 15 minutes later, you'll see all changes which occurred in those
   15 minutes.
 
-  You can provide custom structures to stream using via the `:of` option, but
-  as of yet there is no way to query before consumption - meaning that you'll
-  have to filter the Stream itself rather than avoiding buffering in the first
-  place - this may change in future.
-
   We execute an `:ets.test_ms/2` call before doing anything to ensure the user
   has provided a valid return type. If they haven't, we return an error before
   creating a cursor or the `Stream` itself.
   """
-  defaction stream(cache(name: name) = cache, options) do
-    spec =
-      options
-      |> Keyword.get(:of, { { :key, :value } })
-      |> Util.retrieve_all_rows
-
+  defaction stream(cache(name: name) = cache, spec, options) do
     case :ets.test_ms(@test, spec) do
       { :ok, _result } ->
-        { :ok, init_stream(name, spec) }
+        options
+        |> Options.get(:batch_size, &is_positive_integer/1, 25)
+        |> init_stream(name, spec)
+        |> wrap(:ok)
+
       { :error, _result } ->
         error(:invalid_match)
     end
@@ -58,7 +57,7 @@ defmodule Cachex.Actions.Stream do
   #
   # Each time more items are requested we pull another batch of entries until
   # the cursor is spent, in which case we halt the stream and kill the cursor.
-  defp init_stream(name, spec) do
+  defp init_stream(batch, name, spec) do
     Stream.resource(
       fn ->
         name
@@ -66,7 +65,7 @@ defmodule Cachex.Actions.Stream do
         |> :qlc.cursor
       end,
       fn(cursor) ->
-        case :qlc.next_answers(cursor) do
+        case :qlc.next_answers(cursor, batch) do
           [ ] -> { :halt, cursor }
           ans -> {   ans, cursor }
         end
