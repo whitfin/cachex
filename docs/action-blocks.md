@@ -41,7 +41,7 @@ As we wait 5 seconds before reading the value back, the value may have been modi
 
 ## Transaction Blocks
 
-One of the most useful blocks is the transactional block. These blocks will bind all actions inside into a transaction in order to ensure consistency, meaning that all actions defined in your transaction will execute sequentially with zero interaction from other processes. These blocks are quite similar in definition to execution blocks, except that they require a list of keys to lock throughout execution. Any keys not specified can still be written by other processes due to the optimizations made for locking.
+One of the most useful blocks is the transactional block. These blocks will bind all actions inside into a transaction in order to ensure consistency, meaning that all actions defined in your transaction will execute sequentially with zero interaction from other processes. These blocks are quite similar in definition to execution blocks, except that they require a list of keys to lock throughout execution. Any keys not specified can still be written by other processes due to the optimizations made for locking (or not locking, I guess).
 
 ```elixir
 # start our execution block

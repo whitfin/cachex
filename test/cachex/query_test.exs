@@ -6,8 +6,8 @@ defmodule Cachex.QueryTest do
   # creation default, which will attach the checks for expirations.
   test "creating basic queries" do
     # create a query with a true filter
-    query1 = Cachex.Query.create_query(true)
-    query2 = Cachex.Query.create_query(true, :key)
+    query1 = Cachex.Query.create(true)
+    query2 = Cachex.Query.create(true, :key)
 
     # verify the form of the first query
     assert [
@@ -44,12 +44,12 @@ defmodule Cachex.QueryTest do
     ] = query2
   end
 
-  # The `create_expired_query()` function is just a wrapper to `create_query`
-  # whilst inverting the expiration checks. This test just covers this behaviour.
+  # The `expired()` function is just a wrapper to `create` whilst inverting
+  # the expiration checks. This test just covers this behaviour.
   test "creating expired queries" do
     # create a couple of expired queries
-    query1 = Cachex.Query.create_expired_query()
-    query2 = Cachex.Query.create_expired_query(:key)
+    query1 = Cachex.Query.expired()
+    query2 = Cachex.Query.expired(:key)
 
     # verify the form of the first query
     assert [
@@ -84,12 +84,12 @@ defmodule Cachex.QueryTest do
     ] = query2
   end
 
-  # The `create_unexpired_query()` function is just a wrapper to `create_query`
-  # whilst without a secondary clause. This test just covers this behaviour.
+  # The `unexpired()` function is just a wrapper to `create` whilst without a
+  # secondary clause. This test just covers this behaviour.
   test "creating unexpired queries" do
     # create a couple of unexpired queries
-    query1 = Cachex.Query.create_unexpired_query()
-    query2 = Cachex.Query.create_unexpired_query(:key)
+    query1 = Cachex.Query.unexpired()
+    query2 = Cachex.Query.unexpired(:key)
 
     # verify the form of the first query
     assert [
@@ -125,8 +125,8 @@ defmodule Cachex.QueryTest do
   # than validate structure, as there are no attached conditions added.
   test "creating raw queries" do
     # create a query with a true filter
-    query1 = Cachex.Query.create_raw_query(true)
-    query2 = Cachex.Query.create_raw_query(true, :key)
+    query1 = Cachex.Query.raw(true)
+    query2 = Cachex.Query.raw(true, :key)
 
     # verify the form of the first query
     assert query1 == [

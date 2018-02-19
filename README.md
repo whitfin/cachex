@@ -27,6 +27,16 @@ All of these features are optional and are off by default so you can pick and ch
 - [Cache Limits](docs/cache-limits.md)
     - [Configuration](docs/cache-limits.md#policies)
     - [Policies](docs/cache-limits.md#policies)
+- [Cache Warming](docs/cache-warming.md)
+    - [Reactive Warming](docs/cache-warming/reactive-warming.md)
+        - [Overview](docs/cache-warming/reactive-warming.md#overview)
+        - [Expirations](docs/cache-warming/reactive-warming.md#expirations)
+        - [Under The Hood](docs/cache-warming/reactive-warming.md#under-the-hood)
+        - [Use Cases](docs/cache-warming/reactive-warming.md#uses-cases)
+    - [Proactive Warming](docs/cache-warming/proactive-warming.md)
+        - [Overview](docs/cache-warming/proactive-warming.md#overview)
+        - [Definition](docs/cache-warming/proactive-warming.md#definition)
+        - [Use Cases](docs/cache-warming/proactive-warming.md#uses-cases)
 - [Custom Commands](docs/custom-commands.md)
     - [Defining Commands](docs/custom-commands.md#defining-commands)
     - [Invoking A Command](docs/custom-commands.md#invoking-a-command)
@@ -34,13 +44,13 @@ All of these features are optional and are off by default so you can pick and ch
 - [Execution Hooks](docs/execution-hooks.md)
     - [Creating Hooks](docs/execution-hooks.md#creating-hooks)
     - [Provisions](docs/execution-hooks.md#provisions)
-- [Fallback Caching](docs/fallback-caching.md)
-    - [Common Use Cases](docs/fallback-caching.md#common-use-cases)
-    - [Expirations](docs/fallback-caching.md#expirations)
-    - [Handling Errors](docs/fallback-caching.md#handling-errors)
+- [Streaming Caches](docs/streaming-caches.md)
+    - [Basics](docs/streaming-caches.md#basics)
+    - [Complex Streaming](docs/streaming-caches.md#complex-streaming)
 - [TTL Implementation](docs/ttl-implementation.md)
     - [Janitor Processes](docs/ttl-implementation.md#janitor-processes)
     - [On Demand Expiration](docs/ttl-implementation.md#on-demand-expiration)
+- [Migrating To v3.x](docs/migrating-to-v3)
 - [Benchmarks](#benchmarks)
 - [Contributions](#contributions)
 
@@ -70,9 +80,7 @@ The typical use of Cachex is to set up using a Supervisor, so that it can be han
 
 ```elixir
 Supervisor.start_link(
-  [
-    worker(Cachex, [:my_cache, []])
-  ]
+  [ worker(Cachex, [:my_cache, []]) ]
 )
 ```
 

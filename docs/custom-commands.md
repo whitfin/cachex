@@ -2,7 +2,7 @@
 
 As of `v2.0.0` Cachex allows custom commands to be attached to a cache in order to simplify common logic without having to channel all of your cache calls through a specific block of code or a specific module. Cache commands are provided in order to make it easier to extend Cachex with operations or verbiage specific to your application logic, rather than bloating Cachex itself with commands which are only needed for infrequent use cases.
 
-Commands operate in such a way that they're marginally quicker than hand-writing your own wrapper functions, but only very slightly. As a rule of thumb you should aim to set only general actions as commands on a cache, whilst keeping extremely custom actions outside of the cache. It's possible that in future Cachex may ship with some built-in commands for very common functionality.
+Commands operate in such a way that they're marginally quicker than hand-writing your own wrapper functions, but only very slightly. As a rule of thumb you should aim to set only general actions as commands on a cache, whilst keeping very specific actions outside of the cache. It's possible that in future Cachex may ship with some built-in commands for very common functionality.
 
 ## Defining Commands
 
@@ -13,6 +13,9 @@ There are two types of commands; `:read` and `:write` commands. The former will 
 As an example, let's consider some basic List operations. Assume that the values you're storing in your cache are Lists, and that you want to be able to write the boilerplate required on your cache in order to retrieve the last item in the List, and to pop out the first item of the List. As the former doesn't modify the List, it would be classed as a `:read` command. In contrast, the latter does need to modify the List and so it's tagged as a `:write` operation:
 
 ```elixir
+# need the records
+import Cachex.Spec
+
 # define some custom commands
 last = &List.last/1
 lpop = fn
@@ -39,9 +42,11 @@ It should be noted that custom commands can and will receive `nil` values in the
 
 ## Invoking A Command
 
-Your entry point to command invocation is via the `Cachex.invoke/4` interface, which has the signature `(cache, key, command, options)`. The command argument is just the name of your custom command (as you tagged it at cache startup), and the key is the key you wish to run your command against - value retrieval is handled automatically. Invalid command names will result in an error, as you would expect. The example below should give you a good introduction on how to call your own commands inside your application.
+Your entry point to command invocation is via the `Cachex.invoke/4` interface, which has the signature `(cache, command, key, options)`. The command argument is just the name of your custom command (as you tagged it at cache startup), and the key is the key you wish to run your command against - value retrieval is handled automatically. Invalid command names will result in an error, as you would expect. The example below should give you a good introduction on how to call your own commands inside your application.
 
 ```elixir
+import Cachex.Spec
+
 lpop = fn
   ([ head | tail ]) ->
     { head, tail }
@@ -54,8 +59,8 @@ Cachex.start_link(:my_cache, [
 ])
 
 { :ok, true } = Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
-{ :ok,    1 } = Cachex.invoke(:my_cache, "my_list", :lpop)
-{ :ok,    2 } = Cachex.invoke(:my_cache, "my_list", :lpop)
-{ :ok,    3 } = Cachex.invoke(:my_cache, "my_list", :lpop)
-{ :ok,  nil } = Cachex.invoke(:my_cache, "my_list", :lpop)
+{ :ok,    1 } = Cachex.invoke(:my_cache, :lpop,  "my_list")
+{ :ok,    2 } = Cachex.invoke(:my_cache, :lpop,  "my_list")
+{ :ok,    3 } = Cachex.invoke(:my_cache, :lpop,  "my_list")
+{ :ok,  nil } = Cachex.invoke(:my_cache, :lpop,  "my_list")
 ```

@@ -20,19 +20,18 @@ Hooks can be complicated, but here is a simple hook definition which simply logs
 
 ```elixir
 defmodule MyProject.MyHook do
-  use Cachex.Hook
-
   @moduledoc """
   A very small example hook which simply logs all actions to stdout and keeps
   track of the last executed action.
   """
+  use Cachex.Hook
 
   @doc """
   The arguments provided to this function are those defined in the `args` key of
   your hook registration. This is the same as any old GenServer init phase. The
   value you return in the Tuple will be the state of your hook.
   """
-  def init([]),
+  def init(_),
     do: { :ok, nil }
 
   @doc """
@@ -60,21 +59,11 @@ defmodule MyProject.MyHook do
 end
 ```
 
-Once you have your Hook definition you can attach it to the cache at startup using the `:hooks` option on the `start_link/3` interface. This essentially accepts a list of `hook` records and attaches them to the cache on launch. These structs store various options associated with Hooks alongside a listener module, which are documented below (although make sure to check the module documentation to see the latest options). Of the options listed only `module` is a require argument as there's clearly no way to default that. In addition it should be noted that `timeout` has no effect if the hook is not being executed in a synchronous fashion.
-
-|   Option  |       Values       | Default |                          Description                           |
-|:---------:|:------------------:|:-------:|:--------------------------------------------------------------:|
-|    args   |        any         |   `[]`  |      Arguments to pass to the initialization of your hook.     |
-|   async   | `true` or `false`  |  `true` |     Whether or not this hook should execute asynchronously.    |
-|   module  | a module definition|  `nil`  | A module containing your which implements the Hook interface.  |
-|  options  |        any         |   `[]`  |              Arguments to pass to the GenServer.               |
-|  provide  |    list of atoms   |   `[]`  |      A list of post-startup values to provide to your hook.    |
-|  timeout  | no. of milliseconds|  `nil`  | A maximum time to wait for your synchronous hook to complete.  |
-|   type    | `:pre` or `:post`  | `:post` |   Whether this hook should execute before or after the action. |
+Once you have your Hook definition you can attach it to the cache at startup using the `:hooks` option on the `start_link/3` interface. This essentially accepts a list of `hook` records and attaches them to the cache on launch. A hook record consists of 3 keys, `:module`, `:state` and `:name`, with the latter two being optional. As of v3, all options related to a hook are defined as functions in the module registered inside the record. Please see `Cachex.Hook` documentation for the optional callbacks which can be implemented to configure your hook.
 
 ## Provisions
 
-There are some cache specific values which cannot be granted to your Hook on startup as they haven't yet been created. One big example is the cache inner state, as it allows cache calls without the overhead of looking up state each time. In `v1.0.0` a `:provide` option was added to the Hook interface which takes a List of atoms to specify various things to be provided to your Hook. This option will cause your Hook to be provided with an instance of what you're asking for via the `handle_provision/2` callback.
+There are some cache specific values which cannot be granted to your Hook on startup as they haven't yet been created. One big example is the cache inner state, as it allows cache calls without the overhead of looking up state each time. The `provisions/0` callback can be used to return a List of atoms to specify various things to be provided to your Hook. This option will cause your Hook to be provided with an instance of what you're asking for via the `handle_provision/2` callback.
 
 ```elixir
 defmodule MyProject.MyHook do
@@ -83,8 +72,14 @@ defmodule MyProject.MyHook do
   @doc """
   Initialize with a simple map to store values inside your hook.
   """
-  def init([]),
+  def init(_),
     do: { :ok, %{ } }
+
+  @doc """
+  Returns a list of provisions required by this hook.
+  """
+  def provisions,
+    do: [ :cache ]
 
   @doc """
   Handle the modification event, and store the cache state as needed inside your
@@ -96,4 +91,4 @@ defmodule MyProject.MyHook do
 end
 ```
 
-The message you receive in `handle_provision/2` will always be `{ provide_option, value }` where `provide_option` is equal to the atom you've asked for (in this case `:cache`). Be aware that this modification event may be fired multiple times if the internal worker structure has changed for any reason.
+The message you receive in `handle_provision/2` will always be `{ provide_option, value }` where `provide_option` is equal to the atom you've asked for (in this case `:cache`). Be aware that this modification event may be fired multiple times if the internal worker structure has changed for any reason (to keep your hook updated).

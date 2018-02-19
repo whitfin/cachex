@@ -1,6 +1,6 @@
 # TTL Implementation
 
-Cachex implements several different ways of working with key expirations, each operating in different ways with different behaviour. The two main techniques being currently used are the background TTL loop (i.e. the `Janitor`) and on-demand key expiration. Alone these two techniques aren't sufficient to provide an efficient system with a consistent result, but together they ensure the realiability of your cache as well as ensuring correctness. Having said this it should be noted that there are cases where you may wish to use only one, as each technique is sufficient alone in specific scenarios. By default Cachex opts for a combination of both in order to ensure consistency to reduce surprises for the user.
+Cachex implements several different ways of working with key expirations, each operating in different ways with different behaviour. The two main techniques being currently used are the background TTL loop (i.e. the `Janitor`) and lazy key expiration. Alone these two techniques aren't sufficient to provide an efficient system with a consistent result, but together they ensure the realiability of your cache as well as ensuring correctness. Having said this it should be noted that there are cases where you may wish to use only one, as each technique is sufficient alone in specific scenarios. By default Cachex opts for a combination of both in order to ensure consistency to reduce surprises for the user.
 
 ## Janitor Processes
 
@@ -12,7 +12,7 @@ As of Cachex v3, the Janitor configuration is easier to understand, and will be 
 
 - By default, the Janitor will run every 3 seconds.
 - If you set `:interval` to `nil` it is disabled entirely. This means you will be solely reliant on the lazy expiration policy.
-- If you set `:interval` to any numeric value above `0` it will run on this schedule (this value is in milliseconds).
+- If you set `:interval` to any numeric value above `0` it will run on this schedule (this value is in milliseconds!!).
 
 Please note that this is rolling interval that is set to trigger after completion of a run, meaning that if you schedule a Janitor every 5s it will be 5s after a successful run rather than 5s after the last trigger fired to start a run.
 
