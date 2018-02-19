@@ -25,5 +25,5 @@ defmodule Cachex.Actions.Keys do
   will not be included.
   """
   defaction keys(cache(name: name) = cache, options),
-    do: { :ok, :ets.select(name, Query.create_query(true, :key)) }
+    do: { :ok, :ets.select(name, Query.create(true, :key)) }
 end

@@ -30,7 +30,7 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Services.Informant
 
   # compile our QLC match at runtime to avoid recalculating
-  @qlc_match Query.create_query(true, { :key, :touched })
+  @qlc_match Query.raw(true, { :key, :touched })
 
   ####################
   # Policy Behaviour #
