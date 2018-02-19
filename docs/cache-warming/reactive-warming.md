@@ -35,19 +35,7 @@ end)
 
 In order to provide some degree of control over error handling, Cachex allows for `{ :commit | :ignore, value }` syntax being returned from a fallback. Rather than just returning a value in your fallback, you can return a Tuple tagged with either `:commit` or `:ignore`. Values tagged with `:ignore` will just be returned without being stored in the cache, and those tagged with `:commit` will be returned after being stored in the cache. If you don't use a tagged Tuple return value, it will be assumed you're committing the value (for backwards compatibility). In future this may change to enforce using a Tuple in order to reduce the amount of conditionals.
 
-## Expirations
-
-If you wish to set an expiration on a value retrieved via a fallback execution, you can use the return value of your cache call to determine when it's appropriate. In the case your value was retrieved via a fallback, the first value in the returned Tuple will be the `:commit` (or `:ignore`) atom to signify that the value was loaded via a fallback. You can use this to conditionally set an expiration if you need to, but note that if your cache has a defined default TTL, it will be applied to fallback values automatically.
-
-```elixir
-# retrieve the value from the cache, match if loaded
-with { :commit, value } = res <- Cachex.fetch(:my_cache, "key") do
-  # if so, set the key to expire after 5 minutes and return
-  Cachex.expire(:my_cache, "key", :timer.minutes(5)) && res
-end
-```
-
-## Under The Hood
+## Courier
 
 As of v3, fallbacks changed quite significantly to provide the guarantee that only a single fallback will fire for a given key, even if more processes ask for the same key before the fallback is complete. The internal `Courier` service will queue these requests up, then resolve them all with the results retrieved by the first. This ensures that you don't have stray processes calling for the same thing (which is especially bad if they're talking to a database, etc.). You can think of this as a per-key queue at a high level, with a short circuit involved to avoid executing too often.
 
@@ -65,6 +53,18 @@ end
 As the fallbacks each take 5 seconds, you have 3 cache misses and therefore 3 processes each waiting 5 seconds (as the second and third calls are fired before the first call has resolved). This isn't great, because if your fallback is a database, you'd hit it 3 times here, asking for the same thing each time. The result of the code above would be that `"key"` has a value of `1`, then `2`, then `3` as each fallback returns and clobbers what was there previously.
 
 The new `Courier` service in Cachex v3 will actually queue the second and third calls to fire after the first one, rather than firing them all at once. What's even better; the moment the first call resolves, the second and third will immediately resolve with the same results. This ensures that your fallback only fires a single time, regardless of the number of processes awaiting the result. This change in behaviour means that the code above would result in `"key"` having a single value of `1` as the second and third never fire. Although this results in a behaviour change above, it should basically never affect you in the same way as the code above is deliberately designed to highlight the changes.
+
+## Expirations
+
+If you wish to set an expiration on a value retrieved via a fallback execution, you can use the return value of your cache call to determine when it's appropriate. In the case your value was retrieved via a fallback, the first value in the returned Tuple will be the `:commit` (or `:ignore`) atom to signify that the value was loaded via a fallback. You can use this to conditionally set an expiration if you need to, but note that if your cache has a defined default TTL, it will be applied to fallback values automatically.
+
+```elixir
+# retrieve the value from the cache, match if loaded
+with { :commit, value } = res <- Cachex.fetch(:my_cache, "key") do
+  # if so, set the key to expire after 5 minutes and return
+  Cachex.expire(:my_cache, "key", :timer.minutes(5)) && res
+end
+```
 
 ## Use Cases
 
