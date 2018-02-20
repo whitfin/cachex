@@ -105,7 +105,7 @@ defmodule Cachex.Policy.LRW do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, { status, _value }, opts) when status not in @ignored,
+  def handle_notify(_message, { status, _value }, opts) when not status in @ignored,
     do: enforce_bounds(opts) && { :ok, opts }
 
   @doc false
