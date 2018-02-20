@@ -100,16 +100,16 @@ There are some very trivial benchmarks available using [Benchee](https://github.
 
 ```bash
 # default benchmarks, no modifiers
-$ mix run benchmarks/main.exs
+$ mix bench
 
 # use a state instead of a cache name
-$ CACHEX_BENCH_STATE=true mix run benchmarks/main.exs
+$ CACHEX_BENCH_STATE=true mix bench
 
 # use a lock write context for all writes
-$ CACHEX_BENCH_TRANSACTIONS=true mix run benchmarks/main.exs
+$ CACHEX_BENCH_TRANSACTIONS=true mix bench
 
 # use both a state and lock write context
-$ CACHEX_BENCH_STATE=true CACHEX_BENCH_TRANSACTIONS=true mix run benchmarks/main.exs
+$ CACHEX_BENCH_STATE=true CACHEX_BENCH_TRANSACTIONS=true mix bench
 ```
 
 ## Contributions
