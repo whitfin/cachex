@@ -360,6 +360,30 @@ defmodule Cachex.StatsTest do
     })
   end
 
+  # This test verifies the update actions and the incremenation of the necessary keys.
+  test "registering update actions" do
+    # create a test cache
+    cache = Helper.create_cache([ stats: true ])
+
+    # set a value in the cache
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.touch(cache, 1)
+
+    # retrieve the statistics
+    { :ok, stats } = stats_no_meta(cache)
+
+    # verify the statistics
+    assert(stats == %{
+      operations: 2,
+      updates: 1,
+      writes: 1,
+      calls: %{
+        put: 1,
+        touch: 1
+      }
+    })
+  end
+
   # There's nothing more to test inside this hook beyond the ability to retrieve
   # the current state of the hook, and validate what it looks like after a couple
   # of stats have been incremented. Incrementation is done via the Cachex.Stats

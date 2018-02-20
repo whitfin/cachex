@@ -3,7 +3,6 @@
     "treat_no_relevant_lines_as_covered": true
   },
   "skip_files": [
-    "lib/cachex/spec/validator.ex",
     "lib/cachex/stats.ex"
   ]
 }
