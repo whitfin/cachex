@@ -29,6 +29,9 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Query
   alias Cachex.Services.Informant
 
+  # actions which didn't trigger a write
+  @ignored [ :error, :ignored ]
+
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Query.raw(true, { :key, :touched })
 
@@ -56,9 +59,13 @@ defmodule Cachex.Policy.LRW do
   @spec actions :: MapSet.t
   def actions,
     do: MapSet.new([
-      :decr, :incr,
-      :put, :put_many,
-      :update, :get_and_update
+      :put,
+      :decr,
+      :incr,
+      :fetch,
+      :update,
+      :put_many,
+      :get_and_update
     ])
 
   @doc """
@@ -98,7 +105,7 @@ defmodule Cachex.Policy.LRW do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, { status, _value }, opts) when status != :error,
+  def handle_notify(_message, { status, _value }, opts) when status not in @ignored,
     do: enforce_bounds(opts) && { :ok, opts }
 
   @doc false
