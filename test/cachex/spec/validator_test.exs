@@ -95,10 +95,10 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of fallback records" do
     # define some valid records
-    fallback1 = fallback(default: nil, provide: nil)
-    fallback2 = fallback(default: nil, provide: " ")
-    fallback3 = fallback(default: fn _ -> nil end, provide: nil)
-    fallback4 = fallback(default: fn _, _ -> nil end, provide: nil)
+    fallback1 = fallback(default: nil, state: nil)
+    fallback2 = fallback(default: nil, state: " ")
+    fallback3 = fallback(default: fn _ -> nil end, state: nil)
+    fallback4 = fallback(default: fn _, _ -> nil end, state: nil)
 
     # ensure all records are valid
     assert Validator.valid?(:fallback, fallback1)
@@ -107,8 +107,8 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:fallback, fallback4)
 
     # define some invalid records
-    fallback5 = fallback(default: " ", provide: nil)
-    fallback6 = fallback(default: fn -> nil end, provide: nil)
+    fallback5 = fallback(default: " ", state: nil)
+    fallback6 = fallback(default: fn -> nil end, state: nil)
 
     # ensure all records are invalid
     refute Validator.valid?(:fallback, fallback5)

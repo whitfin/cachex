@@ -58,8 +58,8 @@ defmodule Cachex.Spec do
 
   # Record specification for a cache fallback
   @type fallback :: record(:fallback,
-    provide: any,
-    default: (any -> any) | ((any, any) -> any)
+    default: (any -> any) | ((any, any) -> any),
+    state: any
   )
 
   # Record specification for a cache hook
@@ -172,8 +172,8 @@ defmodule Cachex.Spec do
   should be a function of arity 1 or 2, depending on if it requires the state or not.
   """
   defrecord :fallback,
-    provide: nil,
-    default: nil
+    default: nil,
+    state: nil
 
   @doc """
   Creates a hook record from the provided values.

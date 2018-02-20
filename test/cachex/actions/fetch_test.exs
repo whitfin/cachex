@@ -16,7 +16,7 @@ defmodule Cachex.Actions.FetchTest do
     cache1 = Helper.create_cache([ hooks: [ hook ] ])
     cache2 = Helper.create_cache([
       hooks: [ hook ],
-      fallback: fallback(provide: "val", default: concat)
+      fallback: fallback(state: "val", default: concat)
     ])
 
     # set some keys in the cache

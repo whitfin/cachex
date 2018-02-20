@@ -150,8 +150,8 @@ defmodule Cachex.OptionsTest do
     # define our falbacks
     fallback1 = fallback()
     fallback2 = fallback(default: &String.reverse/1)
-    fallback3 = fallback(default: &String.reverse/1, provide: {})
-    fallback4 = fallback(provide: {})
+    fallback3 = fallback(default: &String.reverse/1, state: {})
+    fallback4 = fallback(state: {})
     fallback5 = &String.reverse/1
     fallback6 = { }
 
@@ -171,10 +171,10 @@ defmodule Cachex.OptionsTest do
     assert(fallback5 == fallback(default: &String.reverse/1))
 
     # the third should have both an action and state
-    assert(fallback3 == fallback(default: &String.reverse/1, provide: {}))
+    assert(fallback3 == fallback(default: &String.reverse/1, state: {}))
 
     # the fourth should have a state but no action
-    assert(fallback4 == fallback(provide: {}))
+    assert(fallback4 == fallback(state: {}))
 
     # an invalid fallback should actually fail
     assert(msg == :invalid_fallback)
