@@ -1,4 +1,4 @@
-# Warmers and Proactive Warming
+# Proactive Warming
 
 ## Overview
 
