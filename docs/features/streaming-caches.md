@@ -1,7 +1,5 @@
 # Streaming Caches
 
-## Basics
-
 Cachex provides the ability to return an Elixir `Stream` based on the contents of a cache, which is built using a table cursor and `Stream.resource/3`. This allows you to use any of the `Enum` or `Stream` module functions on the entries in a cache, which can be very powerful. By default, `Cachex.stream/3` will return a stream over all entries in a cache which are yet to expire (at the time of stream creation). They will be streamed as `entry()` records, and you can match and do all of the typical record stuff to them assuming you have `Cachex.Spec` imported:
 
 ```elixir
