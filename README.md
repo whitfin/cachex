@@ -96,20 +96,20 @@ For anything else, please see the [documentation](https://github.com/whitfin/cac
 
 ## Benchmarks
 
-There are some very trivial benchmarks available using [Benchfella](https://github.com/alco/benchfella) in the `bench/` directory. You can run the benchmarks using the following command:
+There are some very trivial benchmarks available using [Benchee](https://github.com/PragTob/benchee) in the `benchmarks/` directory. You can run the benchmarks using the following command:
 
 ```bash
 # default benchmarks, no modifiers
-$ mix bench
+$ mix run benchmarks/main.exs
 
 # use a state instead of a cache name
-$ CACHEX_BENCH_STATE=true mix bench
+$ CACHEX_BENCH_STATE=true mix run benchmarks/main.exs
 
 # use a lock write context for all writes
-$ CACHEX_BENCH_TRANSACTIONS=true mix bench
+$ CACHEX_BENCH_TRANSACTIONS=true mix run benchmarks/main.exs
 
 # use both a state and lock write context
-$ CACHEX_BENCH_STATE=true CACHEX_BENCH_TRANSACTIONS=true mix bench
+$ CACHEX_BENCH_STATE=true CACHEX_BENCH_TRANSACTIONS=true mix run benchmarks/main.exs
 ```
 
 ## Contributions
