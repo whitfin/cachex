@@ -4,7 +4,7 @@ skip_commits:
   message: /\[skip ci\]/
 
 environment:
-  elixir_version: 1.5.2
+  elixir_version: 1.6.0
 
 branches:
   only:
