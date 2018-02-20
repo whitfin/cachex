@@ -7,10 +7,12 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 - Maximum size protection
 - Pre/post execution hooks
 - Statistics gathering
-- Multi-layered caching/key fallbacks
+- Proactive/reactive cache warming
 - Transactions and row locking
 - Asynchronous write operations
 - Syncing to a local filesystem
+- Idomatic cache streaming
+- Batched write operations
 - User command invocation
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
