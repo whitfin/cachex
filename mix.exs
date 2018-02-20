@@ -55,6 +55,7 @@ defmodule Cachex.Mixfile do
       ],
       preferred_cli_env: [
         "docs": :docs,
+        "bench": :bench,
         "cachex": :test,
         "coveralls": :test,
         "coveralls.html": :test,
@@ -90,13 +91,12 @@ defmodule Cachex.Mixfile do
       # Production dependencies
       { :eternal, "~> 1.2" },
       { :unsafe,  "~> 1.0" },
-      # Local dependencies
-      { :benchee,     "~> 0.11", optional: true, only: [ :dev, :test ] },
-      { :benchee_html, "~> 0.4", optional: true, only: [ :dev, :test ] },
-      { :bmark,        "~> 1.0", optional: true, only: [ :dev, :test ] },
+      # Testing dependencies
       { :credo,        "~> 0.8", optional: true, only: [ :dev, :test ] },
       { :excoveralls,  "~> 0.8", optional: true, only: [ :dev, :test ] },
-      { :exprof,       "~> 0.2", optional: true, only: [ :dev, :test ] },
+      # Benchmarking dependencies
+      { :benchee,     "~> 0.11", optional: true, only: [ :bench ] },
+      { :benchee_html, "~> 0.4", optional: true, only: [ :bench ] },
       # Documentation dependencies
       { :ex_doc, "~> 0.16", optional: true, only: [ :docs ] }
     ]
