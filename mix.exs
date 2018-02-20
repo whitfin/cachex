@@ -59,6 +59,9 @@ defmodule Cachex.Mixfile do
         "coveralls": :test,
         "coveralls.html": :test,
         "coveralls.travis": :test
+      ],
+      aliases: [
+        "bench": "run benchmarks/main.exs"
       ]
     ]
   end
