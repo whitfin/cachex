@@ -27,4 +27,3 @@ before_install:
 script:
   - mix credo --all --format=oneline
   - mix coveralls.travis --trace
-  - mix bench
