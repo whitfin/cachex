@@ -55,6 +55,32 @@ defmodule Cachex.Services do
     |> Enum.concat(limit_spec(cache))
   end
 
+  @doc """
+  Retrieves the process identifier of the provided service.
+
+  This will return `nil` if the service does not exist, or is not running.
+  """
+  @spec locate(Spec.cache, atom) :: pid | nil
+  def locate(cache() = cache, service) do
+    Enum.find(services(cache), fn
+      ({ ^service, pid, _tag, _id }) -> pid
+      (_) -> false
+    end)
+  end
+
+  @doc """
+  Returns a list of all running cache services.
+
+  This is used to view the children of the specified cache, whilst filtering
+  out any services which may not have been started based on the cache options.
+  """
+  @spec services(Spec.cache) :: [ Spec.spec ]
+  def services(cache(name: cache)) do
+    cache
+    |> Supervisor.which_children
+    |> Enum.filter(&service?/1)
+  end
+
   ###############
   # Private API #
   ###############
@@ -124,5 +150,17 @@ defmodule Cachex.Services do
   defp table_spec(cache(name: name)) do
     server_opts = [ name: name(name, :eternal), quiet: true ]
     [ supervisor(Eternal, [ name, const(:table_options), server_opts ]) ]
+  end
+
+  # Determines if a module is a Cachex service.
+  #
+  # This is done by just checking if the module starts with the namespace
+  # of the Cachex services (also known as `Cachex.Services.`).
+  defp service?({ _service, :undefined, _tag, _id }),
+    do: false
+  defp service?({ service, _pid, _tag, _id }) do
+    service
+    |> Atom.to_string
+    |> String.starts_with?("Elixir.Cachex.Services.")
   end
 end

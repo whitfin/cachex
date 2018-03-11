@@ -56,6 +56,16 @@ defmodule Cachex.ServicesTest do
     ] = Services.cache_spec(cache)
   end
 
+  test "locating running services" do
+    # generate the test cache state with the Janitor disabled
+    name  = Helper.create_cache([ expiration: expiration(interval: nil) ])
+    cache = Services.Overseer.retrieve(name)
+
+    # validate the service locations
+    assert Services.locate(cache, Services.Courier) != nil
+    assert Services.locate(cache, Services.Janitor) == nil
+  end
+
   defmodule TestPolicy do
     use Cachex.Policy
 
