@@ -107,6 +107,8 @@ defmodule Cachex.Policy.LRW do
   # able to cause a net gain in cache size (so removals are also ignored).
   def handle_notify(_message, { status, _value }, opts) when not status in @ignored,
     do: enforce_bounds(opts) && { :ok, opts }
+  def handle_notify(_message, _result, opts),
+    do: { :ok, opts }
 
   @doc false
   # Receives a provisioned cache instance.
