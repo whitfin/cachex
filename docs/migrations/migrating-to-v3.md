@@ -68,3 +68,7 @@ This is a minor change, but worth mentioning. Going forward `set/4` has been rep
 ### Statistics
 
 The format of the map being returned from `Cachex.stats/2` has been modified due to some normalization which took place; this will look much clearer and adopts snake_case over camelCase (etc). It also correctly tracks custom invocations at this point, rather than ignoring them (like it did previously).
+
+### Missing Values
+
+In earlier versions of Cachex, `{ :missing, nil }` would be returned to signal that a value did not exist in the cache. This has been removed to simply return `{ :ok, nil }` because (believe it or not) the overhead of figuring out if something was missing was actually quite large in some cases. If you need the same behaviour, you should avoid setting `nil` explicitly in your cache and put something else in instead - that way `{ :ok, nil }` is semantically the same as `{ :missing, nil }`.
