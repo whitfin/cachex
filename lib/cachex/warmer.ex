@@ -75,23 +75,19 @@ defmodule Cachex.Warmer do
       # `:ok` atom. If `:ignore` is returned, nothing happens aside from
       # scheduling the next execution of the warming to occur on interval.
       def handle_info(:cachex_warmer, { cache, state } = process_state) do
-        try do
-          # execute, passing state
-          case execute(state) do
-            # no changes
-            :ignore ->
-              :ignore
+        # execute, passing state
+        case execute(state) do
+          # no changes
+          :ignore ->
+            :ignore
 
-            # set pairs without options
-            { :ok, pairs } ->
-              Cachex.put_many(cache, pairs)
+          # set pairs without options
+          { :ok, pairs } ->
+            Cachex.put_many(cache, pairs)
 
-            # set pairs with options
-            { :ok, pairs, options } ->
-              Cachex.put_many(cache, pairs, options)
-          end
-        rescue
-          _ -> nil
+          # set pairs with options
+          { :ok, pairs, options } ->
+            Cachex.put_many(cache, pairs, options)
         end
 
         # trigger the warming to happen again after the interval
