@@ -21,7 +21,7 @@ defmodule Cachex do
   - User command invocation
 
   All features are optional to allow you to tune based on the throughput needed.
-  See `start_link/3` for further details about how to configure these options and
+  See `start_link/2` for further details about how to configure these options and
   example usage.
   """
 
@@ -106,7 +106,7 @@ defmodule Cachex do
   Creates a new Cachex cache service tree, linked to the current process.
 
   This will link the cache to the current process, so if your process dies the
-  cache will also die. If you don't want this behaviour, please use `start/3`.
+  cache will also die. If you don't want this behaviour, please use `start/2`.
 
   The first argument should be a unique atom, used as the name of the cache
   service for future calls through to Cachex. For all options requiring a record
@@ -302,10 +302,10 @@ defmodule Cachex do
   Creates a new Cachex cache service tree.
 
   This will not link the cache to the current process, so if your process dies
-  the cache will also die. If you don't want this behaviour, please use the
-  provided `start_link/3`.
+  the cache will continue to live. If you don't want this behaviour, please use
+  the provided `start_link/2`.
 
-  This function is otherwise identical to `start_link/3` so please see that
+  This function is otherwise identical to `start_link/2` so please see that
   documentation for further information and configuration.
   """
   @spec start(atom, Keyword.t) :: { atom, pid }
@@ -891,7 +891,7 @@ defmodule Cachex do
   Invokes a custom command against a cache entry.
 
   The provided command name must be a valid command which was
-  previously attached to the cache in calls to `start_link/3`.
+  previously attached to the cache in calls to `start_link/2`.
 
   ## Examples
 
@@ -1178,7 +1178,7 @@ defmodule Cachex do
   Retrieves statistics about a cache.
 
   This will only provide statistics if the `:stats` option was
-  provided on cache startup in `start_link/3`.
+  provided on cache startup in `start_link/2`.
 
   ## Options
 
