@@ -716,7 +716,7 @@ defmodule Cachex do
       { :ignore, nil }
 
   """
-  @spec get_and_update(cache, any, function, Keyword.t) :: { status, any }
+  @spec get_and_update(cache, any, function, Keyword.t) :: { :commit | :ignore, any }
   def get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options) do
     Overseer.enforce(cache) do
