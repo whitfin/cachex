@@ -62,7 +62,7 @@ defmodule Cachex.Services do
   """
   @spec locate(Spec.cache, atom) :: pid | nil
   def locate(cache() = cache, service) do
-    Enum.find(services(cache), fn
+    Enum.find_value(services(cache), fn
       ({ ^service, pid, _tag, _id }) -> pid
       (_) -> false
     end)
