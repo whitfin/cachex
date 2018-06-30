@@ -31,8 +31,8 @@ defmodule Cachex.Mixfile do
         main: "getting-started",
         extra_section: "guides",
         extras: [
-          "docs/cache-warming/reactive-warming.md",
-          "docs/cache-warming/proactive-warming.md",
+          "docs/features/cache-warming/reactive-warming.md",
+          "docs/features/cache-warming/proactive-warming.md",
           "docs/features/action-blocks.md",
           "docs/features/cache-limits.md",
           "docs/features/custom-commands.md",
@@ -46,7 +46,7 @@ defmodule Cachex.Mixfile do
         ],
         groups_for_extras: [
           "Features": Path.wildcard("docs/features/*.md"),
-          "Cache Warming": Path.wildcard("docs/cache-warming/*.md"),
+          "Cache Warming": Path.wildcard("docs/features/cache-warming/*.md"),
           "Migration": Path.wildcard("docs/migrations/*.md")
         ]
       ],
