@@ -348,7 +348,7 @@ defmodule Cachex do
       { :ok, 0 }
 
   """
-  @spec clear(cache, Keyword.t) :: { status, boolean }
+  @spec clear(cache, Keyword.t) :: { status, integer }
   def clear(cache, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       Actions.Clear.execute(cache, options)
