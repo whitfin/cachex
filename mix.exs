@@ -1,6 +1,7 @@
 defmodule Cachex.Mixfile do
   use Mix.Project
 
+  @verson "3.0.2"
   @url_docs "http://hexdocs.pm/cachex"
   @url_github "https://github.com/whitfin/cachex"
 
@@ -22,11 +23,11 @@ defmodule Cachex.Mixfile do
         },
         maintainers: [ "Isaac Whitfield" ]
       },
-      version: "3.0.2",
+      version: @version,
       elixir: "~> 1.2",
       deps: deps(),
       docs: [
-        source_ref: "master",
+        source_ref: "v#{@version}",
         source_url: @url_github,
         main: "getting-started",
         extra_section: "guides",
