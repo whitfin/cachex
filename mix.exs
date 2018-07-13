@@ -55,15 +55,15 @@ defmodule Cachex.Mixfile do
         tool: ExCoveralls
       ],
       preferred_cli_env: [
-        "docs": :docs,
-        "bench": :bench,
-        "cachex": :test,
-        "coveralls": :test,
+        docs: :docs,
+        bench: :bench,
+        cachex: :test,
+        coveralls: :test,
         "coveralls.html": :test,
         "coveralls.travis": :test
       ],
       aliases: [
-        "bench": "run benchmarks/main.exs"
+        bench: "run benchmarks/main.exs"
       ]
     ]
   end
