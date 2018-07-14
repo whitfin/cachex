@@ -76,7 +76,13 @@ defmodule Cachex.Services.Courier do
               rescue
                 e -> { :error, Exception.message(e) }
               end
-            send(parent, { :notify, key, result })
+            normalized = normalize_commit(result)
+
+            with { :commit, val } <- normalized do
+              Put.execute(cache, key, val, const(:notify_false))
+            end
+
+            send(parent, { :notify, key, normalized })
           end)
           [ caller ]
         li ->
@@ -92,14 +98,8 @@ defmodule Cachex.Services.Courier do
   # This will update all processes waiting for the result of the
   # specified task, and remove the task from the tracked state.
   def handle_info({ :notify, key, result }, { cache, tasks }) do
-    normalized = normalize_commit(result)
-
-    with { :commit, val } <- normalized do
-      Put.execute(cache, key, val, const(:notify_false))
-    end
-
     for caller <- Map.get(tasks, key, []) do
-      GenServer.reply(caller, normalized)
+      GenServer.reply(caller, result)
     end
 
     { :noreply, { cache, Map.delete(tasks, key) } }

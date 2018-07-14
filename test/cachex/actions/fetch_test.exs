@@ -95,4 +95,32 @@ defmodule Cachex.Actions.FetchTest do
     assert(result8 == { :error, :invalid_fallback })
     assert(result9 == { :error, :invalid_fallback })
   end
+
+  # This test ensures that the fallback is executed just once when a
+  # fallback commit and another fetch on the same key occur simultaneously.
+  test "fetching and committing the same key simultaneously from a fallback" do
+    for _ <- 1..10 do
+      cache = Helper.create_cache()
+
+      key1_fallback = fn ->
+        Cachex.incr!(cache, "key1_fallback_count")
+        { :commit, "val" }
+      end
+      task1 = Task.async(fn -> Cachex.fetch(cache, "key1", key1_fallback) end)
+
+      # Run task2 with a fetch on key2 just as a means to fetch key1
+      # at the exact same time that task1 is committing it.
+      key2_fallback = fn ->
+        # incr! this key here just to match key1_fallback's execution time
+        Cachex.incr!(cache, "key2_fallback_count")
+        Cachex.fetch(cache, "key1", key1_fallback)
+      end
+      task2 = Task.async(fn -> Cachex.fetch(cache, "key2", key2_fallback) end)
+
+      Task.await(task1)
+      Task.await(task2)
+      { :ok, fallback_count } = Cachex.get(cache, "key1_fallback_count")
+      assert(fallback_count == 1)
+    end
+  end
 end
