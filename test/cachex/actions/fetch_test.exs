@@ -132,7 +132,7 @@ defmodule Cachex.Actions.FetchTest do
       Task.await(task2)
 
       # check the fallback was only executed a single time
-      assert Cachex.get(cache, "key1_count") = { :ok, 1 }
+      assert Cachex.get(cache, "key1_count") == { :ok, 1 }
     end
   end
 end
