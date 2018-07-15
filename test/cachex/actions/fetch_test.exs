@@ -124,8 +124,8 @@ defmodule Cachex.Actions.FetchTest do
       end
 
       # spawn two async tasks to cause a race
-      task1 = fetch("key1", fallback1)
-      task2 = fetch("key2", fallback2)
+      task1 = fetch.("key1", fallback1)
+      task2 = fetch.("key2", fallback2)
 
       # wait for both
       Task.await(task1)
