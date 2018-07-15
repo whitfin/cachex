@@ -100,27 +100,39 @@ defmodule Cachex.Actions.FetchTest do
   # fallback commit and another fetch on the same key occur simultaneously.
   test "fetching and committing the same key simultaneously from a fallback" do
     for _ <- 1..10 do
+      # create a test cache
       cache = Helper.create_cache()
 
-      key1_fallback = fn ->
-        Cachex.incr!(cache, "key1_fallback_count")
+      # basic fallback
+      fallback1 = fn ->
+        Cachex.incr!(cache, "key1_count")
         { :commit, "val" }
       end
-      task1 = Task.async(fn -> Cachex.fetch(cache, "key1", key1_fallback) end)
 
-      # Run task2 with a fetch on key2 just as a means to fetch key1
-      # at the exact same time that task1 is committing it.
-      key2_fallback = fn ->
-        # incr! this key here just to match key1_fallback's execution time
-        Cachex.incr!(cache, "key2_fallback_count")
-        Cachex.fetch(cache, "key1", key1_fallback)
+      # secondary fallback
+      fallback2 = fn ->
+        # incr! exists to match the fallback1 exec time
+        Cachex.incr!(cache, "key2_count")
+        Cachex.fetch(cache, "key1", fallback1)
       end
-      task2 = Task.async(fn -> Cachex.fetch(cache, "key2", key2_fallback) end)
 
+      # task generator for key/fallback
+      fetch = fn(key, fallback) ->
+        Task.async(fn ->
+          Cachex.fetch(cache, key, fallback)
+        end)
+      end
+
+      # spawn two async tasks to cause a race
+      task1 = fetch("key1", fallback1)
+      task2 = fetch("key2", fallback2)
+
+      # wait for both
       Task.await(task1)
       Task.await(task2)
-      { :ok, fallback_count } = Cachex.get(cache, "key1_fallback_count")
-      assert(fallback_count == 1)
+
+      # check the fallback was only executed a single time
+      assert Cachex.get(cache, "key1_count") = { :ok, 1 }
     end
   end
 end

@@ -76,6 +76,7 @@ defmodule Cachex.Services.Courier do
               rescue
                 e -> { :error, Exception.message(e) }
               end
+
             normalized = normalize_commit(result)
 
             with { :commit, val } <- normalized do
