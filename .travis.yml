@@ -1,10 +1,10 @@
 language: elixir
 elixir:
-  - 1.6.6
-  - 1.5.3
-  - 1.4.5
-  - 1.3.4
-  - 1.2.6
+  - 1.6
+  - 1.5
+  - 1.4
+  - 1.3
+  - 1.2
 otp_release:
   - 21.0
   - 20.3
@@ -12,15 +12,19 @@ otp_release:
   - 18.3
 matrix:
   exclude:
-  - elixir: 1.6.4
+  - elixir: 1.6
     otp_release: 18.3
-  - elixir: 1.3.4
+  - elixir: 1.5
     otp_release: 21.0
-  - elixir: 1.3.4
+  - elixir: 1.4
+    otp_release: 21.0
+  - elixir: 1.3
+    otp_release: 21.0
+  - elixir: 1.3
     otp_release: 20.3
-  - elixir: 1.2.6
+  - elixir: 1.2
     otp_release: 21.0
-  - elixir: 1.2.6
+  - elixir: 1.2
     otp_release: 20.3
 branches:
   only:
