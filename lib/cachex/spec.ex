@@ -353,7 +353,7 @@ defmodule Cachex.Spec do
     do: quote(do: entry(unquote(key)) + 1)
 
   @doc """
-  Generates an ETS modification Tuple for an entry field and value.
+  Generates an ETS modification Tuple for entry field/value pairs.
 
   This will convert the entry field name to the ETS index under the
   hood, and return it inside a Tuple with the provided value.
@@ -361,14 +361,6 @@ defmodule Cachex.Spec do
   @spec entry_mod({ atom, any }) :: { integer, any }
   defmacro entry_mod({ key, val }),
     do: quote(do: { entry_idx(unquote(key)), unquote(val) })
-
-  @doc """
-  Generates a list of ETS modification Tuples for entry field/value pairs.
-
-  Under the hood this will just delegate to `entry_mod/1` to generate the
-  modification Tuples; this is just a binding method.
-  """
-  @spec entry_mod([ { atom, any } ]) :: [ { integer, any } ]
   defmacro entry_mod(updates) when is_list(updates),
     do: for pair <- updates,
       do: quote(do: entry_mod(unquote(pair)))

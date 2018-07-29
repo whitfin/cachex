@@ -1138,7 +1138,7 @@ defmodule Cachex do
   Deprecated implementation delegate of `put/4`.
   """
   if Version.match?(System.version(), ">= 1.6.0"),
-    do: @deprecated "Please migrate to using put/4 instead"
+    do: @deprecated "Please migrate to using put/4 instead."
   def set(cache, key, value, options \\ []),
     do: put(cache, key, value, options)
 
@@ -1146,7 +1146,7 @@ defmodule Cachex do
   Deprecated implementation delegate of `put_many/3`.
   """
   if Version.match?(System.version(), ">= 1.6.0"),
-    do: @deprecated "Please migrate to using put_many/3 instead"
+    do: @deprecated "Please migrate to using put_many/3 instead."
   def set_many(cache, pairs, options \\ []),
     do: put_many(cache, pairs, options)
 
