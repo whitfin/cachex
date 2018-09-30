@@ -56,9 +56,9 @@ defmodule Cachex.Policy.LRW do
   This returns as a `MapSet` to optimize the lookups
   on actions to O(n) in the broadcasting algorithm.
   """
-  @spec actions :: MapSet.t
+  @spec actions :: [ atom ]
   def actions,
-    do: MapSet.new([
+    do: [
       :put,
       :decr,
       :incr,
@@ -66,14 +66,14 @@ defmodule Cachex.Policy.LRW do
       :update,
       :put_many,
       :get_and_update
-    ])
+    ]
 
   @doc """
   Returns the provisions this policy requires.
   """
-  @spec provisions :: MapSet.t
+  @spec provisions :: [ atom ]
   def provisions,
-    do: MapSet.new([ :cache ])
+    do: [ :cache ]
 
   ####################
   # Server Callbacks #
