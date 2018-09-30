@@ -9,4 +9,5 @@
 /patch
 .tool-versions
 erl_crash.dump
+mix.lock
 *.ez
