@@ -68,14 +68,10 @@ defmodule Cachex.Actions.Reset do
           |> Enum.concat(post_hooks)
           |> Enum.each(&notify_reset/1)
         val ->
-          hset =
-            val
-            |> List.wrap
-            |> MapSet.new
-
+          hook_sets = List.wrap(val)
           pre_hooks
           |> Enum.concat(post_hooks)
-          |> Enum.filter(&should_reset?(&1, hset))
+          |> Enum.filter(&should_reset?(&1, hook_sets))
           |> Enum.each(&notify_reset/1)
       end
     end
@@ -86,7 +82,7 @@ defmodule Cachex.Actions.Reset do
   # This is just sugar around set membership whilst unpacking a hook record,
   # used in Enum iterations to avoid inlining functions for readability.
   defp should_reset?(hook(module: module), hook_set),
-    do: MapSet.member?(hook_set, module)
+    do: module in hook_set
 
   # Notifies a hook of a reset.
   #
