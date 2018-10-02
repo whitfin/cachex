@@ -5,7 +5,6 @@ defmodule Cachex.Actions.GetAndUpdate do
   # This command is simply sugar, but is common enough that it deserved an explicit
   # implementation inside the API. It does take care of the transactional context
   # of the get/update semantics though, so it's potentially non-obvious.
-  alias Cachex.Actions.Get
   alias Cachex.Services.Locksmith
 
   # add needed imports
@@ -28,9 +27,9 @@ defmodule Cachex.Actions.GetAndUpdate do
   value in the cache directly. If it does exist, then we use the update actions
   to update the existing record.
   """
-  defaction get_and_update(cache() = cache, key, update_fun, options) do
+  def execute(cache() = cache, key, update_fun, _options) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { _label, value } = Get.execute(cache, key, [])
+      { _label, value } = Cachex.get(cache, key, [])
 
       normalized =
         value
@@ -38,7 +37,7 @@ defmodule Cachex.Actions.GetAndUpdate do
         |> normalize_commit
 
       with { :commit, new_value } <- normalized do
-        write_mod(value).execute(cache, key, new_value, [])
+        apply(Cachex, write_op(value), [cache, key, new_value, []])
       end
 
       normalized

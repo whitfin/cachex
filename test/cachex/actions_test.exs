@@ -1,8 +1,7 @@
 defmodule Cachex.ActionsTest do
   use CachexCase
 
-  # for our Action macros
-  import Cachex.Actions
+  require Cachex.Actions
 
   # Bind any required hooks for test execution
   setup_all do
@@ -102,53 +101,6 @@ defmodule Cachex.ActionsTest do
     ))
   end
 
-  # This test focuses on the `defact` macro which binds Hook notifications to the
-  # Action interface. We just ensure that hooks are sent to both types of hook
-  # appropriately and with the correct messages.
-  test "executing actions inside a notify scope" do
-    # define a pre hook
-    hook1 = ForwardHook.create(:actions_forward_hook_pre)
-
-    # define a post hook
-    hook2 = ForwardHook.create(:actions_forward_hook_post)
-
-    # create a cache for each hook
-    cache1 = Helper.create_cache([ hooks: [ hook1 ] ])
-    cache2 = Helper.create_cache([ hooks: [ hook2 ] ])
-
-    # get the states for each cache
-    state1 = Services.Overseer.retrieve(cache1)
-    state2 = Services.Overseer.retrieve(cache2)
-
-    # execute some actions
-    5  = execute(state1, 5, [])
-    10 = execute(state1, 10, [ via: { :fake, [[]] } ])
-    15 = execute(state1, 15, [ notify: false ])
-
-    # check the messages arrive
-    assert_receive({ { :test, [ 5, []] }, nil })
-    assert_receive({ { :fake, [[]] }, nil })
-
-    # ensure the last doesn't
-    refute_receive({ :test, [15, [ notify: false ] ] })
-
-    # execute some actions
-    5  = execute(state2, 5, [])
-    10 = execute(state2, 10, [ via: { :fake, [[]] } ])
-    15 = execute(state2, 15, [ notify: false ])
-
-    # check the messages arrive
-    assert_receive({ { :test, [ 5, []] }, 5 })
-    assert_receive({ { :fake, [[]] }, 10 })
-
-    # ensure the last doesn't
-    refute_receive({ { :test, [15, [ notify: false ] ] }, 15 })
-  end
-
-  # Use our actions Macro internally as a test example for scoping.
-  defaction test(cache, value, options),
-    do: value
-
   # This test just ensures that we correctly convert return values to either a
   # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
   # behaviour is a :commit Tuple for backwards compatibility.
@@ -176,17 +128,17 @@ defmodule Cachex.ActionsTest do
     assert(result4 == tuple1)
   end
 
-  # This test just provides basic coverage of the write_mod function, by using
+  # This test just provides basic coverage of the write_op function, by using
   # a prior value to determine the correct Action to use to write a value.
   test "retrieving a module name to write with" do
     # ask for some modules
-    result1 = Cachex.Actions.write_mod(nil)
-    result2 = Cachex.Actions.write_mod("value")
+    result1 = Cachex.Actions.write_op(nil)
+    result2 = Cachex.Actions.write_op("value")
 
     # the first should be Set actions
-    assert(result1 == Cachex.Actions.Put)
+    assert(result1 == :put)
 
     # the second should be an Update
-    assert(result2 == Cachex.Actions.Update)
+    assert(result2 == :update)
   end
 end

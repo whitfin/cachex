@@ -4,7 +4,6 @@ defmodule Cachex.Actions.Del do
   alias Cachex.Services.Locksmith
 
   # import required macros
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -20,7 +19,7 @@ defmodule Cachex.Actions.Del do
   Removal runs in a lock aware context, to ensure that we're not removing a key
   being used inside a transaction in other places in the codebase.
   """
-  defaction del(cache(name: name) = cache, key, options) do
+  def execute(cache(name: name) = cache, key, _options) do
     Locksmith.write(cache, [ key ], fn ->
       { :ok, :ets.delete(name, key) }
     end)

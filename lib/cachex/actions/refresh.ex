@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Refresh do
   alias Cachex.Services.Locksmith
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -29,7 +28,7 @@ defmodule Cachex.Actions.Refresh do
   This operates inside a lock aware context to avoid clashing with other operations
   on the same key during execution.
   """
-  defaction refresh(cache() = cache, key, options) do
+  def execute(cache() = cache, key, _options) do
     Locksmith.write(cache, [ key ], fn ->
       Actions.update(cache, key, entry_mod_now())
     end)

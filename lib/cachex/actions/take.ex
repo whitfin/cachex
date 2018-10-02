@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Take do
   alias Cachex.Services.Locksmith
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -31,7 +30,7 @@ defmodule Cachex.Actions.Take do
   Taking a value happens in a lock aware context to ensure that the key isn't
   being currently locked by another write sequence.
   """
-  defaction take(cache(name: name) = cache, key, options) do
+  def execute(cache(name: name) = cache, key, _options) do
     Locksmith.write(cache, [ key ], fn ->
       name
       |> :ets.take(key)

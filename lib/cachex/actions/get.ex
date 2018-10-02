@@ -9,7 +9,6 @@ defmodule Cachex.Actions.Get do
   alias Cachex.Actions
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -19,7 +18,7 @@ defmodule Cachex.Actions.Get do
   @doc """
   Retrieves a value from inside the cache.
   """
-  defaction get(cache() = cache, key, options) do
+  def execute(cache() = cache, key, _options) do
     case Actions.read(cache, key) do
       entry(value: value) ->
         { :ok, value }

@@ -9,7 +9,6 @@ defmodule Cachex.Actions.Purge do
   alias Cachex.Services.Locksmith
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -28,7 +27,7 @@ defmodule Cachex.Actions.Purge do
   We naturally need a transaction context to ensure that we don't remove any
   records currently being used in a transaction block.
   """
-  defaction purge(cache(name: name) = cache, options) do
+  def execute(cache(name: name) = cache, _options) do
     Locksmith.transaction(cache, [ ], fn ->
       { :ok, :ets.select_delete(name, Query.expired(true)) }
     end)

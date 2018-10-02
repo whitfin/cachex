@@ -7,11 +7,10 @@ defmodule Cachex.Actions.Invoke do
   #
   # Invocations which require writes to the table are executed inside a
   # transactional context to ensure consistency.
-  alias Cachex.Actions.Get
+  alias Cachex.Actions
   alias Cachex.Services.Locksmith
 
   # add our imports
-  import Cachex.Actions
   import Cachex.Errors
   import Cachex.Spec
 
@@ -27,7 +26,7 @@ defmodule Cachex.Actions.Invoke do
   to a custom command for a given key, and based on the type of command might be
   written back into the cache table.
   """
-  defaction invoke(cache(commands: commands) = cache, cmd, key, options) do
+  def execute(cache(commands: commands) = cache, cmd, key, _options) do
     commands
     |> Map.get(cmd)
     |> invoke(cache, key)
@@ -43,7 +42,7 @@ defmodule Cachex.Actions.Invoke do
   # It should be noted that expirations are taken into account, and nil will be
   # passed through in expired/missing cases.
   defp invoke(command(type: :read, execute: exec), cache, key) do
-    { _status_, value } = Get.execute(cache, key, [])
+    { _status_, value } = Cachex.get(cache, key, [])
     { :ok, exec.(value) }
   end
 
@@ -55,11 +54,14 @@ defmodule Cachex.Actions.Invoke do
   # is returned (i.e. a non-Tuple, or a Tuple with invalid size).
   defp invoke(command(type: :write, execute: exec), cache() = cache, key) do
     Locksmith.transaction(cache, [ key ], fn ->
-      { _label, value } = Get.execute(cache, key, [])
+      { _label, value } = Cachex.get(cache, key, [])
       { return, tempv } = exec.(value)
 
-      tempv == value || write_mod(value)
-        .execute(cache, key, tempv, [])
+      tempv == value || apply(
+        Cachex,
+        Actions.write_op(value),
+        [ cache, key, tempv, [] ]
+      )
 
       { :ok, return }
     end)

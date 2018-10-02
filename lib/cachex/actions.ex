@@ -10,7 +10,6 @@ defmodule Cachex.Actions do
   import Cachex.Spec
 
   # add some aliases
-  alias Cachex.Services.Informant
   alias Cachex.Services.Janitor
 
   ##############
@@ -37,7 +36,7 @@ defmodule Cachex.Actions do
           false ->
             entry
           true  ->
-            __MODULE__.Del.execute(cache, key, const(:purge_override))
+            Cachex.del(cache, key, const(:purge_override))
             nil
         end
     end
@@ -64,60 +63,17 @@ defmodule Cachex.Actions do
     do: { :ok, :ets.insert(name, entries) }
 
   @doc """
-  Returns the module used for a write based on a prior value.
+  Returns the operation used for a write based on a prior value.
   """
-  @spec write_mod(atom) :: atom
-  def write_mod(nil),
-    do: __MODULE__.Put
-  def write_mod(_tag),
-    do: __MODULE__.Update
+  @spec write_op(atom) :: atom
+  def write_op(nil),
+    do: :put
+  def write_op(_tag),
+    do: :update
 
   ##########
   # Macros #
   ##########
-
-  @doc """
-  This macro provides a base Action template.
-
-  An action is a series of ETS operations which notify any cache Hooks both before
-  and after they execute. Rather than have this hand-written or use anonymous
-  functions, we provide a macro here. Simply use `defaction` instead of `def`
-  in the action declarations and notifications will be handled automatically.
-
-  It should be noted that the function name will be `execute` with the defined
-  arity. This is because it makes little sense to do `Cachex.Actions.Ttl.ttl()`,
-  for example.
-  """
-  defmacro defaction({ name, _line, [ _cache | stateless_args ] = arguments }, do: body) do
-    quote do
-      def execute(unquote_splicing(arguments)) do
-        local_opts  = var!(options)
-        local_state = var!(cache)
-
-        notify = Keyword.get(local_opts, :notify, true)
-
-        message = notify && case local_opts[:via] do
-          msg when not is_tuple(msg) ->
-            { unquote(name), [ unquote_splicing(stateless_args) ] }
-          msg ->
-            msg
-        end
-
-        if notify do
-          Informant.broadcast(local_state, message)
-        end
-
-        result = (unquote(body))
-
-        if notify do
-          results = Keyword.get(local_opts, :hook_result, result)
-          Informant.broadcast(local_state, message, results)
-        end
-
-        result
-      end
-    end
-  end
 
   @doc """
   Normalizes a value into a Courier-friendly tagged Tuple.

@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Incr do
   alias Cachex.Services.Locksmith
 
   # we need some imports
-  import Cachex.Actions
   import Cachex.Errors
   import Cachex.Spec
 
@@ -28,7 +27,7 @@ defmodule Cachex.Actions.Incr do
 
   This command will return an error if called on a non-numeric value.
   """
-  defaction incr(cache(name: name) = cache, key, amount, options) do
+  def execute(cache(name: name) = cache, key, amount, options) do
     initial = Options.get(options, :initial, &is_integer/1, 0)
     expiry  = Janitor.expiration(cache, nil)
 

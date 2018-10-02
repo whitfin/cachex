@@ -8,7 +8,6 @@ defmodule Cachex.Actions.Load do
   alias Cachex.Disk
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -26,7 +25,7 @@ defmodule Cachex.Actions.Load do
   clashes. If you wish to empty the cache and then import your backup, you can
   use a transaction and clear the cache before loading the backup.
   """
-  defaction load(cache(name: name) = cache, path, options) do
+  def execute(cache(name: name), path, options) do
     with { :ok, terms } <- Disk.read(path, options) do
       { :ok, :ets.insert(name, terms) }
     end

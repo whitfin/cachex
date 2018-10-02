@@ -6,11 +6,9 @@ defmodule Cachex.Actions.Expire do
   # binding for other actions (such as removing expirations). As such, we have
   # to handle several edge cases with nil values.
   alias Cachex.Actions
-  alias Cachex.Actions.Del
   alias Cachex.Services.Locksmith
 
   # add required imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -32,11 +30,11 @@ defmodule Cachex.Actions.Expire do
   This command executes inside a lock aware context to ensure that the key isn't currently
   being used/modified/removed from another process in the application.
   """
-  defaction expire(cache() = cache, key, expiration, options) do
+  def execute(cache() = cache, key, expiration, _options) do
     Locksmith.write(cache, [ key ], fn ->
       case expiration > -1 do
         true  -> Actions.update(cache, key, entry_mod_now(ttl: expiration))
-        false -> Del.execute(cache, key, const(:purge_override))
+        false -> Cachex.del(cache, key, const(:purge_override))
       end
     end)
   end

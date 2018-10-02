@@ -8,7 +8,6 @@ defmodule Cachex.Actions.Stream do
   alias Cachex.Options
 
   # need our imports
-  import Cachex.Actions
   import Cachex.Errors
   import Cachex.Spec
 
@@ -36,7 +35,7 @@ defmodule Cachex.Actions.Stream do
   has provided a valid return type. If they haven't, we return an error before
   creating a cursor or the `Stream` itself.
   """
-  defaction stream(cache(name: name) = cache, spec, options) do
+  def execute(cache(name: name), spec, options) do
     case :ets.test_ms(@test, spec) do
       { :ok, _result } ->
         options

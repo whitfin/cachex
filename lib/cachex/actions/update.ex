@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Update do
   alias Cachex.Services.Locksmith
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -25,7 +24,7 @@ defmodule Cachex.Actions.Update do
   immediately after an update, or you can simply set a value over the top instead
   of doing an update.
   """
-  defaction update(cache() = cache, key, value, options) do
+  def execute(cache() = cache, key, value, _options) do
     Locksmith.write(cache, [ key ], fn ->
       Actions.update(cache, key, entry_mod(value: value))
     end)

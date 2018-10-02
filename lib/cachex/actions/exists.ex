@@ -7,7 +7,6 @@ defmodule Cachex.Actions.Exists do
   alias Cachex.Actions
 
   # add required macros
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -21,6 +20,6 @@ defmodule Cachex.Actions.Exists do
   the expiration time of the entry into account. As such, we call via the main
   `Cachex.Actions` module and just cast the result to a boolean.
   """
-  defaction exists?(cache() = cache, key, options),
+  def execute(cache() = cache, key, _options),
     do: { :ok, !!Actions.read(cache, key) }
 end

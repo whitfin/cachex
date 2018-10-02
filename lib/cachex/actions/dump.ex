@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Dump do
   alias Cachex.Disk
 
   # import our macros
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -31,7 +30,7 @@ defmodule Cachex.Actions.Dump do
   Passing a 0 compressed flag will disable compression. This is way faster than
   the default compression, but the file size will increase dramatically.
   """
-  defaction dump(cache(name: name) = cache, path, options) do
+  def execute(cache(name: name), path, options) do
     name
     |> :ets.tab2list
     |> Disk.write(path, options)

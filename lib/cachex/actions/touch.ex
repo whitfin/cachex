@@ -7,11 +7,9 @@ defmodule Cachex.Actions.Touch do
   # it's incredibly useful for implementing least-recently used caching
   # systems without breaking expiration based constracts.
   alias Cachex.Actions
-  alias Cachex.Actions.Ttl
   alias Cachex.Services.Locksmith
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -26,10 +24,10 @@ defmodule Cachex.Actions.Touch do
   and then updating the record appropriately to modify the touch time and setting the
   expiration to the offset of the two.
   """
-  defaction touch(cache() = cache, key, options) do
+  def execute(cache() = cache, key, _options) do
     Locksmith.transaction(cache, [ key ], fn ->
       cache
-      |> Ttl.execute(key, const(:notify_false))
+      |> Cachex.ttl(key, const(:notify_false))
       |> handle_ttl(cache, key)
     end)
   end

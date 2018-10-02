@@ -10,7 +10,6 @@ defmodule Cachex.Actions.Keys do
   alias Cachex.Query
 
   # we need our imports
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -24,6 +23,6 @@ defmodule Cachex.Actions.Keys do
   that any entries currently inside the cache which are scheduled to be removed
   will not be included.
   """
-  defaction keys(cache(name: name) = cache, options),
+  def execute(cache(name: name), _options),
     do: { :ok, :ets.select(name, Query.create(true, :key)) }
 end

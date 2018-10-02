@@ -8,7 +8,6 @@ defmodule Cachex.Actions.Size do
   # Retrieving the size of the cache won't take expiration times into account;
   # if this is desired the `count()` command should be used instead. The main
   # advantage here is that this is O(1) at the cost of accuracy.
-  import Cachex.Actions
   import Cachex.Spec
 
   ##############
@@ -23,6 +22,6 @@ defmodule Cachex.Actions.Size do
   more expensive O(N) used by `count()`. Which you use depends on exactly
   what you want the returned number to represent.
   """
-  defaction size(cache(name: name) = cache, options),
+  def execute(cache(name: name), _options),
     do: { :ok, :ets.info(name, :size) }
 end
