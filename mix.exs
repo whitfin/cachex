@@ -93,11 +93,11 @@ defmodule Cachex.Mixfile do
       { :eternal, "~> 1.2" },
       { :unsafe,  "~> 1.0" },
       # Testing dependencies
-      { :credo,        "~> 0.8", optional: true, only: [ :dev, :test ] },
-      { :excoveralls,  "~> 0.8", optional: true, only: [ :dev, :test ] },
+      { :credo,        "~> 0.8.10", optional: true, only: [ :dev, :test ] },
+      { :excoveralls,  "~> 0.8",    optional: true, only: [ :dev, :test ] },
       # Benchmarking dependencies
-      { :benchee,     "~> 0.11", optional: true, only: [ :bench ] },
-      { :benchee_html, "~> 0.4", optional: true, only: [ :bench ] },
+      { :benchee,      "~> 0.11", optional: true, only: [ :bench ] },
+      { :benchee_html, "~> 0.4",  optional: true, only: [ :bench ] },
       # Documentation dependencies
       { :ex_doc, "~> 0.16", optional: true, only: [ :docs ] }
     ]
