@@ -53,7 +53,7 @@ defmodule Cachex.Router do
   defmacro execute(cache, module, { action, arguments })
   when action in @quiet_actions do
     quote do
-      apply(unquote(module),:execute,[ unquote(cache) | unquote(arguments) ])
+      apply(unquote(module), :execute, [ unquote(cache) | unquote(arguments) ])
     end
   end
 
