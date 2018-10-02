@@ -57,10 +57,11 @@ defmodule Cachex.Mixfile do
       preferred_cli_env: [
         docs: :docs,
         bench: :bench,
+        credo: :lint,
         cachex: :test,
-        coveralls: :test,
-        "coveralls.html": :test,
-        "coveralls.travis": :test
+        coveralls: :cover,
+        "coveralls.html": :cover,
+        "coveralls.travis": :cover
       ],
       aliases: [
         bench: "run benchmarks/main.exs"
@@ -93,11 +94,12 @@ defmodule Cachex.Mixfile do
       { :eternal, "~> 1.2" },
       { :unsafe,  "~> 1.0" },
       # Testing dependencies
-      { :credo,        "~> 0.8.10", optional: true, only: [ :dev, :test ] },
-      { :excoveralls,  "~> 0.8",    optional: true, only: [ :dev, :test ] },
+      { :excoveralls, "~> 0.8",  optional: true, only: [ :cover ] },
+      # Linting dependencies
+      { :credo, "~> 0.8", optional: true, only: [ :lint ] },
       # Benchmarking dependencies
-      { :benchee,      "~> 0.11", optional: true, only: [ :bench ] },
-      { :benchee_html, "~> 0.4",  optional: true, only: [ :bench ] },
+      { :benchee,      "~> 0.13", optional: true, only: [ :bench ] },
+      { :benchee_html, "~> 0.5",  optional: true, only: [ :bench ] },
       # Documentation dependencies
       { :ex_doc, "~> 0.16", optional: true, only: [ :docs ] }
     ]

@@ -12,6 +12,19 @@ otp_release:
   - 19.3
   - 18.3
 matrix:
+  include:
+  - elixir: 1.7
+    otp_release: 21.0
+    script:
+      - mix coveralls.travis --trace
+  - elixir: 1.7
+    otp_release: 21.0
+    script:
+      - mix credo --all --format=oneline
+  - elixir: 1.7
+    otp_release: 21.0
+    script:
+      - mix bench
   exclude:
   - elixir: 1.7
     otp_release: 18.3
@@ -37,5 +50,4 @@ before_install:
   - mix local.rebar --force
   - mix deps.get
 script:
-  - mix credo --all --format=oneline
-  - mix coveralls.travis --trace
+  - mix test --trace
