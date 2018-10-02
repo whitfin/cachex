@@ -7,17 +7,17 @@ Application.ensure_all_started(:cachex)
 
 Cachex.start(:bench_cache)
 
-Cachex.set(:bench_cache, "decr_test", 0)
-Cachex.set(:bench_cache, "expire_at_test", "expire_at_value")
-Cachex.set(:bench_cache, "expire_test", "expire_value")
-Cachex.set(:bench_cache, "fetch_test", "fetch_value")
-Cachex.set(:bench_cache, "get_test", "get_value")
-Cachex.set(:bench_cache, "gad_test", "gad_value")
-Cachex.set(:bench_cache, "incr_test", 0)
-Cachex.set(:bench_cache, "persist_test", 0)
-Cachex.set(:bench_cache, "refresh_test", "refresh_value", ttl: one_hour)
-Cachex.set(:bench_cache, "ttl_test", "ttl_value", ttl: one_hour)
-Cachex.set(:bench_cache, "update_test", "update_value")
+Cachex.put(:bench_cache, "decr_test", 0)
+Cachex.put(:bench_cache, "expire_at_test", "expire_at_value")
+Cachex.put(:bench_cache, "expire_test", "expire_value")
+Cachex.put(:bench_cache, "fetch_test", "fetch_value")
+Cachex.put(:bench_cache, "get_test", "get_value")
+Cachex.put(:bench_cache, "gad_test", "gad_value")
+Cachex.put(:bench_cache, "incr_test", 0)
+Cachex.put(:bench_cache, "persist_test", 0)
+Cachex.put(:bench_cache, "refresh_test", "refresh_value", ttl: one_hour)
+Cachex.put(:bench_cache, "ttl_test", "ttl_value", ttl: one_hour)
+Cachex.put(:bench_cache, "update_test", "update_value")
 
 use_state = System.get_env("CACHEX_BENCH_STATE") == "true"
 use_trans = System.get_env("CACHEX_BENCH_TRANSACTIONS") == "true"
@@ -74,11 +74,11 @@ benchmarks = %{
   "persist" => fn ->
     Cachex.persist(cache, "persist_test")
   end,
+  "put" => fn ->
+    Cachex.put(cache, "put_test", "put_value")
+  end,
   "refresh" => fn ->
     Cachex.refresh(cache, "refresh_test")
-  end,
-  "set" => fn ->
-    Cachex.set(cache, "set_test", "set_value")
   end,
   "size" => fn ->
     Cachex.size(cache)
