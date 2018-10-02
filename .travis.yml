@@ -16,7 +16,7 @@ matrix:
   - elixir: 1.7
     otp_release: 21.0
     script:
-      - mix coveralls.travis --trace
+      - MIX_ENV=cover mix coveralls.travis --trace
   - elixir: 1.7
     otp_release: 21.0
     script:
