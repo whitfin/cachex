@@ -9,6 +9,7 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 - Proactive/reactive cache warming
 - Transactions and row locking
 - Asynchronous write operations
+- Distribution across app nodes
 - Syncing to a local filesystem
 - Idomatic cache streaming
 - Batched write operations
@@ -43,6 +44,7 @@ All of these features are optional and are off by default so you can pick and ch
     - [Defining Commands](docs/features/custom-commands.md#defining-commands)
     - [Invoking A Command](docs/features/custom-commands.md#invoking-a-command)
 - [Disk Interaction](docs/features/disk-interaction.md)
+- [Distributed Caching](docs/features/distributed-caching.md)
 - [Execution Hooks](docs/features/execution-hooks.md)
     - [Creating Hooks](docs/features/execution-hooks.md#creating-hooks)
     - [Provisions](docs/features/execution-hooks.md#provisions)
