@@ -21,8 +21,13 @@ defmodule Cachex.Actions.Empty do
   Internally this action is delegated through to the `size()` command and the
   returned numeric value is just "cast" to a boolean value.
   """
-  def execute(cache() = cache, _options) do
-    { :ok, size } = Cachex.size(cache, const(:notify_false))
+  def execute(cache() = cache, options) do
+    options =
+      options
+      |> Keyword.take([ :local ])
+      |> Enum.concat(const(:notify_false))
+
+    { :ok, size } = Cachex.size(cache, options)
     { :ok, size == 0 }
   end
 end

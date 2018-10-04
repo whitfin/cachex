@@ -92,6 +92,7 @@ defmodule Cachex.Mixfile do
     [
       # Production dependencies
       { :eternal, "~> 1.2" },
+      { :jumper,  "~> 1.0" },
       { :unsafe,  "~> 1.0" },
       # Testing dependencies
       { :excoveralls, "~> 0.8",  optional: true, only: [ :cover ] },

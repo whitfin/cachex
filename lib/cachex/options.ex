@@ -17,6 +17,7 @@ defmodule Cachex.Options do
   # option parser order
   @option_parsers [
     :name,
+    :nodes,
     :limit,
     :hooks,
     :commands,
@@ -259,6 +260,30 @@ defmodule Cachex.Options do
   # rather than having to special cache the parsing of the name.
   defp parse_type(:name, name, _options),
     do: cache(name: name)
+
+  # Configures any nodes assigned to the cache.
+  #
+  # This will enforce a non-empty list of nodes, containing at least
+  # the current local node. The list will be deduplicated, and sorted
+  # to ensure a deterministic ordering across nodes.
+  defp parse_type(:nodes, cache, options) do
+    nodes =
+      options
+      |> Keyword.get(:nodes, [ ])
+      |> Enum.concat([ node() ])
+      |> Enum.uniq
+      |> Enum.sort
+
+    valid =
+      nodes
+      |> List.delete(node())
+      |> Enum.all?(&Node.connect/1)
+
+    case valid do
+      false -> error(:invalid_nodes)
+      true  -> cache(cache, [ nodes: nodes ])
+    end
+  end
 
   # Configures a cache based on transaction flags.
   #

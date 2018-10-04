@@ -31,6 +31,7 @@ defmodule Cachex.Spec do
     fallback: fallback,
     hooks: hooks,
     limit: limit,
+    nodes: [ atom ],
     transactional: boolean,
     warmers: [ warmer ]
   )
@@ -107,6 +108,7 @@ defmodule Cachex.Spec do
     fallback: nil,
     hooks: nil,
     limit: nil,
+    nodes: [],
     transactional: false,
     warmers: []
 
@@ -313,6 +315,10 @@ defmodule Cachex.Spec do
   """
   @spec const(atom) :: any
   defmacro const(key)
+
+  # Constant to only run locally.
+  defmacro const(:local),
+    do: quote(do: [ local: true ])
 
   # Constant to disable hook notifications.
   defmacro const(:notify_false),

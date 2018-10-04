@@ -77,7 +77,7 @@ defmodule Cachex do
     get:               [ 2, 3 ],
     get_and_update:    [ 3, 4 ],
     incr:           [ 2, 3, 4 ],
-    inspect:              [ 2 ],
+    inspect:           [ 2, 3 ],
     invoke:            [ 3, 4 ],
     keys:              [ 1, 2 ],
     load:              [ 2, 3 ],
@@ -351,7 +351,7 @@ defmodule Cachex do
   """
   @spec clear(cache, Keyword.t) :: { status, integer }
   def clear(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :clear, [ options ] })
+    do: Router.call(cache, { :clear, [ options ] })
 
   @doc """
   Retrieves the number of unexpired records in a cache.
@@ -372,7 +372,7 @@ defmodule Cachex do
   """
   @spec count(cache, Keyword.t) :: { status, number }
   def count(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :count, [ options ] })
+    do: Router.call(cache, { :count, [ options ] })
 
   @doc """
   Decrements an entry in the cache.
@@ -430,7 +430,7 @@ defmodule Cachex do
   """
   @spec del(cache, any, Keyword.t) :: { status, boolean }
   def del(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :del, [ key, options ] })
+    do: Router.call(cache, { :del, [ key, options ] })
 
   @doc """
   Serializes a cache to a location on a filesystem.
@@ -466,7 +466,7 @@ defmodule Cachex do
   @spec dump(cache, binary, Keyword.t) :: { status, any }
   def dump(cache, path, options \\ [])
   when is_binary(path) and is_list(options),
-    do: Router.dispatch(cache, { :dump, [ path, options ] })
+    do: Router.call(cache, { :dump, [ path, options ] })
 
   @doc """
   Determines whether a cache contains any entries.
@@ -488,7 +488,7 @@ defmodule Cachex do
   """
   @spec empty?(cache, Keyword.t) :: { status, boolean }
   def empty?(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :empty?, [ options ] })
+    do: Router.call(cache, { :empty?, [ options ] })
 
   @doc """
   Executes multiple functions in the context of a cache.
@@ -542,7 +542,7 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, Keyword.t) :: { status, boolean }
   def exists?(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :exists?, [ key, options ] })
+    do: Router.call(cache, { :exists?, [ key, options ] })
 
   @doc """
   Places an expiration time on an entry in a cache.
@@ -566,7 +566,7 @@ defmodule Cachex do
   @spec expire(cache, any, number, Keyword.t) :: { status, boolean }
   def expire(cache, key, expiration, options \\ [])
   when (is_nil(expiration) or is_number(expiration)) and is_list(options),
-    do: Router.dispatch(cache, { :expire, [ key, expiration, options ] })
+    do: Router.call(cache, { :expire, [ key, expiration, options ] })
 
   @doc """
   Updates an entry in a cache to expire at a given time.
@@ -645,7 +645,7 @@ defmodule Cachex do
     Overseer.enforce(cache) do
       case fallback || fallback(cache(cache, :fallback), :default) do
         val when is_function(val) ->
-          Router.dispatch(cache, { :fetch, [ key, val, options ] })
+          Router.call(cache, { :fetch, [ key, val, options ] })
         _na ->
           error(:invalid_fallback)
       end
@@ -667,7 +667,7 @@ defmodule Cachex do
   """
   @spec get(cache, any, Keyword.t) :: { atom, any }
   def get(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :get, [ key, options ] })
+    do: Router.call(cache, { :get, [ key, options ] })
 
   @doc """
   Retrieves and updates an entry in a cache.
@@ -696,7 +696,7 @@ defmodule Cachex do
   @spec get_and_update(cache, any, function, Keyword.t) :: { :commit | :ignore, any }
   def get_and_update(cache, key, update_function, options \\ [])
   when is_function(update_function) and is_list(options),
-    do: Router.dispatch(cache, { :get_and_update, [ key, update_function, options ] })
+    do: Router.call(cache, { :get_and_update, [ key, update_function, options ] })
 
   @doc """
   Retrieves a list of all entry keys from a cache.
@@ -718,7 +718,7 @@ defmodule Cachex do
   """
   @spec keys(cache, Keyword.t) :: { status, [ any ] }
   def keys(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :keys, [ options ] })
+    do: Router.call(cache, { :keys, [ options ] })
 
   @doc """
   Increments an entry in the cache.
@@ -751,7 +751,7 @@ defmodule Cachex do
   @spec incr(cache, any, integer, Keyword.t) :: { status, integer }
   def incr(cache, key, amount \\ 1, options \\ [])
   when is_integer(amount) and is_list(options),
-    do: Router.dispatch(cache, { :incr, [ key, amount, options ] })
+    do: Router.call(cache, { :incr, [ key, amount, options ] })
 
   @doc """
   Inspects various aspects of a cache.
@@ -848,9 +848,9 @@ defmodule Cachex do
       { :ok, 1328 }
 
   """
-  @spec inspect(cache, atom | tuple) :: { status, any }
-  def inspect(cache, option),
-    do: Router.dispatch(cache, { :inspect, [ option ] })
+  @spec inspect(cache, atom | tuple, Keyword.t) :: { status, any }
+  def inspect(cache, option, options \\ []),
+    do: Router.call(cache, { :inspect, [ option, options ] })
 
   @doc """
   Invokes a custom command against a cache entry.
@@ -876,7 +876,7 @@ defmodule Cachex do
   """
   @spec invoke(cache, atom, any, Keyword.t) :: any
   def invoke(cache, cmd, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :invoke, [ cmd, key, options ] })
+    do: Router.call(cache, { :invoke, [ cmd, key, options ] })
 
   @doc """
   Deserializes a cache from a location on a filesystem.
@@ -911,7 +911,7 @@ defmodule Cachex do
   @spec load(cache, binary, Keyword.t) :: { status, any }
   def load(cache, path, options \\ [])
   when is_binary(path) and is_list(options),
-    do: Router.dispatch(cache, { :load, [ path, options ] })
+    do: Router.call(cache, { :load, [ path, options ] })
 
   @doc """
   Removes an expiration time from an entry in a cache.
@@ -946,7 +946,7 @@ defmodule Cachex do
   """
   @spec purge(cache, Keyword.t) :: { status, number }
   def purge(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :purge, [ options ] })
+    do: Router.call(cache, { :purge, [ options ] })
 
   @doc """
   Places an entry in a cache.
@@ -975,7 +975,7 @@ defmodule Cachex do
   # TODO: maybe rename TTL to be expiration?
   @spec put(cache, any, any, Keyword.t) :: { status, boolean }
   def put(cache, key, value, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :put, [ key, value, options ] })
+    do: Router.call(cache, { :put, [ key, value, options ] })
 
   @doc """
   Places a batch of entries in a cache.
@@ -1007,7 +1007,7 @@ defmodule Cachex do
   @spec put_many(cache, [ { any, any } ], Keyword.t) :: { status, boolean }
   def put_many(cache, pairs, options \\ [])
   when is_list(pairs) and is_list(options),
-    do: Router.dispatch(cache, { :put_many, [ pairs, options ] })
+    do: Router.call(cache, { :put_many, [ pairs, options ] })
 
   @doc """
   Refreshes an expiration for an entry in a cache.
@@ -1034,7 +1034,7 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, Keyword.t) :: { status, boolean }
   def refresh(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :refresh, [ key, options ] })
+    do: Router.call(cache, { :refresh, [ key, options ] })
 
   @doc """
   Resets a cache by clearing the keyspace and restarting any hooks.
@@ -1076,7 +1076,7 @@ defmodule Cachex do
   """
   @spec reset(cache, Keyword.t) :: { status, true }
   def reset(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :reset, [ options ] })
+    do: Router.call(cache, { :reset, [ options ] })
 
   @doc """
   Deprecated implementation delegate of `put/4`.
@@ -1113,7 +1113,7 @@ defmodule Cachex do
   """
   @spec size(cache, Keyword.t) :: { status, number }
   def size(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :size, [ options ] })
+    do: Router.call(cache, { :size, [ options ] })
 
   @doc """
   Retrieves statistics about a cache.
@@ -1139,7 +1139,7 @@ defmodule Cachex do
   """
   @spec stats(cache, Keyword.t) :: { status, %{ } }
   def stats(cache, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :stats, [ options ] })
+    do: Router.call(cache, { :stats, [ options ] })
 
   @doc """
   Creates a `Stream` of entries in a cache.
@@ -1187,7 +1187,7 @@ defmodule Cachex do
   @spec stream(cache, any, Keyword.t) :: { status, Enumerable.t }
   def stream(cache, query \\ Query.create(true), options \\ [])
   when is_list(options),
-    do: Router.dispatch(cache, { :stream, [ query, options ] })
+    do: Router.call(cache, { :stream, [ query, options ] })
 
   @doc """
   Takes an entry from a cache.
@@ -1210,7 +1210,7 @@ defmodule Cachex do
   """
   @spec take(cache, any, Keyword.t) :: { status, any }
   def take(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :take, [ key, options ] })
+    do: Router.call(cache, { :take, [ key, options ] })
 
   @doc """
   Updates the last write time on a cache entry.
@@ -1220,7 +1220,7 @@ defmodule Cachex do
   """
   @spec touch(cache, any, Keyword.t) :: { status, boolean }
   def touch(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :touch, [ key, options ] })
+    do: Router.call(cache, { :touch, [ key, options ] })
 
   @doc """
   Executes multiple functions in the context of a transaction.
@@ -1257,7 +1257,7 @@ defmodule Cachex do
             |> Overseer.update(&cache(&1, transactional: true))
         end
 
-      Router.dispatch(trans_cache, { :transaction, [ keys, operation, options ] })
+      Router.call(trans_cache, { :transaction, [ keys, operation, options ] })
     end
   end
 
@@ -1282,7 +1282,7 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, Keyword.t) :: { status, number }
   def ttl(cache, key, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :ttl, [ key, options ] })
+    do: Router.call(cache, { :ttl, [ key, options ] })
 
   @doc """
   Updates an entry in a cache.
@@ -1308,7 +1308,7 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, Keyword.t) :: { status, any }
   def update(cache, key, value, options \\ []) when is_list(options),
-    do: Router.dispatch(cache, { :update, [ key, value, options ] })
+    do: Router.call(cache, { :update, [ key, value, options ] })
 
   ###############
   # Private API #

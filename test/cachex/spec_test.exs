@@ -23,6 +23,7 @@ defmodule Cachex.SpecTest do
     do: assert limit() == { :limit, nil, Cachex.Policy.LRW, 0.1, [] }
 
   test "generating constants via macros" do
+    assert const(:local) == [ local: true ]
     assert const(:notify_false) == [ notify: false ]
     assert const(:purge_override_call) == { :purge, [[]] }
     assert const(:purge_override_result) == { :ok, 1 }

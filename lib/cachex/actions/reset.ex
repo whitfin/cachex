@@ -36,7 +36,7 @@ defmodule Cachex.Actions.Reset do
         |> Keyword.get(:only, [ :cache, :hooks ])
         |> List.wrap
 
-      reset_cache(cache, only)
+      reset_cache(cache, only, options)
       reset_hooks(cache, only, options)
 
       { :ok, true }
@@ -52,8 +52,16 @@ defmodule Cachex.Actions.Reset do
   # A cache is only emptied if the `:cache` property appears in the list of
   # cache components to reset. If not provided, this will short circut and
   # leave the cache table exactly as-is.
-  defp reset_cache(cache, only),
-    do: :cache in only and Clear.execute(cache, const(:notify_false))
+  defp reset_cache(cache, only, options) do
+    with true <- :cache in only do
+      options =
+        options
+        |> Keyword.take([ :local ])
+        |> Enum.concat(const(:notify_false))
+
+      Clear.execute(cache, options)
+    end
+  end
 
   # Handles reset of cache hooks.
   #
