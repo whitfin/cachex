@@ -4,7 +4,7 @@ skip_commits:
   message: /\[skip ci\]/
 
 environment:
-  elixir_version: 1.6.0
+  elixir_version: 1.7.1
 
 branches:
   only:
@@ -23,5 +23,6 @@ build_script:
   - mix deps.get
 
 test_script:
+  - set MIX_ENV=cover
   - mix credo --all --format=oneline
-  - MIX_ENV=cover mix test --trace
+  - mix test --trace
