@@ -24,4 +24,4 @@ build_script:
 
 test_script:
   - mix credo --all --format=oneline
-  - mix coveralls --trace
+  - MIX_ENV=cover mix test --trace
