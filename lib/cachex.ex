@@ -764,8 +764,9 @@ defmodule Cachex do
   (despite being documented) and as such  may be removed at any time
   (however this does not mean that they will be).
 
-  Please use cautiously. `inspect/2` is provided mainly for testing purposes and
-  so performance isn't as much of a concern.
+  Please use cautiously. `inspect/2` is provided mainly for testing
+  purposes and so performance isn't as much of a concern. It should
+  also be noted that `inspect/2` will *always* operate locally.
 
   ## Options
 

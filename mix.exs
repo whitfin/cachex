@@ -38,7 +38,7 @@ defmodule Cachex.Mixfile do
           "docs/features/cache-limits.md",
           "docs/features/custom-commands.md",
           "docs/features/disk-interaction.md",
-          "docs/features/distributed-caching.md",
+          "docs/features/distributed-caches.md",
           "docs/features/execution-hooks.md",
           "docs/features/streaming-caches.md",
           "docs/features/ttl-implementation.md",
