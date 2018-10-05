@@ -8,6 +8,8 @@ Cachex intends to provide a very straightforward interface for dealing with a di
 
 There are few rules in place for the communication with remote nodes. Any key based actions are routed to the appropriate node (whether local or remote), and any cache based actions are aggregated using the results from each individual node. As an example of this, consider that Node A may have 3 keys and Node B may have 2 keys. In this scenario, a `size/2` call will return a count of `5` automatically. If you desire to only retrieve the result from the local node, these cache based actions all support a `:local` option which, when set to `true`, will return only the result from the local node.
 
+In the case you're using an action based on multiple keys (such as `put_many/3` or `transaction/3`), all targeted keys must live on the same target node. This is similar to the likes of [Redis](https://redis.io) where this is also the case. If you try to use either of these functions with keys which slot to different nodes, you will receive a `:cross_slot` error. As it's typically difficult to guarantee that your keys will slot to the same node, it's generally recommended to only call these functions with a single key when used in a distributed cache (and so `put_many/3` is then redundant).
+
 ## Disabled Actions
 
 Due to complications with their implementation, there are a small number of actions which are currently unavailable when used in a distributed environment. They're defined below, along with reasonings as to why. It should be noted that just because certain actions are disabled currently, does not mean that they will always be disabled (although there is no guaranteed they will ever be enabled).
