@@ -122,8 +122,9 @@ defmodule Cachex.Router do
 
   # actions which merge outputs
   @merge_actions [
-    :clear, :count, :empty?,  :keys,
-    :purge, :reset, :size,    :stats
+    :clear, :count, :empty?,  :export,
+    :keys,  :purge, :reset,   :size,
+    :stats
   ]
 
   # Provides handling of cross-node actions distributed over remote nodes.
@@ -187,10 +188,14 @@ defmodule Cachex.Router do
     end
   end
 
+  # actions which always run locally
+  @local_actions [ :dump, :inspect, :load ]
+
   # Provides handling of `:inspect` operations.
   #
   # These operations are guaranteed to run on the local nodes.
-  defp configure_remote(cache, module, { :inspect, _arguments } = call, _nodes),
+  defp configure_remote(cache, module, { action, _arguments } = call, _nodes)
+  when action in @local_actions,
     do: configure_local(cache, module, call)
 
   # Provides handling of `:put_many` operations.

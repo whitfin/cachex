@@ -73,6 +73,7 @@ defmodule Cachex do
     exists?:           [ 2, 3 ],
     expire:            [ 3, 4 ],
     expire_at:         [ 3, 4 ],
+    export:            [ 1, 2 ],
     fetch:          [ 2, 3, 4 ],
     get:               [ 2, 3 ],
     get_and_update:    [ 3, 4 ],
@@ -259,6 +260,20 @@ defmodule Cachex do
       Please see the `Cachex.Spec.limit/1` documentation for further customization options.
 
       </br>
+    * `:nodes`
+
+      </br>
+      A list of nodes this cache will live on, to provide distributed behaviour across
+      physical nodes. This should be a list of node names, in the long form.
+
+          iex> Cachex.start_link(:my_cache, [
+          ...>   nodes: [
+          ...>     :foo@localhost,
+          ...>     :bar@localhost
+          ...>   ]
+          ...> ])
+          { :ok, _pid }
+
     * `:stats`
 
       </br>
@@ -593,6 +608,27 @@ defmodule Cachex do
   end
 
   @doc """
+  Exports all entries from a cache.
+
+  This provides a raw read of the entire backing table into a list
+  of cache records for export purposes.
+
+  This function is very heavy, so it should typically only be used
+  when debugging and/or exporting of tables (although the latter case
+  should really use `dump/3`).
+
+   ## Examples
+
+      iex> Cachex.put(:my_cache, "key", "value")
+      iex> Cachex.list(:my_cache)
+      { :ok, [ { :entry, "key", 1538714590095, nil, "value" } ] }
+
+  """
+  @spec export(cache, Keyword.t) :: { status, [ cache ] }
+  def export(cache, options \\ []) when is_list(options),
+    do: Router.call(cache, { :export, [ options ] })
+
+  @doc """
   Fetches an entry from a cache, generating a value on cache miss.
 
   If the entry requested is found in the cache, this function will
@@ -850,7 +886,7 @@ defmodule Cachex do
 
   """
   @spec inspect(cache, atom | tuple, Keyword.t) :: { status, any }
-  def inspect(cache, option, options \\ []),
+  def inspect(cache, option, options \\ []) when is_list(options),
     do: Router.call(cache, { :inspect, [ option, options ] })
 
   @doc """

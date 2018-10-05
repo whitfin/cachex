@@ -30,9 +30,11 @@ defmodule Cachex.Actions.Dump do
   Passing a 0 compressed flag will disable compression. This is way faster than
   the default compression, but the file size will increase dramatically.
   """
-  def execute(cache(name: name), path, options) do
-    name
-    |> :ets.tab2list
+  def execute(cache() = cache, path, options) do
+    eopts = Keyword.take(options, [ :local ])
+    cache
+    |> Cachex.export(eopts)
+    |> Kernel.elem(1)
     |> Disk.write(path, options)
   end
 end

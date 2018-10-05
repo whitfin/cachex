@@ -11,9 +11,12 @@ defmodule Cachex.Actions.LoadTest do
 
     # create a test cache
     cache = Helper.create_cache()
+    start = now()
 
     # add some cache entries
     { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2, [ ttl: 1 ])
+    { :ok, true } = Cachex.put(cache, 3, 3, [ ttl: 10_000 ])
 
     # create a local path to write to
     path = Path.join(tmp, Helper.gen_rand_bytes(8))
@@ -25,22 +28,29 @@ defmodule Cachex.Actions.LoadTest do
 
     # verify the result and clearance
     assert(result1 == { :ok, true })
-    assert(result2 == { :ok, 1 })
+    assert(result2 == { :ok, 3 })
     assert(result3 == { :ok, 0 })
+
+    # wait a while before re-load
+    :timer.sleep(50)
 
     # load the cache from the disk
     result4 = Cachex.load(cache, path)
     result5 = Cachex.size(cache)
+    result6 = Cachex.ttl!(cache, 3)
 
     # verify that the load was ok
     assert(result4 == { :ok, true })
-    assert(result5 == { :ok, 1 })
+    assert(result5 == { :ok, 2 })
+
+    # verify TTL offsetting happens
+    assert_in_delta(result6, 10_000 - (now() - start), 5)
 
     # reload a bad file from disk
-    result6 = Cachex.load(cache, tmp)
+    result7 = Cachex.load(cache, tmp)
 
     # verify the result failed
-    assert(result6 == { :error, :unreachable_file })
+    assert(result7 == { :error, :unreachable_file })
   end
 
 end
