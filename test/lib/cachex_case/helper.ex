@@ -32,22 +32,24 @@ defmodule CachexCase.Helper do
   def create_cache_cluster(amount, args \\ [])
   when is_integer(amount) do
     # no-op when done multiple times
-    :ok = LocalCluster.start()
+    LocalCluster.start()
 
     name = create_name()
-    nodes = LocalCluster.start_nodes(name, amount)
+    nodes = [ node() | LocalCluster.start_nodes(name, amount - 1) ]
 
     # basic match to ensure that the result is as expected
     { [ { :ok, _pid1 }, { :ok, _pid2 } ], [] } = :rpc.multicall(
       nodes,
       Cachex,
-      :start_link,
+      :start,
       [ name, [ nodes: nodes ] ++ args ]
     )
 
     # stop all children on exit, even though it's automatic
     TestHelper.on_exit("stop #{name} children", fn ->
-      LocalCluster.stop_nodes(nodes)
+      nodes
+      |> List.delete(node())
+      |> LocalCluster.stop_nodes
     end)
 
     { name, nodes }
