@@ -96,7 +96,8 @@ defmodule Cachex.Mixfile do
       { :jumper,  "~> 1.0" },
       { :unsafe,  "~> 1.0" },
       # Testing dependencies
-      { :excoveralls, "~> 0.8",  optional: true, only: [ :cover ] },
+      { :excoveralls,   "~> 0.8", optional: true, only: [ :cover ] },
+      { :local_cluster, "~> 1.0", optional: true, only: [ :cover, :test ] },
       # Linting dependencies
       { :credo, "~> 0.8", optional: true, only: [ :lint ] },
       # Benchmarking dependencies

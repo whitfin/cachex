@@ -35,7 +35,7 @@ defmodule TestHelper do
   @doc false
   # Schedules a cache to be deleted at the end of the current test context.
   def delete_on_exit(name) do
-    ExUnit.Callbacks.on_exit("delete #{name}", fn ->
+    on_exit("delete #{name}", fn ->
       try do
         Supervisor.stop(name)
       catch
@@ -43,4 +43,9 @@ defmodule TestHelper do
       end
     end)
   end
+
+  @doc false
+  # Binding for on_exit due to some cyclic dependencies.
+  def on_exit(name, action),
+    do: ExUnit.Callbacks.on_exit(name, action)
 end

@@ -16,19 +16,41 @@ defmodule CachexCase.Helper do
   #
   # We return the name in case we're using the defaults, so that callers can
   # generate a random cache with a random name. We make sure to trigger a
-  # delete to happen  on test exit in order to avoid bloating ETS and memory
+  # delete to happen on test exit in order to avoid bloating ETS and memory
   # unnecessarily.
-  def create_cache(name \\ [], args \\ []) do
-    { name, args } = cond do
-      is_atom(name) and is_list(args) ->
-        { name, args }
-      is_list(name) ->
-        { create_name(), name }
-    end
-
+  def create_cache(args \\ []) do
+    name = create_name()
     { :ok, _pid } = Cachex.start_link(name, args)
-
     delete_on_exit(name)
+  end
+
+  @doc false
+  # Creates a cache cluster using the given arguments to construct the cache.
+  #
+  # The name of the cache is returned, along with the names of the nodes in
+  # the cluster to enable calling out directly.
+  def create_cache_cluster(amount, args \\ [])
+  when is_integer(amount) do
+    # no-op when done multiple times
+    :ok = LocalCluster.start()
+
+    name = create_name()
+    nodes = LocalCluster.start_nodes(name, amount)
+
+    # basic match to ensure that the result is as expected
+    { [ { :ok, _pid1 }, { :ok, _pid2 } ], [] } = :rpc.multicall(
+      nodes,
+      Cachex,
+      :start_link,
+      [ name, [ nodes: nodes ] ++ args ]
+    )
+
+    # stop all children on exit, even though it's automatic
+    TestHelper.on_exit("stop #{name} children", fn ->
+      LocalCluster.stop_nodes(nodes)
+    end)
+
+    { name, nodes }
   end
 
   @doc false
