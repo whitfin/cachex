@@ -148,14 +148,14 @@ defmodule Cachex.Router do
             other_nodes = List.delete(unquote(nodes), node())
 
             # execute the call on all other nodes
-            { results, _ } = :rpc.multicall(
+            { node_results, _ } = :rpc.multicall(
               other_nodes,
               unquote(module),
               :execute,
               [ unquote(cache) | unquote(arguments) ]
             )
 
-            results
+            node_results
         end
 
       # execution on the local node, using the local macros and then unpack

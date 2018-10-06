@@ -26,4 +26,4 @@ test_script:
   - set MIX_ENV=lint
   - mix credo --all --format=oneline
   - set MIX_ENV=lint
-  - mix test --trace
+  - mix test --trace --exclude distributed
