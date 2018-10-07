@@ -59,7 +59,7 @@ defmodule Cachex.Router do
         cache(nodes: [ ^current ]) ->
           unquote(configure_local(cache, module, call))
         cache(nodes: remote_nodes) ->
-          unquote(configure_remote(cache, module, call, quote(do: remote_nodes)))
+          unquote(configure_remote(cache, module, call, quote do: remote_nodes))
       end
     end
   end
@@ -80,20 +80,25 @@ defmodule Cachex.Router do
   # is `decr/4` which simply calls `incr/4` with `via: { :decr, arguments }`.
   defp configure_local(cache, module, { _action, arguments } = call) do
     quote do
-      option = List.last(unquote(arguments))
+      call = unquote(call)
+      cache = unquote(cache)
+      module = unquote(module)
+      arguments = unquote(arguments)
+
+      option = List.last(arguments)
       notify = Keyword.get(option, :notify, true)
 
       message = notify && case option[:via] do
-        msg when not is_tuple(msg) -> unquote(call)
+        msg when not is_tuple(msg) -> call
         msg -> msg
       end
 
-      notify && Informant.broadcast(unquote(cache), message)
-      result = apply(unquote(module), :execute, [ unquote(cache) | unquote(arguments) ])
+      notify && Informant.broadcast(cache, message)
+      result = apply(module, :execute, [ cache | arguments ])
 
       if notify do
         Informant.broadcast(
-          unquote(cache),
+          cache,
           message,
           Keyword.get(option, :hook_result, result)
         )
@@ -117,11 +122,8 @@ defmodule Cachex.Router do
   # out to the local node, just execute the local code, otherwise RPC the base call
   # to the remote node, and just assume that it'll correctly handle it.
   defp configure_remote(cache, module, { action, [ key | _ ] } = call, nodes)
-  when action in @keyed_actions do
-    quote do
-      unquote(call_slot(cache, module, call, nodes, slot_key(key, nodes)))
-    end
-  end
+  when action in @keyed_actions,
+    do: call_slot(cache, module, call, nodes, slot_key(key, nodes))
 
   # actions which merge outputs
   @merge_actions [
@@ -139,8 +141,15 @@ defmodule Cachex.Router do
   defp configure_remote(cache, module, { action, arguments } = call, nodes)
   when action in @merge_actions do
     quote do
+      # :bind_quoted
+      call = unquote(call)
+      cache = unquote(cache)
+      nodes = unquote(nodes)
+      module = unquote(module)
+      arguments = unquote(arguments)
+
       # all calls have options we can use
-      options = List.last(unquote(arguments))
+      options = List.last(arguments)
 
       results =
         # can force local node setting local: true
@@ -148,14 +157,14 @@ defmodule Cachex.Router do
           true -> []
           _any ->
             # don't want to execute on the local node
-            other_nodes = List.delete(unquote(nodes), node())
+            other_nodes = List.delete(nodes, node())
 
             # execute the call on all other nodes
             { results, _ } = :rpc.multicall(
               other_nodes,
-              unquote(module),
+              module,
               :execute,
-              [ unquote(cache) | unquote(arguments) ]
+              [ cache | arguments ]
             )
 
             results
@@ -205,7 +214,7 @@ defmodule Cachex.Router do
   #
   # These operations can only execute if their keys slot to the same remote nodes.
   defp configure_remote(cache, module, { :put_many, _arguments } = call, nodes),
-    do: multi_call_slot(cache, module, call, nodes, quote(do: &elem(&1, 0)))
+    do: multi_call_slot(cache, module, call, nodes, quote do: &elem(&1, 0))
 
   # Provides handling of `:transaction` operations.
   #
@@ -213,7 +222,7 @@ defmodule Cachex.Router do
   defp configure_remote(cache, module, { :transaction, [ keys | _ ] } = call, nodes) do
     case keys do
       [] -> configure_local(cache, module, call)
-      __ -> multi_call_slot(cache, module, call, nodes, quote(do: &(&1)))
+      __ -> multi_call_slot(cache, module, call, nodes, quote do: &(&1))
     end
   end
 
@@ -229,7 +238,13 @@ defmodule Cachex.Router do
   # figure out how to better improve the macro scoping in use locally.
   defp call_slot(cache, module, { action, arguments } = call, nodes, slot) do
     quote do
-      case Enum.at(unquote(nodes), unquote(slot)) do
+      slot = unquote(slot)
+      nodes = unquote(nodes)
+      action = unquote(action)
+      arguments = unquote(arguments)
+      cache(name: name) = unquote(cache)
+
+      case Enum.at(nodes, slot) do
         ^current ->
           unquote(configure_local(cache, module, call))
 
@@ -237,8 +252,8 @@ defmodule Cachex.Router do
           result = :rpc.call(
             targeted,
             Cachex,
-            unquote(action),
-            [ cache(unquote(cache), :name) | unquote(arguments) ]
+            action,
+            [ name | arguments ]
           )
 
           with { :badrpc, reason } <- result do
@@ -254,16 +269,20 @@ defmodule Cachex.Router do
   # same node to avoid the case where we have to fork a call out internally.
   defp multi_call_slot(cache, module, { _action, [ keys | _ ] } = call, nodes, mapper) do
     quote do
+      # :bind_quoted
+      keys = unquote(keys)
+      mapper = unquote(mapper)
+
       # map all keys to a slot in the nodes list
-      slots = Enum.map(unquote(keys), fn(key) ->
+      slots = Enum.map(keys, fn(key) ->
         # basically just slot_key(mapper.(key), nodes)
-        unquote(slot_key(quote(do: unquote(mapper).(key)), nodes))
+        unquote(slot_key((quote do: mapper.(key)), nodes))
       end)
 
       # unique to avoid dups
       case Enum.uniq(slots) do
         # if there's a single slot it's safe to continue with the call to the remote
-        [ slot ] -> unquote(call_slot(cache, module, call, nodes, quote(do: slot)))
+        [ slot ] -> unquote(call_slot(cache, module, call, nodes, quote do: slot))
 
         # otherwise, cross_slot errors!
         _disable -> error(:cross_slot)
@@ -279,10 +298,10 @@ defmodule Cachex.Router do
   # collision possibility isn't really relevant, as long as there's
   # a uniformly random collision possibility.
   defp slot_key(key, nodes) do
-    quote do
-      unquote(key)
+    quote bind_quoted: [ key: key, nodes: nodes ] do
+      key
       |> :erlang.phash2
-      |> Jumper.slot(length(unquote(nodes)))
+      |> Jumper.slot(length(nodes))
     end
   end
 end
