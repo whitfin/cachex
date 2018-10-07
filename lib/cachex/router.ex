@@ -92,8 +92,11 @@ defmodule Cachex.Router do
       result = apply(unquote(module), :execute, [ unquote(cache) | unquote(arguments) ])
 
       if notify do
-        results = Keyword.get(option, :hook_result, result)
-        Informant.broadcast(unquote(cache), message, results)
+        Informant.broadcast(
+          unquote(cache),
+          message,
+          Keyword.get(option, :hook_result, result)
+        )
       end
 
       result
@@ -148,14 +151,14 @@ defmodule Cachex.Router do
             other_nodes = List.delete(unquote(nodes), node())
 
             # execute the call on all other nodes
-            { node_results, _ } = :rpc.multicall(
+            { results, _ } = :rpc.multicall(
               other_nodes,
               unquote(module),
               :execute,
               [ unquote(cache) | unquote(arguments) ]
             )
 
-            node_results
+            results
         end
 
       # execution on the local node, using the local macros and then unpack
