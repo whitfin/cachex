@@ -57,37 +57,14 @@ defmodule Cachex.Actions.ClearTest do
     { :ok, true } = Cachex.put(cache, 2, 2)
 
     # retrieve the cache size, should be 2
-    size1 = Cachex.size(cache)
-
-    # check the size of the cache
-    assert(size1 == { :ok, 2 })
+    { :ok, 2 } = Cachex.size(cache)
 
     # clear just the local cache to start with
     clear1 = Cachex.clear(cache, [ local: true ])
+    clear2 = Cachex.clear(cache, [ local: false ])
 
-    # check the result removed 1
+    # check the local removed 1
     assert(clear1 == { :ok, 1 })
-
-    # fetch the size of local and remote
-    size2 = Cachex.size(cache, [ local: true ])
-    size3 = Cachex.size(cache, [ local: false ])
-
-    # check that the local is 0, remote is 1
-    assert(size2 == { :ok, 0 })
-    assert(size3 == { :ok, 1 })
-
-    # clear the entire cluster at this point
-    clear2 = Cachex.clear(cache)
-
-    # check the result removed 1
     assert(clear2 == { :ok, 1 })
-
-    # fetch the size of local and remote (again)
-    size4 = Cachex.size(cache, [ local: true ])
-    size5 = Cachex.size(cache, [ local: false ])
-
-    # check that both are now 0
-    assert(size4 == { :ok, 0 })
-    assert(size5 == { :ok, 0 })
   end
 end
