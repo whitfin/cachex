@@ -64,6 +64,35 @@ defmodule Cachex.Router do
     end
   end
 
+  @doc false
+  # Results merging for distributed cache results.
+  #
+  # Follows these rules:
+  #
+  # - Lists are always concatenated.
+  # - Numbers are always summed.
+  # - Booleans are always AND-ed.
+  # - Maps are always merged (recursively).
+  #
+  # This has to be public due to scopes, but we hide the docs
+  # because we don't really care for anybody else calling it.
+  def result_merge(left, right) when is_list(left),
+    do: left ++ right
+  def result_merge(left, right) when is_number(left),
+    do: left + right
+  def result_merge(left, right) when is_boolean(left),
+    do: left && right
+  def result_merge(left, right) when is_map(left) do
+    Map.merge(left, right, fn
+      (:creation_date, _left, right) ->
+        right
+      (key, left, right) when key in [ :hit_rate, :miss_rate ] ->
+        (left + right) / 2
+      (_key, left, right) ->
+        result_merge(left, right)
+    end)
+  end
+
   ###############
   # Private API #
   ###############
@@ -177,23 +206,7 @@ defmodule Cachex.Router do
       merge_result =
         results
         |> Enum.map(&elem(&1, 1))
-        |> Enum.reduce(result, fn
-            # lists are always joined up
-            (result, acc) when is_list(acc) ->
-              acc ++ result
-
-            # numbers are always summed
-            (result, acc) when is_number(acc) ->
-              acc + result
-
-            # booleans are just and-ed
-            (result, acc) when is_boolean(acc) ->
-              acc && result
-
-            # maps are always merged
-            (result, acc) when is_map(acc) ->
-              Map.merge(acc, result)
-          end)
+        |> Enum.reduce(result, &Router.result_merge/2)
 
       # return after merge
       { :ok, merge_result }

@@ -21,7 +21,7 @@ defmodule Cachex.Actions.ExportTest do
   end
 
   # This test verifies that the distributed router correctly controls
-  # the keys?/2 action in such a way that it can clean both a local
+  # the export/2 action in such a way that it can clean both a local
   # node as well as a remote node. We don't have to check functionality
   # of the entire action; just the actual routing of the action to the
   # target node(s) is of interest here.
