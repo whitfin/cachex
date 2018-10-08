@@ -158,4 +158,38 @@ defmodule Cachex.Actions.ResetTest do
     # verify they don't reset
     assert_in_delta(stats3.meta.creation_date, ctime2, 5)
   end
+
+  # This test verifies that the distributed router correctly controls
+  # the reset/2 action in such a way that it can clean both a local
+  # node as well as a remote node. We don't have to check functionality
+  # of the entire action; just the actual routing of the action to the
+  # target node(s) is of interest here.
+  @tag distributed: true
+  test "resetting a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # retrieve the cache size, should be 2
+    { :ok, 2 } = Cachex.size(cache)
+
+    # reset just the local cache to start with
+    reset1 = Cachex.reset(cache, [ local: true ])
+    sized1 = Cachex.size(cache)
+
+    # check the local removal worked
+    assert(reset1 == { :ok, true })
+    assert(sized1 == { :ok, 1 })
+
+    # reset the rest of the cluster cached
+    reset2 = Cachex.reset(cache, [ local: false ])
+    sized2 = Cachex.size(cache)
+
+    # check the other removals worked
+    assert(reset2 == { :ok, true })
+    assert(sized2 == { :ok, 0 })
+  end
 end
