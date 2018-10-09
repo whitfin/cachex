@@ -162,4 +162,27 @@ defmodule Cachex.Actions.InspectTest do
     # check the result is an error
     assert(result == { :error, :invalid_option })
   end
+
+  # This test verifies that the inspector always runs locally. We
+  # just write a key to both nodes in a cluster, and only one inspect
+  # call should find it - due to being only routed to the local node.
+  @tag distributed: true
+  test "inspections always run on the local node" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # lookup both entries on the local node
+    { :ok, entry1 } = Cachex.inspect(cache, { :entry, 1 })
+    { :ok, entry2 } = Cachex.inspect(cache, { :entry, 2 })
+
+    # only one of them should be correctly found
+    assert(
+      (entry1 == nil && entry2 != nil) ||
+      (entry2 == nil && entry1 != nil)
+    )
+  end
 end

@@ -37,4 +37,53 @@ defmodule Cachex.Actions.DumpTest do
     assert(result5 == { :ok, 1 })
   end
 
+  # This test covers the backing up of a cache cluster to a local disk location. We
+  # basically copy the local example, except that we run it against a cluster with
+  # several nodes - the entire cluster should be backed up to the local disk.
+  @tag distributed: true
+  test "backing up a cache cluster to a local disk" do
+    # locate the temporary directory
+    tmp = System.tmp_dir!()
+
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # create a local path to write to
+    path1 = Path.join(tmp, Helper.gen_rand_bytes(8))
+    path2 = Path.join(tmp, Helper.gen_rand_bytes(8))
+
+    # dump the cache to a local file for local/remote
+    dump1 = Cachex.dump(cache, path1, [ local: true ])
+    dump2 = Cachex.dump(cache, path2, [ local: false ])
+
+    # verify the dump results
+    assert(dump1 == { :ok, true })
+    assert(dump2 == { :ok, true })
+
+    # clear the cache to remove all
+    { :ok, 2 } = Cachex.clear(cache)
+
+    # load the local cache from the disk
+    load1 = Cachex.load(cache, path1)
+    size1 = Cachex.size(cache)
+
+    # verify that the load was ok
+    assert(load1 == { :ok, true })
+    assert(size1 == { :ok, 1 })
+
+    # clear the cache again
+    { :ok, 1 } = Cachex.clear(cache)
+
+    # load the full cache from the disk
+    load2 = Cachex.load(cache, path2)
+    size2 = Cachex.size(cache)
+
+    # verify that the load was ok
+    assert(load2 == { :ok, true })
+    assert(size2 == { :ok, 2 })
+  end
 end
