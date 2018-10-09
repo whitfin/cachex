@@ -13,25 +13,17 @@ otp_release:
   - 18.3
 env:
 matrix:
-  allow_failures:
-    - env: MIX_ENV=bench
   include:
     - elixir: 1.7
       otp_release: 21.0
-      env:
-        - MIX_ENV=lint
+      script:
+        - MIX_ENV=cover mix coveralls.travis --trace
+    - elixir: 1.7
+      otp_release: 21.0
       script:
         - mix credo --all --format=oneline
     - elixir: 1.7
       otp_release: 21.0
-      env:
-        - MIX_ENV=cover
-      script:
-        - mix coveralls.travis --trace
-    - elixir: 1.7
-      otp_release: 21.0
-      env:
-        - MIX_ENV=bench
       script:
         - mix bench
   exclude:
@@ -51,6 +43,11 @@ matrix:
       otp_release: 21.0
     - elixir: 1.2
       otp_release: 20.3
+  allow_failures:
+    - elixir: 1.7
+      otp_release: 21.0
+      script:
+        - mix bench
 branches:
   only:
     - master
