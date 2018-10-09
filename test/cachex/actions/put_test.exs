@@ -63,4 +63,25 @@ defmodule Cachex.Actions.PutTest do
     # the fourth should have a TTL around 5s
     assert_in_delta(ttl4, 5000, 10)
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "adding new entries to a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # check the results of the calls across nodes
+    size1 = Cachex.size(cache, [ local: true ])
+    size2 = Cachex.size(cache, [ local: false ])
+
+    # one local, two total
+    assert(size1 == { :ok, 1 })
+    assert(size2 == { :ok, 2 })
+  end
 end

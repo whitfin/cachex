@@ -135,4 +135,26 @@ defmodule Cachex.Actions.FetchTest do
       assert Cachex.get(cache, "key1_count") == { :ok, 1 }
     end
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "fetching keys from a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes - have to make sure that we
+    # use a known function, otherwise it fails with an undefined function.
+    { :commit, "1" } = Cachex.fetch(cache, 1, &Integer.to_string/1)
+    { :commit, "2" } = Cachex.fetch(cache, 2, &Integer.to_string/1)
+
+    # try to retrieve both of the set keys
+    get1 = Cachex.get(cache, 1)
+    get2 = Cachex.get(cache, 2)
+
+    # both should come back
+    assert(get1 == { :ok, "1" })
+    assert(get2 == { :ok, "2" })
+  end
 end

@@ -25,3 +25,7 @@ Due to complications with their implementation, there are a small number of acti
 One action that is likely to never be made compatible is the `stream/3` action. This is for a couple of reasons; the first being that streaming a cache across nodes doesn't really make too much sense. It would be very complex to keep track of multiple cursors on each node in order to "stream" the cache on a single node. What's more, because a `Stream` in Elixir is essentially an anonymous function, it's not trivial to even implement a stream - each call to the stream would have to RPC (one by one) to each remote node to fetch the next value. This is of course rather expensive, and so it's recommended to simply construct a list to avoid the need to stream.
 
 As it stands, this is a full list of disabled functions. If more are added in future, they will be listed in this documentation.
+
+## Passing Functions
+
+There are a few actions in Cachex which require a function as an argument. In these scenarios you should ensure to provide a reference to a function guaranteed to exist on each node. As an example, providing an inline `fn(x) -> x * 2 end` is insufficient. You should instead name the function and provide it via `&MyModule.my_fun/1`. This is due to the naming conventions of anonymous functions and they can't be guaranteed to be the same on different nodes. Named function references are fine, because even though the anonymous binding is different, it's only passing through to a named function we can guarantee is the same.

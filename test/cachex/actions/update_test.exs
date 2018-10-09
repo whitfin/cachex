@@ -56,4 +56,29 @@ defmodule Cachex.Actions.UpdateTest do
     assert(update1 == { :ok, false })
     assert(update2 == { :ok, false })
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "updating a key in a cache cluster" do
+    # create a new cache cluster
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1, [ ttl: 500 ])
+    { :ok, true } = Cachex.put(cache, 2, 2, [ ttl: 500 ])
+
+    # run updates against both keys
+    { :ok, true } = Cachex.update(cache, 1, -1)
+    { :ok, true } = Cachex.update(cache, 2, -2)
+
+    # try to retrieve both of the set keys
+    updated1 = Cachex.get(cache, 1)
+    updated2 = Cachex.get(cache, 2)
+
+    # check the update occurred
+    assert(updated1 == { :ok, -1 })
+    assert(updated2 == { :ok, -2 })
+  end
 end

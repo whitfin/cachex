@@ -51,4 +51,25 @@ defmodule Cachex.Actions.ExistsTest do
     assert(value2 == { :ok, nil })
     assert(value3 == { :ok, nil })
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "checking if a key exists in a cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # check the results of the calls across nodes
+    exists1 = Cachex.exists?(cache, 1)
+    exists2 = Cachex.exists?(cache, 2)
+
+    # both exist in the cluster
+    assert(exists1 == { :ok, true })
+    assert(exists2 == { :ok, true })
+  end
 end

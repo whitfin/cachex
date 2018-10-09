@@ -63,4 +63,29 @@ defmodule Cachex.Actions.ExpireTest do
     assert(ttl3 == { :ok, nil })
     assert(ttl4 == { :ok, nil })
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "setting a key to expire after a given period in a cluster" do
+    # create a new cache cluster
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # set expirations on both keys
+    { :ok, true } = Cachex.expire(cache, 1, 5000)
+    { :ok, true } = Cachex.expire(cache, 2, 5000)
+
+    # check the expiration of each key in the cluster
+    { :ok, expiration1 } = Cachex.ttl(cache, 1)
+    { :ok, expiration2 } = Cachex.ttl(cache, 2)
+
+    # both have an expiration
+    assert(expiration1 != nil)
+    assert(expiration2 != nil)
+  end
 end

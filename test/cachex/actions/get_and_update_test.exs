@@ -93,4 +93,29 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     # TTL should be maintained
     assert_in_delta(ttl1, 965, 11)
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "retrieving and updated cache records in a cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # update both keys with a known function name
+    { :commit, "1" } = Cachex.get_and_update(cache, 1, &Integer.to_string/1)
+    { :commit, "2" } = Cachex.get_and_update(cache, 2, &Integer.to_string/1)
+
+    # try to retrieve both of the set keys
+    get1 = Cachex.get(cache, 1)
+    get2 = Cachex.get(cache, 2)
+
+    # both should come back
+    assert(get1 == { :ok, "1" })
+    assert(get2 == { :ok, "2" })
+  end
 end

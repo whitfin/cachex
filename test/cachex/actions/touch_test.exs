@@ -74,4 +74,48 @@ defmodule Cachex.Actions.TouchTest do
     # it should be roughly 945ms left
     assert_in_delta(ttl5, 940, 11)
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "adding new entries to a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # wait a little
+    :timer.sleep(10)
+
+    # pull back the records inserted so far
+    { :ok, export1 } = Cachex.export(cache)
+
+    # sort to guarantee we're checking well
+    [ record1, record2 ] = Enum.sort(export1)
+
+    # unpack the records touch time
+    entry(touched: touched1) = record1
+    entry(touched: touched2) = record2
+
+    # now touch both keys
+    { :ok, true } = Cachex.touch(cache, 1)
+    { :ok, true } = Cachex.touch(cache, 2)
+
+    # pull back the records after the touchs
+    { :ok, export2 } = Cachex.export(cache)
+
+    # sort to guarantee we're checking well
+    [ record3, record4 ] = Enum.sort(export2)
+
+    # unpack the records touch time
+    entry(touched: touched3) = record3
+    entry(touched: touched4) = record4
+
+    # new touched should be larger than old
+    assert(touched3 > touched1)
+    assert(touched4 > touched2)
+  end
 end

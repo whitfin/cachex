@@ -75,4 +75,15 @@ defmodule Cachex.Actions.StreamTest do
     # verify the stream fails
     assert(result == { :error, :invalid_match })
   end
+
+  # This test verifies that this action is correctly disabled in a cluster,
+  # as it's currently unsupported - so just check for disabled flags.
+  @tag distributed: true
+  test "streaming is disabled in a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we shouldn't be able to stream a cache on multiple nodes
+    assert(Cachex.stream(cache) == { :error, :non_distributed })
+  end
 end

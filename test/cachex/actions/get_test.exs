@@ -44,4 +44,25 @@ defmodule Cachex.Actions.GetTest do
     # check we received valid purge actions for the TTL
     assert_receive({ { :purge, [[]] }, { :ok, 1 } })
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "retrieving keys from a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, 1)
+    { :ok, true } = Cachex.put(cache, 2, 2)
+
+    # try to retrieve both of the set keys
+    get1 = Cachex.get(cache, 1)
+    get2 = Cachex.get(cache, 2)
+
+    # both should come back
+    assert(get1 == { :ok, 1 })
+    assert(get2 == { :ok, 2 })
+  end
 end

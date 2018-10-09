@@ -108,6 +108,31 @@ defmodule Cachex.Actions.InvokeTest do
     assert(invoke3 == { :error, :invalid_command })
   end
 
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "invoking commands in a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2, [
+      commands: [
+        last: command(type: :read, execute: &List.last/1)
+      ]
+    ])
+
+    # we know that 1 & 2 hash to different nodes
+    { :ok, true } = Cachex.put(cache, 1, [ 1, 2, 3 ])
+    { :ok, true } = Cachex.put(cache, 2, [ 4, 5, 6 ])
+
+    # check the results from both keys in the nodes
+    last1 = Cachex.invoke(cache, :last, 1)
+    last2 = Cachex.invoke(cache, :last, 2)
+
+    # check the command results
+    assert(last1 == { :ok, 3 })
+    assert(last2 == { :ok, 6 })
+  end
+
   # A simple left pop for a List to remove the head and return the tail as the
   # modified list. This functions assumes the value is always a List.
   defp lpop([ head | tail ]),

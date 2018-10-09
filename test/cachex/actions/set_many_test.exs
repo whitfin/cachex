@@ -36,4 +36,38 @@ defmodule Cachex.Actions.SetManyTest do
     assert_in_delta(result6, 5000, 10)
     assert_in_delta(result7, 5000, 10)
   end
+
+  # This test verifies that this action is correctly distributed across
+  # a cache cluster, instead of just the local node. We're not concerned
+  # about the actual behaviour here, only the routing of the action.
+  @tag distributed: true
+  test "adding new entries to a cache cluster" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 2 & 3 hash to the same slots
+    { :ok, true } = Cachex.set_many(cache, [ { 2, 2 }, { 3, 3 } ])
+
+    # try to retrieve both of the set keys
+    get1 = Cachex.get(cache, 2)
+    get2 = Cachex.get(cache, 3)
+
+    # both should come back
+    assert(get1 == { :ok, 2 })
+    assert(get2 == { :ok, 3 })
+  end
+
+  # This test verifies that all keys in a set_many/3 must hash to the
+  # same slot in a cluster, otherwise a cross_slot error will occur.
+  @tag distributed: true
+  test "multiple slots will return a :cross_slot error" do
+    # create a new cache cluster for cleaning
+    { cache, _nodes } = Helper.create_cache_cluster(2)
+
+    # we know that 1 & 3 don't hash to the same slots
+    set_many = Cachex.set_many(cache, [ { 1, 1 }, { 3, 3 } ])
+
+    # so there should be an error
+    assert(set_many == { :error, :cross_slot })
+  end
 end

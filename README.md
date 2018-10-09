@@ -125,7 +125,7 @@ If you feel something can be improved, or have any questions about certain behav
 If you *do* make changes to the codebase, please make sure you test your changes thoroughly, and include any unit tests alongside new or changed behaviours. Cachex currently uses the excellent [excoveralls](https://github.com/parroty/excoveralls) to track code coverage.
 
 ```bash
-$ mix test
+$ mix test # --exclude=distributed to skip slower tests
 $ mix credo
 $ mix coveralls
 $ mix coveralls.html && open cover/excoveralls.html
