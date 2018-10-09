@@ -19,6 +19,12 @@ matrix:
     - elixir: 1.7
       otp_release: 21.0
       env:
+        - MIX_ENV=bench
+      script:
+        - mix bench
+    - elixir: 1.7
+      otp_release: 21.0
+      env:
         - MIX_ENV=cover
       script:
         - mix coveralls.travis --trace
@@ -28,12 +34,6 @@ matrix:
         - MIX_ENV=lint
       script:
         - mix credo --all --format=oneline
-    - elixir: 1.7
-      otp_release: 21.0
-      env:
-        - MIX_ENV=bench
-      script:
-        - mix bench
   exclude:
     - elixir: 1.7
       otp_release: 18.3
