@@ -4,6 +4,7 @@ defmodule Cachex.Actions.Clear do
   #
   # Clearing a cache means removing all items from inside the cache, regardless
   # of whether they should have been evicted or not.
+  alias Cachex.Actions.Size
   alias Cachex.Services.Locksmith
 
   # import needed macros
@@ -22,16 +23,11 @@ defmodule Cachex.Actions.Clear do
   This action executes inside a transaction to ensure that there are no keys under
   a lock - thus ensuring consistency (any locks are executed sequentially).
   """
-  def execute(cache(name: name) = cache, options) do
+  def execute(cache(name: name) = cache, _options) do
     Locksmith.transaction(cache, [], fn ->
-      options =
-        options
-        |> Keyword.take([ :local ])
-        |> Enum.concat(const(:notify_false))
-
       evicted =
         cache
-        |> Cachex.size(options)
+        |> Size.execute([])
         |> handle_evicted
 
       true = :ets.delete_all_objects(name)

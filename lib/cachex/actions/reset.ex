@@ -52,14 +52,9 @@ defmodule Cachex.Actions.Reset do
   # A cache is only emptied if the `:cache` property appears in the list of
   # cache components to reset. If not provided, this will short circut and
   # leave the cache table exactly as-is.
-  defp reset_cache(cache, only, options) do
+  defp reset_cache(cache, only, _options) do
     with true <- :cache in only do
-      options =
-        options
-        |> Keyword.take([ :local ])
-        |> Enum.concat(const(:notify_false))
-
-      Clear.execute(cache, options)
+      Clear.execute(cache, [])
     end
   end
 

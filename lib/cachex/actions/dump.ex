@@ -7,6 +7,7 @@ defmodule Cachex.Actions.Dump do
   #
   # Backups can be imported again using the `load()` command, and should be
   # able to be transferred between processes and physical nodes.
+  alias Cachex.Actions.Export
   alias Cachex.Disk
 
   # import our macros
@@ -31,9 +32,8 @@ defmodule Cachex.Actions.Dump do
   the default compression, but the file size will increase dramatically.
   """
   def execute(cache() = cache, path, options) do
-    eopts = Keyword.take(options, [ :local ])
     cache
-    |> Cachex.export(eopts)
+    |> Export.execute([])
     |> Kernel.elem(1)
     |> Disk.write(path, options)
   end

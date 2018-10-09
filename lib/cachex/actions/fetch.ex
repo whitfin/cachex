@@ -9,6 +9,7 @@ defmodule Cachex.Actions.Fetch do
   # If the fetch function is not provided, the `fetch()` command will try to lookup
   # a default fetch function from the cache state and use that instead. If neither
   # exist, an error will be returned.
+  alias Cachex.Actions.Get
   alias Cachex.Services.Courier
 
   # provide needed macros
@@ -29,7 +30,7 @@ defmodule Cachex.Actions.Fetch do
   placed in the cache in order to allow read-through caches.
   """
   def execute(cache() = cache, key, fallback, _options) do
-    with { :ok, nil } <- Cachex.get(cache, key, const(:notify_false)) do
+    with { :ok, nil } <- Get.execute(cache, key, []) do
       Courier.dispatch(cache, key, generate_task(cache, fallback, key))
     end
   end

@@ -8,6 +8,7 @@ defmodule Cachex.Actions.Touch do
   # systems without breaking expiration based constracts.
   alias Cachex.Actions
   alias Cachex.Services.Locksmith
+  alias Actions.Ttl
 
   # we need our imports
   import Cachex.Spec
@@ -27,7 +28,7 @@ defmodule Cachex.Actions.Touch do
   def execute(cache() = cache, key, _options) do
     Locksmith.transaction(cache, [ key ], fn ->
       cache
-      |> Cachex.ttl(key, const(:notify_false))
+      |> Ttl.execute(key, [])
       |> handle_ttl(cache, key)
     end)
   end
