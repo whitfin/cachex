@@ -19,9 +19,9 @@ matrix:
     - elixir: 1.7
       otp_release: 21.0
       env:
-        - MIX_ENV=bench
+        - MIX_ENV=lint
       script:
-        - mix bench
+        - mix credo --all --format=oneline
     - elixir: 1.7
       otp_release: 21.0
       env:
@@ -31,9 +31,9 @@ matrix:
     - elixir: 1.7
       otp_release: 21.0
       env:
-        - MIX_ENV=lint
+        - MIX_ENV=bench
       script:
-        - mix credo --all --format=oneline
+        - mix bench
   exclude:
     - elixir: 1.7
       otp_release: 18.3
