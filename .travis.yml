@@ -1,4 +1,7 @@
 language: elixir
+os:
+  - linux
+  - osx
 elixir:
   - 1.7
   - 1.6
