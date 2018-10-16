@@ -996,7 +996,7 @@ defmodule Cachex do
     * `:ttl`
 
       </br>
-      An expiration time to set for the provided key (time-to-line), overriding
+      An expiration time to set for the provided key (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
 
   ## Examples
@@ -1027,7 +1027,7 @@ defmodule Cachex do
     * `:ttl`
 
       </br>
-      An expiration time to set for the provided keys (time-to-line), overriding
+      An expiration time to set for the provided keys (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
 
   ## Examples
