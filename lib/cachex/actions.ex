@@ -83,14 +83,14 @@ defmodule Cachex.Actions do
   as a `:commit` Tuple.
   """
   defmacro normalize_commit(value) do
-    quote do
-      case unquote(value) do
+    quote bind_quoted: [value: value] do
+      case value do
         { :error, _value } ->
-          unquote(value)
+          value
         { :commit, _value } ->
-          unquote(value)
+          value
         { :ignore, _value } ->
-          unquote(value)
+          value
         raw_value ->
           { :commit, raw_value }
       end
