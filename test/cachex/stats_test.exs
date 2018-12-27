@@ -432,8 +432,9 @@ defmodule Cachex.StatsTest do
   # module, so please refer to those tests for any issues with counters.
   test "retrieving the state of a stats hook" do
     # create a test cache
-    cache = Helper.create_cache([ stats: true ])
-    cache = Services.Overseer.retrieve(cache)
+    cache =
+      Helper.create_cache([ stats: true ])
+      |> Services.Overseer.retrieve()
 
     # retrieve the current time
     ctime = now()

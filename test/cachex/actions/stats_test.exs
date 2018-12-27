@@ -76,10 +76,10 @@ defmodule Cachex.Actions.StatsTest do
     stats4 = Cachex.stats!(cache4)
 
     # remove the metadata from the stats
-    stats1 = Map.delete(stats1, :meta)
-    stats2 = Map.delete(stats2, :meta)
-    stats3 = Map.delete(stats3, :meta)
-    stats4 = Map.delete(stats4, :meta)
+    _stats1 = Map.delete(stats1, :meta)
+    _stats2 = Map.delete(stats2, :meta)
+    _stats3 = Map.delete(stats3, :meta)
+    _stats4 = Map.delete(stats4, :meta)
 
     # verify a 100% miss rate for cache1
     assert(stats1 == %{
