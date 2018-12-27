@@ -90,7 +90,11 @@ defmodule Cachex.Actions.StatsTest do
       operations: 1,
       calls: %{
         get: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      writes: 0,
+      updates: 0
     })
 
     # verify a 100% hit rate for cache2
@@ -104,7 +108,10 @@ defmodule Cachex.Actions.StatsTest do
       calls: %{
         get: 1,
         put: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      updates: 0
     })
 
     # verify a 50% hit rate for cache3
@@ -118,7 +125,10 @@ defmodule Cachex.Actions.StatsTest do
       calls: %{
         get: 2,
         put: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      updates: 0
     })
 
     # verify a load count for cache4
@@ -132,7 +142,10 @@ defmodule Cachex.Actions.StatsTest do
       writes: 1,
       calls: %{
         fetch: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      updates: 0
     })
   end
 

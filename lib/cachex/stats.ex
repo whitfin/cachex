@@ -29,6 +29,25 @@ defmodule Cachex.Stats do
     :update
   ]
 
+  @type t() :: %{
+    calls: %{required(atom) => pos_integer()},
+    evictions: pos_integer(),
+    expirations: pos_integer(),
+    hit_rate: float(),
+    hits: pos_integer(),
+    invocations: %{required(atom) => pos_integer()},
+    meta: meta(),
+    miss_rate: float(),
+    misses: pos_integer(),
+    operations: %{required(atom) => pos_integer()},
+    updates: pos_integer(),
+    writes: pos_integer()
+  }
+
+  @type meta() :: %{
+    creation_date: pos_integer()
+  }
+
   ##############
   # Public API #
   ##############
@@ -50,7 +69,7 @@ defmodule Cachex.Stats do
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec retrieve(Spec.cache) :: %{ }
+  @spec retrieve(Spec.cache) :: {:ok, t()} | {:error, :stats_disabled}
   def retrieve(cache(name: name) = cache) do
     case enabled?(cache) do
       false -> error(:stats_disabled)
@@ -71,8 +90,21 @@ defmodule Cachex.Stats do
   # The `:creationDate` field is set inside the `:meta` field to contain the date
   # at which the statistics container was first created (which is more of less
   # equivalent to the start time of the cache).
-  def init(_options),
-    do: { :ok, %{ meta: %{ creation_date: now() } } }
+  def init(_options) do
+    initial_state = %{
+      evictions: 0,
+      expirations: 0,
+      hits: 0,
+      misses: 0,
+      operations: 0,
+      updates: 0,
+      writes: 0,
+      meta: %{ creation_date: now() },
+      calls: %{ }
+    }
+
+    {:ok, initial_state}
+  end
 
   @doc false
   # Retrieves the current stats container.

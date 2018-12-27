@@ -29,7 +29,11 @@ defmodule Cachex.StatsTest do
       calls: %{
         clear: 1,
         put: 5
-      }
+      },
+      expirations: 0,
+      hits: 0,
+      misses: 0,
+      updates: 0
     })
   end
 
@@ -60,7 +64,11 @@ defmodule Cachex.StatsTest do
       calls: %{
         del: 2,
         put: 2
-      }
+      },
+      expirations: 0,
+      hits: 0,
+      misses: 0,
+      updates: 0
     })
   end
 
@@ -92,7 +100,10 @@ defmodule Cachex.StatsTest do
       calls: %{
         exists?: 2,
         put: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      updates: 0
     })
   end
 
@@ -123,7 +134,10 @@ defmodule Cachex.StatsTest do
       calls: %{
         get: 2,
         put: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      updates: 0
     })
   end
 
@@ -157,7 +171,10 @@ defmodule Cachex.StatsTest do
       calls: %{
         fetch: 3,
         put: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      updates: 0
     })
   end
 
@@ -188,7 +205,11 @@ defmodule Cachex.StatsTest do
       calls: %{
         incr: 2,
         decr: 2
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      hits: 0,
+      misses: 0
     })
   end
 
@@ -239,7 +260,9 @@ defmodule Cachex.StatsTest do
         invoke: 2,
         put: 1,
         update: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0
     })
   end
 
@@ -273,7 +296,10 @@ defmodule Cachex.StatsTest do
       calls: %{
         purge: 1,
         put: 5
-      }
+      },
+      hits: 0,
+      misses: 0,
+      updates: 0
     })
   end
 
@@ -298,7 +324,12 @@ defmodule Cachex.StatsTest do
       writes: 5,
       calls: %{
         put: 5
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      hits: 0,
+      misses: 0,
+      updates: 0
     })
   end
 
@@ -322,7 +353,12 @@ defmodule Cachex.StatsTest do
       writes: 5,
       calls: %{
         put_many: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      hits: 0,
+      misses: 0,
+      updates: 0
     })
   end
 
@@ -356,7 +392,9 @@ defmodule Cachex.StatsTest do
       calls: %{
         put: 1,
         take: 2
-      }
+      },
+      expirations: 0,
+      updates: 0
     })
   end
 
@@ -380,7 +418,11 @@ defmodule Cachex.StatsTest do
       calls: %{
         put: 1,
         touch: 1
-      }
+      },
+      evictions: 0,
+      expirations: 0,
+      hits: 0,
+      misses: 0
     })
   end
 
