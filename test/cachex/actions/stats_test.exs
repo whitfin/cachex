@@ -70,16 +70,10 @@ defmodule Cachex.Actions.StatsTest do
     { :commit, 1 } = Cachex.fetch(cache4, 1, &(&1))
 
     # retrieve all cache rates
-    stats1 = Cachex.stats!(cache1)
-    stats2 = Cachex.stats!(cache2)
-    stats3 = Cachex.stats!(cache3)
-    stats4 = Cachex.stats!(cache4)
-
-    # remove the metadata from the stats
-    _stats1 = Map.delete(stats1, :meta)
-    _stats2 = Map.delete(stats2, :meta)
-    _stats3 = Map.delete(stats3, :meta)
-    _stats4 = Map.delete(stats4, :meta)
+    stats1 = stats_no_meta(cache1)
+    stats2 = stats_no_meta(cache2)
+    stats3 = stats_no_meta(cache3)
+    stats4 = stats_no_meta(cache4)
 
     # verify a 100% miss rate for cache1
     assert(stats1 == %{
@@ -181,5 +175,12 @@ defmodule Cachex.Actions.StatsTest do
     assert(stats2.calls.put == 2)
     assert(stats2.operations == 5)
     assert(stats2.hit_rate == 50.0)
+  end
+
+  # Retrieves stats with no :meta field
+  defp stats_no_meta(cache) do
+    with { :ok, stats } <- Cachex.stats(cache) do
+      Map.delete(stats, :meta)
+    end
   end
 end
