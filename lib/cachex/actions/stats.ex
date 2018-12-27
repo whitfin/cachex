@@ -46,24 +46,18 @@ defmodule Cachex.Actions.Stats do
   # This will generate hit/miss rates as floats, even when they're integer
   # values to ensure consistency. This is separated out to easily handle the
   # potential to divide values by 0, avoiding a crash in the application.
-  defp generate_rates(_reqs, 0, misses),
+  defp generate_rates(_reqs, 0, _misses),
     do: %{
-      hits: 0,
-      misses: misses,
       hit_rate: 0.0,
       miss_rate: 100.0
     }
-  defp generate_rates(_reqs, hits, 0),
+  defp generate_rates(_reqs, _hits, 0),
     do: %{
-      hits: hits,
-      misses: 0,
       hit_rate: 100.0,
       miss_rate: 0.0
     }
   defp generate_rates(reqs, hits, misses),
     do: %{
-      hits: hits,
-      misses: misses,
       hit_rate: (hits / reqs) * 100,
       miss_rate: (misses / reqs) * 100
     }
