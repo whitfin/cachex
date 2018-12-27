@@ -30,18 +30,18 @@ defmodule Cachex.Stats do
   ]
 
   @type t() :: %{
-    calls: %{required(atom) => pos_integer()},
-    evictions: pos_integer(),
-    expirations: pos_integer(),
+    calls: %{required(atom) => non_neg_integer()},
+    evictions: non_neg_integer(),
+    expirations: non_neg_integer(),
     hit_rate: float(),
-    hits: pos_integer(),
-    invocations: %{required(atom) => pos_integer()},
+    hits: non_neg_integer(),
+    invocations: %{required(atom) => non_neg_integer()},
     meta: meta(),
     miss_rate: float(),
-    misses: pos_integer(),
-    operations: %{required(atom) => pos_integer()},
-    updates: pos_integer(),
-    writes: pos_integer()
+    misses: non_neg_integer(),
+    operations: %{required(atom) => non_neg_integer()},
+    updates: non_neg_integer(),
+    writes: non_neg_integer()
   }
 
   @type meta() :: %{
