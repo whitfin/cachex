@@ -620,7 +620,7 @@ defmodule Cachex do
    ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.list(:my_cache)
+      iex> Cachex.export(:my_cache)
       { :ok, [ { :entry, "key", 1538714590095, nil, "value" } ] }
 
   """
