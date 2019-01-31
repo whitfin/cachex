@@ -40,10 +40,10 @@ defmodule Cachex.Services.Overseer do
   def start_link do
     ets_opts = [ read_concurrency: true, write_concurrency: true ]
     tab_opts = [ @table_name, ets_opts, [ quiet: true ] ]
-    svr_opts = [ fn -> :ok end, [ name: @manager_name ] ]
+    mgr_opts = [ 1, [ name: @manager_name ] ]
 
     children = [
-      Spec.worker(Agent, svr_opts),
+      Spec.worker(:sleeplocks, mgr_opts),
       Spec.supervisor(Eternal, tab_opts)
     ]
 
@@ -105,15 +105,8 @@ defmodule Cachex.Services.Overseer do
   Carries out a transaction against the state table.
   """
   @spec transaction(atom, (() -> any)) :: any
-  def transaction(name, fun) when is_atom(name) and is_function(fun, 0) do
-    Agent.get(@manager_name, fn(cache) ->
-      try do
-        fun.()
-      rescue
-        _ -> cache
-      end
-    end)
-  end
+  def transaction(name, fun) when is_atom(name) and is_function(fun, 0),
+    do: :sleeplocks.execute(@manager_name, fun)
 
   @doc """
   Unregisters a cache record against a name.

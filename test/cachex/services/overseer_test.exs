@@ -125,33 +125,4 @@ defmodule Cachex.OverseerTest do
     # now we need to make sure our state was forwarded
     assert_receive({ :cache, ^update2 })
   end
-
-  # Because the updates execute inside an Agent, we need to make sure that we
-  # don't just crash on an error when updating the state. This test will just
-  # ensure that raised errors are caught successfully and don't cause a bad state
-  # inside the state table.
-  test "updating a state catches errors" do
-    # grab a state name
-    name = Helper.create_name()
-
-    # create our state
-    state = cache(name: name)
-
-    # set our state in the table
-    Services.Overseer.register(name, state)
-
-    # ensure that the state exists
-    assert(Services.Overseer.known?(name))
-
-    # begin a bad update on the table
-    Services.Overseer.update(name, fn(_) ->
-      raise ArgumentError
-    end)
-
-    # pull back the state from the table
-    result = Services.Overseer.retrieve(name)
-
-    # ensure that the state has persisted
-    assert(result == state)
-  end
 end

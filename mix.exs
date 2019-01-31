@@ -92,9 +92,10 @@ defmodule Cachex.Mixfile do
   defp deps do
     [
       # Production dependencies
-      { :eternal, "~> 1.2" },
-      { :jumper,  "~> 1.0" },
-      { :unsafe,  "~> 1.0" },
+      { :eternal,     "~> 1.2" },
+      { :jumper,      "~> 1.0" },
+      { :sleeplocks,  "~> 1.1" },
+      { :unsafe,      "~> 1.0" },
       # Testing dependencies
       { :excoveralls,   "~> 0.8", optional: true, only: [ :cover ] },
       { :local_cluster, "~> 1.0", optional: true, only: [ :cover, :test ] },
