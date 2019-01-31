@@ -52,5 +52,4 @@ defmodule Cachex.Actions.LoadTest do
     # verify the result failed
     assert(result7 == { :error, :unreachable_file })
   end
-
 end

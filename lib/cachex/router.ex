@@ -156,9 +156,9 @@ defmodule Cachex.Router do
 
   # actions which merge outputs
   @merge_actions [
-    :clear, :count, :empty?,  :export,
-    :keys,  :purge, :reset,   :size,
-    :stats
+    :clear,  :count, :empty?, :export,
+    :import, :keys,  :purge,  :reset,
+    :size,   :stats
   ]
 
   # Provides handling of cross-node actions distributed over remote nodes.
