@@ -1317,8 +1317,7 @@ defmodule Cachex do
       { :ok, nil }
 
   """
-  @spec ttl(cache, any, Keyword.t) :: { status, number |
-  nil}
+  @spec ttl(cache, any, Keyword.t) :: { status, integer | nil }
   def ttl(cache, key, options \\ []) when is_list(options),
     do: Router.call(cache, { :ttl, [ key, options ] })
 
