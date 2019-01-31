@@ -625,7 +625,7 @@ defmodule Cachex do
       { :ok, [ { :entry, "key", 1538714590095, nil, "value" } ] }
 
   """
-  @spec export(cache, Keyword.t) :: { status, [ cache ] }
+  @spec export(cache, Keyword.t) :: { status, [ Spec.entry ] }
   def export(cache, options \\ []) when is_list(options),
     do: Router.call(cache, { :export, [ options ] })
 
@@ -770,7 +770,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec import(cache, [ Spec.entry ], Keyword.t) :: { status, [ cache ] }
+  @spec import(cache, [ Spec.entry ], Keyword.t) :: { status, any }
   def import(cache, entries, options \\ [])
   when is_list(entries) and is_list(options),
     do: Router.call(cache, { :import, [ entries, options ] })
