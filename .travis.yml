@@ -2,6 +2,7 @@ language: elixir
 os:
   - linux
 elixir:
+  - 1.8
   - 1.7
   - 1.6
   - 1.5
@@ -9,45 +10,47 @@ elixir:
   - 1.3
   - 1.2
 otp_release:
-  - 21.0
+  - 21.2
   - 20.3
   - 19.3
   - 18.3
 env:
 matrix:
   include:
-    - elixir: 1.7
-      otp_release: 21.0
+    - elixir: 1.8
+      otp_release: 21.2
       script:
         - MIX_ENV=cover mix coveralls.travis --trace
-    - elixir: 1.7
-      otp_release: 21.0
+    - elixir: 1.8
+      otp_release: 21.2
       script:
         - mix credo --all --format=oneline
-    - elixir: 1.7
-      otp_release: 21.0
+    - elixir: 1.8
+      otp_release: 21.2
       script:
         - mix bench
   exclude:
+    - elixir: 1.8
+      otp_release: 18.3
     - elixir: 1.7
       otp_release: 18.3
     - elixir: 1.6
       otp_release: 18.3
     - elixir: 1.5
-      otp_release: 21.0
+      otp_release: 21.2
     - elixir: 1.4
-      otp_release: 21.0
+      otp_release: 21.2
     - elixir: 1.3
-      otp_release: 21.0
+      otp_release: 21.2
     - elixir: 1.3
       otp_release: 20.3
     - elixir: 1.2
-      otp_release: 21.0
+      otp_release: 21.2
     - elixir: 1.2
       otp_release: 20.3
   allow_failures:
-    - elixir: 1.7
-      otp_release: 21.0
+    - elixir: 1.8
+      otp_release: 21.2
       script:
         - mix bench
 branches:
