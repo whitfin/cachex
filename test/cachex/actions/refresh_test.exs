@@ -57,7 +57,7 @@ defmodule Cachex.Actions.RefreshTest do
     assert(ttl3 == nil)
 
     # the second TTL should be reset to 1000
-    assert_in_delta(ttl4, 995, 6)
+    assert_in_delta(ttl4, 995, 10)
   end
 
   # This test verifies that this action is correctly distributed across
