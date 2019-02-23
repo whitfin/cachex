@@ -31,6 +31,8 @@ matrix:
         - mix bench
   exclude:
     - elixir: 1.8
+      otp_release: 19.3
+    - elixir: 1.8
       otp_release: 18.3
     - elixir: 1.7
       otp_release: 18.3
