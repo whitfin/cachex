@@ -69,7 +69,6 @@ defmodule Cachex do
     del:               [ 2, 3 ],
     dump:              [ 2, 3 ],
     empty?:            [ 1, 2 ],
-    execute:           [ 2, 3 ],
     exists?:           [ 2, 3 ],
     expire:            [ 3, 4 ],
     expire_at:         [ 3, 4 ],
@@ -529,10 +528,10 @@ defmodule Cachex do
       ...>   val2 = Cachex.get!(worker, "key2")
       ...>   [val1, val2]
       ...> end)
-      { :ok, [ "value1", "value2" ] }
+      [ "value1", "value2" ]
 
   """
-  @spec execute(cache, function, Keyword.t) :: { status, any }
+  @spec execute(cache, function, Keyword.t) :: {:error, :no_cache} | any
   def execute(cache, operation, options \\ [])
   when is_function(operation, 1) and is_list(options) do
     Overseer.enforce(cache) do
