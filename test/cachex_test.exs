@@ -177,10 +177,10 @@ defmodule CachexTest do
     assert(is_even(length(definitions)))
 
     # verify the size to cause errors on addition/removal
-    assert(length(definitions) == 150)
+    assert(length(definitions) == 152)
 
     # validate all definitions
-    for { name, arity } <- definitions, name != :execute do
+    for { name, arity } <- definitions do
       # create name as string
       name_st = "#{name}"
 
