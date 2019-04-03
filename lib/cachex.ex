@@ -579,7 +579,7 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec expire(cache, any, number, Keyword.t) :: { status, boolean }
+  @spec expire(cache, any, number | nil, Keyword.t) :: { status, boolean }
   def expire(cache, key, expiration, options \\ [])
   when (is_nil(expiration) or is_number(expiration)) and is_list(options),
     do: Router.call(cache, { :expire, [ key, expiration, options ] })
@@ -677,7 +677,7 @@ defmodule Cachex do
       { :commit, "yek_gnissim" }
 
   """
-  @spec fetch(cache, any, function, Keyword.t) :: { status | :commit | :ignore, any }
+  @spec fetch(cache, any, function | nil, Keyword.t) :: { status | :commit | :ignore, any }
   def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
     Overseer.enforce(cache) do
       case fallback || fallback(cache(cache, :fallback), :default) do
