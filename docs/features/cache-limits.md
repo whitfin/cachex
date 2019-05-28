@@ -29,7 +29,7 @@ limit(
   reclaim: 0.1,
   # options to pass to the policy
   options: []
-}
+)
 ```
 
 To expound a little on the above, it defines that the cache should aim to store no more than `500` entries (which is user defined). If the cache key space goes above this number, it should evict `50` of the entries in the cache as chosen by the provided `:policy`. The amount `50` is dictated by the `:reclaim` option, which is essentially a percentage of the cache to evict on hitting the bounds. This value much match `1 >= value >= 0` in order to be accepted and override the default (due to being a percentage).
