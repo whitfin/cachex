@@ -27,7 +27,7 @@ Cachex.start_link(:my_cache, [ fallback: fallback(action: &do_something/2, state
 # fallbacks are always provided with the state, even at call time
 Cachex.fetch(:my_cache, "key", fn(key, db_conn) ->
   case Database.load_package(db_conn) do
-    { :ok, packages } -> { :commit, package }
+    { :ok, packages } -> { :commit, packages }
     { :error, _reason } = error -> { :ignore, error }
   end
 end)
