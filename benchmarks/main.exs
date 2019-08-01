@@ -98,18 +98,20 @@ benchmarks = %{
 }
 
 Benchee.run(benchmarks, [
-  console: [
-    comparison: false,
-    extended_statistics: true
-  ],
   formatters: [
-    Benchee.Formatters.Console,
-    Benchee.Formatters.HTML
-  ],
-  formatter_options: [
-    html: [
-      auto_open: false
-    ]
+    {
+      Benchee.Formatters.Console,
+      [
+        comparison: false,
+        extended_statistics: true
+      ]
+    },
+    {
+      Benchee.Formatters.HTML,
+      [
+        auto_open: false
+      ]
+    }
   ],
   print: [
     fast_warning: false

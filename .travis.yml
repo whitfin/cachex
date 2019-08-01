@@ -1,6 +1,11 @@
+# Language flags.
 language: elixir
+
+# OS matrix.
 os:
   - linux
+
+# Version matrix (language).
 elixir:
   - 1.9
   - 1.8
@@ -10,14 +15,18 @@ elixir:
   - 1.4
   - 1.3
   - 1.2
+
+# Version matrix (OTP).
 otp_release:
   - 22.0
   - 21.3
   - 20.3
   - 19.3
   - 18.3
-env:
+
+# Matrix modifications.
 matrix:
+  # Additional builds.
   include:
     - elixir: 1.9
       otp_release: 22.0
@@ -31,6 +40,8 @@ matrix:
       otp_release: 22.0
       script:
         - mix bench
+
+  # Incompatible pairs.
   exclude:
     - elixir: 1.9
       otp_release: 19.3
@@ -75,17 +86,21 @@ matrix:
     - elixir: 1.2
       otp_release: 18.3
   allow_failures:
-    - elixir: 1.8
-      otp_release: 21.3
+    - elixir: 1.9
+      otp_release: 22.0
       script:
         - mix bench
 branches:
   only:
     - master
+
+# Environment setup.
 before_install:
   - epmd -daemon
   - mix local.hex --force
   - mix local.rebar --force
   - mix deps.get
+
+# Test commands.
 script:
   - mix test --trace
