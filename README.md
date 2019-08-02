@@ -88,11 +88,29 @@ The typical use of Cachex is to set up using a Supervisor, so that it can be han
 
 ```elixir
 Supervisor.start_link(
-  [ worker(Cachex, [:my_cache, []]) ]
+  [Supervisor.Spec.worker(Cachex, [:my_cache, []])]
 )
 ```
 
-If you wish to start it manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
+If your application was generated with a supervisor (by passing `--sup` to `mix new`) you will have a `lib/my_app/application.ex`
+file containing the application start callback that defines and starts your supervisor.
+You just need to edit the `start/2` function to start Cachex as a supervisor on your application's supervisor:
+
+```elixir
+import Supervisor.Spec, only: [worker: 2]
+
+def start(_type, _args) do
+  children = [
+    ...,
+    worker(Cachex, [:my_cache, []])
+  ]
+
+  opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+  Supervisor.start_link(children, opts)
+end
+```
+
+Also, if you wish to start it manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
 
 ```elixir
 Cachex.start_link(:my_cache, [])
