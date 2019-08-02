@@ -108,15 +108,17 @@ There are some very trivial benchmarks available using [Benchee](https://github.
 # default benchmarks, no modifiers
 $ mix bench
 
+# enable underlying table compression
+$ CACHEX_BENCH_COMPRESS=true mix bench
+
 # use a state instead of a cache name
 $ CACHEX_BENCH_STATE=true mix bench
 
 # use a lock write context for all writes
 $ CACHEX_BENCH_TRANSACTIONS=true mix bench
-
-# use both a state and lock write context
-$ CACHEX_BENCH_STATE=true CACHEX_BENCH_TRANSACTIONS=true mix bench
 ```
+
+Any combination of these environment variables is also possible, to allow you to test and benchmark your specific workflows.
 
 ## Contributions
 
