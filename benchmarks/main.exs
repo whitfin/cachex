@@ -16,19 +16,23 @@ Cachex.put(:bench_cache, "gad_test", "gad_value")
 Cachex.put(:bench_cache, "incr_test", 0)
 Cachex.put(:bench_cache, "persist_test", 0)
 Cachex.put(:bench_cache, "refresh_test", "refresh_value", ttl: one_hour)
+Cachex.put(:bench_cache, "touch_test", "touch_value", ttl: one_hour)
 Cachex.put(:bench_cache, "ttl_test", "ttl_value", ttl: one_hour)
 Cachex.put(:bench_cache, "update_test", "update_value")
 
-use_state = System.get_env("CACHEX_BENCH_STATE") == "true"
-use_trans = System.get_env("CACHEX_BENCH_TRANSACTIONS") == "true"
+if System.get_env("CACHEX_BENCH_COMPRESS") == "true" do
+  Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
+    cache(state, compressed: true)
+  end)
+end
 
-if use_trans do
+if System.get_env("CACHEX_BENCH_TRANSACTIONS") == "true" do
   Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
     cache(state, transactional: true)
   end)
 end
 
-cache = if use_state do
+cache = if System.get_env("CACHEX_BENCH_STATE") == "true" do
   Cachex.inspect!(:bench_cache, :cache)
 else
   :bench_cache
@@ -74,8 +78,14 @@ benchmarks = %{
   "persist" => fn ->
     Cachex.persist(cache, "persist_test")
   end,
+  "purge" => fn ->
+    Cachex.purge(cache)
+  end,
   "put" => fn ->
     Cachex.put(cache, "put_test", "put_value")
+  end,
+  "put_many" => fn ->
+    Cachex.put_many(cache, [ { "put_test", "put_value" } ])
   end,
   "refresh" => fn ->
     Cachex.refresh(cache, "refresh_test")
@@ -83,11 +93,17 @@ benchmarks = %{
   "size" => fn ->
     Cachex.size(cache)
   end,
+  "stats" => fn ->
+    Cachex.stats(cache)
+  end,
   "stream" => fn ->
     Cachex.stream(cache)
   end,
   "take" => fn ->
     Cachex.take(cache, "take_test")
+  end,
+  "touch" => fn ->
+    Cachex.touch(cache, "touch_test")
   end,
   "ttl" => fn ->
     Cachex.ttl(cache, "ttl_test")

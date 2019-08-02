@@ -22,6 +22,7 @@ defmodule Cachex.Options do
     :hooks,
     :commands,
     :fallback,
+    :compressed,
     :expiration,
     :transactional,
     :warmers
@@ -132,6 +133,15 @@ defmodule Cachex.Options do
       end
     end
   end
+
+  # Configures a cache based on compression flags.
+  #
+  # This will simply configure the `:compressed` field in the cache
+  # record and return the modified record with the flag attached.
+  defp parse_type(:compressed, cache, options),
+    do: cache(cache, [
+      compressed: get(options, :compressed, &is_boolean/1, false)
+    ])
 
   # Configures an expiration options record for a cache.
   #

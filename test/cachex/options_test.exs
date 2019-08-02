@@ -103,6 +103,24 @@ defmodule Cachex.OptionsTest do
     assert(msg == :invalid_command)
   end
 
+  # This test will verify the parsing of compression flags to determine whether
+  # a cache has them enabled or disabled. This is simply checking whether the flag
+  # is set to true or false, and the default.
+  test "parsing :compressed flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # parse our values as options
+    { :ok, cache(compressed: comp1) } = Cachex.Options.parse(name, [ compressed:  true ])
+    { :ok, cache(compressed: comp2) } = Cachex.Options.parse(name, [ compressed: false ])
+    { :ok, cache(compressed: comp3) } = Cachex.Options.parse(name, [ ])
+
+    # the first one should be truthy, and the latter two falsey
+    assert comp1
+    refute comp2
+    refute comp3
+  end
+
   # This test verifies the parsing of TTL related flags. We have to test various
   # combinations of :ttl_interval and :default_ttl to verify each state correctly.
   test "parsing :expiration flags" do

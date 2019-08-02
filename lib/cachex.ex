@@ -156,6 +156,18 @@ defmodule Cachex do
       the `Cachex.Spec.command/1` documentation for further customization options.
 
       </br>
+    * `:compressed`
+
+      </br>
+      This option will specify whether this cache should have enable ETS compression,
+      which is likely to reduce memory overhead. Please note that there is a potential
+      for this option to slow your cache due to compression overhead, so benchmark as
+      appropriate when using this option. This option defaults to `false`.
+
+          iex> Cachex.start_link(:my_cache, [ compressed: true ])
+          { :ok, _pid }
+
+      </br>
     * `:expiration`
 
       </br>

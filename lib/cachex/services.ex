@@ -147,9 +147,10 @@ defmodule Cachex.Services do
   # This specification should be included in a cache tree before any others
   # are started as we should provide the guarantee that the table exists
   # before any other services are started (to avoid race conditions).
-  defp table_spec(cache(name: name)) do
+  defp table_spec(cache(name: name, compressed: compressed)) do
     server_opts = [ name: name(name, :eternal), quiet: true ]
-    [ supervisor(Eternal, [ name, const(:table_options), server_opts ]) ]
+    tables_opts = compressed && [ :compressed ] || []
+    [ supervisor(Eternal, [ name, tables_opts ++ const(:table_options), server_opts ]) ]
   end
 
   # Determines if a module is a Cachex service.
