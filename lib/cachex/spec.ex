@@ -53,8 +53,8 @@ defmodule Cachex.Spec do
 
   # Record specification for a cache expiration
   @type expiration :: record(:expiration,
-    default: integer,
-    interval: integer,
+    default: non_neg_integer,
+    interval: non_neg_integer | nil,
     lazy: boolean
   )
 
