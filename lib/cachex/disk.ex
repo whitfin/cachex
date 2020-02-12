@@ -26,7 +26,7 @@ defmodule Cachex.Disk do
   As we can't be certain what we're reading from the file, we make sure to load
   it safely to avoid malicious content (although the chance of that is slim).
   """
-  @spec write(binary, Keyword.t) :: { :ok, any } | { :error, atom }
+  @spec read(binary, Keyword.t) :: { :ok, any } | { :error, atom }
   def read(path, options \\ []) when is_binary(path) and is_list(options) do
     path
     |> File.read!
