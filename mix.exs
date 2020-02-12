@@ -75,7 +75,12 @@ defmodule Cachex.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:logger, :eternal, :sleeplocks],
+      extra_applications: [
+        :logger,
+        :eternal,
+        :sleeplocks,
+        :jumper
+      ],
       mod: {Cachex.Application, []}
     ]
   end
