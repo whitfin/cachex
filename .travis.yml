@@ -45,7 +45,7 @@ matrix:
   # Incompatible pairs.
   exclude:
     - elixir: 1.10
-      otp_release: 10.3
+      otp_release: 20.3
     - elixir: 1.10
       otp_release: 19.3
     - elixir: 1.10
