@@ -97,6 +97,14 @@ Supervisor.start_link(
 )
 ```
 
+If you are using Elixir versions prior to Elixir v1.5, you are able use the older syntax:
+
+```elixir
+Supervisor.start_link(
+  [ worker(Cachex, [:my_cache, []]) ]
+)
+```
+
 If you wish to start it manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
 
 ```elixir
