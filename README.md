@@ -97,7 +97,7 @@ Supervisor.start_link(
 )
 ```
 
-If you are using Elixir versions prior to Elixir v1.5, you are able use the older syntax:
+If you are using Elixir versions prior to Elixir v1.5, you are able to use the older syntax:
 
 ```elixir
 Supervisor.start_link(
