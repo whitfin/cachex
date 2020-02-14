@@ -405,8 +405,7 @@ defmodule Cachex do
   @doc """
   Decrements an entry in the cache.
 
-  This will overwrite any value that was previously set against the provided key,
-  and overwrite any TTLs which were already set.
+  This will overwrite any value that was previously set against the provided key.
 
   ## Options
 
@@ -790,8 +789,7 @@ defmodule Cachex do
   @doc """
   Increments an entry in the cache.
 
-  This will overwrite any value that was previously set against the provided key,
-  and overwrite any TTLs which were already set.
+  This will overwrite any value that was previously set against the provided key.
 
   ## Options
 
