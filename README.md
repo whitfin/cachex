@@ -88,6 +88,19 @@ The typical use of Cachex is to set up using a Supervisor, so that it can be han
 
 ```elixir
 Supervisor.start_link(
+  [
+    %{
+      id: :my_cache_id,
+      start: {Cachex, :start_link, [:my_cache, []]}
+    }
+  ]
+)
+```
+
+If you are using Elixir versions prior to Elixir v1.5, you are able to use the older syntax:
+
+```elixir
+Supervisor.start_link(
   [ worker(Cachex, [:my_cache, []]) ]
 )
 ```
