@@ -669,6 +669,13 @@ defmodule Cachex do
   in the `:fallback` option at cache startup, the third argument to
   this call becomes optional.
 
+  ## Options
+
+    No options are expected. In particular, note that `:ttl` (a valid
+    option for `Cachex.put/4`) is ignored. If a non-default expiration
+    for a key updated with `fetch/4` is required, use `expire/4` where
+    the result of `fetch/4` is tagged with `:commit`.
+
   ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
@@ -1027,6 +1034,11 @@ defmodule Cachex do
       </br>
       An expiration time to set for the provided key (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
+
+      Note that the `:ttl` option for `put/4` is special shorthand for this function
+      because it is used do often.
+
+      Expiration for a key can also be set with an explicit call to `expire/4`.
 
   ## Examples
 

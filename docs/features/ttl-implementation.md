@@ -23,3 +23,10 @@ A record contains an internal touch time and TTL associated with them, and these
 The advantage here is that if your Janitor hasn't run recently or is disabled completely, you can still never retrieve an expired key. This in turn allows the Janitor to run less frequently as you don't have to be as worried about stale values potentially coming back in cache calls. Naturally this technique cannot stand on it's own legs as it only evicts on key retrieval. If you never touch a record again, it would never be expired and thus your cache would just keep growing. It is for this reason that the Janitor is enabled by default when a TTL is set to protect the user from memory errors in their application.
 
 There are certain situations when you don't care about the consistency of expirations, only that they expire at some point. For this reason you can disable lazy expiration as of `v0.10.0` in order to remove the (extremely minimal) overhead of checking expirations on read which can be valuable in a cache where reads are of extremely high volume. To disable you can set the `:lazy` option to be `false` at cache start. Another big advantage of disabling lazy expiration is that the execution time of any given read operation is more predictable due to avoiding the case where some reads may also need to evict a key.
+
+## Setting Key Expirations
+
+Default expiration times are defined in `Cachex.start_link/2`. See the details for the `:expiration` option. They canbe overridden on a case by case basis as follows:
+
+- Specifying a `:ttl` option in `Cachex.put/4` or `Cachex.put_many/3`. These are special cases due to their heavy use.
+- Calling `Cachex.expire/4` (or the closely related `Cachex.expire_at/4`) for a key that already exists.
