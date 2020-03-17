@@ -1036,7 +1036,7 @@ defmodule Cachex do
       any default expirations set on a cache. This value should be in milliseconds.
 
       Note that the `:ttl` option for `put/4` is special shorthand for this function
-      because it is used do often.
+      because it is used so often.
 
       Expiration for a key can also be set with an explicit call to `expire/4`.
 
