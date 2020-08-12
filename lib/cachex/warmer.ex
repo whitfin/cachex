@@ -52,7 +52,7 @@ defmodule Cachex.Warmer do
 
   @doc false
   defmacro __using__(_) do
-    quote location: :keep do
+    quote location: :keep, generated: true do
       use GenServer
 
       # enforce the behaviour
