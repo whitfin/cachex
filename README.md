@@ -89,10 +89,7 @@ The typical use of Cachex is to set up using a Supervisor, so that it can be han
 ```elixir
 Supervisor.start_link(
   [
-    %{
-      id: :my_cache_id,
-      start: {Cachex, :start_link, [:my_cache, []]}
-    }
+    {Cachex, name: :my_cache}
   ]
 )
 ```
@@ -101,14 +98,14 @@ If you are using Elixir versions prior to Elixir v1.5, you are able to use the o
 
 ```elixir
 Supervisor.start_link(
-  [ worker(Cachex, [:my_cache, []]) ]
+  [ supervisor(Cachex, name: :my_cache) ]
 )
 ```
 
 If you wish to start it manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
 
 ```elixir
-Cachex.start_link(:my_cache, [])
+Cachex.start_link(name: :my_cache)
 ```
 
 For anything else, please see the [documentation](https://github.com/whitfin/cachex/tree/master/docs).

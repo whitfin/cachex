@@ -313,12 +313,10 @@ defmodule Cachex do
           { :ok, _pid }
 
   """
-  @spec start_link(atom, Keyword.t) :: { atom, pid }
-  def start_link(name, options \\ [])
-  def start_link(name, _options) when not is_atom(name),
-    do: error(:invalid_name)
-  def start_link(name, options) do
-    with { :ok,  true } <- ensure_started(),
+  @spec start_link(atom | Keyword.t) :: { atom, pid }
+  def start_link(options) when is_list(options) do
+    with { :ok,  name } <- Keyword.fetch(options, :name),
+         { :ok,  true } <- ensure_started(),
          { :ok,  true } <- ensure_unused(name),
          { :ok, cache } <- setup_env(name, options),
          { :ok,   pid }  = Supervisor.start_link(__MODULE__, cache, [ name: name ]),
@@ -326,6 +324,15 @@ defmodule Cachex do
                 ^link   <- Overseer.update(name, link),
      do: { :ok,   pid }
   end
+  def start_link(name) when not is_atom(name),
+   do: error(:invalid_name)
+  def start_link(name),
+    do: start_link(name: name)
+
+  @doc false
+  @spec start_link(atom, Keyword.t) :: { atom, pid }
+  def start_link(name, options),
+    do: start_link([name: name] ++ options)
 
   @doc """
   Creates a new Cachex cache service tree.
