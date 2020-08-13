@@ -7,7 +7,7 @@ defmodule Cachex.Warmer do
   Doing this allows for easy pulling against expensive values (such as those from
   a backing database or remote server), without risking heavy usage.
 
-  Warmers will block when the cache is started to ensure that the application 
+  Warmers will block when the cache is started to ensure that the application
   will not complete booting up, until your cache has been warmed. This guarantees
   that there will not be any time where the application is available, without the
   desired data in the cache.
@@ -68,10 +68,8 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init(state) do
-        do_execute(state)
-        { :ok, state }
-      end
+      def init(state),
+        do: { handle_info(:cachex_warmer, state) && :ok, state }
 
       @doc false
       # Warms a number of keys in a cache.
@@ -81,14 +79,7 @@ defmodule Cachex.Warmer do
       # cache via `Cachex.put_many/3` if returns in a Tuple tagged with the
       # `:ok` atom. If `:ignore` is returned, nothing happens aside from
       # scheduling the next execution of the warming to occur on interval.
-      def handle_info(:cachex_warmer,  process_state) do
-        do_execute(process_state)
-
-        # no reply, and the state persist
-        { :noreply, process_state }
-      end
-
-      defp do_execute({ cache, state } = process_state) do
+      def handle_info(:cachex_warmer, { cache, state } = process_state) do
         # execute, passing state
         case execute(state) do
           # no changes
@@ -106,6 +97,9 @@ defmodule Cachex.Warmer do
 
         # trigger the warming to happen again after the interval
         :erlang.send_after(interval(), self(), :cachex_warmer)
+
+        # no reply, and the state persist
+        { :noreply, process_state }
       end
     end
   end
