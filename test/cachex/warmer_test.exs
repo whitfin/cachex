@@ -12,9 +12,6 @@ defmodule Cachex.WarmerTest do
       warmers: [ warmer(module: :basic_warmer) ]
     ])
 
-    # wait a while for it to fire
-    :timer.sleep(100)
-
     # check that the key was warmed
     assert Cachex.get!(cache, 1) == 1
   end
@@ -29,9 +26,6 @@ defmodule Cachex.WarmerTest do
     cache = Helper.create_cache([
       warmers: [ warmer(module: :options_warmer) ]
     ])
-
-    # wait a while for it to fire
-    :timer.sleep(100)
 
     # check that the key was warmed
     assert Cachex.get!(cache, 1) == 1
@@ -51,9 +45,6 @@ defmodule Cachex.WarmerTest do
       warmers: [ warmer(module: :ignore_warmer) ]
     ])
 
-    # wait a while for it to fire
-    :timer.sleep(100)
-
     # check that the cache is empty
     assert Cachex.empty?!(cache)
   end
@@ -72,9 +63,6 @@ defmodule Cachex.WarmerTest do
     cache = Helper.create_cache([
       warmers: [ warmer(module: :state_warmer, state: state) ]
     ])
-
-    # wait a while for it to fire
-    :timer.sleep(100)
 
     # check that the key was warmed with state
     assert Cachex.get!(cache, "state") == state
