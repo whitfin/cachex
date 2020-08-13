@@ -84,25 +84,23 @@ end
 
 ## Usage
 
-The typical use of Cachex is to set up using a Supervisor, so that it can be handled automatically:
+In the most typical use of Cachex, you only need to add your cache as a child of your application. If you created your project via `Mix` (passing the `--sup` flag) this is handled in `lib/my_app/application.ex`. This file will already contain an empty list of children to add to your application - simply add entries for your cache to this list:
 
 ```elixir
-Supervisor.start_link(
-  [
-    {Cachex, name: :my_cache}
-  ]
-)
+children = [
+  {Cachex, name: :my_cache_name}
+]
 ```
 
 If you are using Elixir versions prior to Elixir v1.5, you are able to use the older syntax:
 
 ```elixir
-Supervisor.start_link(
-  [ supervisor(Cachex, name: :my_cache) ]
-)
+children = [
+  supervisor(Cachex, name: :my_cache)
+]
 ```
 
-If you wish to start it manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
+If you wish to start a cache manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
 
 ```elixir
 Cachex.start_link(name: :my_cache)
