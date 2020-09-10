@@ -94,6 +94,23 @@ defmodule Cachex.Actions.FetchTest do
     # both should be an error for invalid function
     assert(result8 == { :error, :invalid_fallback })
     assert(result9 == { :error, :invalid_fallback })
+
+    # check using ttl
+    result10 = Cachex.fetch(cache1, "key9", fb_opt2, ttl: 1)
+    result11 = Cachex.fetch(cache1, "key10", fb_opt2, ttl: :timer.seconds(10))
+
+    assert(result10 == { :commit, "9yek" })
+    assert(result11 == { :commit, "01yek" })
+
+    # wait for the TTL to pass
+    :timer.sleep(2)
+
+    result12 = Cachex.fetch(cache1, "key9", fn -> "used" end)
+    result13 = Cachex.fetch(cache1, "key10", fn -> "not used" end)
+
+    # Currently fails because the ttl isn't respected so the original key9 value has not expired and so isn't replaced with 'used'
+    assert(result12 == { :ok, "used" })
+    assert(result13 == { :ok, "01yek" })
   end
 
   # This test ensures that the fallback is executed just once when a
