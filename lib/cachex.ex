@@ -676,6 +676,12 @@ defmodule Cachex do
   in the `:fallback` option at cache startup, the third argument to
   this call becomes optional.
 
+  ## Options
+
+  Although this function can put an entry into a cache, it does not
+  and cannot handle a `ttl` option. See
+  [here](ttl-implementation.html#key-expirations) for more details.
+
   ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
