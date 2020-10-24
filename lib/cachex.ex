@@ -86,6 +86,7 @@ defmodule Cachex do
     persist:           [ 2, 3 ],
     purge:             [ 1, 2 ],
     put:               [ 3, 4 ],
+    put_and_get:       [ 3, 4 ],
     put_many:          [ 2, 3 ],
     refresh:           [ 2, 3 ],
     reset:             [ 1, 2 ],
@@ -1049,6 +1050,35 @@ defmodule Cachex do
   @spec put(cache, any, any, Keyword.t) :: { status, boolean }
   def put(cache, key, value, options \\ []) when is_list(options),
     do: Router.call(cache, { :put, [ key, value, options ] })
+
+  @doc """
+  Places an entry in a cache and return value immediately.
+
+  This will overwrite any value that was previously set against the provided key,
+  and overwrite any TTLs which were already set. Returned value is new value in cache.
+
+  ## Options
+
+    * `:ttl`
+
+      </br>
+      An expiration time to set for the provided key (time-to-live), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
+
+  ## Examples
+
+      iex> Cachex.put_and_get(:my_cache, "key", "value")
+      { :ok, true, "value" }
+
+      iex> Cachex.put_and_get(:my_cache, "key", "value", ttl: :timer.seconds(5))
+      iex> Cachex.ttl(:my_cache, "key")
+      { :ok, 5000 }
+
+  """
+  # TODO: maybe rename TTL to be expiration?
+  @spec put_and_get(cache, any, any, Keyword.t) :: { status, boolean, any }
+  def put_and_get(cache, key, value, options \\ []) when is_list(options),
+    do: Router.call(cache, { :put_and_get, [ key, value, options ] })
 
   @doc """
   Places a batch of entries in a cache.
