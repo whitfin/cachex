@@ -129,6 +129,13 @@ defmodule Cachex.Stats do
   defp register_action(stats, { :put, _args }, { _tag, true }),
     do: increment(stats, [ :writes ], 1)
 
+  # Handles registration of `put_and_get()` command calls.
+  #
+  # These calls will just increment the `:writes` count of the statistics
+  # container, but only if the write succeeded (as determined by the value).
+  defp register_action(stats, { :put_and_get, _args }, { _tag, true }),
+    do: increment(stats, [ :writes ], 1)
+
   # Handles registration of `put_many()` command calls.
   #
   # This is the same as the `put()` handler except that it will count the

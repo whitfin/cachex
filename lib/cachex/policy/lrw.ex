@@ -60,6 +60,7 @@ defmodule Cachex.Policy.LRW do
   def actions,
     do: [
       :put,
+      :put_and_get,
       :decr,
       :incr,
       :fetch,
