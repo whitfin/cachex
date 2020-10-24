@@ -140,7 +140,7 @@ defmodule Cachex.Router do
   # actions based on a key
   @keyed_actions [
     :del,   :exists?, :expire,  :fetch,   :get,   :get_and_update,
-    :incr,  :invoke,  :put,     :refresh, :take,
+    :incr,  :invoke,  :put,     :put_and_get, :refresh, :take,
     :touch, :ttl,   :update
   ]
 
