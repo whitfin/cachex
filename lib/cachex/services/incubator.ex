@@ -34,5 +34,5 @@ defmodule Cachex.Services.Incubator do
 
   # Generates a Supervisor specification for a hook.
   defp spec(warmer(module: module, state: state), cache),
-    do: Supervisor.Spec.worker(GenServer, [ module, { cache, state } ], [ id: module ])
+    do: %{ id: module, start: { GenServer, :start_link, [ module, { cache, state } ] } }
 end

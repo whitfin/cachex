@@ -145,6 +145,6 @@ defmodule Cachex.Services.Informant do
         val -> [ module, state, [ name: val ] ]
       end
 
-    Supervisor.Spec.worker(GenServer, options, [ id: module ])
+    %{ id: module, start: { GenServer, :start_link, options } }
   end
 end

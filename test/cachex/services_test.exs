@@ -3,8 +3,8 @@ defmodule Cachex.ServicesTest do
 
   test "generating application service definitions" do
     assert [
-      { Services.Overseer, _, _, _, _, _ },
-      { Services.Locksmith, _, _, _, _, _ }
+      %{ id: Services.Overseer, start: { Services.Overseer, _, _ } },
+      %{ id: Services.Locksmith, start: { Services.Locksmith, _, _ } }
     ] = Services.app_spec()
   end
 
@@ -15,12 +15,12 @@ defmodule Cachex.ServicesTest do
 
     # validate the services
     assert [
-      { Eternal, _, _, _, _, _ },
-      { Services.Locksmith.Queue, _, _, _, _, _ },
-      { Services.Informant, _, _, _, _, _ },
-      { Services.Incubator, _, _, _, _, _ },
-      { Services.Courier, _, _, _, _, _ },
-      { Services.Janitor, _, _, _, _, _ }
+      %{ id: Eternal, start: { Eternal, _, _ } },
+      %{ id: Services.Locksmith.Queue, start: { Services.Locksmith.Queue, _, _ } },
+      %{ id: Services.Informant, start: { Services.Informant, _, _ } },
+      %{ id: Services.Incubator, start: { Services.Incubator, _, _ } },
+      %{ id: Services.Courier, start: { Services.Courier, _, _ } },
+      %{ id: Services.Janitor, start: { Services.Janitor, _, _ } }
     ] = Services.cache_spec(cache)
   end
 
@@ -31,13 +31,13 @@ defmodule Cachex.ServicesTest do
 
     # validate the services
     assert [
-      { Eternal, _, _, _, _, _ },
-      { Services.Locksmith.Queue, _, _, _, _, _ },
-      { Services.Informant, _, _, _, _, _ },
-      { Services.Incubator, _, _, _, _, _ },
-      { Services.Courier, _, _, _, _, _ },
-      { Services.Janitor, _, _, _, _, _ },
-      { Supervisor, { Supervisor, _, [ [ { __MODULE__.TestPolicy, _, _, _, _, _ } ], _ ] }, _, _, _, _ }
+      %{ id: Eternal, start: { Eternal, _, _ } },
+      %{ id: Services.Locksmith.Queue, start: { Services.Locksmith.Queue, _, _ } },
+      %{ id: Services.Informant, start: { Services.Informant, _, _ } },
+      %{ id: Services.Incubator, start: { Services.Incubator, _, _ } },
+      %{ id: Services.Courier, start: { Services.Courier, _, _ } },
+      %{ id: Services.Janitor, start: { Services.Janitor, _, _ } },
+      %{ id: Supervisor, start: { Supervisor, _, [ [ { __MODULE__.TestPolicy, _, _, _, _, _ } ], _ ] } }
     ] = Services.cache_spec(cache)
   end
 
@@ -48,11 +48,11 @@ defmodule Cachex.ServicesTest do
 
     # validate the services
     assert [
-      { Eternal, _, _, _, _, _ },
-      { Services.Locksmith.Queue, _, _, _, _, _ },
-      { Services.Informant, _, _, _, _, _ },
-      { Services.Incubator, _, _, _, _, _ },
-      { Services.Courier, _, _, _, _, _ },
+      %{ id: Eternal, start: { Eternal, _, _ } },
+      %{ id: Services.Locksmith.Queue, start: { Services.Locksmith.Queue, _, _ } },
+      %{ id: Services.Informant, start: { Services.Informant, _, _ } },
+      %{ id: Services.Incubator, start: { Services.Incubator, _, _ } },
+      %{ id: Services.Courier, start: { Services.Courier, _, _ } }
     ] = Services.cache_spec(cache)
   end
 

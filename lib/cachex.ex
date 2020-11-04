@@ -360,7 +360,7 @@ defmodule Cachex do
   def init(cache() = cache) do
     cache
     |> Services.cache_spec
-    |> supervise(strategy: :one_for_one)
+    |> Supervisor.init(strategy: :one_for_one)
   end
 
   @doc """
