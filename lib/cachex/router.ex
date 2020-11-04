@@ -235,7 +235,7 @@ defmodule Cachex.Router do
   defp configure_remote(cache, module, { :transaction, [ keys | _ ] } = call, nodes) do
     case keys do
       [] -> configure_local(cache, module, call)
-      __ -> multi_call_slot(cache, module, call, nodes, quote do: &(&1))
+      _ -> multi_call_slot(cache, module, call, nodes, quote do: &(&1))
     end
   end
 
