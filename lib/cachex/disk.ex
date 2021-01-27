@@ -27,10 +27,10 @@ defmodule Cachex.Disk do
   it safely to avoid malicious content (although the chance of that is slim).
   """
   @spec read(binary, Keyword.t) :: { :ok, any } | { :error, atom }
-  def read(path, options \\ []) when is_binary(path) and is_list(options) do
+  def read(path, options \\ [:safe]) when is_binary(path) and is_list(options) do
     path
     |> File.read!
-    |> :erlang.binary_to_term([ :safe ])
+    |> :erlang.binary_to_term(options)
     |> wrap(:ok)
   rescue
     _ -> error(:unreachable_file)
