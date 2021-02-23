@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
+    runs-on: ubuntu-16.04
+    strategy:
+      fail-fast: false
+      matrix:
+        otp:
+          - '21.3'
+        elixir:
+          - '1.11'
+        include:
+          - elixir: '1.10'
+            otp: '21.3'
+          - elixir: '1.9'
+            otp: '20.3'
+          - elixir: '1.8'
+            otp: '20.3'
+          - elixir: '1.7'
+            otp: '19.3'
+          - elixir: '1.6'
+            otp: '19.3'
+          - elixir: '1.5'
+            otp: '18.3'
+          - elixir: '1.4'
+            otp: '18.3'
+          - elixir: '1.3'
+            otp: '18.3'
+          - elixir: '1.2'
+            otp: '18.3'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Elixir
+        uses: erlef/setup-elixir@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      - name: Setup Environment
+        run: |
+          epmd -daemon
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Run Tests
+        run: mix test --trace
+
+  coverage:
+    name: Coverage Reporting
+    runs-on: ubuntu-16.04
+    env:
+      MIX_ENV: cover
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Elixir
+        uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: '1.11'
+          otp-version: '21.3'
+
+      - name: Setup Environment
+        run: |
+          epmd -daemon
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Generate Coverage
+        run: mix coveralls.github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Elixir
+        uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: '1.11'
+          otp-version: '21.3'
+
+      - name: Setup Environment
+        run: |
+          epmd -daemon
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Validate Linting
+        run: mix credo --all --format=oneline

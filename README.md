@@ -1,5 +1,5 @@
 # Cachex
-[![Coverage Status](https://img.shields.io/coveralls/whitfin/cachex.svg)](https://coveralls.io/github/whitfin/cachex) [![Unix Build Status](https://img.shields.io/travis/whitfin/cachex.svg?label=unix)](https://travis-ci.org/whitfin/cachex) [![Windows Build Status](https://img.shields.io/appveyor/ci/whitfin/cachex.svg?label=win)](https://ci.appveyor.com/project/whitfin/cachex) [![Hex.pm Version](https://img.shields.io/hexpm/v/cachex.svg)](https://hex.pm/packages/cachex) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/cachex/)
+[![Build Status](https://img.shields.io/github/workflow/status/whitfin/cachex/CI)](https://github.com/whitfin/cachex/actions) [![Coverage Status](https://img.shields.io/coveralls/whitfin/cachex.svg)](https://coveralls.io/github/whitfin/cachex) [![Hex.pm Version](https://img.shields.io/hexpm/v/cachex.svg)](https://hex.pm/packages/cachex) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/cachex/)
 
 Cachex is an extremely fast in-memory key/value store with support for many useful features:
 
