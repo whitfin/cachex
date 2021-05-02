@@ -74,14 +74,6 @@ def deps do
 end
 ```
 
-  2. Ensure cachex is started before your application:
-
-```elixir
-def application do
-  [applications: [:cachex]]
-end
-```
-
 ## Usage
 
 In the most typical use of Cachex, you only need to add your cache as a child of your application. If you created your project via `Mix` (passing the `--sup` flag) this is handled in `lib/my_app/application.ex`. This file will already contain an empty list of children to add to your application - simply add entries for your cache to this list:
