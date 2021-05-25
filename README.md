@@ -66,19 +66,9 @@ All of these features are optional and are off by default so you can pick and ch
 
 As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the package via:
 
-  1. Add cachex to your list of dependencies in `mix.exs`:
-
 ```elixir
 def deps do
   [{:cachex, "~> 3.3"}]
-end
-```
-
-  2. Ensure cachex is started before your application:
-
-```elixir
-def application do
-  [applications: [:cachex]]
 end
 ```
 
@@ -89,14 +79,6 @@ In the most typical use of Cachex, you only need to add your cache as a child of
 ```elixir
 children = [
   {Cachex, name: :my_cache_name}
-]
-```
-
-If you are using Elixir versions prior to Elixir v1.5, you are able to use the older syntax:
-
-```elixir
-children = [
-  supervisor(Cachex, name: :my_cache)
 ]
 ```
 

@@ -43,8 +43,8 @@ defmodule Cachex.Services.Overseer do
     mgr_opts = [ 1, [ name: @manager_name ] ]
 
     children = [
-      Spec.worker(:sleeplocks, mgr_opts),
-      Spec.supervisor(Eternal, tab_opts)
+      %{ id: :sleeplocks, start: { :sleeplocks, :start_link, mgr_opts } },
+      %{ id: Eternal, start: { Eternal, :start_link, tab_opts}, type: :supervisor }
     ]
 
     Supervisor.start_link(children, [

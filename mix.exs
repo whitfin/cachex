@@ -24,7 +24,7 @@ defmodule Cachex.Mixfile do
         maintainers: [ "Isaac Whitfield" ]
       },
       version: @version,
-      elixir: "~> 1.2",
+      elixir: "~> 1.5",
       deps: deps(),
       docs: [
         source_ref: "v#{@version}",
@@ -75,13 +75,8 @@ defmodule Cachex.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [
-        :logger,
-        :eternal,
-        :sleeplocks,
-        :jumper
-      ],
-      mod: {Cachex.Application, []}
+      mod: {Cachex.Application, []},
+      extra_applications: [:unsafe]
     ]
   end
 

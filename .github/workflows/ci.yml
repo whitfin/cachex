@@ -14,10 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         otp:
-          - '21.3'
+          - '23.3'
         elixir:
-          - '1.11'
+          - '1.12'
         include:
+          - elixir: '1.11'
+            otp: '22.3'
           - elixir: '1.10'
             otp: '21.3'
           - elixir: '1.9'
@@ -29,10 +31,6 @@ jobs:
           - elixir: '1.6'
             otp: '19.3'
           - elixir: '1.5'
-            otp: '18.3'
-          - elixir: '1.4'
-            otp: '18.3'
-          - elixir: '1.2'
             otp: '18.3'
 
     steps:

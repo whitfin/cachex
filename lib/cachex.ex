@@ -119,15 +119,12 @@ defmodule Cachex do
 
     * `:commands`
 
-      </br>
       This option allows you to attach a set of custom commands to a cache in
       order to provide shorthand execution. A cache command must be constructed
       using the `:command` record provided by `Cachex.Spec`.
 
-      </br>
       A cache command will adhere to these basic rules:
 
-      </br>
       - If you define a `:read` command, the return value of your command will
         be passed through as the result of your call to `invoke/4`.
       - If you define a `:write` command, your command must return a two-element
@@ -136,7 +133,6 @@ defmodule Cachex do
         the cache (as an update). If your command does not fit this, errors will
         happen (intentionally).
 
-      </br>
       Commands are set on a per-cache basis, but can be reused across caches. They're
       set only on cache startup and cannot be modified after the cache tree is created.
 
@@ -150,15 +146,12 @@ defmodule Cachex do
           ...> ])
           { :ok, _pid }
 
-      </br>
       Either a `Keyword` or a `Map` can be provided against the `:commands` option as
       we only use `Enum` to verify them before attaching them internally. Please see
       the `Cachex.Spec.command/1` documentation for further customization options.
 
-      </br>
     * `:compressed`
 
-      </br>
       This option will specify whether this cache should have enable ETS compression,
       which is likely to reduce memory overhead. Please note that there is a potential
       for this option to slow your cache due to compression overhead, so benchmark as
@@ -167,10 +160,8 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ compressed: true ])
           { :ok, _pid }
 
-      </br>
     * `:expiration`
 
-      </br>
       The expiration option provides the ability to customize record expiration at
       a global cache level. The value provided here must be a valid `:expiration`
       record provided by `Cachex.Spec`.
@@ -194,10 +185,8 @@ defmodule Cachex do
       Please see the `Cachex.Spec.expiration/1` documentation for further customization
       options.
 
-      </br>
     * `:fallback`
 
-      </br>
       The fallback option allows global settings related to the `fetch/4` command
       on a cache. The value provided here can either be a valid `:fallback` record
       provided by `Cachex.Spec`, or a single function (which is turned into a record
@@ -221,14 +210,11 @@ defmodule Cachex do
       state which can be passed to a fallback function if the arity is 2 rather than
       1.
 
-      </br>
       Please see the documentation for `fetch/4`, and the `Cachex.Spec.fallback/1`
       documentation for further information.
 
-      </br>
     * `:hooks`
 
-      </br>
       The `:hooks` option allow the user to attach a list of notification hooks to
       enable listening on cache actions (either before or after they happen). These
       hooks should be valid `:hook` records provided by `Cachex.Spec`. Example hook
@@ -245,10 +231,8 @@ defmodule Cachex do
 
       Please see the `Cachex.Spec.hook/1` documentation for further customization options.
 
-      </br>
     * `:limit`
 
-      </br>
       A cache limit provides a maximum size to cap the cache keyspace at. This should
       be either a positive integer, or a valid `:limit` record provided by `Cachex.Spec`.
       Internally a provided interger will just be coerced to a `:limit` record with some
@@ -272,10 +256,8 @@ defmodule Cachex do
 
       Please see the `Cachex.Spec.limit/1` documentation for further customization options.
 
-      </br>
     * `:nodes`
 
-      </br>
       A list of nodes this cache will live on, to provide distributed behaviour across
       physical nodes. This should be a list of node names, in the long form.
 
@@ -289,12 +271,10 @@ defmodule Cachex do
 
     * `:stats`
 
-      </br>
       This option can be used to toggle statistics gathering for a cache. This is a
       shorthand option to avoid attaching the `Cachex.Stats` hook manually. Statistics
       gathering has very minor overhead due to being implemented as a hook,
 
-      </br>
       Stats can be retrieve from a running cache by using `Cachex.stats/2`.
 
           iex> Cachex.start_link(:my_cache, [ stats: true ])
@@ -302,7 +282,6 @@ defmodule Cachex do
 
     * `:transactional`
 
-      </br>
       This option will specify whether this cache should have transactions and row
       locking enabled from cache startup. Please note that even if this is false,
       it will be enabled the moment a transaction is executed. It's recommended to
@@ -360,7 +339,7 @@ defmodule Cachex do
   def init(cache() = cache) do
     cache
     |> Services.cache_spec
-    |> supervise(strategy: :one_for_one)
+    |> Supervisor.init(strategy: :one_for_one)
   end
 
   @doc """
@@ -418,7 +397,6 @@ defmodule Cachex do
 
     * `:initial`
 
-      </br>
       An initial value to set the key to if it does not exist. This will
       take place *before* the decrement call. Defaults to 0.
 
@@ -480,11 +458,9 @@ defmodule Cachex do
 
     * `:compression`
 
-      </br>
       Specifies the level of compression to apply when serializing (0-9). This
       will default to level 1 compression, which is appropriate for most dumps.
 
-      </br>
       Using a compression level of 0 will disable compression completely. This
       will result in a faster serialization but at the cost of higher space.
 
@@ -802,7 +778,6 @@ defmodule Cachex do
 
     * `:initial`
 
-      </br>
       An initial value to set the key to if it does not exist. This will
       take place *before* the increment call. Defaults to 0.
 
@@ -844,51 +819,37 @@ defmodule Cachex do
 
     * `:cache`
 
-      </br>
       Retrieves the internal cache record for a cache.
 
-      </br>
     * `{ :entry, key }`
 
-      </br>
       Retrieves a raw entry record from inside a cache.
 
     * `{ :expired, :count }`
 
-      </br>
       Retrieves the number of expired entries which currently live in the cache
       but have not yet been removed by cleanup tasks (either scheduled or lazy).
 
-      </br>
     * `{ :expired, :keys }`
 
-      </br>
       Retrieves the list of expired entry keys which current live in the cache
       but have not yet been removed by cleanup tasks (either scheduled or lazy).
 
-      </br>
     * `{ :janitor, :last }`
 
-      </br>
       Retrieves metadata about the last execution of the Janitor service for
       the specified cache.
 
-      </br>
     * `{ :memory, :bytes }`
 
-      </br>
       Retrieves an approximate memory footprint of a cache in bytes.
 
-      </br>
     * `{ :memory, :binary }`
 
-      </br>
       Retrieves an approximate memory footprint of a cache in binary format.
 
-      </br>
     * `{ :memory, :words }`
 
-      </br>
       Retrieve an approximate memory footprint of a cache as a number of
       machine words.
 
@@ -1031,7 +992,6 @@ defmodule Cachex do
 
     * `:ttl`
 
-      </br>
       An expiration time to set for the provided key (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
 
@@ -1062,7 +1022,6 @@ defmodule Cachex do
 
     * `:ttl`
 
-      </br>
       An expiration time to set for the provided keys (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
 
@@ -1116,16 +1075,13 @@ defmodule Cachex do
 
     * `:hooks`
 
-      </br>
       A whitelist of hooks to reset on the cache instance (call the
       initialization phase of a hook again). This will default to
       resetting all hooks associated with a cache, which is usually
       the desired behaviour.
 
-      </br>
     * `:only`
 
-      </br>
       A whitelist of components to reset, which can currently contain
       either the `:cache` or `:hooks` tag to determine what to reset.
       This will default to `[ :cache, :hooks ]`.
@@ -1198,7 +1154,6 @@ defmodule Cachex do
 
     * `:for`
 
-      </br>
       Allows customization of exactly which statistics to retrieve.
 
   ## Examples
@@ -1228,7 +1183,6 @@ defmodule Cachex do
 
     * `:batch_size`
 
-      </br>
       Allows customization of the internal batching when paginating the QLC
       cursor coming back from ETS. It's unlikely this will ever need changing.
 
