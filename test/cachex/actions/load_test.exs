@@ -46,8 +46,8 @@ defmodule Cachex.Actions.LoadTest do
     # verify TTL offsetting happens
     assert_in_delta(result6, 10_000 - (now() - start), 5)
 
-    # reload a bad file from disk
-    result7 = Cachex.load(cache, tmp)
+    # reload a bad file from disk (should not be trusted)
+    result7 = Cachex.load(cache, tmp, [ trusted: false ])
 
     # verify the result failed
     assert(result7 == { :error, :unreachable_file })
