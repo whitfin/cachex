@@ -29,8 +29,16 @@ defmodule Cachex.Services do
   @spec app_spec :: [ Spec.spec ]
   def app_spec,
     do: [
-      %{ id: Services.Overseer, start: { Services.Overseer, :start_link, [] }, type: :supervisor },
-      %{ id: Services.Locksmith, start: { Services.Locksmith, :start_link, [] }, type: :supervisor }
+      %{
+        id: Services.Overseer,
+        start: { Services.Overseer, :start_link, [] },
+        type: :supervisor
+      },
+      %{
+        id: Services.Locksmith,
+        start: { Services.Locksmith, :start_link, [] },
+        type: :supervisor
+      }
     ]
 
   @doc """
@@ -90,7 +98,10 @@ defmodule Cachex.Services do
   # fallback functions to avoid clashing. Each cache should have a courier
   # by default as fallbacks are enabled by default (not behind a flag).
   defp courier_spec(cache() = cache),
-    do: [ %{ id: Services.Courier, start: { Services.Courier, :start_link, [ cache ] } } ]
+    do: [ %{
+      id: Services.Courier,
+      start: { Services.Courier, :start_link, [ cache ] }
+    } ]
 
   # Creates a specification for the Incubator supervisor.
   #
@@ -98,7 +109,11 @@ defmodule Cachex.Services do
   # to a cache so they're managed correctly. If no warmers are associated to
   # the cache, this supervisor will essentially no-op at startup.
   defp incubator_spec(cache() = cache),
-    do: [ %{ id: Services.Incubator, start: { Services.Incubator, :start_link, [ cache ] }, type: :supervisor } ]
+    do: [ %{
+      id: Services.Incubator,
+      start: { Services.Incubator, :start_link, [ cache ] },
+      type: :supervisor
+    } ]
 
   # Creates a specification for the Informant supervisor.
   #
@@ -106,7 +121,11 @@ defmodule Cachex.Services do
   # should be noted that this might result in no processes if there are no
   # hooks attached to the cache at startup (meaning no supervisor either).
   defp informant_spec(cache() = cache),
-    do: [ %{ id: Services.Informant, start: { Services.Informant, :start_link, [ cache ] }, type: :supervisor } ]
+    do: [ %{
+      id: Services.Informant,
+      start: { Services.Informant, :start_link, [ cache ] },
+      type: :supervisor
+    } ]
 
   # Creates a specification for the Janitor service.
   #
@@ -115,7 +134,10 @@ defmodule Cachex.Services do
   defp janitor_spec(cache(expiration: expiration(interval: nil))),
     do: []
   defp janitor_spec(cache() = cache),
-    do: [ %{ id: Services.Janitor, start: { Services.Janitor, :start_link, [ cache ] } } ]
+    do: [ %{
+      id: Services.Janitor,
+      start: { Services.Janitor, :start_link, [ cache ] }
+    } ]
 
   # Creates any require limit specifications for the supervision tree.
   #
@@ -127,8 +149,10 @@ defmodule Cachex.Services do
     case apply(policy, :child_spec, [ limit ]) do
       [] -> []
       cs ->
-        strategy = apply(policy, :strategy, [])
-        [ %{ id: Supervisor, start: { Supervisor, :start_link, [ cs, [ strategy: strategy ] ] } } ]
+        [ %{
+          id: Supervisor,
+          start: { Supervisor, :start_link, [ cs, [ strategy: apply(policy, :strategy, []) ] ] }
+        } ]
     end
   end
 
@@ -139,7 +163,10 @@ defmodule Cachex.Services do
   # global (application-wide) Locksmith table; that should be started
   # separately on application startup using app_spec/0.
   defp locksmith_spec(cache() = cache),
-    do: [ %{ id: Services.Locksmith.Queue, start: { Services.Locksmith.Queue, :start_link, [ cache ] } } ]
+    do: [ %{
+      id: Services.Locksmith.Queue,
+      start: { Services.Locksmith.Queue, :start_link, [ cache ] }
+    } ]
 
   # Creates the required specifications for a backing cache table.
   #
