@@ -922,6 +922,14 @@ defmodule Cachex do
   It is the responsibility of the user to ensure that the location is
   able to be read from, not the responsibility of Cachex.
 
+  ## Options
+
+    * `:trusted`
+
+      Allow for loading from trusted or untrusted sources; trusted
+      sources can load atoms into the table, whereas untrusted sources
+      cannot. Defaults to `true`.
+
   ## Examples
 
       iex> Cachex.put(:my_cache, "my_key", 10)
