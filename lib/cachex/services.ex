@@ -90,7 +90,7 @@ defmodule Cachex.Services do
   # fallback functions to avoid clashing. Each cache should have a courier
   # by default as fallbacks are enabled by default (not behind a flag).
   defp courier_spec(cache() = cache),
-    do: [ {Services.Courier, [ cache ]} ]
+    do: [ %{ id: Services.Courier, start: { Services.Courier, :start_link, [ cache ] } } ]
 
   # Creates a specification for the Incubator supervisor.
   #
@@ -115,7 +115,7 @@ defmodule Cachex.Services do
   defp janitor_spec(cache(expiration: expiration(interval: nil))),
     do: []
   defp janitor_spec(cache() = cache),
-    do: [ {Services.Janitor, [ cache ]} ]
+    do: [ %{ id: Services.Janitor, start: { Services.Janitor, :start_link, [ cache ] } } ]
 
   # Creates any require limit specifications for the supervision tree.
   #
