@@ -139,7 +139,7 @@ defmodule Cachex.Services do
   # global (application-wide) Locksmith table; that should be started
   # separately on application startup using app_spec/0.
   defp locksmith_spec(cache() = cache),
-    do: [ {Services.Locksmith.Queue, [ cache ]} ]
+    do: [ %{ id: Services.Locksmith.Queue, start: { Services.Locksmith.Queue, :start_link, [ cache ] } } ]
 
   # Creates the required specifications for a backing cache table.
   #
