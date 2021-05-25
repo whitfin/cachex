@@ -595,7 +595,7 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec expire_at(cache, binary, number, Keyword.t) :: { status, boolean }
+  @spec expire_at(cache, any, number, Keyword.t) :: { status, boolean }
   def expire_at(cache, key, timestamp, options \\ [])
   when is_number(timestamp) and is_list(options) do
     via_opts = via({ :expire_at, [ key, timestamp, options ] }, options)
