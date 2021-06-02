@@ -105,7 +105,7 @@ defmodule Cachex.Mixfile do
       { :benchee,      "~> 1.0", optional: true, only: [ :bench ] },
       { :benchee_html, "~> 1.0", optional: true, only: [ :bench ] },
       # Documentation dependencies
-      { :ex_doc, "~> 0.21", optional: true, only: [ :docs ] }
+      { :ex_doc, "~> 0.24", optional: true, only: [ :docs ] }
     ]
   end
 end
