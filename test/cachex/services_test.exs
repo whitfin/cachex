@@ -37,7 +37,7 @@ defmodule Cachex.ServicesTest do
       %{ id: Services.Incubator, start: { Services.Incubator, _, _ } },
       %{ id: Services.Courier, start: { Services.Courier, _, _ } },
       %{ id: Services.Janitor, start: { Services.Janitor, _, _ } },
-      %{ id: Supervisor, start: { Supervisor, _, [ [ { __MODULE__.TestPolicy, _, _, _, _, _ } ], _ ] } }
+      %{ id: Supervisor, start: { Supervisor, _, [ [ %{ id: __MODULE__.TestPolicy } ], _ ] } }
     ] = Services.cache_spec(cache)
   end
 
@@ -69,10 +69,8 @@ defmodule Cachex.ServicesTest do
   defmodule TestPolicy do
     use Cachex.Policy
 
-    import Supervisor.Spec
-
     def child_spec(_limit),
-      do: [ worker(__MODULE__, [], []) ]
+      do: [ %{ id: __MODULE__, start: {__MODULE__, :start_link, []} } ]
 
     def start_link,
       do: :ignore

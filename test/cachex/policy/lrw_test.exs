@@ -92,6 +92,12 @@ defmodule Cachex.Policy.LRWTest do
 
     # finally, verify hooks are notified
     assert_receive({ { :clear, [[]] }, { :ok, 76 } })
+
+    # retrieve the policy hook definition
+    cache(hooks: hooks(post: [ hook1 | _ ])) = state
+
+    # just ensure that notifying errors to the policy doesn't cause a crash
+    Services.Informant.notify([ hook1 ], { :action, [] }, { :error, false })
   end
 
   # This test ensures that the cache eviction policy will evict any expired values
