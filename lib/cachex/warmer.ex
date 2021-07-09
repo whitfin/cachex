@@ -68,8 +68,10 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init(state),
-        do: { handle_info(:cachex_warmer, state) && :ok, state }
+      def init(state) do
+        handle_info(:cachex_warmer, state)
+        { :ok, state }
+      end
 
       @doc false
       # Warms a number of keys in a cache.
