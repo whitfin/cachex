@@ -652,6 +652,13 @@ defmodule Cachex do
   in the `:fallback` option at cache startup, the third argument to
   this call becomes optional.
 
+  ## Options
+
+    * `:ttl`
+
+      An expiration time to set for the provided keys (time-to-live), overriding
+      any default expirations set on a cache. This value should be in milliseconds.
+
   ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
@@ -668,6 +675,11 @@ defmodule Cachex do
       iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
       ...>   { :commit, String.reverse(key) }
       ...> end)
+      { :commit, "yek_gnissim" }
+
+      iex> Cachex.fetch(:my_cache, "ttl_key", fn(key) ->
+      ...>   { :commit, String.reverse(key) }
+      ...> end, ttl: 1_000)
       { :commit, "yek_gnissim" }
 
   """

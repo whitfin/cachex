@@ -96,6 +96,22 @@ defmodule Cachex.Actions.FetchTest do
     assert(result9 == { :error, :invalid_fallback })
   end
 
+  test "inserting values via the fallback function supports ttl" do
+    cache = Helper.create_cache()
+
+    # insert a value via the fallback function
+    result = Cachex.fetch(cache, "key", &String.reverse/1, ttl: 5)
+
+    # confirm value is present
+    assert {:ok, "yek"} == Cachex.get(cache, "key")
+
+    # wait for ttl to expire
+    :timer.sleep(10)
+
+    # confirm value is no longer present
+    assert {:ok, nil} == Cachex.get(cache, "key")
+  end
+
   # This test ensures that the fallback is executed just once when a
   # fallback commit and another fetch on the same key occur simultaneously.
   test "fetching and committing the same key simultaneously from a fallback" do

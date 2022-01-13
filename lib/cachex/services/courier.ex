@@ -38,9 +38,9 @@ defmodule Cachex.Services.Courier do
   simplify the interfaces internally. This is a blocking remote
   call which will wait until a result can be loaded.
   """
-  @spec dispatch(Spec.cache, any, (() -> any)) :: any
-  def dispatch(cache() = cache, key, task) when is_function(task, 0),
-    do: service_call(cache, :courier, { :dispatch, key, task })
+  @spec dispatch(Spec.cache, any, (() -> any), Keyword.t) :: any
+  def dispatch(cache() = cache, key, task, options \\ []) when is_function(task, 0),
+    do: service_call(cache, :courier, { :dispatch, key, task, options })
 
   ####################
   # Server Callbacks #
@@ -64,7 +64,7 @@ defmodule Cachex.Services.Courier do
   # Due to the nature of the async behaviour, this call will return before
   # the task has been completed, and the :notify callback will receive the
   # results from the task after completion (regardless of outcome).
-  def handle_call({ :dispatch, key, task }, caller, { cache, tasks }) do
+  def handle_call({ :dispatch, key, task, options }, caller, { cache, tasks }) do
     references =
       case Map.get(tasks, key, []) do
         [] ->
@@ -80,7 +80,8 @@ defmodule Cachex.Services.Courier do
             normalized = normalize_commit(result)
 
             with { :commit, val } <- normalized do
-              Put.execute(cache, key, val, const(:notify_false))
+              options = Keyword.merge(options, const(:notify_false))
+              Put.execute(cache, key, val, options)
             end
 
             send(parent, { :notify, key, normalized })

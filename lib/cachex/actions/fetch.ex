@@ -29,9 +29,9 @@ defmodule Cachex.Actions.Fetch do
   in the cache; otherwise it is immediately returned. Any fetched values will be
   placed in the cache in order to allow read-through caches.
   """
-  def execute(cache() = cache, key, fallback, _options) do
+  def execute(cache() = cache, key, fallback, options) do
     with { :ok, nil } <- Get.execute(cache, key, []) do
-      Courier.dispatch(cache, key, generate_task(cache, fallback, key))
+      Courier.dispatch(cache, key, generate_task(cache, fallback, key), options)
     end
   end
 
