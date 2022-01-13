@@ -680,7 +680,7 @@ defmodule Cachex do
       iex> Cachex.fetch(:my_cache, "ttl_key", fn(key) ->
       ...>   { :commit, String.reverse(key) }
       ...> end, ttl: 1_000)
-      { :commit, "yek_gnissim" }
+      { :commit, "yek_ltt" }
 
   """
   @spec fetch(cache, any, function | nil, Keyword.t) :: { status | :commit | :ignore, any }
