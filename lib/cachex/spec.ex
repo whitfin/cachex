@@ -171,7 +171,7 @@ defmodule Cachex.Spec do
   @doc """
   Creates a fallback record from the provided values.
 
-  A fallback can consist of a nillable state to provide to a fallback defintion when
+  A fallback can consist of a nillable state to provide to a fallback definition when
   requested (via a fallback with an arity of 2). If a default action is provided, it
   should be a function of arity 1 or 2, depending on if it requires the state or not.
   """

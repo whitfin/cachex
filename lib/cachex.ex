@@ -235,7 +235,7 @@ defmodule Cachex do
 
       A cache limit provides a maximum size to cap the cache keyspace at. This should
       be either a positive integer, or a valid `:limit` record provided by `Cachex.Spec`.
-      Internally a provided interger will just be coerced to a `:limit` record with some
+      Internally a provided integer will just be coerced to a `:limit` record with some
       default values set.
 
           iex> import Cachex.Spec

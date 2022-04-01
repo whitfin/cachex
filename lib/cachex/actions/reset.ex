@@ -50,7 +50,7 @@ defmodule Cachex.Actions.Reset do
   # Handles reset of the backing cache table.
   #
   # A cache is only emptied if the `:cache` property appears in the list of
-  # cache components to reset. If not provided, this will short circut and
+  # cache components to reset. If not provided, this will short circuit and
   # leave the cache table exactly as-is.
   defp reset_cache(cache, only, _options) do
     with true <- :cache in only do

@@ -235,7 +235,7 @@ defmodule Cachex.Policy.LRW do
   # Broadcasts the number of removed entries to the cache hooks.
   #
   # If the offset is not positive we didn't have to remove anything and so we
-  # don't broadcast any results. An 0 Tuple is returned just to keep compability
+  # don't broadcast any results. An 0 Tuple is returned just to keep compatibility
   # with the response type from `Informant.broadcast/3`.
   #
   # It should be noted that we use a `:clear` action here as these evictions are
