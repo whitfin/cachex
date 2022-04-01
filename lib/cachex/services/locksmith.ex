@@ -66,7 +66,7 @@ defmodule Cachex.Services.Locksmith do
   @doc """
   Retrieves a list of locked keys for a cache.
 
-  This uses some ETS maching voodoo to pull back the locked keys. They
+  This uses some ETS matching voodoo to pull back the locked keys. They
   won't be returned in any specific order, so don't rely on it.
   """
   @spec locked(Spec.cache) :: [ any ]

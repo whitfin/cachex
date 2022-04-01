@@ -101,7 +101,7 @@ defmodule Cachex.Router do
   #
   # This will provide handling of notifications across hooks before and after
   # the execution of an action. This is taken from code formerly in the old
-  # `Cachex.Actions` module, but has been moved here as it's more appopriate.
+  # `Cachex.Actions` module, but has been moved here as it's more appropriate.
   #
   # If `notify` is set to false, notifications are disabled and the call is
   # simply executed as is. If `via` is provided, you can override the handle
