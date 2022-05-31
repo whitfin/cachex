@@ -100,12 +100,12 @@ defmodule Cachex.Mixfile do
       { :excoveralls,   "~> 0.11", optional: true, only: [ :cover ] },
       { :local_cluster, "~> 1.1",  optional: true, only: [ :cover, :test ] },
       # Linting dependencies
-      { :credo, "~> 1.1", optional: true, only: [ :lint ] },
+      { :credo, "~> 1.6", optional: true, only: [ :lint ] },
       # Benchmarking dependencies
-      { :benchee,      "~> 1.0", optional: true, only: [ :bench ] },
+      { :benchee,      "~> 1.1", optional: true, only: [ :bench ] },
       { :benchee_html, "~> 1.0", optional: true, only: [ :bench ] },
       # Documentation dependencies
-      { :ex_doc, "~> 0.24", optional: true, only: [ :docs ] }
+      { :ex_doc, "~> 0.28", optional: true, only: [ :docs ] }
     ]
   end
 end
