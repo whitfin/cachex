@@ -104,9 +104,11 @@ defmodule Cachex.Services.Janitor do
     start_time = now()
     new_caches = Overseer.retrieve(name)
 
-    { duration, { :ok, count } = result } = :timer.tc(fn ->
+    { duration, result } = :timer.tc(fn ->
       Cachex.purge(new_caches, const(:local))
     end)
+
+    count = elem(result, 1)
 
     case count do
       0 -> nil

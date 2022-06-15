@@ -121,6 +121,9 @@ defmodule Cachex.Spec.Validator do
           and { :interval, 0 } in module.__info__(:functions)
           and { :execute,  1 } in module.__info__(:functions)
 
+  def valid?(:purge, purge(include_result_data: include_result_data)),
+    do: is_boolean(include_result_data)
+
   # Catch-all for invalid records.
   def valid?(_tag, _val),
     do: false

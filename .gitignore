@@ -11,3 +11,5 @@
 erl_crash.dump
 mix.lock
 *.ez
+*.code-workspace
+

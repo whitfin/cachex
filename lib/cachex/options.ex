@@ -25,7 +25,8 @@ defmodule Cachex.Options do
     :compressed,
     :expiration,
     :transactional,
-    :warmers
+    :warmers,
+    :purge
   ]
 
   ##############
@@ -320,6 +321,19 @@ defmodule Cachex.Options do
     case validated?(warmers, :warmer) do
       false -> error(:invalid_warmer)
       true  -> cache(cache, warmers: warmers)
+    end
+  end
+
+  defp parse_type(:purge, cache, options) do
+    purge =
+      case Keyword.get(options, :purge) do
+        nil -> purge(include_result_data: false)
+        purge -> purge
+      end
+
+    case Validator.valid?(:purge, purge) do
+      false -> error(:invalid_purge)
+      true  -> cache(cache, purge: purge)
     end
   end
 

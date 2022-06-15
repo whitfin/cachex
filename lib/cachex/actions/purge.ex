@@ -27,9 +27,14 @@ defmodule Cachex.Actions.Purge do
   We naturally need a transaction context to ensure that we don't remove any
   records currently being used in a transaction block.
   """
-  def execute(cache(name: name) = cache, _options) do
-    Locksmith.transaction(cache, [ ], fn ->
-      { :ok, :ets.select_delete(name, Query.expired(true)) }
+  def execute(cache(name: name, purge: purge) = cache, options) do
+    Locksmith.transaction(cache, [], fn ->
+      case purge do
+        purge(include_result_data: true) ->
+          to_delete = :ets.select(name, Query.expired({:key, :value}))
+          {:ok, :ets.select_delete(name, Query.expired(true)), to_delete}
+        _ -> {:ok, :ets.select_delete(name, Query.expired(true))}
+      end
     end)
   end
 end

@@ -21,7 +21,7 @@ defmodule Cachex.Errors do
     :janitor_disabled,    :no_cache,
     :non_distributed,     :non_numeric_value,
     :not_started,         :stats_disabled,
-    :unreachable_file
+    :unreachable_file,    :invalid_purge
   ]
 
   ##########
@@ -95,6 +95,8 @@ defmodule Cachex.Errors do
     do: "Stats are not enabled for the specified cache"
   def long_form(:unreachable_file),
     do: "Unable to access provided file path"
+  def long_form(:invalid_purge),
+    do: "Invalid purge options provided"
   def long_form(error),
     do: error
 end

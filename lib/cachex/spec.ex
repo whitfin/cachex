@@ -112,7 +112,8 @@ defmodule Cachex.Spec do
     limit: nil,
     nodes: [],
     transactional: false,
-    warmers: []
+    warmers: [],
+    purge: nil
 
   @doc """
   Creates a command record from the provided values.
@@ -244,6 +245,10 @@ defmodule Cachex.Spec do
     module: nil,
     state: nil
 
+
+  defrecord :purge,
+    include_result_data: false
+
   ###############
   # Record Docs #
   ###############
@@ -301,6 +306,9 @@ defmodule Cachex.Spec do
   """
   @spec warmer(warmer, Keyword.t) :: warmer
   defmacro warmer(record, args)
+
+  # @spec purge(purge, Keyword.t) :: purge
+  defmacro purge(record, args)
 
   #############
   # Constants #
