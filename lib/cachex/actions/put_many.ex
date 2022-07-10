@@ -31,7 +31,7 @@ defmodule Cachex.Actions.PutMany do
     ttlval = Options.get(options, :ttl, &is_integer/1)
     expiry = Janitor.expiration(cache, ttlval)
 
-    with { :ok, keys, entries } <- map_entries(expiry, pairs, [], []) do
+    with {:ok, keys, entries} <- map_entries(expiry, pairs, [], []) do
       Locksmith.write(cache, keys, fn ->
         Actions.write(cache, entries)
       end)
@@ -50,14 +50,17 @@ defmodule Cachex.Actions.PutMany do
   #
   # If an unexpected pair is hit, an error will be returned and no
   # values will be written to the backing table.
-  defp map_entries(ttl, [ { key, value } | pairs ], keys, entries) do
+  defp map_entries(ttl, [{key, value} | pairs], keys, entries) do
     entry = entry_now(key: key, ttl: ttl, value: value)
-    map_entries(ttl, pairs, [ key | keys ], [ entry | entries ])
+    map_entries(ttl, pairs, [key | keys], [entry | entries])
   end
+
   defp map_entries(_ttl, [], [], _entries),
-    do: { :ok, false }
+    do: {:ok, false}
+
   defp map_entries(_ttl, [], keys, entries),
-    do: { :ok, keys, entries }
+    do: {:ok, keys, entries}
+
   defp map_entries(_ttl, _inv, _keys, _entries),
     do: error(:invalid_pairs)
 end

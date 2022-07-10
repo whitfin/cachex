@@ -28,8 +28,8 @@ defmodule Cachex.Actions.Purge do
   records currently being used in a transaction block.
   """
   def execute(cache(name: name) = cache, _options) do
-    Locksmith.transaction(cache, [ ], fn ->
-      { :ok, :ets.select_delete(name, Query.expired(true)) }
+    Locksmith.transaction(cache, [], fn ->
+      {:ok, :ets.select_delete(name, Query.expired(true))}
     end)
   end
 end

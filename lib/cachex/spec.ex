@@ -17,79 +17,88 @@ defmodule Cachex.Spec do
   #############
 
   # a list of accepted service suffixes for a cache instance
-  @services [ :courier, :eternal, :janitor, :locksmith, :stats ]
+  @services [:courier, :eternal, :janitor, :locksmith, :stats]
 
   #############
   # Typespecs #
   #############
 
   # Record specification for a cache instance
-  @type cache :: record(:cache,
-    name: atom,
-    commands: map,
-    compressed: boolean,
-    expiration: expiration,
-    fallback: fallback,
-    hooks: hooks,
-    limit: limit,
-    nodes: [ atom ],
-    transactional: boolean,
-    warmers: [ warmer ]
-  )
+  @type cache ::
+          record(:cache,
+            name: atom,
+            commands: map,
+            compressed: boolean,
+            expiration: expiration,
+            fallback: fallback,
+            hooks: hooks,
+            limit: limit,
+            nodes: [atom],
+            transactional: boolean,
+            warmers: [warmer]
+          )
 
   # Record specification for a command instance
-  @type command :: record(:command,
-    type: :read | :write,
-    execute: (any -> any | { any, any })
-  )
+  @type command ::
+          record(:command,
+            type: :read | :write,
+            execute: (any -> any | {any, any})
+          )
 
   # Record specification for a cache entry
-  @type entry :: record(:entry,
-    key: any,
-    touched: number,
-    ttl: number,
-    value: any
-  )
+  @type entry ::
+          record(:entry,
+            key: any,
+            touched: number,
+            ttl: number,
+            value: any
+          )
 
   # Record specification for a cache expiration
-  @type expiration :: record(:expiration,
-    default: non_neg_integer,
-    interval: non_neg_integer | nil,
-    lazy: boolean
-  )
+  @type expiration ::
+          record(:expiration,
+            default: non_neg_integer,
+            interval: non_neg_integer | nil,
+            lazy: boolean
+          )
 
   # Record specification for a cache fallback
-  @type fallback :: record(:fallback,
-    default: (any -> any) | ((any, any) -> any),
-    state: any
-  )
+  @type fallback ::
+          record(:fallback,
+            default: (any -> any) | (any, any -> any),
+            state: any
+          )
 
   # Record specification for a cache hook
-  @type hook :: record(:hook,
-    module: atom,
-    state: any,
-    name: GenServer.server
-  )
+  @type hook ::
+          record(:hook,
+            module: atom,
+            state: any,
+            name: GenServer.server()
+          )
 
   # Record specification for multiple cache hooks
-  @type hooks :: record(:hooks,
-    pre:  [ hook ],
-    post: [ hook ]
-  )
+  @type hooks ::
+          record(:hooks,
+            pre: [hook],
+            post: [hook]
+          )
 
   # Record specification for a cache limit
-  @type limit :: record(:limit,
-    size: integer,
-    policy: atom,
-    reclaim: number,
-    options: Keyword.t
-  )
+  @type limit ::
+          record(:limit,
+            size: integer,
+            policy: atom,
+            reclaim: number,
+            options: Keyword.t()
+          )
 
   # Record specification for a cache warmer
-  @type warmer :: record(:warmer,
-    module: atom,
-    state: any
-  )
+  @type warmer ::
+          record(:warmer,
+            module: atom,
+            state: any
+          )
 
   ###########
   # Records #
@@ -251,55 +260,55 @@ defmodule Cachex.Spec do
   @doc """
   Updates a cache record from the provided values.
   """
-  @spec cache(cache, Keyword.t) :: cache
+  @spec cache(cache, Keyword.t()) :: cache
   defmacro cache(record, args)
 
   @doc """
   Updates a command record from the provided values.
   """
-  @spec command(command, Keyword.t) :: command
+  @spec command(command, Keyword.t()) :: command
   defmacro command(record, args)
 
   @doc """
   Updates an entry record from the provided values.
   """
-  @spec entry(entry, Keyword.t) :: entry
+  @spec entry(entry, Keyword.t()) :: entry
   defmacro entry(record, args)
 
   @doc """
   Updates an expiration record from the provided values.
   """
-  @spec expiration(expiration, Keyword.t) :: expiration
+  @spec expiration(expiration, Keyword.t()) :: expiration
   defmacro expiration(record, args)
 
   @doc """
   Updates a fallback record from the provided values.
   """
-  @spec fallback(fallback, Keyword.t) :: fallback
+  @spec fallback(fallback, Keyword.t()) :: fallback
   defmacro fallback(record, args)
 
   @doc """
   Updates a hook record from the provided values.
   """
-  @spec hook(hook, Keyword.t) :: hook
+  @spec hook(hook, Keyword.t()) :: hook
   defmacro hook(record, args)
 
   @doc """
   Updates a hooks record from the provided values.
   """
-  @spec hooks(hooks, Keyword.t) :: hooks
+  @spec hooks(hooks, Keyword.t()) :: hooks
   defmacro hooks(record, args)
 
   @doc """
   Updates a limit record from the provided values.
   """
-  @spec limit(limit, Keyword.t) :: limit
+  @spec limit(limit, Keyword.t()) :: limit
   defmacro limit(record, args)
 
   @doc """
   Updates a warmer record from the provided values.
   """
-  @spec warmer(warmer, Keyword.t) :: warmer
+  @spec warmer(warmer, Keyword.t()) :: warmer
   defmacro warmer(record, args)
 
   #############
@@ -320,34 +329,40 @@ defmodule Cachex.Spec do
 
   # Constant to only run locally.
   defmacro const(:local),
-    do: quote(do: [ local: true ])
+    do: quote(do: [local: true])
 
   # Constant to disable hook notifications.
   defmacro const(:notify_false),
-    do: quote(do: [ notify: false ])
+    do: quote(do: [notify: false])
 
   # Constant to override purge calls
   defmacro const(:purge_override_call),
-    do: quote(do: { :purge, [[]] })
+    do: quote(do: {:purge, [[]]})
 
   # Constant to override purge results
   defmacro const(:purge_override_result),
-    do: quote(do: { :ok, 1 })
+    do: quote(do: {:ok, 1})
 
   # Constant to override purge calls
   defmacro const(:purge_override),
-    do: quote(do: [
-      via: const(:purge_override_call),
-      hook_result: const(:purge_override_result)
-    ])
+    do:
+      quote(
+        do: [
+          via: const(:purge_override_call),
+          hook_result: const(:purge_override_result)
+        ]
+      )
 
   # Constant to define cache table options
   defmacro const(:table_options),
-    do: quote(do: [
-      keypos: 2,
-      read_concurrency: true,
-      write_concurrency: true
-    ])
+    do:
+      quote(
+        do: [
+          keypos: 2,
+          read_concurrency: true,
+          write_concurrency: true
+        ]
+      )
 
   ####################
   # Entry Generation #
@@ -366,12 +381,16 @@ defmodule Cachex.Spec do
   This will convert the entry field name to the ETS index under the
   hood, and return it inside a Tuple with the provided value.
   """
-  @spec entry_mod({ atom, any }) :: { integer, any }
-  defmacro entry_mod({ key, val }),
-    do: quote(do: { entry_idx(unquote(key)), unquote(val) })
+  @spec entry_mod({atom, any}) :: {integer, any}
+  defmacro entry_mod({key, val}),
+    do: quote(do: {entry_idx(unquote(key)), unquote(val)})
+
   defmacro entry_mod(updates) when is_list(updates),
-    do: for pair <- updates,
-      do: quote(do: entry_mod(unquote(pair)))
+    do:
+      for(
+        pair <- updates,
+        do: quote(do: entry_mod(unquote(pair)))
+      )
 
   @doc """
   Generates a list of ETS modification Tuples with an updated touch time.
@@ -380,9 +399,9 @@ defmodule Cachex.Spec do
   except that it will automatically update the `:touched` field in the entry
   to the current time.
   """
-  @spec entry_mod_now([ { atom, any } ]) :: [ { integer, any } ]
+  @spec entry_mod_now([{atom, any}]) :: [{integer, any}]
   defmacro entry_mod_now(pairs \\ []),
-    do: quote(do: entry_mod(unquote([ touched: quote(do: now()) ] ++ pairs)))
+    do: quote(do: entry_mod(unquote([touched: quote(do: now())] ++ pairs)))
 
   @doc """
   Creates an entry record with an updated touch time.
@@ -390,9 +409,9 @@ defmodule Cachex.Spec do
   This delegates through to `entry/1`, but ensures that the `:touched` field is
   set to the current time as a millisecond timestamp.
   """
-  @spec entry_now([ { atom, any } ]) :: [ { integer, any } ]
+  @spec entry_now([{atom, any}]) :: [{integer, any}]
   defmacro entry_now(pairs \\ []),
-    do: quote(do: entry(unquote([ touched: quote(do: now()) ] ++ pairs)))
+    do: quote(do: entry(unquote([touched: quote(do: now())] ++ pairs)))
 
   ############
   # Services #
@@ -409,6 +428,7 @@ defmodule Cachex.Spec do
   defmacro service_call(cache, service, message) when service in @services do
     quote do
       cache(name: name) = unquote(cache)
+
       name
       |> name(unquote(service))
       |> GenServer.call(unquote(message), :infinity)
@@ -455,14 +475,19 @@ defmodule Cachex.Spec do
   """
   @spec nillable?(any, (any -> boolean)) :: boolean
   defmacro nillable?(nillable, condition),
-    do: quote(do: is_nil(unquote(nillable)) or apply(unquote(condition), [ unquote(nillable) ]))
+    do:
+      quote(
+        do:
+          is_nil(unquote(nillable)) or
+            apply(unquote(condition), [unquote(nillable)])
+      )
 
   @doc """
   Adds a :via delegation to a Keyword List.
   """
-  @spec via(atom, Keyword.t) :: Keyword.t
+  @spec via(atom, Keyword.t()) :: Keyword.t()
   defmacro via(action, options),
-    do: quote(do: [ { :via, unquote(action) } | unquote(options) ])
+    do: quote(do: [{:via, unquote(action)} | unquote(options)])
 
   @doc """
   Retrieves the currently handled stacktrace.
@@ -479,7 +504,7 @@ defmodule Cachex.Spec do
   @doc """
   Wraps a value inside a tagged Tuple using the provided tag.
   """
-  @spec wrap(any, atom) :: { atom, any }
+  @spec wrap(any, atom) :: {atom, any}
   defmacro wrap(value, tag) when is_atom(tag),
-    do: quote(do: { unquote(tag), unquote(value) })
+    do: quote(do: {unquote(tag), unquote(value)})
 end

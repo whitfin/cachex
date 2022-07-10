@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Take do
   being currently locked by another write sequence.
   """
   def execute(cache(name: name) = cache, key, _options) do
-    Locksmith.write(cache, [ key ], fn ->
+    Locksmith.write(cache, [key], fn ->
       name
       |> :ets.take(key)
       |> handle_take(cache)
@@ -47,19 +47,22 @@ defmodule Cachex.Actions.Take do
   # If an entry comes back from the call, we check for expiration before returning
   # back to the caller. If the entry has expired, we broadcast the expiry (as the
   # entry was already removed when we took if from the cache).
-  defp handle_take([ entry(value: value) = entry ], cache) do
+  defp handle_take([entry(value: value) = entry], cache) do
     case Janitor.expired?(cache, entry) do
       false ->
-        { :ok, value }
+        {:ok, value}
+
       true ->
         Informant.broadcast(
           cache,
           const(:purge_override_call),
           const(:purge_override_result)
         )
-        { :ok, nil }
+
+        {:ok, nil}
     end
   end
+
   defp handle_take([], _cache),
-    do: { :ok, nil }
+    do: {:ok, nil}
 end

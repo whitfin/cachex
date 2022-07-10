@@ -30,16 +30,16 @@ defmodule Cachex.Actions.Reset do
   your hook has reinitialized.
   """
   def execute(cache() = cache, options) do
-    Locksmith.transaction(cache, [ ], fn ->
+    Locksmith.transaction(cache, [], fn ->
       only =
         options
-        |> Keyword.get(:only, [ :cache, :hooks ])
-        |> List.wrap
+        |> Keyword.get(:only, [:cache, :hooks])
+        |> List.wrap()
 
       reset_cache(cache, only, options)
       reset_hooks(cache, only, options)
 
-      { :ok, true }
+      {:ok, true}
     end)
   end
 
@@ -63,15 +63,21 @@ defmodule Cachex.Actions.Reset do
   # This has the ability to clear either all hooks or a subset of hooks. We have a small
   # optimization here to detect when we want to reset all hooks to avoid filtering without
   # a real need to. We also convert the list of hooks to a set to avoid O(N) lookups.
-  defp reset_hooks(cache(hooks: hooks(pre: pre_hooks, post: post_hooks)), only, opts) do
+  defp reset_hooks(
+         cache(hooks: hooks(pre: pre_hooks, post: post_hooks)),
+         only,
+         opts
+       ) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->
           pre_hooks
           |> Enum.concat(post_hooks)
           |> Enum.each(&notify_reset/1)
+
         val ->
           hook_sets = List.wrap(val)
+
           pre_hooks
           |> Enum.concat(post_hooks)
           |> Enum.filter(&should_reset?(&1, hook_sets))
@@ -94,5 +100,5 @@ defmodule Cachex.Actions.Reset do
   # listener built into the server implementatnion in order to handle this
   # automatically, so there's nothing more we need to do.
   defp notify_reset(hook(state: state, name: name)),
-    do: send(name, { :cachex_reset, state })
+    do: send(name, {:cachex_reset, state})
 end

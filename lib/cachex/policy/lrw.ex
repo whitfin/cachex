@@ -30,10 +30,10 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Services.Informant
 
   # actions which didn't trigger a write
-  @ignored [ :error, :ignored ]
+  @ignored [:error, :ignored]
 
   # compile our QLC match at runtime to avoid recalculating
-  @qlc_match Query.raw(true, { :key, :touched })
+  @qlc_match Query.raw(true, {:key, :touched})
 
   ####################
   # Policy Behaviour #
@@ -42,9 +42,9 @@ defmodule Cachex.Policy.LRW do
   @doc """
   Retrieves a list of hooks required to run against this policy.
   """
-  @spec hooks(Spec.limit) :: [ Spec.hook ]
+  @spec hooks(Spec.limit()) :: [Spec.hook()]
   def hooks(limit),
-    do: [ hook(module: __MODULE__, state: limit) ]
+    do: [hook(module: __MODULE__, state: limit)]
 
   ######################
   # Hook Configuration #
@@ -56,7 +56,7 @@ defmodule Cachex.Policy.LRW do
   This returns as a `MapSet` to optimize the lookups
   on actions to O(n) in the broadcasting algorithm.
   """
-  @spec actions :: [ atom ]
+  @spec actions :: [atom]
   def actions,
     do: [
       :put,
@@ -71,9 +71,9 @@ defmodule Cachex.Policy.LRW do
   @doc """
   Returns the provisions this policy requires.
   """
-  @spec provisions :: [ atom ]
+  @spec provisions :: [atom]
   def provisions,
-    do: [ :cache ]
+    do: [:cache]
 
   ####################
   # Server Callbacks #
@@ -94,7 +94,7 @@ defmodule Cachex.Policy.LRW do
         val -> val
       end
 
-    { :ok, { max_size, trim_bound, batch_size, nil } }
+    {:ok, {max_size, trim_bound, batch_size, nil}}
   end
 
   @doc false
@@ -105,18 +105,20 @@ defmodule Cachex.Policy.LRW do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, { status, _value }, opts) when not(status in @ignored),
-    do: enforce_bounds(opts) && { :ok, opts }
+  def handle_notify(_message, {status, _value}, opts)
+      when status not in @ignored,
+      do: enforce_bounds(opts) && {:ok, opts}
+
   def handle_notify(_message, _result, opts),
-    do: { :ok, opts }
+    do: {:ok, opts}
 
   @doc false
   # Receives a provisioned cache instance.
   #
   # The provided cache is then stored in the cache and used for cache calls going
   # forwards, in order to skip the lookups inside the cache overseer for performance.
-  def handle_provision({ :cache, cache }, { max_size, reclaim, batch, _cache }),
-    do: { :ok, { max_size, reclaim, batch, cache } }
+  def handle_provision({:cache, cache}, {max_size, reclaim, batch, _cache}),
+    do: {:ok, {max_size, reclaim, batch, cache}}
 
   #############
   # Algorithm #
@@ -145,10 +147,11 @@ defmodule Cachex.Policy.LRW do
   # size as an optimization to speed up message processing when no evictions need
   # to happen. This is a slight speed boost, but it's noticeable - tests will fail
   # intermittently if this is not checked in this way.
-  defp enforce_bounds({ max_size, reclaim, batch, cache }) do
+  defp enforce_bounds({max_size, reclaim, batch, cache}) do
     case Cachex.size!(cache, const(:notify_false)) do
       cache_size when cache_size <= max_size ->
         notify_worker(0, cache)
+
       cache_size ->
         cache_size
         |> calculate_reclaim(max_size, reclaim)
@@ -189,15 +192,17 @@ defmodule Cachex.Policy.LRW do
   # naturally required when it comes to removing the document, and the touch time is
   # used to determine the sort order required for LRW. We transform this sort using
   # a QLC cursor and pass it through to `erase_cursor/3` to delete.
-  defp erase_lower_bound(offset, cache(name: name), batch_size) when offset > 0 do
+  defp erase_lower_bound(offset, cache(name: name), batch_size)
+       when offset > 0 do
     name
-    |> :ets.table([ traverse: { :select, @qlc_match } ])
-    |> :qlc.sort([ order: fn({ _k1, t1 }, { _k2, t2  }) -> t1 < t2 end ])
-    |> :qlc.cursor
+    |> :ets.table(traverse: {:select, @qlc_match})
+    |> :qlc.sort(order: fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
+    |> :qlc.cursor()
     |> erase_cursor(name, offset, batch_size)
 
     offset
   end
+
   defp erase_lower_bound(offset, _state, _batch_size),
     do: offset
 
@@ -210,10 +215,12 @@ defmodule Cachex.Policy.LRW do
   # This is a recursive function as we have to keep track of the number to remove,
   # as the removal is done by calling `erase_batch/3`. At the end of the recursion,
   # we make sure to delete the trailing QLC cursor to avoid it lying around still.
-  defp erase_cursor(cursor, table, remainder, batch_size) when remainder > batch_size do
+  defp erase_cursor(cursor, table, remainder, batch_size)
+       when remainder > batch_size do
     erase_batch(cursor, table, batch_size)
     erase_cursor(cursor, table, remainder - batch_size, batch_size)
   end
+
   defp erase_cursor(cursor, table, remainder, _batch_size) do
     erase_batch(cursor, table, remainder)
     :qlc.delete_cursor(cursor)
@@ -227,7 +234,7 @@ defmodule Cachex.Policy.LRW do
   # performant as `:ets.select_delete/2` but appears to be required because
   # of the need to sort the QLC cursor by the touch time.
   defp erase_batch(cursor, table, batch_size) do
-    for { key, _touched } <- :qlc.next_answers(cursor, batch_size) do
+    for {key, _touched} <- :qlc.next_answers(cursor, batch_size) do
       :ets.delete(table, key)
     end
   end
@@ -245,7 +252,8 @@ defmodule Cachex.Policy.LRW do
   # results of `clear()` and `purge()` calls in this hook, otherwise we would end
   # up in a recursive loop due to the hook system.
   defp notify_worker(offset, state) when offset > 0,
-    do: Informant.broadcast(state, { :clear, [[]] }, { :ok, offset })
+    do: Informant.broadcast(state, {:clear, [[]]}, {:ok, offset})
+
   defp notify_worker(_offset, _state),
-    do: { :ok, 0 }
+    do: {:ok, 0}
 end

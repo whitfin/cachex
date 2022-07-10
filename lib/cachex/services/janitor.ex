@@ -32,16 +32,17 @@ defmodule Cachex.Services.Janitor do
   At this point customization is non-existent, in order to keep the service
   as simple as possible and avoid the space for error and edge cases.
   """
-  @spec start_link(Spec.cache) :: GenServer.on_start
+  @spec start_link(Spec.cache()) :: GenServer.on_start()
   def start_link(cache(name: name) = cache),
-    do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :janitor) ])
+    do: GenServer.start_link(__MODULE__, cache, name: name(name, :janitor))
 
   @doc """
   Pulls an expiration associated with an entry.
   """
-  @spec expiration(Spec.cache, integer) :: integer
+  @spec expiration(Spec.cache(), integer) :: integer
   def expiration(cache(expiration: expiration(default: default)), nil),
     do: default
+
   def expiration(_cache, expiration),
     do: expiration
 
@@ -50,7 +51,7 @@ defmodule Cachex.Services.Janitor do
 
   This will take cache lazy expiration settings into account.
   """
-  @spec expired?(Spec.cache, Spec.entry) :: boolean
+  @spec expired?(Spec.cache(), Spec.entry()) :: boolean
   def expired?(cache(expiration: expiration(lazy: lazy)), entry() = entry),
     do: lazy and expired?(entry)
 
@@ -59,9 +60,10 @@ defmodule Cachex.Services.Janitor do
 
   This will not cache lazy expiration settings into account.
   """
-  @spec expired?(Spec.entry) :: boolean
+  @spec expired?(Spec.entry()) :: boolean
   def expired?(entry(touched: touched, ttl: ttl)) when is_number(ttl),
     do: touched + ttl < now()
+
   def expired?(_entry),
     do: false
 
@@ -70,9 +72,10 @@ defmodule Cachex.Services.Janitor do
 
   If the service is disabled on the cache, an error is returned.
   """
-  @spec last_run(Spec.cache) :: %{}
+  @spec last_run(Spec.cache()) :: %{}
   def last_run(cache(expiration: expiration(interval: nil))),
     do: error(:janitor_disabled)
+
   def last_run(cache() = cache),
     do: service_call(cache, :janitor, :last)
 
@@ -86,27 +89,28 @@ defmodule Cachex.Services.Janitor do
   # This will create the structure used to store metadata about
   # the run cycles of the Janitor, and schedule the first run.
   def init(cache),
-    do: { :ok, { schedule_check(cache), %{ } } }
+    do: {:ok, {schedule_check(cache), %{}}}
 
   @doc false
   # Returns metadata about the last run of this Janitor.
   #
   # The returned information should be treated as non-guaranteed.
-  def handle_call(:last, _ctx, { _cache, last } = state),
-    do: { :reply, { :ok, last }, state }
+  def handle_call(:last, _ctx, {_cache, last} = state),
+    do: {:reply, {:ok, last}, state}
 
   @doc false
   # Executes an expiration cleanup against a cache table.
   #
   # This will drop to the ETS level and use a select to match documents which
   # need to be removed; they are then deleted by ETS at very high speeds.
-  def handle_info(:ttl_check, { cache(name: name), _last }) do
+  def handle_info(:ttl_check, {cache(name: name), _last}) do
     start_time = now()
     new_caches = Overseer.retrieve(name)
 
-    { duration, { :ok, count } = result } = :timer.tc(fn ->
-      Cachex.purge(new_caches, const(:local))
-    end)
+    {duration, {:ok, count} = result} =
+      :timer.tc(fn ->
+        Cachex.purge(new_caches, const(:local))
+      end)
 
     case count do
       0 -> nil
@@ -119,7 +123,7 @@ defmodule Cachex.Services.Janitor do
       started: start_time
     }
 
-    { :noreply, { schedule_check(new_caches), last } }
+    {:noreply, {schedule_check(new_caches), last}}
   end
 
   ###############
@@ -128,6 +132,8 @@ defmodule Cachex.Services.Janitor do
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
-  defp schedule_check(cache(expiration: expiration(interval: interval)) = cache),
-    do: :erlang.send_after(interval, self(), :ttl_check) && cache
+  defp schedule_check(
+         cache(expiration: expiration(interval: interval)) = cache
+       ),
+       do: :erlang.send_after(interval, self(), :ttl_check) && cache
 end

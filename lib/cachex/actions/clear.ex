@@ -45,6 +45,6 @@ defmodule Cachex.Actions.Clear do
   # This just verifies that we can safely return a size. Being realistic,
   # this will almost always hit the top case - the latter is just provided
   # in order to avoid crashing if something goes totally wrong.
-  defp handle_evicted({ :ok, _size } = res),
+  defp handle_evicted({:ok, _size} = res),
     do: res
 end

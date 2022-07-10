@@ -23,24 +23,24 @@ defmodule Cachex.Services.Locksmith.Queue do
   This is little more than starting a GenServer process using this module,
   although it does use the provided cache record to name the new server.
   """
-  @spec start_link(Spec.cache) :: [ GenServer.on_start ]
+  @spec start_link(Spec.cache()) :: [GenServer.on_start()]
   def start_link(cache(name: name) = cache),
-    do: GenServer.start_link(__MODULE__, cache, [ name: name(name, :locksmith) ])
+    do: GenServer.start_link(__MODULE__, cache, name: name(name, :locksmith))
 
   @doc """
   Executes a function in a lock-free context.
   """
-  @spec execute(Spec.cache, (() -> any)) :: any
+  @spec execute(Spec.cache(), (() -> any)) :: any
   def execute(cache() = cache, func) when is_function(func, 0),
-    do: service_call(cache, :locksmith, { :exec, func })
+    do: service_call(cache, :locksmith, {:exec, func})
 
   @doc """
   Executes a function in a transactional context.
   """
-  @spec transaction(Spec.cache, [ any ], (() -> any)) :: any
+  @spec transaction(Spec.cache(), [any], (() -> any)) :: any
   def transaction(cache() = cache, keys, func)
-  when is_list(keys) and is_function(func, 0),
-    do: service_call(cache, :locksmith, { :transaction, keys, func })
+      when is_list(keys) and is_function(func, 0),
+      do: service_call(cache, :locksmith, {:transaction, keys, func})
 
   ####################
   # Server Callbacks #
@@ -55,7 +55,7 @@ defmodule Cachex.Services.Locksmith.Queue do
     # signal transactional
     start_transaction()
     # cache is state
-    { :ok, cache }
+    {:ok, cache}
   end
 
   @doc false
@@ -63,8 +63,8 @@ defmodule Cachex.Services.Locksmith.Queue do
   #
   # Because locks are handled sequentially inside this process, this execution
   # can guarantee that there are no locks set on the table when it fires.
-  def handle_call({ :exec, func }, _ctx, cache),
-    do: { :reply, safe_exec(func), cache }
+  def handle_call({:exec, func}, _ctx, cache),
+    do: {:reply, safe_exec(func), cache}
 
   @doc false
   # Executes a function in a transactional context.
@@ -73,12 +73,12 @@ defmodule Cachex.Services.Locksmith.Queue do
   # locks after execution. The key here is that the locks set on a key will stop
   # other processes from writing them, and force them to queue their writes
   # inside this queue process instead.
-  def handle_call({ :transaction, keys, func }, _ctx, cache) do
+  def handle_call({:transaction, keys, func}, _ctx, cache) do
     true = lock(cache, keys)
-    val  = safe_exec(func)
+    val = safe_exec(func)
     true = unlock(cache, keys)
 
-    { :reply, val, cache }
+    {:reply, val, cache}
   end
 
   ###############
@@ -92,6 +92,6 @@ defmodule Cachex.Services.Locksmith.Queue do
   defp safe_exec(fun) do
     fun.()
   rescue
-    e -> { :error, Exception.message(e) }
+    e -> {:error, Exception.message(e)}
   end
 end

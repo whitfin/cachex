@@ -31,9 +31,9 @@ defmodule Cachex.Actions.Expire do
   being used/modified/removed from another process in the application.
   """
   def execute(cache() = cache, key, expiration, _options) do
-    Locksmith.write(cache, [ key ], fn ->
+    Locksmith.write(cache, [key], fn ->
       case expiration > -1 do
-        true  -> Actions.update(cache, key, entry_mod_now(ttl: expiration))
+        true -> Actions.update(cache, key, entry_mod_now(ttl: expiration))
         false -> Cachex.del(cache, key, const(:purge_override))
       end
     end)

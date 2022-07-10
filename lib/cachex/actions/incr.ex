@@ -29,14 +29,14 @@ defmodule Cachex.Actions.Incr do
   """
   def execute(cache(name: name) = cache, key, amount, options) do
     initial = Options.get(options, :initial, &is_integer/1, 0)
-    expiry  = Janitor.expiration(cache, nil)
+    expiry = Janitor.expiration(cache, nil)
 
     default = entry_now(key: key, ttl: expiry, value: initial)
 
-    Locksmith.write(cache, [ key ], fn ->
+    Locksmith.write(cache, [key], fn ->
       try do
         name
-        |> :ets.update_counter(key, entry_mod({ :value, amount }), default)
+        |> :ets.update_counter(key, entry_mod({:value, amount}), default)
         |> wrap(:ok)
       rescue
         _ -> error(:non_numeric_value)

@@ -11,14 +11,15 @@ defmodule Cachex.Spec.Validator do
   import Cachex.Spec
 
   # internal spec to refer to each record type
-  @type record :: Cachex.Spec.command |
-                  Cachex.Spec.entry |
-                  Cachex.Spec.expiration |
-                  Cachex.Spec.fallback |
-                  Cachex.Spec.hook |
-                  Cachex.Spec.hooks |
-                  Cachex.Spec.limit |
-                  Cachex.Spec.warmer
+  @type record ::
+          Cachex.Spec.command()
+          | Cachex.Spec.entry()
+          | Cachex.Spec.expiration()
+          | Cachex.Spec.fallback()
+          | Cachex.Spec.hook()
+          | Cachex.Spec.hooks()
+          | Cachex.Spec.limit()
+          | Cachex.Spec.warmer()
 
   ##############
   # Public API #
@@ -40,7 +41,7 @@ defmodule Cachex.Spec.Validator do
   # The only requirements here are that the action have an arity of
   # 1, and the type be a valid read/write atom.
   def valid?(:command, command(type: type, execute: execute)),
-    do: type in [ :read, :write ] and is_function(execute, 1)
+    do: type in [:read, :write] and is_function(execute, 1)
 
   # Validates an entry specification record.
   #
@@ -54,10 +55,14 @@ defmodule Cachex.Spec.Validator do
   #
   # This has to validate the default/interval values as being a nillable integers,
   # and the lazy value has to be a boolean value (which can not be nil).
-  def valid?(:expiration, expiration(default: default, interval: interval, lazy: lazy)),
-    do: nillable?(default, &is_positive_integer/1)
-          and nillable?(interval, &is_positive_integer/1)
-          and is_boolean(lazy)
+  def valid?(
+        :expiration,
+        expiration(default: default, interval: interval, lazy: lazy)
+      ),
+      do:
+        nillable?(default, &is_positive_integer/1) and
+          nillable?(interval, &is_positive_integer/1) and
+          is_boolean(lazy)
 
   # Validates a fallback specification record.
   #
@@ -81,13 +86,14 @@ defmodule Cachex.Spec.Validator do
   # as the cache creation requires valid hooks it seems to make sense to
   # be this strict at this point.
   def valid?(:hook, hook(module: module, name: name)),
-    do: behaviour?(module, Cachex.Hook)
-          and is_boolean(module.async?())
-          and nillable?(name, &(is_atom(&1) or is_pid(&1)))
-          and nillable?(module.timeout(), &is_positive_integer/1)
-          and (enum?(module.actions(), &is_atom/1) or module.actions() == :all)
-          and enum?(module.provisions(), &is_atom/1)
-          and module.type() in [ :post, :pre ]
+    do:
+      behaviour?(module, Cachex.Hook) and
+        is_boolean(module.async?()) and
+        nillable?(name, &(is_atom(&1) or is_pid(&1))) and
+        nillable?(module.timeout(), &is_positive_integer/1) and
+        (enum?(module.actions(), &is_atom/1) or module.actions() == :all) and
+        enum?(module.provisions(), &is_atom/1) and
+        module.type() in [:post, :pre]
 
   # Validates a hooks specification record.
   #
@@ -95,31 +101,37 @@ defmodule Cachex.Spec.Validator do
   # is a valid hook instance. This is done using the valid?/1 clause
   # for a base hook record, rather than reimplementing here.
   def valid?(:hooks, hooks(pre: pre, post: post)),
-    do: is_list(pre)
-          and is_list(post)
-          and enum?(pre ++ post, &valid?(:hook, &1))
+    do:
+      is_list(pre) and
+        is_list(post) and
+        enum?(pre ++ post, &valid?(:hook, &1))
 
   # Validates a limit specification record.
   #
   # This has to validate all fields in the record, with the size being a nillable integer,
   # the policy being a valid module, the reclaim space being a valid float between 0 and 1,
   # and a valid keyword list as the options.
-  def valid?(:limit, limit(size: size, policy: policy, reclaim: reclaim, options: options)),
-    do: module?(policy)
-          and nillable?(size, &is_positive_integer/1)
-          and is_number(reclaim)
-          and reclaim > 0
-          and reclaim <= 1
-          and Keyword.keyword?(options)
+  def valid?(
+        :limit,
+        limit(size: size, policy: policy, reclaim: reclaim, options: options)
+      ),
+      do:
+        module?(policy) and
+          nillable?(size, &is_positive_integer/1) and
+          is_number(reclaim) and
+          reclaim > 0 and
+          reclaim <= 1 and
+          Keyword.keyword?(options)
 
   # Validates a warmer specification record.
   #
   # This will validate that the provided module correctly implements
   # the behaviour of `Cachex.Warmer` via function checking.
   def valid?(:warmer, warmer(module: module)),
-    do: behaviour?(module, Cachex.Warmer)
-          and { :interval, 0 } in module.__info__(:functions)
-          and { :execute,  1 } in module.__info__(:functions)
+    do:
+      behaviour?(module, Cachex.Warmer) and
+        {:interval, 0} in module.__info__(:functions) and
+        {:execute, 1} in module.__info__(:functions)
 
   # Catch-all for invalid records.
   def valid?(_tag, _val),
@@ -133,7 +145,7 @@ defmodule Cachex.Spec.Validator do
   # Determines if a module implements a behaviour.
   defp behaviour?(module, behaviour) do
     unsafe?(fn ->
-      { :behaviour, [ behaviour ] } in module.__info__(:attributes)
+      {:behaviour, [behaviour]} in module.__info__(:attributes)
     end)
   end
 

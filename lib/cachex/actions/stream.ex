@@ -12,12 +12,12 @@ defmodule Cachex.Actions.Stream do
   import Cachex.Spec
 
   # our test record for testing matches
-  @test entry([
-    key: "key",
-    touched: now(),
-    ttl: 1000,
-    value: "value"
-  ])
+  @test entry(
+          key: "key",
+          touched: now(),
+          ttl: 1000,
+          value: "value"
+        )
 
   ##############
   # Public API #
@@ -37,13 +37,13 @@ defmodule Cachex.Actions.Stream do
   """
   def execute(cache(name: name), spec, options) do
     case :ets.test_ms(@test, spec) do
-      { :ok, _result } ->
+      {:ok, _result} ->
         options
         |> Options.get(:batch_size, &is_positive_integer/1, 25)
         |> init_stream(name, spec)
         |> wrap(:ok)
 
-      { :error, _result } ->
+      {:error, _result} ->
         error(:invalid_match)
     end
   end
@@ -60,13 +60,13 @@ defmodule Cachex.Actions.Stream do
     Stream.resource(
       fn ->
         name
-        |> :ets.table([ { :traverse, { :select, spec } }])
-        |> :qlc.cursor
+        |> :ets.table([{:traverse, {:select, spec}}])
+        |> :qlc.cursor()
       end,
-      fn(cursor) ->
+      fn cursor ->
         case :qlc.next_answers(cursor, batch) do
-          [ ] -> { :halt, cursor }
-          ans -> {   ans, cursor }
+          [] -> {:halt, cursor}
+          ans -> {ans, cursor}
         end
       end,
       &:qlc.delete_cursor/1

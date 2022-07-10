@@ -21,9 +21,10 @@ defmodule Cachex.Actions.Get do
   def execute(cache() = cache, key, _options) do
     case Actions.read(cache, key) do
       entry(value: value) ->
-        { :ok, value }
+        {:ok, value}
+
       nil ->
-        { :ok, nil }
+        {:ok, nil}
     end
   end
 end

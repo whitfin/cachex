@@ -26,16 +26,18 @@ defmodule Cachex.Actions do
   This will return an instance of an entry record as defined in the main
   `Cachex.Spec` module, rather than just the raw value.
   """
-  @spec read(Spec.cache, any) :: Spec.entry | nil
+  @spec read(Spec.cache(), any) :: Spec.entry() | nil
   def read(cache(name: name) = cache, key) do
     case :ets.lookup(name, key) do
       [] ->
         nil
-      [ entry ] ->
+
+      [entry] ->
         case Janitor.expired?(cache, entry) do
           false ->
             entry
-          true  ->
+
+          true ->
             Cachex.del(cache, key, const(:purge_override))
             nil
         end
@@ -51,16 +53,16 @@ defmodule Cachex.Actions do
 
   Note that updates are atomic; either all updates will take place, or none will.
   """
-  @spec update(Spec.cache, any, [ tuple ]) :: { :ok, boolean }
+  @spec update(Spec.cache(), any, [tuple]) :: {:ok, boolean}
   def update(cache(name: name), key, changes),
-    do: { :ok, :ets.update_element(name, key, changes) }
+    do: {:ok, :ets.update_element(name, key, changes)}
 
   @doc """
   Writes a new entry into a cache.
   """
-  @spec write(Spec.cache, [ Spec.entry ]) :: { :ok, boolean }
+  @spec write(Spec.cache(), [Spec.entry()]) :: {:ok, boolean}
   def write(cache(name: name), entries),
-    do: { :ok, :ets.insert(name, entries) }
+    do: {:ok, :ets.insert(name, entries)}
 
   @doc """
   Returns the operation used for a write based on a prior value.
@@ -68,6 +70,7 @@ defmodule Cachex.Actions do
   @spec write_op(atom) :: atom
   def write_op(nil),
     do: :put
+
   def write_op(_tag),
     do: :update
 
@@ -85,14 +88,17 @@ defmodule Cachex.Actions do
   defmacro normalize_commit(value) do
     quote bind_quoted: [value: value] do
       case value do
-        { :error, _value } ->
+        {:error, _value} ->
           value
-        { :commit, _value } ->
+
+        {:commit, _value} ->
           value
-        { :ignore, _value } ->
+
+        {:ignore, _value} ->
           value
+
         raw_value ->
-          { :commit, raw_value }
+          {:commit, raw_value}
       end
     end
   end

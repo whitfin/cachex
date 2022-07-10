@@ -25,7 +25,7 @@ defmodule Cachex.Actions.Empty do
   returned numeric value is just "cast" to a boolean value.
   """
   def execute(cache() = cache, _options) do
-    { :ok, size } = Size.execute(cache, [])
-    { :ok, size == 0 }
+    {:ok, size} = Size.execute(cache, [])
+    {:ok, size == 0}
   end
 end

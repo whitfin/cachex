@@ -24,7 +24,7 @@ defmodule Cachex.Actions.Transaction do
   """
   def execute(cache() = cache, keys, operation, _options) do
     Locksmith.transaction(cache, keys, fn ->
-      { :ok, operation.(cache) }
+      {:ok, operation.(cache)}
     end)
   end
 end

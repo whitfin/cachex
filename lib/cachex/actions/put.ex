@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Put do
 
     record = entry_now(key: key, ttl: expiry, value: value)
 
-    Locksmith.write(cache, [ key ], fn ->
+    Locksmith.write(cache, [key], fn ->
       Actions.write(cache, record)
     end)
   end

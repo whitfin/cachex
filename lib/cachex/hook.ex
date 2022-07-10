@@ -20,7 +20,7 @@ defmodule Cachex.Hook do
   be reported to the hook. If not this atom, an enumerable of atoms should be
   returned.
   """
-  @callback actions :: :all | [ atom ]
+  @callback actions :: :all | [atom]
 
   @doc """
   Returns whether this hook is asynchronous or not.
@@ -38,7 +38,7 @@ defmodule Cachex.Hook do
   This should always return an enumerable of atoms; in the case of no required
   provisions an empty enumerable should be returned.
   """
-  @callback provisions :: [ atom ]
+  @callback provisions :: [atom]
 
   @doc """
   Returns the timeout for all calls to this hook.
@@ -63,7 +63,7 @@ defmodule Cachex.Hook do
   second argument being the results of the action (this can be nil for hooks)
   which fire before the action is executed.
   """
-  @callback handle_notify(tuple, tuple, any) :: { :ok, any }
+  @callback handle_notify(tuple, tuple, any) :: {:ok, any}
 
   @doc """
   Handles a provisioning call.
@@ -72,7 +72,7 @@ defmodule Cachex.Hook do
   provisioned along with the value itself. This can be used to listen on
   states required for hook executions (such as cache records).
   """
-  @callback handle_provision({ atom, any }, any) :: { :ok, any }
+  @callback handle_provision({atom, any}, any) :: {:ok, any}
 
   ##################
   # Implementation #
@@ -89,10 +89,10 @@ defmodule Cachex.Hook do
 
       @doc false
       def init(args),
-        do: { :ok, args }
+        do: {:ok, args}
 
       # allow overriding of init
-      defoverridable [ init: 1 ]
+      defoverridable init: 1
 
       #################
       # Configuration #
@@ -119,13 +119,11 @@ defmodule Cachex.Hook do
         do: :post
 
       # config overrides
-      defoverridable [
-        actions: 0,
-        async?: 0,
-        provisions: 0,
-        timeout: 0,
-        type: 0
-      ]
+      defoverridable actions: 0,
+                     async?: 0,
+                     provisions: 0,
+                     timeout: 0,
+                     type: 0
 
       #########################
       # Notification Handlers #
@@ -133,56 +131,56 @@ defmodule Cachex.Hook do
 
       @doc false
       def handle_notify(event, result, state),
-        do: { :ok, state }
+        do: {:ok, state}
 
       @doc false
       def handle_provision(provisions, state),
-        do: { :ok, state }
+        do: {:ok, state}
 
       # listener override
-      defoverridable [
-        handle_notify: 3,
-        handle_provision: 2
-      ]
+      defoverridable handle_notify: 3,
+                     handle_provision: 2
 
       ##########################
       # Private Implementation #
       ##########################
 
       @doc false
-      def handle_info({ :cachex_reset, args }, state) do
-        { :ok, new_state } = init(args)
-        { :noreply, new_state }
+      def handle_info({:cachex_reset, args}, state) do
+        {:ok, new_state} = init(args)
+        {:noreply, new_state}
       end
 
       @doc false
-      def handle_info({ :cachex_provision, provisions }, state) do
-        { :ok, new_state } = handle_provision(provisions, state)
-        { :noreply, new_state }
+      def handle_info({:cachex_provision, provisions}, state) do
+        {:ok, new_state} = handle_provision(provisions, state)
+        {:noreply, new_state}
       end
 
       @doc false
-      def handle_info({ :cachex_notify, { event, result } }, state) do
+      def handle_info({:cachex_notify, {event, result}}, state) do
         case timeout() do
           nil ->
-            { :ok, new_state } = handle_notify(event, result, state)
-            { :noreply, new_state }
+            {:ok, new_state} = handle_notify(event, result, state)
+            {:noreply, new_state}
+
           val ->
-            task = Task.async(fn ->
-              handle_notify(event, result, state)
-            end)
+            task =
+              Task.async(fn ->
+                handle_notify(event, result, state)
+              end)
 
             case Task.yield(task, val) || Task.shutdown(task) do
-              { :ok, { :ok, new_state } } -> { :noreply, state }
-              nil -> { :noreply, state }
+              {:ok, {:ok, new_state}} -> {:noreply, state}
+              nil -> {:noreply, state}
             end
         end
       end
 
       @doc false
-      def handle_call({ :cachex_notify, _message } = message, _ctx, state) do
-        { :noreply, new_state } = handle_info(message, state)
-        { :reply, :ok, new_state }
+      def handle_call({:cachex_notify, _message} = message, _ctx, state) do
+        {:noreply, new_state} = handle_info(message, state)
+        {:reply, :ok, new_state}
       end
     end
   end

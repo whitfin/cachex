@@ -26,13 +26,13 @@ defmodule Cachex.Disk do
   As we can't be certain what we're reading from the file, we make sure to load
   it safely to avoid malicious content (although the chance of that is slim).
   """
-  @spec read(binary, Keyword.t) :: { :ok, any } | { :error, atom }
+  @spec read(binary, Keyword.t()) :: {:ok, any} | {:error, atom}
   def read(path, options \\ []) when is_binary(path) and is_list(options) do
     trusted = Options.get(options, :trusted, &is_boolean/1, true)
 
     path
-    |> File.read!
-    |> :erlang.binary_to_term(trusted && [] || [:safe])
+    |> File.read!()
+    |> :erlang.binary_to_term((trusted && []) || [:safe])
     |> wrap(:ok)
   rescue
     _ -> error(:unreachable_file)
@@ -46,19 +46,27 @@ defmodule Cachex.Disk do
   compression. If set to 0, compression will be disabled but be aware storage
   will increase dramatically.
   """
-  @spec write(any, binary, Keyword.t) :: { :ok, true } | { :error, atom }
-  def write(value, path, options \\ []) when is_binary(path) and is_list(options) do
-    compression = Options.get(options, :compression, fn(val) ->
-      is_integer(val) and val > -1 and val < 10
-    end, 1)
+  @spec write(any, binary, Keyword.t()) :: {:ok, true} | {:error, atom}
+  def write(value, path, options \\ [])
+      when is_binary(path) and is_list(options) do
+    compression =
+      Options.get(
+        options,
+        :compression,
+        fn val ->
+          is_integer(val) and val > -1 and val < 10
+        end,
+        1
+      )
 
-    insert = :erlang.term_to_binary(value, [
-      compressed: compression,
-      minor_version: 1
-    ])
+    insert =
+      :erlang.term_to_binary(value,
+        compressed: compression,
+        minor_version: 1
+      )
 
     case File.write(path, insert) do
-       :ok -> { :ok, true }
+      :ok -> {:ok, true}
       _err -> error(:unreachable_file)
     end
   end

@@ -25,7 +25,7 @@ defmodule Cachex.Actions.Update do
   of doing an update.
   """
   def execute(cache() = cache, key, value, _options) do
-    Locksmith.write(cache, [ key ], fn ->
+    Locksmith.write(cache, [key], fn ->
       Actions.update(cache, key, entry_mod(value: value))
     end)
   end

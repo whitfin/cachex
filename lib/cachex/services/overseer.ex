@@ -24,7 +24,7 @@ defmodule Cachex.Services.Overseer do
 
   # constants for manager/table names
   @manager_name :cachex_overseer_manager
-  @table_name   :cachex_overseer_table
+  @table_name :cachex_overseer_table
 
   ##############
   # Public API #
@@ -36,21 +36,21 @@ defmodule Cachex.Services.Overseer do
   This will start a basic `Agent` for transactional changes, as well
   as the main ETS table backing this service.
   """
-  @spec start_link :: Supervisor.on_start
+  @spec start_link :: Supervisor.on_start()
   def start_link do
-    ets_opts = [ read_concurrency: true, write_concurrency: true ]
-    tab_opts = [ @table_name, ets_opts, [ quiet: true ] ]
-    mgr_opts = [ 1, [ name: @manager_name ] ]
+    ets_opts = [read_concurrency: true, write_concurrency: true]
+    tab_opts = [@table_name, ets_opts, [quiet: true]]
+    mgr_opts = [1, [name: @manager_name]]
 
     children = [
-      %{ id: :sleeplocks, start: { :sleeplocks, :start_link, mgr_opts } },
-      %{ id: Eternal, start: { Eternal, :start_link, tab_opts}, type: :supervisor }
+      %{id: :sleeplocks, start: {:sleeplocks, :start_link, mgr_opts}},
+      %{id: Eternal, start: {Eternal, :start_link, tab_opts}, type: :supervisor}
     ]
 
-    Supervisor.start_link(children, [
+    Supervisor.start_link(children,
       strategy: :one_for_one,
       name: :cachex_overseer
-    ])
+    )
   end
 
   @doc """
@@ -59,11 +59,13 @@ defmodule Cachex.Services.Overseer do
   Ensuring a cache will map the provided argument to a
   cache record if available, otherwise a nil value.
   """
-  @spec ensure(atom | Spec.cache) :: Spec.cache | nil
+  @spec ensure(atom | Spec.cache()) :: Spec.cache() | nil
   def ensure(cache() = cache),
     do: cache
+
   def ensure(name) when is_atom(name),
     do: retrieve(name)
+
   def ensure(_miss),
     do: nil
 
@@ -77,18 +79,19 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Registers a cache record against a name.
   """
-  @spec register(atom, Spec.cache) :: true
+  @spec register(atom, Spec.cache()) :: true
   def register(name, cache() = cache) when is_atom(name),
-    do: :ets.insert(@table_name, { name, cache })
+    do: :ets.insert(@table_name, {name, cache})
 
   @doc """
   Retrieves a cache record, or `nil` if none exists.
   """
-  @spec retrieve(atom) :: Spec.cache | nil
+  @spec retrieve(atom) :: Spec.cache() | nil
   def retrieve(name) do
     case :ets.lookup(@table_name, name) do
-      [{ ^name, state }] ->
+      [{^name, state}] ->
         state
+
       _other ->
         nil
     end
@@ -99,7 +102,7 @@ defmodule Cachex.Services.Overseer do
   """
   @spec started? :: boolean
   def started?,
-    do: Enum.member?(:ets.all, @table_name)
+    do: Enum.member?(:ets.all(), @table_name)
 
   @doc """
   Carries out a transaction against the state table.
@@ -121,7 +124,8 @@ defmodule Cachex.Services.Overseer do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(atom, Spec.cache | (Spec.cache -> Spec.cache)) :: Spec.cache
+  @spec update(atom, Spec.cache() | (Spec.cache() -> Spec.cache())) ::
+          Spec.cache()
   def update(name, fun) when is_atom(name) and is_function(fun, 1) do
     transaction(name, fn ->
       cstate = retrieve(name)
@@ -134,12 +138,13 @@ defmodule Cachex.Services.Overseer do
         |> Enum.concat(post_hooks)
         |> Enum.filter(&requires_state?/1)
         |> Enum.map(&hook(&1, :name))
-        |> Enum.each(&send(&1, { :cachex_provision, { :cache, nstate } }))
+        |> Enum.each(&send(&1, {:cachex_provision, {:cache, nstate}}))
       end
 
       nstate
     end)
   end
+
   def update(name, cache(name: name) = cache),
     do: update(name, fn _ -> cache end)
 
@@ -161,8 +166,10 @@ defmodule Cachex.Services.Overseer do
       case Overseer.ensure(unquote(cache)) do
         nil ->
           error(:no_cache)
+
         var!(cache) ->
           cache = var!(cache)
+
           if :erlang.whereis(cache(cache, :name)) != :undefined do
             unquote(body)
           else

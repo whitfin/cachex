@@ -28,15 +28,15 @@ defmodule Cachex.Actions.GetAndUpdate do
   to update the existing record.
   """
   def execute(cache() = cache, key, update_fun, _options) do
-    Locksmith.transaction(cache, [ key ], fn ->
-      { _label, value } = Cachex.get(cache, key, [])
+    Locksmith.transaction(cache, [key], fn ->
+      {_label, value} = Cachex.get(cache, key, [])
 
       normalized =
         value
         |> update_fun.()
         |> normalize_commit
 
-      with { :commit, new_value } <- normalized do
+      with {:commit, new_value} <- normalized do
         apply(Cachex, write_op(value), [cache, key, new_value, []])
       end
 

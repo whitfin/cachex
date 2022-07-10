@@ -26,11 +26,12 @@ defmodule Cachex.Actions.Load do
   use a transaction and clear the cache before loading the backup.
   """
   def execute(cache() = cache, path, options) do
-    with { :ok, entries } <- Disk.read(path, options) do
+    with {:ok, entries} <- Disk.read(path, options) do
       iopts =
         options
-        |> Keyword.take([ :local ])
+        |> Keyword.take([:local])
         |> Enum.concat(const(:notify_false))
+
       Cachex.import(cache, entries, iopts)
     end
   end
