@@ -56,10 +56,10 @@ defmodule Cachex.Spec.Validator do
   # This has to validate the default/interval values as being a nillable integers,
   # and the lazy value has to be a boolean value (which can not be nil).
   def valid?(:expiration, expiration(default: def, interval: int, lazy: lazy)) do
-    current = nillable?(def, &is_positive_integer/1)
-    current = current and nillable?(int, &is_positive_integer/1)
-    current = current and is_boolean(lazy)
-    current
+    check1 = nillable?(def, &is_positive_integer/1)
+    check2 = check1 and nillable?(int, &is_positive_integer/1)
+    check3 = check2 and is_boolean(lazy)
+    check3
   end
 
   # Validates a fallback specification record.
@@ -86,20 +86,20 @@ defmodule Cachex.Spec.Validator do
   #
   # Side note: dodging the formatter here, sorry...
   def valid?(:hook, hook(module: module, name: name)) do
-    current = behaviour?(module, Cachex.Hook)
+    check1 = behaviour?(module, Cachex.Hook)
 
-    current = current and is_boolean(module.async?())
-    current = current and nillable?(name, &(is_atom(&1) or is_pid(&1)))
-    current = current and nillable?(module.timeout(), &is_positive_integer/1)
+    check2 = check1 and is_boolean(module.async?())
+    check3 = check2 and nillable?(name, &(is_atom(&1) or is_pid(&1)))
+    check4 = check3 and nillable?(module.timeout(), &is_positive_integer/1)
 
-    current =
-      current and
+    check5 =
+      check4 and
         (enum?(module.actions(), &is_atom/1) or module.actions() == :all)
 
-    current = current and enum?(module.provisions(), &is_atom/1)
-    current = current and module.type() in [:post, :pre]
+    check6 = check5 and enum?(module.provisions(), &is_atom/1)
+    check7 = check6 and module.type() in [:post, :pre]
 
-    current
+    check7
   end
 
   # Validates a hooks specification record.
@@ -108,10 +108,10 @@ defmodule Cachex.Spec.Validator do
   # is a valid hook instance. This is done using the valid?/1 clause
   # for a base hook record, rather than reimplementing here.
   def valid?(:hooks, hooks(pre: pre, post: post)) do
-    current = is_list(pre)
-    current = current and is_list(post)
-    current = current and enum?(pre ++ post, &valid?(:hook, &1))
-    current
+    check1 = is_list(pre)
+    check2 = check1 and is_list(post)
+    check3 = check2 and enum?(pre ++ post, &valid?(:hook, &1))
+    check3
   end
 
   # Validates a limit specification record.
@@ -123,13 +123,13 @@ defmodule Cachex.Spec.Validator do
     limit(size: size, policy: policy, reclaim: reclaim, options: options) =
       limit
 
-    current = module?(policy)
-    current = current and nillable?(size, &is_positive_integer/1)
-    current = current and is_number(reclaim)
-    current = current and reclaim > 0
-    current = current and reclaim <= 1
-    current = current and Keyword.keyword?(options)
-    current
+    check1 = module?(policy)
+    check2 = check1 and nillable?(size, &is_positive_integer/1)
+    check3 = check2 and is_number(reclaim)
+    check4 = check3 and reclaim > 0
+    check5 = check4 and reclaim <= 1
+    check6 = check5 and Keyword.keyword?(options)
+    check6
   end
 
   # Validates a warmer specification record.
@@ -137,10 +137,10 @@ defmodule Cachex.Spec.Validator do
   # This will validate that the provided module correctly implements
   # the behaviour of `Cachex.Warmer` via function checking.
   def valid?(:warmer, warmer(module: module)) do
-    current = behaviour?(module, Cachex.Warmer)
-    current = current and {:interval, 0} in module.__info__(:functions)
-    current = current and {:execute, 1} in module.__info__(:functions)
-    current
+    check1 = behaviour?(module, Cachex.Warmer)
+    check2 = check1 and {:interval, 0} in module.__info__(:functions)
+    check3 = check2 and {:execute, 1} in module.__info__(:functions)
+    check3
   end
 
   # Catch-all for invalid records.
