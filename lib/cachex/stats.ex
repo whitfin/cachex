@@ -87,8 +87,11 @@ defmodule Cachex.Stats do
   # This clause will match against any failed requests and short-circuit to
   # avoid artificially adding errors to the statistics. In future it might
   # be that we want to track this, so this might change at some point.
+  #
+  # coveralls-ignore-start
   def handle_notify(_action, { :error, _result }, stats),
     do: { :ok, stats }
+  # coveralls-ignore-end
 
   @doc false
   # Registers an action against the stats container.
