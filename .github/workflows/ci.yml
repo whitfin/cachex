@@ -18,7 +18,7 @@ jobs:
         elixir:
           - '1.13'
         include:
-          - elixir: '1.2'
+          - elixir: '1.12'
             otp: '22.3'
           - elixir: '1.11'
             otp: '21.3'
@@ -62,8 +62,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Elixir
-        uses: erlef/setup-elixir@v1
+      - name: Setup BEAM
+      - uses: erlef/setup-beam@v1
         with:
           elixir-version: '1.13'
           otp-version: '24.3'
@@ -86,8 +86,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Elixir
-        uses: erlef/setup-elixir@v1
+      - name: Setup BEAM
+      - uses: erlef/setup-beam@v1
         with:
           elixir-version: '1.13'
           otp-version: '24.3'
