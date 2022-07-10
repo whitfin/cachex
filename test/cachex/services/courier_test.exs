@@ -66,7 +66,8 @@ defmodule Cachex.Services.CourierTest do
       raise ArgumentError
     end)
 
-    # check the returned value
-    assert result == { :error, "argument error" }
+    # check the returned value contains the error and the stack trace
+    assert match?({ :error, %Cachex.ExecutionError{ } }, result)
+    assert elem(result, 1).message == "argument error"
   end
 end

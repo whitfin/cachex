@@ -14,5 +14,5 @@ defmodule Cachex.ExecutionError do
   The default error message should always be overridden with a long
   error formas displayed inside `Cachex.Errors`.
   """
-  defexception message: "Error during action execution"
+  defexception message: "Error during action execution", stack: nil
 end
