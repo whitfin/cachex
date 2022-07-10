@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup BEAM
-      - uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup BEAM
-      - uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: '1.13'
           otp-version: '24.3'
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup BEAM
-      - uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: '1.13'
           otp-version: '24.3'
