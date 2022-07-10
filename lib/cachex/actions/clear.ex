@@ -47,6 +47,4 @@ defmodule Cachex.Actions.Clear do
   # in order to avoid crashing if something goes totally wrong.
   defp handle_evicted({ :ok, _size } = res),
     do: res
-  defp handle_evicted(_other_result),
-    do: { :ok, 0 }
 end

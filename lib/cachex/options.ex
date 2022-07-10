@@ -290,8 +290,10 @@ defmodule Cachex.Options do
       |> Enum.all?(&Node.connect/1)
 
     case valid do
+      # coveralls-ignore-start
       false -> error(:invalid_nodes)
       true  -> cache(cache, [ nodes: nodes ])
+      # coveralls-ignore-stop
     end
   end
 

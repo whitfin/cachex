@@ -1388,7 +1388,9 @@ defmodule Cachex do
         :ets.delete(name)
         { :ok, cache }
       rescue
+        # coveralls-ignore-start
         _ -> error(:invalid_option)
+        # coveralls-ignore-stop
       end
     end
   end
