@@ -1,4 +1,7 @@
 [
-  # inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
-  inputs: ["{mix,.credo,.formatter}.exs"]
+  # set of input files and directories to apply formatting to
+  inputs: ["{mix,.credo,.formatter}.exs", "{benchmarks}/**/*.{ex,exs}"],
+
+  # match the Credo linter
+  line_length: 80
 ]

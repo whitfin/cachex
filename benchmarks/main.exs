@@ -1,7 +1,7 @@
 import Cachex.Spec
 
 one_hour = :timer.hours(1)
-tomorrow = now() + (1000 * 60 * 60 * 24)
+tomorrow = now() + 1000 * 60 * 60 * 24
 
 Application.ensure_all_started(:cachex)
 
@@ -21,22 +21,23 @@ Cachex.put(:bench_cache, "ttl_test", "ttl_value", ttl: one_hour)
 Cachex.put(:bench_cache, "update_test", "update_value")
 
 if System.get_env("CACHEX_BENCH_COMPRESS") == "true" do
-  Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
+  Cachex.Services.Overseer.update(:bench_cache, fn state ->
     cache(state, compressed: true)
   end)
 end
 
 if System.get_env("CACHEX_BENCH_TRANSACTIONS") == "true" do
-  Cachex.Services.Overseer.update(:bench_cache, fn(state) ->
+  Cachex.Services.Overseer.update(:bench_cache, fn state ->
     cache(state, transactional: true)
   end)
 end
 
-cache = if System.get_env("CACHEX_BENCH_STATE") == "true" do
-  Cachex.inspect!(:bench_cache, :cache)
-else
-  :bench_cache
-end
+cache =
+  if System.get_env("CACHEX_BENCH_STATE") == "true" do
+    Cachex.inspect!(:bench_cache, :cache)
+  else
+    :bench_cache
+  end
 
 benchmarks = %{
   "count" => fn ->
@@ -61,13 +62,13 @@ benchmarks = %{
     Cachex.expire_at(cache, "expire_at_test", tomorrow)
   end,
   "fetch" => fn ->
-    Cachex.fetch(cache, "fetch_test", &(&1))
+    Cachex.fetch(cache, "fetch_test", & &1)
   end,
   "get" => fn ->
     Cachex.get(cache, "get_test")
   end,
   "get_and_update" => fn ->
-    Cachex.get_and_update(cache, "gad_test", &(&1))
+    Cachex.get_and_update(cache, "gad_test", & &1)
   end,
   "incr" => fn ->
     Cachex.incr(cache, "incr_test")
@@ -85,7 +86,7 @@ benchmarks = %{
     Cachex.put(cache, "put_test", "put_value")
   end,
   "put_many" => fn ->
-    Cachex.put_many(cache, [ { "put_test", "put_value" } ])
+    Cachex.put_many(cache, [{"put_test", "put_value"}])
   end,
   "refresh" => fn ->
     Cachex.refresh(cache, "refresh_test")
@@ -113,7 +114,7 @@ benchmarks = %{
   end
 }
 
-Benchee.run(benchmarks, [
+Benchee.run(benchmarks,
   formatters: [
     {
       Benchee.Formatters.Console,
@@ -132,4 +133,4 @@ Benchee.run(benchmarks, [
   print: [
     fast_warning: false
   ]
-])
+)

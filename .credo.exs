@@ -44,7 +44,8 @@
         # Priority values are: `low, normal, high, higher`
         {Credo.Check.Design.AliasUsage, priority: :low},
         # For others you can set parameters
-        {Credo.Check.Design.DuplicatedCode, mass_threshold: 16, nodes_threshold: 2},
+        {Credo.Check.Design.DuplicatedCode,
+         mass_threshold: 16, nodes_threshold: 2},
         {Credo.Check.Design.TagTODO, false},
         {Credo.Check.Design.TagFIXME, false},
         {Credo.Check.Readability.FunctionNames},
