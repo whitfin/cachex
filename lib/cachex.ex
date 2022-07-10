@@ -1405,6 +1405,8 @@ defmodule Cachex do
     do: raise ExecutionError, message: Errors.long_form(value)
   defp unwrap_unsafe({ :error, value }) when is_binary(value),
     do: raise ExecutionError, message: value
+  defp unwrap_unsafe({ :error, %ExecutionError { stack: stack } = e }),
+    do: reraise e, stack
   defp unwrap_unsafe({ _state, value }),
     do: value
 end

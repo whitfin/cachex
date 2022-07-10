@@ -19,6 +19,7 @@ defmodule Cachex.Services.Courier do
 
   # add some aliases
   alias Cachex.Actions.Put
+  alias Cachex.ExecutionError
 
   ##############
   # Public API #
@@ -40,7 +41,7 @@ defmodule Cachex.Services.Courier do
   """
   @spec dispatch(Spec.cache, any, (() -> any)) :: any
   def dispatch(cache() = cache, key, task) when is_function(task, 0),
-    do: service_call(cache, :courier, { :dispatch, key, task })
+    do: service_call(cache, :courier, { :dispatch, key, task, local_stack() })
 
   ####################
   # Server Callbacks #
@@ -64,7 +65,7 @@ defmodule Cachex.Services.Courier do
   # Due to the nature of the async behaviour, this call will return before
   # the task has been completed, and the :notify callback will receive the
   # results from the task after completion (regardless of outcome).
-  def handle_call({ :dispatch, key, task }, caller, { cache, tasks }) do
+  def handle_call({ :dispatch, key, task, stack }, caller, { cache, tasks }) do
     references =
       case Map.get(tasks, key, []) do
         [] ->
@@ -74,7 +75,13 @@ defmodule Cachex.Services.Courier do
               try do
                 task.()
               rescue
-                e -> { :error, Exception.message(e) }
+                e -> {
+                  :error,
+                  %ExecutionError {
+                    message: Exception.message(e),
+                    stack: stack_compat() ++ stack
+                  }
+                }
               end
 
             normalized = normalize_commit(result)
@@ -104,5 +111,18 @@ defmodule Cachex.Services.Courier do
     end
 
     { :noreply, { cache, Map.delete(tasks, key) } }
+  end
+
+  ###############
+  # Private API #
+  ###############
+
+  # Generates a stack trace prior to dispatch.
+  defp local_stack do
+    self()
+    |> Process.info(:current_stacktrace)
+    |> elem(1)
+    |> tl
+    |> tl
   end
 end

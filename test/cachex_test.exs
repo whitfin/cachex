@@ -210,5 +210,12 @@ defmodule CachexTest do
         raise RuntimeError, message: "Ding dong! The witch is dead!"
       end)
     end)
+
+     # validate an unsafe call to fetch handling
+    assert_raise(Cachex.ExecutionError, fn ->
+      Cachex.fetch!(cache, "key", fn(_key) ->
+        raise RuntimeError, message: "Which old witch? The wicked witch!"
+      end)
+    end)
   end
 end
