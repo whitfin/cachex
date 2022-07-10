@@ -11,13 +11,8 @@ defmodule Cachex.Actions.Stream do
   import Cachex.Errors
   import Cachex.Spec
 
-  # our test record for testing matches
-  @test entry(
-          key: "key",
-          touched: now(),
-          ttl: 1000,
-          value: "value"
-        )
+  # our test record for testing matches when a user provides a spec
+  @test entry(key: "key", touched: now(), ttl: 1000, value: "value")
 
   ##############
   # Public API #

@@ -44,15 +44,7 @@ defmodule Cachex.Actions.Import do
   # import time, so that the rest of the lifetime of the key is the same. If
   # we didn't do this, the key would live longer in the cache than intended.
   defp import(cache, entry(key: k, touched: t1, ttl: t2, value: v), time) do
-    {:ok, true} =
-      Cachex.put(
-        cache,
-        k,
-        v,
-        const(:notify_false) ++
-          [
-            ttl: t1 + t2 - time
-          ]
-      )
+    opts = const(:notify_false) ++ [ttl: t1 + t2 - time]
+    {:ok, true} = Cachex.put(cache, k, v, opts)
   end
 end

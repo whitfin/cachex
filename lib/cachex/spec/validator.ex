@@ -55,14 +55,12 @@ defmodule Cachex.Spec.Validator do
   #
   # This has to validate the default/interval values as being a nillable integers,
   # and the lazy value has to be a boolean value (which can not be nil).
-  def valid?(
-        :expiration,
-        expiration(default: default, interval: interval, lazy: lazy)
-      ),
-      do:
-        nillable?(default, &is_positive_integer/1) and
-          nillable?(interval, &is_positive_integer/1) and
-          is_boolean(lazy)
+  def valid?(:expiration, expiration(default: def, interval: int, lazy: lazy)) do
+    current = nillable?(def, &is_positive_integer/1)
+    current = current and nillable?(int, &is_positive_integer/1)
+    current = current and is_boolean(lazy)
+    current
+  end
 
   # Validates a fallback specification record.
   #
@@ -85,53 +83,65 @@ defmodule Cachex.Spec.Validator do
   # It might be that this is too strict for basic validation, but seeing
   # as the cache creation requires valid hooks it seems to make sense to
   # be this strict at this point.
-  def valid?(:hook, hook(module: module, name: name)),
-    do:
-      behaviour?(module, Cachex.Hook) and
-        is_boolean(module.async?()) and
-        nillable?(name, &(is_atom(&1) or is_pid(&1))) and
-        nillable?(module.timeout(), &is_positive_integer/1) and
-        (enum?(module.actions(), &is_atom/1) or module.actions() == :all) and
-        enum?(module.provisions(), &is_atom/1) and
-        module.type() in [:post, :pre]
+  #
+  # Side note: dodging the formatter here, sorry...
+  def valid?(:hook, hook(module: module, name: name)) do
+    current = behaviour?(module, Cachex.Hook)
+
+    current = current and is_boolean(module.async?())
+    current = current and nillable?(name, &(is_atom(&1) or is_pid(&1)))
+    current = current and nillable?(module.timeout(), &is_positive_integer/1)
+
+    current =
+      current and
+        (enum?(module.actions(), &is_atom/1) or module.actions() == :all)
+
+    current = current and enum?(module.provisions(), &is_atom/1)
+    current = current and module.type() in [:post, :pre]
+
+    current
+  end
 
   # Validates a hooks specification record.
   #
   # This will just validate that every hook inside the pre/post hooks
   # is a valid hook instance. This is done using the valid?/1 clause
   # for a base hook record, rather than reimplementing here.
-  def valid?(:hooks, hooks(pre: pre, post: post)),
-    do:
-      is_list(pre) and
-        is_list(post) and
-        enum?(pre ++ post, &valid?(:hook, &1))
+  def valid?(:hooks, hooks(pre: pre, post: post)) do
+    current = is_list(pre)
+    current = current and is_list(post)
+    current = current and enum?(pre ++ post, &valid?(:hook, &1))
+    current
+  end
 
   # Validates a limit specification record.
   #
   # This has to validate all fields in the record, with the size being a nillable integer,
   # the policy being a valid module, the reclaim space being a valid float between 0 and 1,
   # and a valid keyword list as the options.
-  def valid?(
-        :limit,
-        limit(size: size, policy: policy, reclaim: reclaim, options: options)
-      ),
-      do:
-        module?(policy) and
-          nillable?(size, &is_positive_integer/1) and
-          is_number(reclaim) and
-          reclaim > 0 and
-          reclaim <= 1 and
-          Keyword.keyword?(options)
+  def valid?(:limit, limit() = limit) do
+    limit(size: size, policy: policy, reclaim: reclaim, options: options) =
+      limit
+
+    current = module?(policy)
+    current = current and nillable?(size, &is_positive_integer/1)
+    current = current and is_number(reclaim)
+    current = current and reclaim > 0
+    current = current and reclaim <= 1
+    current = current and Keyword.keyword?(options)
+    current
+  end
 
   # Validates a warmer specification record.
   #
   # This will validate that the provided module correctly implements
   # the behaviour of `Cachex.Warmer` via function checking.
-  def valid?(:warmer, warmer(module: module)),
-    do:
-      behaviour?(module, Cachex.Warmer) and
-        {:interval, 0} in module.__info__(:functions) and
-        {:execute, 1} in module.__info__(:functions)
+  def valid?(:warmer, warmer(module: module)) do
+    current = behaviour?(module, Cachex.Warmer)
+    current = current and {:interval, 0} in module.__info__(:functions)
+    current = current and {:execute, 1} in module.__info__(:functions)
+    current
+  end
 
   # Catch-all for invalid records.
   def valid?(_tag, _val),

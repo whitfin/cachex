@@ -63,23 +63,19 @@ defmodule Cachex.Actions.Reset do
   # This has the ability to clear either all hooks or a subset of hooks. We have a small
   # optimization here to detect when we want to reset all hooks to avoid filtering without
   # a real need to. We also convert the list of hooks to a set to avoid O(N) lookups.
-  defp reset_hooks(
-         cache(hooks: hooks(pre: pre_hooks, post: post_hooks)),
-         only,
-         opts
-       ) do
+  defp reset_hooks(cache(hooks: hooks(pre: pre, post: post)), only, opts) do
     if :hooks in only do
       case Keyword.get(opts, :hooks) do
         nil ->
-          pre_hooks
-          |> Enum.concat(post_hooks)
+          pre
+          |> Enum.concat(post)
           |> Enum.each(&notify_reset/1)
 
         val ->
           hook_sets = List.wrap(val)
 
-          pre_hooks
-          |> Enum.concat(post_hooks)
+          pre
+          |> Enum.concat(post)
           |> Enum.filter(&should_reset?(&1, hook_sets))
           |> Enum.each(&notify_reset/1)
       end

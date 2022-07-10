@@ -313,13 +313,9 @@ defmodule Cachex.Router do
   #
   # This is a delegate handler for `call_slot/5`, but ensures that all keys slot to the
   # same node to avoid the case where we have to fork a call out internally.
-  defp multi_call_slot(
-         cache,
-         module,
-         {_action, [keys | _]} = call,
-         nodes,
-         mapper
-       ) do
+  defp multi_call_slot(cache, module, call, nodes, mapper) do
+    {_action, [keys | _]} = call
+
     quote do
       # :bind_quoted
       keys = unquote(keys)
