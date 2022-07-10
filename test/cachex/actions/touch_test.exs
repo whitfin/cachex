@@ -10,14 +10,14 @@ defmodule Cachex.Actions.TouchTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: [ hook ] ])
+    cache = Helper.create_cache(hooks: [hook])
 
     # pull back the state
     state = Services.Overseer.retrieve(cache)
 
     # add some keys to the cache
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1000)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1000)
 
     # clear messages
     Helper.flush()
@@ -41,16 +41,16 @@ defmodule Cachex.Actions.TouchTest do
     touch3 = Cachex.touch(cache, 3)
 
     # the first two writes should succeed
-    assert(touch1 == { :ok, true })
-    assert(touch2 == { :ok, true })
+    assert(touch1 == {:ok, true})
+    assert(touch2 == {:ok, true})
 
     # the third shouldn't, as it's missing
-    assert(touch3 == { :ok, false })
+    assert(touch3 == {:ok, false})
 
     # verify the hooks were updated with the message
-    assert_receive({ { :touch, [ 1, [] ] }, ^touch1 })
-    assert_receive({ { :touch, [ 2, [] ] }, ^touch2 })
-    assert_receive({ { :touch, [ 3, [] ] }, ^touch3 })
+    assert_receive({{:touch, [1, []]}, ^touch1})
+    assert_receive({{:touch, [2, []]}, ^touch2})
+    assert_receive({{:touch, [3, []]}, ^touch3})
 
     # retrieve the raw records again
     entry(touched: touched3, ttl: ttl3) = Cachex.Actions.read(state, 1)
@@ -81,34 +81,34 @@ defmodule Cachex.Actions.TouchTest do
   @tag distributed: true
   test "adding new entries to a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
 
     # wait a little
     :timer.sleep(10)
 
     # pull back the records inserted so far
-    { :ok, export1 } = Cachex.export(cache)
+    {:ok, export1} = Cachex.export(cache)
 
     # sort to guarantee we're checking well
-    [ record1, record2 ] = Enum.sort(export1)
+    [record1, record2] = Enum.sort(export1)
 
     # unpack the records touch time
     entry(touched: touched1) = record1
     entry(touched: touched2) = record2
 
     # now touch both keys
-    { :ok, true } = Cachex.touch(cache, 1)
-    { :ok, true } = Cachex.touch(cache, 2)
+    {:ok, true} = Cachex.touch(cache, 1)
+    {:ok, true} = Cachex.touch(cache, 2)
 
     # pull back the records after the touchs
-    { :ok, export2 } = Cachex.export(cache)
+    {:ok, export2} = Cachex.export(cache)
 
     # sort to guarantee we're checking well
-    [ record3, record4 ] = Enum.sort(export2)
+    [record3, record4] = Enum.sort(export2)
 
     # unpack the records touch time
     entry(touched: touched3) = record3

@@ -10,12 +10,15 @@ defmodule Cachex.DiskTest do
 
     # define our base value to serialize
     values = [
-      1, "two", 'three',
-      :four, %{ "five" => true }
+      1,
+      "two",
+      'three',
+      :four,
+      %{"five" => true}
     ]
 
     # define a validation function
-    validate = fn(options) ->
+    validate = fn options ->
       # generate a new path to write to
       path = Path.join(tmp, Helper.gen_rand_bytes(8))
 
@@ -23,29 +26,28 @@ defmodule Cachex.DiskTest do
       result1 = Cachex.Disk.write(values, path, options)
 
       # verify the result
-      assert(result1 == { :ok, true })
+      assert(result1 == {:ok, true})
 
       # reload the file from disk
       result2 = Cachex.Disk.read(path)
 
       # verify the result is what was written
-      assert(result2 == { :ok, values })
+      assert(result2 == {:ok, values})
     end
 
     # validate various option sets
-    validate.([ compression: -1 ])
-    validate.([ compression:  0 ])
-    validate.([ compression:  1 ])
-    validate.([ compression:  5 ])
-    validate.([ compression:  9 ])
+    validate.(compression: -1)
+    validate.(compression: 0)
+    validate.(compression: 1)
+    validate.(compression: 5)
+    validate.(compression: 9)
 
     # cause some errors by using invalid paths
     result1 = Cachex.Disk.read(tmp)
     result2 = Cachex.Disk.write(1, tmp)
 
     # verify the calls failed
-    assert(result1 == { :error, :unreachable_file })
-    assert(result2 == { :error, :unreachable_file })
+    assert(result1 == {:error, :unreachable_file})
+    assert(result2 == {:error, :unreachable_file})
   end
-
 end

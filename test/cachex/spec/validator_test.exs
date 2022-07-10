@@ -6,24 +6,25 @@ defmodule Cachex.Spec.ValidatorTest do
   # Bind any required hooks for test execution
   setup_all do
     # bind the required hooks for testing
-    ForwardHook.bind([
-      validator_hook_pre: [ type: :pre ],
-      validator_hook_post: [ type: :post ],
-      validator_hook_timeout: [ timeout: 100 ],
-      validator_hook_actions: [ actions: [ :get ] ],
-      validator_invalid_hook_actions: [ actions: "true" ],
-      validator_invalid_hook_async: [ async: "true" ],
-      validator_invalid_hook_provisions: [ provisions: nil ],
-      validator_invalid_hook_timeout: [ timeout: " " ],
-      validator_invalid_hook_timeout_negative: [ timeout: -1 ],
-      validator_invalid_hook_type: [ type: :missing ]
-    ])
+    ForwardHook.bind(
+      validator_hook_pre: [type: :pre],
+      validator_hook_post: [type: :post],
+      validator_hook_timeout: [timeout: 100],
+      validator_hook_actions: [actions: [:get]],
+      validator_invalid_hook_actions: [actions: "true"],
+      validator_invalid_hook_async: [async: "true"],
+      validator_invalid_hook_provisions: [provisions: nil],
+      validator_invalid_hook_timeout: [timeout: " "],
+      validator_invalid_hook_timeout_negative: [timeout: -1],
+      validator_invalid_hook_type: [type: :missing]
+    )
+
     :ok
   end
 
   test "validation of command records" do
     # define some valid records
-    command1 = command(type:  :read, execute: &String.reverse/1)
+    command1 = command(type: :read, execute: &String.reverse/1)
     command2 = command(type: :write, execute: &String.reverse/1)
 
     # ensure all records are valid
@@ -32,7 +33,7 @@ defmodule Cachex.Spec.ValidatorTest do
 
     # define some invalid records
     command3 = command(type: :invalid, execute: &String.reverse/1)
-    command4 = command(type:   :write, execute: &is_function/2)
+    command4 = command(type: :write, execute: &is_function/2)
 
     # ensure all records are invalid
     refute Validator.valid?(:command, command3)
@@ -42,9 +43,9 @@ defmodule Cachex.Spec.ValidatorTest do
   test "validation of entry records" do
     # define some valid records
     entry1 = entry(key: "key", touched: 1, ttl: nil, value: "value")
-    entry2 = entry(key: "key", touched: 1, ttl:   1, value: "value")
+    entry2 = entry(key: "key", touched: 1, ttl: 1, value: "value")
     entry3 = entry(key: "key", touched: 1, ttl: nil, value: nil)
-    entry4 = entry(key:   nil, touched: 1, ttl: nil, value: nil)
+    entry4 = entry(key: nil, touched: 1, ttl: nil, value: nil)
 
     # ensure all records are valid
     assert Validator.valid?(:entry, entry1)
@@ -55,9 +56,9 @@ defmodule Cachex.Spec.ValidatorTest do
     # define some invalid records
     entry5 = entry(key: "key", touched: nil, ttl: nil, value: nil)
     entry6 = entry(key: "key", touched: " ", ttl: nil, value: nil)
-    entry7 = entry(key: "key", touched:  -1, ttl: nil, value: nil)
-    entry8 = entry(key: "key", touched:   1, ttl: " ", value: nil)
-    entry9 = entry(key: "key", touched:   1, ttl:  -1, value: nil)
+    entry7 = entry(key: "key", touched: -1, ttl: nil, value: nil)
+    entry8 = entry(key: "key", touched: 1, ttl: " ", value: nil)
+    entry9 = entry(key: "key", touched: 1, ttl: -1, value: nil)
 
     # ensure all records are invalid
     refute Validator.valid?(:entry, entry5)
@@ -82,8 +83,8 @@ defmodule Cachex.Spec.ValidatorTest do
     expiration4 = expiration(default: nil, interval: nil, lazy: "false")
     expiration5 = expiration(default: nil, interval: " ", lazy: false)
     expiration6 = expiration(default: " ", interval: nil, lazy: false)
-    expiration7 = expiration(default: nil, interval:  -1, lazy: false)
-    expiration8 = expiration(default:  -1, interval: nil, lazy: false)
+    expiration7 = expiration(default: nil, interval: -1, lazy: false)
+    expiration8 = expiration(default: -1, interval: nil, lazy: false)
 
     # ensure all records are invalid
     refute Validator.valid?(:expiration, expiration4)
@@ -129,11 +130,11 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:hook, hook4)
 
     # define some invalid records
-    hook5  = hook(name: " ")
-    hook6  = hook(module: :missing)
-    hook7  = hook(module: :validator_invalid_hook_actions)
-    hook8  = hook(module: :validator_invalid_hook_async)
-    hook9  = hook(module: :validator_invalid_hook_provisions)
+    hook5 = hook(name: " ")
+    hook6 = hook(module: :missing)
+    hook7 = hook(module: :validator_invalid_hook_actions)
+    hook8 = hook(module: :validator_invalid_hook_async)
+    hook9 = hook(module: :validator_invalid_hook_provisions)
     hook10 = hook(module: :validator_invalid_hook_timeout)
     hook11 = hook(module: :validator_invalid_hook_timeout_negative)
     hook12 = hook(module: :validator_invalid_hook_type)
@@ -161,12 +162,12 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:hooks, hooks3)
 
     # define some invalid records
-    hooks4  = hooks(pre: [ "test" ], post: [ ])
-    hooks5  = hooks(pre: [ ], post: [ "test" ])
-    hooks6  = hooks(pre: [1], post: [ ])
-    hooks7  = hooks(pre: [ ], post: [1])
-    hooks8  = hooks(pre: [ hook() ], post: [ hook() ])
-    hooks9  = hooks(pre: "test", post: [])
+    hooks4 = hooks(pre: ["test"], post: [])
+    hooks5 = hooks(pre: [], post: ["test"])
+    hooks6 = hooks(pre: [1], post: [])
+    hooks7 = hooks(pre: [], post: [1])
+    hooks8 = hooks(pre: [hook()], post: [hook()])
+    hooks9 = hooks(pre: "test", post: [])
     hooks10 = hooks(pre: [], post: "test")
 
     # ensure all records are invalid
@@ -189,7 +190,7 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:limit, limit2)
 
     # define some invalid records
-    limit3 = limit(size:  -1)
+    limit3 = limit(size: -1)
     limit4 = limit(policy: :missing)
     limit5 = limit(reclaim: 0.0)
     limit6 = limit(reclaim: 1.1)
@@ -207,7 +208,7 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of warmer records" do
     # create a warmer for validation
-    Helper.create_warmer(:validator_warmer, 1000, fn(_) ->
+    Helper.create_warmer(:validator_warmer, 1000, fn _ ->
       :ignore
     end)
 

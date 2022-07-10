@@ -9,8 +9,8 @@ defmodule Cachex.Actions.TtlTest do
     cache = Helper.create_cache()
 
     # set several keys in the cache
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 10000)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 10000)
 
     # verify the TTL of both keys
     ttl1 = Cachex.ttl(cache, 1)
@@ -20,13 +20,13 @@ defmodule Cachex.Actions.TtlTest do
     ttl3 = Cachex.ttl(cache, 3)
 
     # the first TTL should be nil
-    assert(ttl1 == { :ok, nil })
+    assert(ttl1 == {:ok, nil})
 
     # the second should be close to 10s
     assert_in_delta(ttl2, 10000, 10)
 
     # the third should return a missing value
-    assert(ttl3 == { :ok, nil })
+    assert(ttl3 == {:ok, nil})
   end
 
   # This test verifies that this action is correctly distributed across
@@ -35,15 +35,15 @@ defmodule Cachex.Actions.TtlTest do
   @tag distributed: true
   test "retrieving a key TTL in a cluster" do
     # create a new cache cluster
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1, [ ttl: 500 ])
-    { :ok, true } = Cachex.put(cache, 2, 2, [ ttl: 500 ])
+    {:ok, true} = Cachex.put(cache, 1, 1, ttl: 500)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 500)
 
     # check the expiration of each key in the cluster
-    { :ok, expiration1 } = Cachex.ttl(cache, 1)
-    { :ok, expiration2 } = Cachex.ttl(cache, 2)
+    {:ok, expiration1} = Cachex.ttl(cache, 1)
+    {:ok, expiration2} = Cachex.ttl(cache, 2)
 
     # check the delta changed
     assert(expiration1 > 450)

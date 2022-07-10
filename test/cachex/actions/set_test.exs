@@ -10,19 +10,19 @@ defmodule Cachex.Actions.SetTest do
 
     # set values in the cache
     result1 = Cachex.set(cache, 1, 1)
-    result2 = Cachex.set(cache, 2, 2, [ ttl: 5000 ])
+    result2 = Cachex.set(cache, 2, 2, ttl: 5000)
 
     # verify the results of the writes
-    assert(result1 == { :ok, true })
-    assert(result2 == { :ok, true })
+    assert(result1 == {:ok, true})
+    assert(result2 == {:ok, true})
 
     # retrieve the written value
     result2 = Cachex.get(cache, 1)
     result3 = Cachex.get(cache, 2)
 
     # check that it was written
-    assert(result2 == { :ok, 1 })
-    assert(result3 == { :ok, 2 })
+    assert(result2 == {:ok, 1})
+    assert(result3 == {:ok, 2})
 
     # check the ttl on the second call
     result4 = Cachex.ttl!(cache, 2)
@@ -37,18 +37,18 @@ defmodule Cachex.Actions.SetTest do
   @tag distributed: true
   test "forwarding calls to put(3/4) in a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.set(cache, 1, 1)
-    { :ok, true } = Cachex.set(cache, 2, 2)
+    {:ok, true} = Cachex.set(cache, 1, 1)
+    {:ok, true} = Cachex.set(cache, 2, 2)
 
     # check the results of the calls across nodes
-    size1 = Cachex.size(cache, [ local: true ])
-    size2 = Cachex.size(cache, [ local: false ])
+    size1 = Cachex.size(cache, local: true)
+    size2 = Cachex.size(cache, local: false)
 
     # one local, two total
-    assert(size1 == { :ok, 1 })
-    assert(size2 == { :ok, 2 })
+    assert(size1 == {:ok, 1})
+    assert(size2 == {:ok, 2})
   end
 end

@@ -10,11 +10,11 @@ defmodule Cachex.Actions.TransactionTest do
   # the value for the first time.
   test "executing a transaction is atomic" do
     # create a test cache
-    cache = Helper.create_cache([ transactional: true ])
+    cache = Helper.create_cache(transactional: true)
 
     # spawn a transaction to increment a key
     spawn(fn ->
-      Cachex.transaction(cache, [ "key" ], fn(state) ->
+      Cachex.transaction(cache, ["key"], fn state ->
         :timer.sleep(50)
         Cachex.incr(state, "key")
       end)
@@ -27,7 +27,7 @@ defmodule Cachex.Actions.TransactionTest do
     incr = Cachex.incr(cache, "key")
 
     # verify the write was queued after the transaction
-    assert(incr == { :ok, 2 })
+    assert(incr == {:ok, 2})
   end
 
   # This test ensures that any errors which occur inside a transaction are caught
@@ -37,20 +37,22 @@ defmodule Cachex.Actions.TransactionTest do
     cache = Helper.create_cache()
 
     # execute a broken transaction
-    result1 = Cachex.transaction(cache, [ ], fn(_state) ->
-      raise ArgumentError, message: "Error message"
-    end)
+    result1 =
+      Cachex.transaction(cache, [], fn _state ->
+        raise ArgumentError, message: "Error message"
+      end)
 
     # verify the error was caught
-    assert(result1 == { :error, "Error message" })
+    assert(result1 == {:error, "Error message"})
 
     # ensure a new transaction executes normally
-    result2 = Cachex.transaction(cache, [ ], fn(_state) ->
-      Cachex.Services.Locksmith.transaction?()
-    end)
+    result2 =
+      Cachex.transaction(cache, [], fn _state ->
+        Cachex.Services.Locksmith.transaction?()
+      end)
 
     # verify the results are correct
-    assert(result2 == { :ok, true })
+    assert(result2 == {:ok, true})
   end
 
   # This test makes sure that a cache with transactions disabled will automatically
@@ -68,7 +70,7 @@ defmodule Cachex.Actions.TransactionTest do
     assert(cache(state1, :transactional) == false)
 
     # execute a transactions
-    Cachex.transaction(cache, [], &(&1))
+    Cachex.transaction(cache, [], & &1)
 
     # pull the state back from the cache again
     state2 = Services.Overseer.retrieve(cache)
@@ -83,10 +85,10 @@ defmodule Cachex.Actions.TransactionTest do
   @tag distributed: true
   test "transcations inside a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
-    { :ok, result } = Cachex.transaction(cache, [ 2, 3 ], &:erlang.phash2/1)
+    {:ok, result} = Cachex.transaction(cache, [2, 3], &:erlang.phash2/1)
 
     # check the result phashed ok
     assert(result > 0 && is_integer(result))
@@ -97,12 +99,12 @@ defmodule Cachex.Actions.TransactionTest do
   @tag distributed: true
   test "multiple slots will return a :cross_slot error" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 3 don't hash to the same slots
-    transaction = Cachex.transaction(cache, [ 1, 2 ], &:erlang.phash2/1)
+    transaction = Cachex.transaction(cache, [1, 2], &:erlang.phash2/1)
 
     # so there should be an error
-    assert(transaction == { :error, :cross_slot })
+    assert(transaction == {:error, :cross_slot})
   end
 end

@@ -7,23 +7,24 @@ defmodule Cachex.Services.CourierTest do
     cache = Services.Overseer.retrieve(cache)
 
     # dispatch an arbitrary task
-    result = Services.Courier.dispatch(cache, "my_key", fn ->
-      "my_value"
-    end)
+    result =
+      Services.Courier.dispatch(cache, "my_key", fn ->
+        "my_value"
+      end)
 
     # check the returned value
-    assert result == { :commit, "my_value" }
+    assert result == {:commit, "my_value"}
 
     # check the key was placed in the table
     retrieved = Cachex.get(cache, "my_key")
 
     # the retrieved value should match
-    assert retrieved == { :ok, "my_value" }
+    assert retrieved == {:ok, "my_value"}
   end
 
   test "dispatching tasks from multiple processes" do
     # create a hook for forwarding
-    { :ok, agent } = Agent.start_link(fn -> :ok end)
+    {:ok, agent} = Agent.start_link(fn -> :ok end)
 
     # define our task function
     task = fn ->
@@ -44,16 +45,16 @@ defmodule Cachex.Services.CourierTest do
     result = Services.Courier.dispatch(cache, "my_key", task)
 
     # check the forwarded task completed
-    assert_receive({ :commit, "my_value" })
+    assert_receive({:commit, "my_value"})
 
     # check the returned value
-    assert result == { :commit, "my_value" }
+    assert result == {:commit, "my_value"}
 
     # check the key was placed in the table
     retrieved = Cachex.get(cache, "my_key")
 
     # the retrieved value should match
-    assert retrieved == { :ok, "my_value" }
+    assert retrieved == {:ok, "my_value"}
   end
 
   test "gracefully handling crashes inside tasks" do
@@ -62,12 +63,13 @@ defmodule Cachex.Services.CourierTest do
     cache = Services.Overseer.retrieve(cache)
 
     # dispatch an arbitrary task
-    result = Services.Courier.dispatch(cache, "my_key", fn ->
-      raise ArgumentError
-    end)
+    result =
+      Services.Courier.dispatch(cache, "my_key", fn ->
+        raise ArgumentError
+      end)
 
     # check the returned value contains the error and the stack trace
-    assert match?({ :error, %Cachex.ExecutionError{ } }, result)
+    assert match?({:error, %Cachex.ExecutionError{}}, result)
     assert elem(result, 1).message == "argument error"
   end
 end

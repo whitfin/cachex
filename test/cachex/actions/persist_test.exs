@@ -9,11 +9,11 @@ defmodule Cachex.Actions.PersistTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: [ hook ] ])
+    cache = Helper.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1000)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1000)
 
     # clear messages
     Helper.flush()
@@ -34,16 +34,16 @@ defmodule Cachex.Actions.PersistTest do
     persist3 = Cachex.persist(cache, 3)
 
     # the first two writes should succeed
-    assert(persist1 == { :ok, true })
-    assert(persist2 == { :ok, true })
+    assert(persist1 == {:ok, true})
+    assert(persist2 == {:ok, true})
 
     # the third shouldn't, as it's missing
-    assert(persist3 == { :ok, false })
+    assert(persist3 == {:ok, false})
 
     # verify the hooks were updated with the message
-    assert_receive({ { :persist, [ 1, [] ] }, ^persist1 })
-    assert_receive({ { :persist, [ 2, [] ] }, ^persist2 })
-    assert_receive({ { :persist, [ 3, [] ] }, ^persist3 })
+    assert_receive({{:persist, [1, []]}, ^persist1})
+    assert_receive({{:persist, [2, []]}, ^persist2})
+    assert_receive({{:persist, [3, []]}, ^persist3})
 
     # retrieve all TTLs from the cache
     ttl3 = Cachex.ttl!(cache, 1)
@@ -60,19 +60,19 @@ defmodule Cachex.Actions.PersistTest do
   @tag distributed: true
   test "removing the TTL on a key in a cluster" do
     # create a new cache cluster
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1, [ ttl: 5000 ])
-    { :ok, true } = Cachex.put(cache, 2, 2, [ ttl: 5000 ])
+    {:ok, true} = Cachex.put(cache, 1, 1, ttl: 5000)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 5000)
 
     # remove expirations on both keys
-    { :ok, true } = Cachex.persist(cache, 1)
-    { :ok, true } = Cachex.persist(cache, 2)
+    {:ok, true} = Cachex.persist(cache, 1)
+    {:ok, true} = Cachex.persist(cache, 2)
 
     # check the expiration of each key in the cluster
-    { :ok, expiration1 } = Cachex.ttl(cache, 1)
-    { :ok, expiration2 } = Cachex.ttl(cache, 2)
+    {:ok, expiration1} = Cachex.ttl(cache, 1)
+    {:ok, expiration2} = Cachex.ttl(cache, 2)
 
     # both have an expiration
     assert(expiration1 == nil)

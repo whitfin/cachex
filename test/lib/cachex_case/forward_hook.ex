@@ -27,7 +27,7 @@ defmodule CachexCase.ForwardHook do
   implementation and option set for the hook interfaces.
   """
   defmacro bind(pairs) do
-    for { name, opts } <- pairs do
+    for {name, opts} <- pairs do
       # pull out all options, allowing their defaults
       async = Keyword.get(opts, :async, true)
       actions = Keyword.get(opts, :actions, :all)
@@ -43,12 +43,16 @@ defmodule CachexCase.ForwardHook do
           # apply configuration overrides
           def async?,
             do: unquote(async)
+
           def actions,
             do: unquote(actions)
+
           def provisions,
             do: unquote(provisions)
+
           def timeout,
             do: unquote(timeout)
+
           def type,
             do: unquote(type)
 
@@ -56,8 +60,8 @@ defmodule CachexCase.ForwardHook do
           Forwards received messages to the state process.
           """
           def handle_notify(msg, results, proc) do
-            handle_info({ msg, results }, proc)
-            { :ok, proc }
+            handle_info({msg, results}, proc)
+            {:ok, proc}
           end
 
           @doc """
@@ -65,7 +69,7 @@ defmodule CachexCase.ForwardHook do
           """
           def handle_provision(provision, proc) do
             handle_info(provision, proc)
-            { :ok, proc }
+            {:ok, proc}
           end
 
           @doc """
@@ -73,7 +77,7 @@ defmodule CachexCase.ForwardHook do
           """
           def handle_info(msg, proc) do
             send(proc, msg)
-            { :noreply, proc }
+            {:noreply, proc}
           end
         end
       end

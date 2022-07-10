@@ -13,15 +13,17 @@ defmodule Cachex.Actions.FetchTest do
     concat = &(&1 <> "_" <> &2)
 
     # create a test cache
-    cache1 = Helper.create_cache([ hooks: [ hook ] ])
-    cache2 = Helper.create_cache([
-      hooks: [ hook ],
-      fallback: fallback(state: "val", default: concat)
-    ])
+    cache1 = Helper.create_cache(hooks: [hook])
+
+    cache2 =
+      Helper.create_cache(
+        hooks: [hook],
+        fallback: fallback(state: "val", default: concat)
+      )
 
     # set some keys in the cache
-    { :ok, true } = Cachex.put(cache1, "key1", 1)
-    { :ok, true } = Cachex.put(cache1, "key2", 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache1, "key1", 1)
+    {:ok, true} = Cachex.put(cache1, "key2", 2, ttl: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -31,8 +33,8 @@ defmodule Cachex.Actions.FetchTest do
 
     # define the fallback options
     fb_opt1 = &String.reverse/1
-    fb_opt2 = &({ :commit, String.reverse(&1) })
-    fb_opt3 = &({ :ignore, String.reverse(&1) })
+    fb_opt2 = &{:commit, String.reverse(&1)}
+    fb_opt3 = &{:ignore, String.reverse(&1)}
     fb_opt4 = fn -> "6yek" end
 
     # fetch the first and second keys
@@ -40,10 +42,10 @@ defmodule Cachex.Actions.FetchTest do
     result2 = Cachex.fetch(cache1, "key2", fb_opt1)
 
     # verify fetching an existing key
-    assert(result1 == { :ok, 1 })
+    assert(result1 == {:ok, 1})
 
     # verify the ttl expiration
-    assert(result2 == { :commit, "2yek" })
+    assert(result2 == {:commit, "2yek"})
 
     # fetch keys with a provided fallback
     result3 = Cachex.fetch(cache1, "key3", fb_opt1)
@@ -52,28 +54,28 @@ defmodule Cachex.Actions.FetchTest do
     result6 = Cachex.fetch(cache1, "key6", fb_opt4)
 
     # verify the fallback fetches
-    assert(result3 == { :commit, "3yek" })
-    assert(result4 == { :commit, "4yek" })
-    assert(result5 == { :ignore, "5yek" })
-    assert(result6 == { :commit, "6yek" })
+    assert(result3 == {:commit, "3yek"})
+    assert(result4 == {:commit, "4yek"})
+    assert(result5 == {:ignore, "5yek"})
+    assert(result6 == {:commit, "6yek"})
 
     # test using a default fallback state
     result7 = Cachex.fetch(cache2, "key7")
 
     # verify that it executes and ignores state
-    assert(result7 == { :commit, "key7_val" })
+    assert(result7 == {:commit, "key7_val"})
 
     # assert we receive valid notifications
-    assert_receive({ { :fetch, [ "key1", ^fb_opt1, [ ] ] }, ^result1 })
-    assert_receive({ { :fetch, [ "key2", ^fb_opt1, [ ] ] }, ^result2 })
-    assert_receive({ { :fetch, [ "key3", ^fb_opt1, [ ] ] }, ^result3 })
-    assert_receive({ { :fetch, [ "key4", ^fb_opt2, [ ] ] }, ^result4 })
-    assert_receive({ { :fetch, [ "key5", ^fb_opt3, [ ] ] }, ^result5 })
-    assert_receive({ { :fetch, [ "key6", ^fb_opt4, [ ] ] }, ^result6 })
-    assert_receive({ { :fetch, [ "key7",  ^concat, [ ] ] }, ^result7 })
+    assert_receive({{:fetch, ["key1", ^fb_opt1, []]}, ^result1})
+    assert_receive({{:fetch, ["key2", ^fb_opt1, []]}, ^result2})
+    assert_receive({{:fetch, ["key3", ^fb_opt1, []]}, ^result3})
+    assert_receive({{:fetch, ["key4", ^fb_opt2, []]}, ^result4})
+    assert_receive({{:fetch, ["key5", ^fb_opt3, []]}, ^result5})
+    assert_receive({{:fetch, ["key6", ^fb_opt4, []]}, ^result6})
+    assert_receive({{:fetch, ["key7", ^concat, []]}, ^result7})
 
     # check we received valid purge actions for the TTL
-    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
+    assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # retrieve the loaded keys
     value1 = Cachex.get(cache1, "key3")
@@ -81,19 +83,19 @@ defmodule Cachex.Actions.FetchTest do
     value3 = Cachex.get(cache1, "key5")
 
     # committed keys should now exist
-    assert(value1 == { :ok, "3yek" })
-    assert(value2 == { :ok, "4yek" })
+    assert(value1 == {:ok, "3yek"})
+    assert(value2 == {:ok, "4yek"})
 
     # ignored keys should not exist
-    assert(value3 == { :ok, nil })
+    assert(value3 == {:ok, nil})
 
     # check using a missing fallback
     result8 = Cachex.fetch(cache1, "key7")
     result9 = Cachex.fetch(cache1, "key8", "val")
 
     # both should be an error for invalid function
-    assert(result8 == { :error, :invalid_fallback })
-    assert(result9 == { :error, :invalid_fallback })
+    assert(result8 == {:error, :invalid_fallback})
+    assert(result9 == {:error, :invalid_fallback})
   end
 
   # This test ensures that the fallback is executed just once when a
@@ -106,7 +108,7 @@ defmodule Cachex.Actions.FetchTest do
       # basic fallback
       fallback1 = fn ->
         Cachex.incr!(cache, "key1_count")
-        { :commit, "val" }
+        {:commit, "val"}
       end
 
       # secondary fallback
@@ -117,7 +119,7 @@ defmodule Cachex.Actions.FetchTest do
       end
 
       # task generator for key/fallback
-      fetch = fn(key, fallback) ->
+      fetch = fn key, fallback ->
         Task.async(fn ->
           Cachex.fetch(cache, key, fallback)
         end)
@@ -132,7 +134,7 @@ defmodule Cachex.Actions.FetchTest do
       Task.await(task2)
 
       # check the fallback was only executed a single time
-      assert Cachex.get(cache, "key1_count") == { :ok, 1 }
+      assert Cachex.get(cache, "key1_count") == {:ok, 1}
     end
   end
 
@@ -142,19 +144,19 @@ defmodule Cachex.Actions.FetchTest do
   @tag distributed: true
   test "fetching keys from a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes - have to make sure that we
     # use a known function, otherwise it fails with an undefined function.
-    { :commit, "1" } = Cachex.fetch(cache, 1, &Integer.to_string/1)
-    { :commit, "2" } = Cachex.fetch(cache, 2, &Integer.to_string/1)
+    {:commit, "1"} = Cachex.fetch(cache, 1, &Integer.to_string/1)
+    {:commit, "2"} = Cachex.fetch(cache, 2, &Integer.to_string/1)
 
     # try to retrieve both of the set keys
     get1 = Cachex.get(cache, 1)
     get2 = Cachex.get(cache, 2)
 
     # both should come back
-    assert(get1 == { :ok, "1" })
-    assert(get2 == { :ok, "2" })
+    assert(get1 == {:ok, "1"})
+    assert(get2 == {:ok, "2"})
   end
 end

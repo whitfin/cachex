@@ -11,7 +11,7 @@ defmodule Cachex.Actions.ResetTest do
   # coverage tools, as the entire point is that it doesn't do anything.
   test "resetting a cache" do
     # create a test cache
-    cache1 = Helper.create_cache([ stats: true ])
+    cache1 = Helper.create_cache(stats: true)
 
     # create a cache with no hooks
     cache2 = Helper.create_cache()
@@ -20,8 +20,8 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    { :ok, true } = Cachex.put(cache1, 1, 1)
-    { :ok, true } = Cachex.put(cache2, 1, 1)
+    {:ok, true} = Cachex.put(cache1, 1, 1)
+    {:ok, true} = Cachex.put(cache2, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache1)
@@ -44,8 +44,8 @@ defmodule Cachex.Actions.ResetTest do
     reset2 = Cachex.reset(cache2)
 
     # verify the reset
-    assert(reset1 == { :ok, true })
-    assert(reset2 == { :ok, true })
+    assert(reset1 == {:ok, true})
+    assert(reset2 == {:ok, true})
 
     # ensure the cache is reset
     assert(Cachex."empty?!"(cache1))
@@ -64,13 +64,13 @@ defmodule Cachex.Actions.ResetTest do
   # to verify that the cache is empty after the reset.
   test "resetting only a cache" do
     # create a test cache
-    cache = Helper.create_cache([ stats: true ])
+    cache = Helper.create_cache(stats: true)
 
     # get current time
     ctime1 = now()
 
     # set some values
-    { :ok, true } = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)
@@ -82,10 +82,10 @@ defmodule Cachex.Actions.ResetTest do
     refute(Cachex."empty?!"(cache))
 
     # reset only cache
-    reset1 = Cachex.reset(cache, [ only: :cache ])
+    reset1 = Cachex.reset(cache, only: :cache)
 
     # verify the reset
-    assert(reset1 == { :ok, true })
+    assert(reset1 == {:ok, true})
 
     # ensure the cache is reset
     assert(Cachex."empty?!"(cache))
@@ -105,13 +105,13 @@ defmodule Cachex.Actions.ResetTest do
   # that the creation_date of the stats hook is reset properly.
   test "resetting only a cache's hooks" do
     # create a test cache
-    cache = Helper.create_cache([ stats: true ])
+    cache = Helper.create_cache(stats: true)
 
     # get current time
     ctime1 = now()
 
     # set some values
-    { :ok, true } = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)
@@ -129,10 +129,10 @@ defmodule Cachex.Actions.ResetTest do
     ctime2 = now()
 
     # reset only cache
-    reset1 = Cachex.reset(cache, [ only: :hooks, hooks: [ MyModule ] ])
+    reset1 = Cachex.reset(cache, only: :hooks, hooks: [MyModule])
 
     # verify the reset
-    assert(reset1 == { :ok, true })
+    assert(reset1 == {:ok, true})
 
     # ensure the cache is not reset
     refute(Cachex."empty?!"(cache))
@@ -144,10 +144,10 @@ defmodule Cachex.Actions.ResetTest do
     assert(stats2.meta.creation_date == stats1.meta.creation_date)
 
     # reset without a hooks list
-    reset2 = Cachex.reset(cache, [ only: :hooks ])
+    reset2 = Cachex.reset(cache, only: :hooks)
 
     # verify the reset
-    assert(reset2 == { :ok, true })
+    assert(reset2 == {:ok, true})
 
     # ensure the cache is not reset
     refute(Cachex."empty?!"(cache))
@@ -167,29 +167,29 @@ defmodule Cachex.Actions.ResetTest do
   @tag distributed: true
   test "resetting a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
 
     # retrieve the cache size, should be 2
-    { :ok, 2 } = Cachex.size(cache)
+    {:ok, 2} = Cachex.size(cache)
 
     # reset just the local cache to start with
-    reset1 = Cachex.reset(cache, [ local: true ])
+    reset1 = Cachex.reset(cache, local: true)
     sized1 = Cachex.size(cache)
 
     # check the local removal worked
-    assert(reset1 == { :ok, true })
-    assert(sized1 == { :ok, 1 })
+    assert(reset1 == {:ok, true})
+    assert(sized1 == {:ok, 1})
 
     # reset the rest of the cluster cached
-    reset2 = Cachex.reset(cache, [ local: false ])
+    reset2 = Cachex.reset(cache, local: false)
     sized2 = Cachex.size(cache)
 
     # check the other removals worked
-    assert(reset2 == { :ok, true })
-    assert(sized2 == { :ok, 0 })
+    assert(reset2 == {:ok, true})
+    assert(sized2 == {:ok, 0})
   end
 end

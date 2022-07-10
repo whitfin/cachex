@@ -9,15 +9,16 @@ defmodule Cachex.Actions.ExecuteTest do
     cache = Helper.create_cache()
 
     # start an execution block
-    result = Cachex.execute(cache, fn(cache) ->
-      [
-        Cachex.put!(cache, 1, 1),
-        Cachex.put!(cache, 2, 2),
-        Cachex.put!(cache, 3, 3)
-      ]
-    end)
+    result =
+      Cachex.execute(cache, fn cache ->
+        [
+          Cachex.put!(cache, 1, 1),
+          Cachex.put!(cache, 2, 2),
+          Cachex.put!(cache, 3, 3)
+        ]
+      end)
 
     # verify the block returns correct values
-    assert(result == { :ok, [ true, true, true ] })
+    assert(result == {:ok, [true, true, true]})
   end
 end

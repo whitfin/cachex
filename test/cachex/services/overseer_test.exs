@@ -3,11 +3,12 @@ defmodule Cachex.OverseerTest do
 
   # Bind any required hooks for test execution
   setup_all do
-    ForwardHook.bind([
+    ForwardHook.bind(
       overseer_forward_hook_provision: [
-        provisions: [ :cache ]
+        provisions: [:cache]
       ]
-    ])
+    )
+
     :ok
   end
 
@@ -87,7 +88,7 @@ defmodule Cachex.OverseerTest do
     hook = ForwardHook.create(:overseer_forward_hook_provision)
 
     # start up our cache using the helper
-    name = Helper.create_cache([ hooks: hook ])
+    name = Helper.create_cache(hooks: hook)
 
     # retrieve our state
     cache(expiration: expiration) = state = Services.Overseer.retrieve(name)
@@ -99,7 +100,7 @@ defmodule Cachex.OverseerTest do
     # update in parallel with a wait to make sure that writes block and always
     # execute in sequence, regardless of when they actually update
     spawn(fn ->
-      Services.Overseer.update(name, fn(_) ->
+      Services.Overseer.update(name, fn _ ->
         :timer.sleep(25)
         update1
       end)
@@ -109,7 +110,7 @@ defmodule Cachex.OverseerTest do
     :timer.sleep(5)
 
     # begin to update our state in advance of the spawned process
-    Services.Overseer.update(name, fn(_) ->
+    Services.Overseer.update(name, fn _ ->
       update2
     end)
 
@@ -123,6 +124,6 @@ defmodule Cachex.OverseerTest do
     assert(expiration(expiration, :default) == 3)
 
     # now we need to make sure our state was forwarded
-    assert_receive({ :cache, ^update2 })
+    assert_receive({:cache, ^update2})
   end
 end

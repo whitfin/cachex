@@ -9,10 +9,10 @@ defmodule Cachex.Actions.IncrTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: [ hook ] ])
+    cache = Helper.create_cache(hooks: [hook])
 
     # define write options
-    opts1 = [ initial: 10 ]
+    opts1 = [initial: 10]
 
     # increment some items
     incr1 = Cachex.incr(cache, "key1")
@@ -20,26 +20,26 @@ defmodule Cachex.Actions.IncrTest do
     incr3 = Cachex.incr(cache, "key2", 1, opts1)
 
     # the first result should be 1
-    assert(incr1 == { :ok, 1 })
+    assert(incr1 == {:ok, 1})
 
     # the second result should be 3
-    assert(incr2 == { :ok, 3 })
+    assert(incr2 == {:ok, 3})
 
     # the third result should be 11
-    assert(incr3 == { :ok, 11 })
+    assert(incr3 == {:ok, 11})
 
     # verify the hooks were updated with the increment
-    assert_receive({ { :incr, [ "key1", 1,     [] ] }, ^incr1 })
-    assert_receive({ { :incr, [ "key1", 2,     [] ] }, ^incr2 })
-    assert_receive({ { :incr, [ "key2", 1, ^opts1 ] }, ^incr3 })
+    assert_receive({{:incr, ["key1", 1, []]}, ^incr1})
+    assert_receive({{:incr, ["key1", 2, []]}, ^incr2})
+    assert_receive({{:incr, ["key2", 1, ^opts1]}, ^incr3})
 
     # retrieve all items
     value1 = Cachex.get(cache, "key1")
     value2 = Cachex.get(cache, "key2")
 
     # verify the items match
-    assert(value1 == { :ok,  3 })
-    assert(value2 == { :ok, 11 })
+    assert(value1 == {:ok, 3})
+    assert(value2 == {:ok, 11})
   end
 
   # This test covers the negative case where a value exists but is not an integer,
@@ -50,13 +50,13 @@ defmodule Cachex.Actions.IncrTest do
     cache = Helper.create_cache()
 
     # set a non-numeric value
-    { :ok, true } = Cachex.put(cache, "key", "value")
+    {:ok, true} = Cachex.put(cache, "key", "value")
 
     # try to increment the value
     result = Cachex.incr(cache, "key")
 
     # we should receive an error
-    assert(result == { :error, :non_numeric_value })
+    assert(result == {:error, :non_numeric_value})
   end
 
   # This test verifies that this action is correctly distributed across
@@ -65,18 +65,18 @@ defmodule Cachex.Actions.IncrTest do
   @tag distributed: true
   test "incrementing items in a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, 1 } = Cachex.incr(cache, 1, 1)
-    { :ok, 2 } = Cachex.incr(cache, 2, 2)
+    {:ok, 1} = Cachex.incr(cache, 1, 1)
+    {:ok, 2} = Cachex.incr(cache, 2, 2)
 
     # check the results of the calls across nodes
-    size1 = Cachex.size(cache, [ local: true ])
-    size2 = Cachex.size(cache, [ local: false ])
+    size1 = Cachex.size(cache, local: true)
+    size2 = Cachex.size(cache, local: false)
 
     # one local, two total
-    assert(size1 == { :ok, 1 })
-    assert(size2 == { :ok, 2 })
+    assert(size1 == {:ok, 1})
+    assert(size2 == {:ok, 2})
   end
 end

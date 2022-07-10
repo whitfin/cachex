@@ -12,9 +12,10 @@ defmodule Cachex.Services.LocksmithTest do
     state = Services.Overseer.retrieve(cache)
 
     # check transaction status from inside of a transaction
-    transaction1 = Services.Locksmith.transaction(state, [], fn ->
-      Services.Locksmith.transaction?()
-    end)
+    transaction1 =
+      Services.Locksmith.transaction(state, [], fn ->
+        Services.Locksmith.transaction?()
+      end)
 
     # check transaction status from outside of a transaction
     transaction2 = Services.Locksmith.transaction?()
@@ -30,8 +31,8 @@ defmodule Cachex.Services.LocksmithTest do
   # ensure that writes are queued unnecessarily.
   test "executing a write outside of a transaction" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache([ transactional:  true ])
-    cache2 = Helper.create_cache([ transactional: false ])
+    cache1 = Helper.create_cache(transactional: true)
+    cache2 = Helper.create_cache(transactional: false)
 
     # fetch the states for the caches
     state1 = Services.Overseer.retrieve(cache1)
@@ -41,8 +42,8 @@ defmodule Cachex.Services.LocksmithTest do
     write = &Services.Locksmith.transaction?/0
 
     # execute writes against unlocked keys
-    write1 = Services.Locksmith.write(state1, [ "key" ], write)
-    write2 = Services.Locksmith.write(state2, [ "key" ], write)
+    write1 = Services.Locksmith.write(state1, ["key"], write)
+    write2 = Services.Locksmith.write(state2, ["key"], write)
 
     # neither should be transactional
     assert(write1 == false)
@@ -58,8 +59,8 @@ defmodule Cachex.Services.LocksmithTest do
   # itself, as it's needed to test the write execution.
   test "executing a transactional block" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache([ transactional: false ])
-    cache2 = Helper.create_cache([ transactional:  true ])
+    cache1 = Helper.create_cache(transactional: false)
+    cache2 = Helper.create_cache(transactional: true)
 
     # fetch the states for the caches
     state1 = Services.Overseer.retrieve(cache1)
@@ -67,9 +68,9 @@ defmodule Cachex.Services.LocksmithTest do
 
     # our transaction actions - this will lock the key "key" in both caches for
     # 50ms before incrementing the same key by 1.
-    transaction = fn(state) ->
+    transaction = fn state ->
       spawn(fn ->
-        Services.Locksmith.transaction(state, [ "key" ], fn ->
+        Services.Locksmith.transaction(state, ["key"], fn ->
           :timer.sleep(50)
           Cachex.incr(state, "key")
         end)
@@ -86,8 +87,8 @@ defmodule Cachex.Services.LocksmithTest do
     # our write action - this will increment the key "key" by 1 and return the
     # value after incrementing as well as whether the write took place in a
     # transaction, this demonstrating the key locking.
-    write = fn(state) ->
-      Services.Locksmith.write(state, [ "key" ], fn ->
+    write = fn state ->
+      Services.Locksmith.write(state, ["key"], fn ->
         {
           Cachex.incr!(state, "key"),
           Services.Locksmith.transaction?()
@@ -100,10 +101,10 @@ defmodule Cachex.Services.LocksmithTest do
     write2 = write.(state2)
 
     # the first write executes before the transaction from outside
-    assert(write1 == { 1, false })
+    assert(write1 == {1, false})
 
     # the second write executes after the transaction from within
-    assert(write2 == { 2, true })
+    assert(write2 == {2, true})
   end
 
   # Because transactions execute inside a GenServer, we need to make sure the
@@ -112,18 +113,19 @@ defmodule Cachex.Services.LocksmithTest do
   # notifies the user of the error occurring without causing other issues.
   test "executing a crashing transaction" do
     # create a test cache
-    cache = Helper.create_cache([ transactions: true ])
+    cache = Helper.create_cache(transactions: true)
 
     # retrieve the state for our cache
     state = Services.Overseer.retrieve(cache)
 
     # execute a crashing transaction
-    result = Services.Locksmith.transaction(state, [ ], fn ->
-      raise ArgumentError, message: "oh dear"
-    end)
+    result =
+      Services.Locksmith.transaction(state, [], fn ->
+        raise ArgumentError, message: "oh dear"
+      end)
 
     # the result should contain the error
-    assert(result == { :error, "oh dear" })
+    assert(result == {:error, "oh dear"})
   end
 
   # Locking items should only be possible if the item is not already locked,
@@ -137,39 +139,39 @@ defmodule Cachex.Services.LocksmithTest do
     state = Services.Overseer.retrieve(cache)
 
     # lock some keys in the cache
-    true = Services.Locksmith.lock(state, [ "key1", "key2" ])
+    true = Services.Locksmith.lock(state, ["key1", "key2"])
 
     # verify that both keys are now locked
     locked1 = Services.Locksmith.locked(state)
-    assert(Enum.sort(locked1) == [ "key1", "key2" ])
+    assert(Enum.sort(locked1) == ["key1", "key2"])
 
     # locking the same keys should not work
-    false = Services.Locksmith.lock(state, [ "key1" ])
+    false = Services.Locksmith.lock(state, ["key1"])
 
     # verify that both keys are still locked
     locked2 = Services.Locksmith.locked(state)
-    assert(Enum.sort(locked2) == [ "key1", "key2" ])
+    assert(Enum.sort(locked2) == ["key1", "key2"])
 
     # no keys should be locked if any are locked
-    false = Services.Locksmith.lock(state, [ "key2", "key3" ])
+    false = Services.Locksmith.lock(state, ["key2", "key3"])
 
     # verify that key3 was not added to the lock
     locked3 = Services.Locksmith.locked(state)
-    assert(Enum.sort(locked3) == [ "key1", "key2" ])
+    assert(Enum.sort(locked3) == ["key1", "key2"])
 
     # unlock the second key
-    true = Services.Locksmith.unlock(state, [ "key2" ])
+    true = Services.Locksmith.unlock(state, ["key2"])
 
     # verify that only one key is now locked
     locked4 = Services.Locksmith.locked(state)
-    assert(Enum.sort(locked4) == [ "key1" ])
+    assert(Enum.sort(locked4) == ["key1"])
 
     # this call should now correctly lock both keys
-    true = Services.Locksmith.lock(state, [ "key2", "key3" ])
+    true = Services.Locksmith.lock(state, ["key2", "key3"])
 
     # verify that key3 was now added to the lock
     locked5 = Services.Locksmith.locked(state)
-    assert(Enum.sort(locked5) == [ "key1", "key2", "key3" ])
+    assert(Enum.sort(locked5) == ["key1", "key2", "key3"])
   end
 
   # The Locksmith provides a `transactional/1` function to set the current

@@ -15,7 +15,7 @@ defmodule CachexTest do
     Helper.delete_on_exit(name2)
 
     # this process should live
-    { :ok, pid1 } = Cachex.start_link(name1)
+    {:ok, pid1} = Cachex.start_link(name1)
 
     # check valid pid
     assert(is_pid(pid1))
@@ -23,7 +23,7 @@ defmodule CachexTest do
 
     # this process should die
     spawn(fn ->
-      { :ok, pid } = Cachex.start_link(name2)
+      {:ok, pid} = Cachex.start_link(name2)
       assert(is_pid(pid))
     end)
 
@@ -47,7 +47,7 @@ defmodule CachexTest do
     Helper.delete_on_exit(name2)
 
     # this process should live
-    { :ok, pid1 } = Cachex.start(name1)
+    {:ok, pid1} = Cachex.start(name1)
 
     # check valid pid
     assert(is_pid(pid1))
@@ -55,7 +55,7 @@ defmodule CachexTest do
 
     # this process should die
     spawn(fn ->
-      { :ok, pid } = Cachex.start(name2)
+      {:ok, pid} = Cachex.start(name2)
       assert(is_pid(pid))
     end)
 
@@ -86,7 +86,7 @@ defmodule CachexTest do
     end)
 
     # try to start the cache with our cache name
-    { :error, reason } = Cachex.start_link(name)
+    {:error, reason} = Cachex.start_link(name)
 
     # we should receive a prompt to start our application properly
     assert(reason == :not_started)
@@ -97,7 +97,7 @@ defmodule CachexTest do
   # be a shorthand atom which can be used to debug what the issue was.
   test "cache start with invalid cache name" do
     # try to start the cache with an invalid name
-    { :error, reason } = Cachex.start_link("fake_name")
+    {:error, reason} = Cachex.start_link("fake_name")
 
     # we should've received an atom warning
     assert(reason == :invalid_name)
@@ -114,7 +114,7 @@ defmodule CachexTest do
     Helper.delete_on_exit(name)
 
     # try to start a cache with invalid hook definitions
-    { :error, reason } = Cachex.start_link(name, [ hooks: hook(module: Missing) ])
+    {:error, reason} = Cachex.start_link(name, hooks: hook(module: Missing))
 
     # we should've received an atom warning
     assert(reason == :invalid_hook)
@@ -131,19 +131,19 @@ defmodule CachexTest do
     Helper.delete_on_exit(name)
 
     # this cache should start successfully
-    { :ok, pid } = Cachex.start_link(name)
+    {:ok, pid} = Cachex.start_link(name)
 
     # check valid pid
     assert(is_pid(pid))
     assert(Process.alive?(pid))
 
     # try to start a cache with the same name
-    { :error, reason1 } = Cachex.start_link(name)
-    { :error, reason2 } = Cachex.start(name)
+    {:error, reason1} = Cachex.start_link(name)
+    {:error, reason2} = Cachex.start(name)
 
     # match the reason to be more granular
-    assert(reason1 == { :already_started, pid })
-    assert(reason2 == { :already_started, pid })
+    assert(reason1 == {:already_started, pid})
+    assert(reason2 == {:already_started, pid})
   end
 
   # We also need to make sure that a cache function executed against an invalid
@@ -155,8 +155,8 @@ defmodule CachexTest do
     name = Helper.create_name()
 
     # try to execute a cache action against a missing cache and an invalid name
-    { :error, reason1 } = Cachex.execute(name, &(&1))
-    { :error, reason2 } = Cachex.execute("na", &(&1))
+    {:error, reason1} = Cachex.execute(name, & &1)
+    {:error, reason2} = Cachex.execute("na", & &1)
 
     # match the reason to be more granular
     assert(reason1 == :no_cache)
@@ -170,8 +170,8 @@ defmodule CachexTest do
     # grab all exported definitions
     definitions =
       :functions
-      |> Cachex.__info__
-      |> Keyword.drop([ :child_spec, :init, :start, :start_link ])
+      |> Cachex.__info__()
+      |> Keyword.drop([:child_spec, :init, :start, :start_link])
 
     # it has to always be even (one signature creates ! versions)
     assert(is_even(length(definitions)))
@@ -180,7 +180,7 @@ defmodule CachexTest do
     assert(length(definitions) == 152)
 
     # validate all definitions
-    for { name, arity } <- definitions do
+    for {name, arity} <- definitions do
       # create name as string
       name_st = "#{name}"
 
@@ -193,7 +193,7 @@ defmodule CachexTest do
         end
 
       # ensure the definitions contains the inverse
-      assert({ inverse, arity } in definitions)
+      assert({inverse, arity} in definitions)
     end
 
     # create a basic test cache
@@ -206,14 +206,14 @@ defmodule CachexTest do
 
     # validate an unsafe call to test handling
     assert_raise(Cachex.ExecutionError, fn ->
-      Cachex.transaction!(cache, [ "key" ], fn(_key) ->
+      Cachex.transaction!(cache, ["key"], fn _key ->
         raise RuntimeError, message: "Ding dong! The witch is dead!"
       end)
     end)
 
-     # validate an unsafe call to fetch handling
+    # validate an unsafe call to fetch handling
     assert_raise(Cachex.ExecutionError, fn ->
-      Cachex.fetch!(cache, "key", fn(_key) ->
+      Cachex.fetch!(cache, "key", fn _key ->
         raise RuntimeError, message: "Which old witch? The wicked witch!"
       end)
     end)

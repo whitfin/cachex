@@ -9,11 +9,11 @@ defmodule Cachex.Actions.ExistsTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: [ hook ] ])
+    cache = Helper.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1)
 
     # let TTLs clear
     :timer.sleep(2)
@@ -27,19 +27,19 @@ defmodule Cachex.Actions.ExistsTest do
     exists3 = Cachex.exists?(cache, 3)
 
     # the first result should exist
-    assert(exists1 == { :ok, true })
+    assert(exists1 == {:ok, true})
 
     # the next two should be missing
-    assert(exists2 == { :ok, false })
-    assert(exists3 == { :ok, false })
+    assert(exists2 == {:ok, false})
+    assert(exists3 == {:ok, false})
 
     # verify the hooks were updated with the message
-    assert_receive({ { :exists?, [ 1, [] ] }, ^exists1 })
-    assert_receive({ { :exists?, [ 2, [] ] }, ^exists2 })
-    assert_receive({ { :exists?, [ 3, [] ] }, ^exists3 })
+    assert_receive({{:exists?, [1, []]}, ^exists1})
+    assert_receive({{:exists?, [2, []]}, ^exists2})
+    assert_receive({{:exists?, [3, []]}, ^exists3})
 
     # check we received valid purge actions for the TTL
-    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
+    assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # retrieve all values from the cache
     value1 = Cachex.get(cache, 1)
@@ -47,9 +47,9 @@ defmodule Cachex.Actions.ExistsTest do
     value3 = Cachex.get(cache, 3)
 
     # verify the second was removed
-    assert(value1 == { :ok, 1 })
-    assert(value2 == { :ok, nil })
-    assert(value3 == { :ok, nil })
+    assert(value1 == {:ok, 1})
+    assert(value2 == {:ok, nil})
+    assert(value3 == {:ok, nil})
   end
 
   # This test verifies that this action is correctly distributed across
@@ -58,18 +58,18 @@ defmodule Cachex.Actions.ExistsTest do
   @tag distributed: true
   test "checking if a key exists in a cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
 
     # check the results of the calls across nodes
     exists1 = Cachex.exists?(cache, 1)
     exists2 = Cachex.exists?(cache, 2)
 
     # both exist in the cluster
-    assert(exists1 == { :ok, true })
-    assert(exists2 == { :ok, true })
+    assert(exists1 == {:ok, true})
+    assert(exists2 == {:ok, true})
   end
 end

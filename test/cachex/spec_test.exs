@@ -2,42 +2,42 @@ defmodule Cachex.SpecTest do
   use CachexCase
 
   test "default command record values",
-    do: assert command() == { :command, nil, nil }
+    do: assert(command() == {:command, nil, nil})
 
   test "default entry record values",
-    do: assert entry() == { :entry, nil, nil, nil, nil }
+    do: assert(entry() == {:entry, nil, nil, nil, nil})
 
   test "default fallback record values",
-    do: assert fallback() == { :fallback, nil, nil }
+    do: assert(fallback() == {:fallback, nil, nil})
 
   test "default expiration record values",
-    do: assert expiration() == { :expiration, nil, 3000, true }
+    do: assert(expiration() == {:expiration, nil, 3000, true})
 
   test "default hook record values",
-    do: assert hook() == { :hook, nil, nil, nil }
+    do: assert(hook() == {:hook, nil, nil, nil})
 
   test "default hooks record values",
-    do: assert hooks() == { :hooks, [], [] }
+    do: assert(hooks() == {:hooks, [], []})
 
   test "default limit record values",
-    do: assert limit() == { :limit, nil, Cachex.Policy.LRW, 0.1, [] }
+    do: assert(limit() == {:limit, nil, Cachex.Policy.LRW, 0.1, []})
 
   test "generating constants via macros" do
-    assert const(:local) == [ local: true ]
-    assert const(:notify_false) == [ notify: false ]
-    assert const(:purge_override_call) == { :purge, [[]] }
-    assert const(:purge_override_result) == { :ok, 1 }
+    assert const(:local) == [local: true]
+    assert const(:notify_false) == [notify: false]
+    assert const(:purge_override_call) == {:purge, [[]]}
+    assert const(:purge_override_result) == {:ok, 1}
 
     assert const(:purge_override) == [
-      via: const(:purge_override_call),
-      hook_result: const(:purge_override_result)
-    ]
+             via: const(:purge_override_call),
+             hook_result: const(:purge_override_result)
+           ]
 
     assert const(:table_options) == [
-      keypos: 2,
-      read_concurrency: true,
-      write_concurrency: true
-    ]
+             keypos: 2,
+             read_concurrency: true,
+             write_concurrency: true
+           ]
   end
 
   test "generating entry index locations" do
@@ -48,13 +48,13 @@ defmodule Cachex.SpecTest do
   end
 
   test "generating entry modifications" do
-    assert entry_mod({ :key, "key" }) == { 2, "key" }
-    assert entry_mod([  key: "key", value: "value" ]) == [ { 2, "key" }, { 5, "value" } ]
+    assert entry_mod({:key, "key"}) == {2, "key"}
+    assert entry_mod(key: "key", value: "value") == [{2, "key"}, {5, "value"}]
   end
 
   test "generating entry modifications with a touch time update" do
-    assert [ { 3, _now } ] = entry_mod_now()
-    assert [ { 3, _now }, { 2, "key" } ] = entry_mod_now([ key: "key" ])
+    assert [{3, _now}] = entry_mod_now()
+    assert [{3, _now}, {2, "key"}] = entry_mod_now(key: "key")
   end
 
   test "generating entries based on the current time" do
@@ -74,47 +74,47 @@ defmodule Cachex.SpecTest do
   end
 
   test "nillable value verification" do
-    assert test_macro(&nillable?/2, [   nil, &is_binary/1 ])
-    assert test_macro(&nillable?/2, [ "key", &is_binary/1 ])
-    refute test_macro(&nillable?/2, [ "key",   &is_list/1 ])
+    assert test_macro(&nillable?/2, [nil, &is_binary/1])
+    assert test_macro(&nillable?/2, ["key", &is_binary/1])
+    refute test_macro(&nillable?/2, ["key", &is_list/1])
   end
 
   test "negative integer validation" do
-    assert test_macro(&is_negative_integer/1, [ -100 ])
-    assert test_macro(&is_negative_integer/1, [ -200 ])
-    assert test_macro(&is_negative_integer/1, [ -300 ])
-    refute test_macro(&is_negative_integer/1, [ 1000 ])
-    refute test_macro(&is_negative_integer/1, [ 1100 ])
-    refute test_macro(&is_negative_integer/1, [ 1200 ])
-    refute test_macro(&is_negative_integer/1, [ "  " ])
-    refute test_macro(&is_negative_integer/1, [    0 ])
-    refute test_macro(&is_negative_integer/1, [ -1.0 ])
+    assert test_macro(&is_negative_integer/1, [-100])
+    assert test_macro(&is_negative_integer/1, [-200])
+    assert test_macro(&is_negative_integer/1, [-300])
+    refute test_macro(&is_negative_integer/1, [1000])
+    refute test_macro(&is_negative_integer/1, [1100])
+    refute test_macro(&is_negative_integer/1, [1200])
+    refute test_macro(&is_negative_integer/1, ["  "])
+    refute test_macro(&is_negative_integer/1, [0])
+    refute test_macro(&is_negative_integer/1, [-1.0])
   end
 
   test "positive integer validation" do
-    assert test_macro(&is_positive_integer/1, [ 1000 ])
-    assert test_macro(&is_positive_integer/1, [ 2000 ])
-    assert test_macro(&is_positive_integer/1, [ 3000 ])
-    refute test_macro(&is_positive_integer/1, [ -100 ])
-    refute test_macro(&is_positive_integer/1, [ -110 ])
-    refute test_macro(&is_positive_integer/1, [ -120 ])
-    refute test_macro(&is_positive_integer/1, [ "  " ])
-    refute test_macro(&is_positive_integer/1, [    0 ])
-    refute test_macro(&is_positive_integer/1, [ 10.0 ])
+    assert test_macro(&is_positive_integer/1, [1000])
+    assert test_macro(&is_positive_integer/1, [2000])
+    assert test_macro(&is_positive_integer/1, [3000])
+    refute test_macro(&is_positive_integer/1, [-100])
+    refute test_macro(&is_positive_integer/1, [-110])
+    refute test_macro(&is_positive_integer/1, [-120])
+    refute test_macro(&is_positive_integer/1, ["  "])
+    refute test_macro(&is_positive_integer/1, [0])
+    refute test_macro(&is_positive_integer/1, [10.0])
   end
 
   test "retrieving the current time in milliseconds" do
-    { mega, seconds, ms } = :os.timestamp()
+    {mega, seconds, ms} = :os.timestamp()
 
     # convert the timestamp to milliseconds
-    millis = (mega * 1000000 + seconds) * 1000 + div(ms, 1000)
+    millis = (mega * 1_000_000 + seconds) * 1000 + div(ms, 1000)
 
     # check they're the same (with an error bound of 2ms)
     assert_in_delta(now(), millis, 2)
   end
 
   test "wrapping values inside tagged Tuples",
-    do: assert wrap("value", :ok) == { :ok, "value" }
+    do: assert(wrap("value", :ok) == {:ok, "value"})
 
   defp test_macro(macro, args),
     do: apply(macro, args)
