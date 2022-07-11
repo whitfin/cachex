@@ -67,7 +67,6 @@
         {Credo.Check.Refactor.ABCSize, max_size: 50},
         {Credo.Check.Refactor.CaseTrivialMatches, false},
         {Credo.Check.Refactor.CondStatements},
-        {Credo.Check.Refactor.CyclomaticComplexity},
         {Credo.Check.Refactor.FunctionArity},
         {Credo.Check.Refactor.MatchInCondition},
         {Credo.Check.Refactor.NegatedConditionsInUnless},
