@@ -119,7 +119,7 @@ defmodule Cachex.Services.Courier do
       |> Map.get(key, [])
       |> Enum.reverse()
 
-    with [owner | listeners] = callers do
+    with [owner | listeners] <- callers do
       GenServer.reply(owner, result)
 
       result =
