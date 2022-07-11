@@ -70,9 +70,14 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init(state) do
-        handle_info(:cachex_warmer, state)
-        {:ok, state}
+      def init({cache, warmer(async: async, state: state)}) do
+        if async do
+          send(self(), :cachex_warmer)
+        else
+          handle_info(:cachex_warmer, {cache, state})
+        end
+
+        {:ok, {cache, state}}
       end
 
       @doc false
@@ -102,7 +107,7 @@ defmodule Cachex.Warmer do
         # trigger the warming to happen again after the interval
         :erlang.send_after(interval(), self(), :cachex_warmer)
 
-        # no reply, and the state persist
+        # repeat with the state
         {:noreply, process_state}
       end
     end
