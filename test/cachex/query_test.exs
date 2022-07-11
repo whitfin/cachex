@@ -9,39 +9,21 @@ defmodule Cachex.QueryTest do
     query1 = Cachex.Query.create(true)
     query2 = Cachex.Query.create(true, :key)
 
-    # verify the form of the first query
-    assert [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [
-          { :andalso,
-            { :orelse,
-              { :==, :"$3", nil },
-              { :>, {:+, :"$2", :"$3" }, _now }
-            },
-            true
-          }
-        ],
-        [ :"$_" ]
-      }
-    ] = query1
+    # verify the mapping of both queries
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query2
 
-    # verify the form of the second query
-    assert [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [
-          { :andalso,
-            { :orelse,
-              { :==, :"$3", nil },
-              { :>, {:+, :"$2", :"$3" }, _now }
-            },
-            true
-          }
-        ],
-        [ :"$1" ]
-      }
-    ] = query2
+    # unpack clauses of both queries
+    [{_, [{:andalso, c1, true}], _}] = query1
+    [{_, [{:andalso, c2, true}], _}] = query2
+
+    # verify the queries of both queries
+    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c1
+    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c2
+
+    # verify the returns of both queries
+    assert [{_, _, [:"$_"]}] = query1
+    assert [{_, _, [:"$1"]}] = query2
   end
 
   # The `expired()` function is just a wrapper to `create` whilst inverting
@@ -51,37 +33,21 @@ defmodule Cachex.QueryTest do
     query1 = Cachex.Query.expired()
     query2 = Cachex.Query.expired(:key)
 
-    # verify the form of the first query
-    assert [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [
-          { :not,
-            { :orelse,
-              { :==, :"$3", nil },
-              { :>, {:+, :"$2", :"$3" }, _now }
-            }
-          }
-        ],
-        [ :"$_" ]
-      }
-    ] = query1
+    # verify the mapping of both queries
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query2
 
-    # verify the form of the second query
-    assert [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [
-          { :not,
-            { :orelse,
-              { :==, :"$3", nil },
-              { :>, {:+, :"$2", :"$3" }, _now }
-            }
-          }
-        ],
-        [ :"$1" ]
-      }
-    ] = query2
+    # unpack clauses of both queries
+    [{_, [{:not, c1}], _}] = query1
+    [{_, [{:not, c2}], _}] = query2
+
+    # verify the queries of both queries
+    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c1
+    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c2
+
+    # verify the returns of both queries
+    assert [{_, _, [:"$_"]}] = query1
+    assert [{_, _, [:"$1"]}] = query2
   end
 
   # The `unexpired()` function is just a wrapper to `create` whilst without a
@@ -91,33 +57,21 @@ defmodule Cachex.QueryTest do
     query1 = Cachex.Query.unexpired()
     query2 = Cachex.Query.unexpired(:key)
 
-    # verify the form of the first query
-    assert [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [
-          { :orelse,
-            { :==, :"$3", nil },
-            { :>, {:+, :"$2", :"$3" }, _now }
-          }
-        ],
-        [ :"$_" ]
-      }
-    ] = query1
+    # verify the mapping of both queries
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query2
 
-    # verify the form of the second query
-    assert [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [
-          { :orelse,
-            { :==, :"$3", nil },
-            { :>, {:+, :"$2", :"$3" }, _now }
-          }
-        ],
-        [ :"$1" ]
-      }
-    ] = query2
+    # unpack clauses of both queries
+    [{_, [c1], _}] = query1
+    [{_, [c2], _}] = query2
+
+    # verify the queries of both queries
+    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c1
+    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c2
+
+    # verify the returns of both queries
+    assert [{_, _, [:"$_"]}] = query1
+    assert [{_, _, [:"$1"]}] = query2
   end
 
   # This test just covers the default value checking when creating raw
@@ -129,21 +83,13 @@ defmodule Cachex.QueryTest do
     query2 = Cachex.Query.raw(true, :key)
 
     # verify the form of the first query
-    assert query1 == [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [ true ],
-        [ :"$_" ]
-      }
-    ]
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
+    assert [{_, [true], _}] = query1
+    assert [{_, _, [:"$_"]}] = query1
 
     # verify the form of the second query
-    assert query2 == [
-      {
-        { :_, :"$1", :"$2", :"$3", :"$4" },
-        [ true ],
-        [ :"$1" ]
-      }
-    ]
+    assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query2
+    assert [{_, [true], _}] = query2
+    assert [{_, _, [:"$1"]}] = query2
   end
 end

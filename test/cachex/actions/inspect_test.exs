@@ -10,21 +10,21 @@ defmodule Cachex.Actions.InspectTest do
 
     # set several values in the cache
     for x <- 1..3 do
-      { :ok, true } = Cachex.put(cache, "key#{x}", "value#{x}", ttl: 1)
+      {:ok, true} = Cachex.put(cache, "key#{x}", "value#{x}", ttl: 1)
     end
 
     # make sure they expire
     :timer.sleep(2)
 
     # check both the expired count and the keyset
-    expired1 = Cachex.inspect(cache, { :expired, :count })
-    expired2 = Cachex.inspect(cache, { :expired,  :keys })
+    expired1 = Cachex.inspect(cache, {:expired, :count})
+    expired2 = Cachex.inspect(cache, {:expired, :keys})
 
     # the first should contain the count of expired keys
-    assert(expired1 == { :ok, 3 })
+    assert(expired1 == {:ok, 3})
 
     # break down the expired2 value
-    { :ok, keys } = expired2
+    {:ok, keys} = expired2
 
     # so we just check if they're in the list
     assert("key1" in keys)
@@ -45,21 +45,21 @@ defmodule Cachex.Actions.InspectTest do
   # error is returned if there is no Janitor process started for the cache.
   test "inspecting janitor metadata" do
     # create a cache with no janitor and one with
-    cache1 = Helper.create_cache([ expiration: expiration(interval: nil) ])
-    cache2 = Helper.create_cache([ expiration: expiration(interval:   1) ])
+    cache1 = Helper.create_cache(expiration: expiration(interval: nil))
+    cache2 = Helper.create_cache(expiration: expiration(interval: 1))
 
     # let the janitor run
     :timer.sleep(2)
 
     # retrieve Janitor metadata for both states
-    result1 = Cachex.inspect(cache1, { :janitor, :last })
-    result2 = Cachex.inspect(cache2, { :janitor, :last })
+    result1 = Cachex.inspect(cache1, {:janitor, :last})
+    result2 = Cachex.inspect(cache2, {:janitor, :last})
 
     # the first cache should have an error
-    assert(result1 == { :error, :janitor_disabled })
+    assert(result1 == {:error, :janitor_disabled})
 
     # break down the second result
-    { :ok, meta } = result2
+    {:ok, meta} = result2
 
     # check the metadata matches the patterns
     assert(is_integer(meta.count))
@@ -75,9 +75,9 @@ defmodule Cachex.Actions.InspectTest do
     cache = Helper.create_cache()
 
     # retrieve the memory usage
-    { :ok, result1 } = Cachex.inspect(cache, { :memory, :bytes })
-    { :ok, result2 } = Cachex.inspect(cache, { :memory, :binary })
-    { :ok, result3 } = Cachex.inspect(cache, { :memory, :words })
+    {:ok, result1} = Cachex.inspect(cache, {:memory, :bytes})
+    {:ok, result2} = Cachex.inspect(cache, {:memory, :binary})
+    {:ok, result3} = Cachex.inspect(cache, {:memory, :words})
 
     # the first result should be a number of bytes
     assert_in_delta(result1, 10624, 1000)
@@ -106,14 +106,14 @@ defmodule Cachex.Actions.InspectTest do
     ctime = now()
 
     # set a cache record
-    { :ok, true } = Cachex.put(cache, 1, "one", ttl: 1000)
+    {:ok, true} = Cachex.put(cache, 1, "one", ttl: 1000)
 
     # fetch some records
-    record1 = Cachex.inspect(cache, { :entry, 1 })
-    record2 = Cachex.inspect(cache, { :entry, 2 })
+    record1 = Cachex.inspect(cache, {:entry, 1})
+    record2 = Cachex.inspect(cache, {:entry, 2})
 
     # break down the first record
-    { :ok, { :entry, key, touched, ttl, value } } = record1
+    {:ok, {:entry, key, touched, ttl, value}} = record1
 
     # verify the first record
     assert(key == 1)
@@ -122,7 +122,7 @@ defmodule Cachex.Actions.InspectTest do
     assert(value == "one")
 
     # the second should be nil
-    assert(record2 == { :ok, nil })
+    assert(record2 == {:ok, nil})
   end
 
   # This test simply ensures that inspecting the cache state will return you the
@@ -136,18 +136,19 @@ defmodule Cachex.Actions.InspectTest do
     state1 = Services.Overseer.retrieve(cache)
 
     # update the state to have a different setting
-    state2 = Services.Overseer.update(cache, fn(state) ->
-      cache(state, transactional: true)
-    end)
+    state2 =
+      Services.Overseer.update(cache, fn state ->
+        cache(state, transactional: true)
+      end)
 
     # retrieve the state via inspection
     result = Cachex.inspect(state1, :cache)
 
     # ensure the states don't match
-    assert(result != { :ok, state1 })
+    assert(result != {:ok, state1})
 
     # the result should be using the latest state
-    assert(result == { :ok, state2 })
+    assert(result == {:ok, state2})
   end
 
   # This test just verifies that we return an invalid option error when the value
@@ -160,7 +161,7 @@ defmodule Cachex.Actions.InspectTest do
     result = Cachex.inspect(cache, :invalid)
 
     # check the result is an error
-    assert(result == { :error, :invalid_option })
+    assert(result == {:error, :invalid_option})
   end
 
   # This test verifies that the inspector always runs locally. We
@@ -169,20 +170,20 @@ defmodule Cachex.Actions.InspectTest do
   @tag distributed: true
   test "inspections always run on the local node" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
 
     # lookup both entries on the local node
-    { :ok, entry1 } = Cachex.inspect(cache, { :entry, 1 })
-    { :ok, entry2 } = Cachex.inspect(cache, { :entry, 2 })
+    {:ok, entry1} = Cachex.inspect(cache, {:entry, 1})
+    {:ok, entry2} = Cachex.inspect(cache, {:entry, 2})
 
     # only one of them should be correctly found
     assert(
       (entry1 == nil && entry2 != nil) ||
-      (entry2 == nil && entry1 != nil)
+        (entry2 == nil && entry1 != nil)
     )
   end
 end

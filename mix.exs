@@ -16,12 +16,12 @@ defmodule Cachex.Mixfile do
           "mix.exs",
           "LICENSE"
         ],
-        licenses: [ "MIT" ],
+        licenses: ["MIT"],
         links: %{
           "Docs" => @url_docs,
           "GitHub" => @url_github
         },
-        maintainers: [ "Isaac Whitfield" ]
+        maintainers: ["Isaac Whitfield"]
       },
       version: @version,
       elixir: "~> 1.5",
@@ -47,9 +47,9 @@ defmodule Cachex.Mixfile do
           "docs/getting-started.md"
         ],
         groups_for_extras: [
-          "Features": Path.wildcard("docs/features/*.md"),
+          Features: Path.wildcard("docs/features/*.md"),
           "Cache Warming": Path.wildcard("docs/features/cache-warming/*.md"),
-          "Migration": Path.wildcard("docs/migrations/*.md")
+          Migration: Path.wildcard("docs/migrations/*.md")
         ]
       ],
       test_coverage: [
@@ -92,20 +92,20 @@ defmodule Cachex.Mixfile do
   defp deps do
     [
       # Production dependencies
-      { :eternal,     "~> 1.2" },
-      { :jumper,      "~> 1.0" },
-      { :sleeplocks,  "~> 1.1" },
-      { :unsafe,      "~> 1.0" },
+      {:eternal, "~> 1.2"},
+      {:jumper, "~> 1.0"},
+      {:sleeplocks, "~> 1.1"},
+      {:unsafe, "~> 1.0"},
       # Testing dependencies
-      { :excoveralls,   "~> 0.14", optional: true, only: [ :cover ] },
-      { :local_cluster, "~> 1.1",  optional: true, only: [ :cover, :test ] },
+      {:excoveralls, "~> 0.14", optional: true, only: [:cover]},
+      {:local_cluster, "~> 1.1", optional: true, only: [:cover, :test]},
       # Linting dependencies
-      { :credo, "~> 1.6", optional: true, only: [ :lint ] },
+      {:credo, "~> 1.6", optional: true, only: [:lint]},
       # Benchmarking dependencies
-      { :benchee,      "~> 1.1", optional: true, only: [ :bench ] },
-      { :benchee_html, "~> 1.0", optional: true, only: [ :bench ] },
+      {:benchee, "~> 1.1", optional: true, only: [:bench]},
+      {:benchee_html, "~> 1.0", optional: true, only: [:bench]},
       # Documentation dependencies
-      { :ex_doc, "~> 0.28", optional: true, only: [ :docs ] }
+      {:ex_doc, "~> 0.28", optional: true, only: [:docs]}
     ]
   end
 end

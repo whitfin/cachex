@@ -27,7 +27,7 @@ defmodule CachexCase.ExecuteHook do
   implementation and option set for the hook interfaces.
   """
   defmacro bind(pairs) do
-    for { name, opts } <- pairs do
+    for {name, opts} <- pairs do
       # pull out all options, allowing their defaults
       async = Keyword.get(opts, :async, true)
       actions = Keyword.get(opts, :actions, :all)
@@ -43,21 +43,25 @@ defmodule CachexCase.ExecuteHook do
           # apply configuration overrides
           def async?,
             do: unquote(async)
+
           def actions,
             do: unquote(actions)
+
           def provisions,
             do: unquote(provisions)
+
           def timeout,
             do: unquote(timeout)
+
           def type,
             do: unquote(type)
 
           @doc """
           Executes a received function and forwards to the state process.
           """
-          def handle_notify({ _tag, fun }, _results, proc) do
+          def handle_notify({_tag, fun}, _results, proc) do
             handle_info(fun.(), proc)
-            { :ok, proc }
+            {:ok, proc}
           end
 
           @doc """
@@ -65,7 +69,7 @@ defmodule CachexCase.ExecuteHook do
           """
           def handle_info(msg, proc) do
             send(proc, msg)
-            { :noreply, proc }
+            {:noreply, proc}
           end
         end
       end

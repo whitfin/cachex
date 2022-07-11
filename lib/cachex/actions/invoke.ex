@@ -42,8 +42,8 @@ defmodule Cachex.Actions.Invoke do
   # It should be noted that expirations are taken into account, and nil will be
   # passed through in expired/missing cases.
   defp invoke(command(type: :read, execute: exec), cache, key) do
-    { _status_, value } = Cachex.get(cache, key, [])
-    { :ok, exec.(value) }
+    {_status_, value} = Cachex.get(cache, key, [])
+    {:ok, exec.(value)}
   end
 
   # Executes a write command on the backing cache table.
@@ -53,17 +53,18 @@ defmodule Cachex.Actions.Invoke do
   # is enforced per the documentation and will crash out if something unexpected
   # is returned (i.e. a non-Tuple, or a Tuple with invalid size).
   defp invoke(command(type: :write, execute: exec), cache() = cache, key) do
-    Locksmith.transaction(cache, [ key ], fn ->
-      { _label, value } = Cachex.get(cache, key, [])
-      { return, tempv } = exec.(value)
+    Locksmith.transaction(cache, [key], fn ->
+      {_label, value} = Cachex.get(cache, key, [])
+      {return, tempv} = exec.(value)
 
-      tempv == value || apply(
-        Cachex,
-        Actions.write_op(value),
-        [ cache, key, tempv, [] ]
-      )
+      tempv == value ||
+        apply(
+          Cachex,
+          Actions.write_op(value),
+          [cache, key, tempv, []]
+        )
 
-      { :ok, return }
+      {:ok, return}
     end)
   end
 

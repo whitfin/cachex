@@ -31,7 +31,8 @@ defmodule Cachex.Actions.Dump do
   the default compression, but the file size will increase dramatically.
   """
   def execute(cache() = cache, path, options) do
-    eopts = Keyword.take(options, [ :local ])
+    eopts = Keyword.take(options, [:local])
+
     cache
     |> Cachex.export(eopts ++ const(:notify_false))
     |> Kernel.elem(1)

@@ -10,9 +10,9 @@ defmodule Cachex.Actions.ImportTest do
     start = now()
 
     # add some cache entries
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2, [ ttl: 1 ])
-    { :ok, true } = Cachex.put(cache, 3, 3, [ ttl: 10_000 ])
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 3, 3, ttl: 10_000)
 
     # export the cache to a list
     result1 = Cachex.export(cache)
@@ -20,8 +20,8 @@ defmodule Cachex.Actions.ImportTest do
     result3 = Cachex.size(cache)
 
     # verify the clearance
-    assert(result2 == { :ok, 3 })
-    assert(result3 == { :ok, 0 })
+    assert(result2 == {:ok, 3})
+    assert(result3 == {:ok, 0})
 
     # wait a while before re-load
     :timer.sleep(50)
@@ -32,8 +32,8 @@ defmodule Cachex.Actions.ImportTest do
     result6 = Cachex.ttl!(cache, 3)
 
     # verify that the import was ok
-    assert(result4 == { :ok, true })
-    assert(result5 == { :ok, 2 })
+    assert(result4 == {:ok, true})
+    assert(result5 == {:ok, 2})
 
     # verify TTL offsetting happens
     assert_in_delta(result6, 10_000 - (now() - start), 5)

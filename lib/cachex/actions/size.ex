@@ -23,5 +23,5 @@ defmodule Cachex.Actions.Size do
   what you want the returned number to represent.
   """
   def execute(cache(name: name), _options),
-    do: { :ok, :ets.info(name, :size) }
+    do: {:ok, :ets.info(name, :size)}
 end

@@ -5,10 +5,11 @@ defmodule Cachex.ActionsTest do
 
   # Bind any required hooks for test execution
   setup_all do
-    ForwardHook.bind([
-      actions_forward_hook_pre: [ type: :pre ],
-      actions_forward_hook_post: [ type: :post ]
-    ])
+    ForwardHook.bind(
+      actions_forward_hook_pre: [type: :pre],
+      actions_forward_hook_post: [type: :post]
+    )
+
     :ok
   end
 
@@ -17,14 +18,14 @@ defmodule Cachex.ActionsTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: [ hook ] ])
+    cache = Helper.create_cache(hooks: [hook])
 
     # retrieve the state
     state = Services.Overseer.retrieve(cache)
 
     # write several values
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1)
 
     # let the TTL expire
     :timer.sleep(2)
@@ -35,7 +36,7 @@ defmodule Cachex.ActionsTest do
     record3 = Cachex.Actions.read(state, 3)
 
     # the first should find a record
-    assert(match?({ :entry, 1, _touched, nil, 1 }, record1))
+    assert(match?({:entry, 1, _touched, nil, 1}, record1))
 
     # the second should expire
     assert(record2 == nil)
@@ -44,13 +45,13 @@ defmodule Cachex.ActionsTest do
     assert(record3 == nil)
 
     # we should receive the purge of the second key
-    assert_receive({ { :purge, [[]] }, { :ok, 1 } })
+    assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # verify if the second key exists
     exists1 = Cachex.exists?(cache, 2)
 
     # it shouldn't exist
-    assert(exists1 == { :ok, false })
+    assert(exists1 == {:ok, false})
   end
 
   test "carrying out generic write actions" do
@@ -61,44 +62,54 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.retrieve(cache)
 
     # write some values into the cache
-    write1 = Cachex.Actions.write(state, entry(
-      key: "key",
-      touched: 1,
-      value: "value"
-    ))
+    write1 =
+      Cachex.Actions.write(
+        state,
+        entry(
+          key: "key",
+          touched: 1,
+          value: "value"
+        )
+      )
 
     # verify the write
-    assert(write1 == { :ok, true })
+    assert(write1 == {:ok, true})
 
     # retrieve the value
     value1 = Cachex.Actions.read(state, "key")
 
     # validate the value
-    assert(value1 == entry(
-      key: "key",
-      touched: 1,
-      value: "value"
-    ))
+    assert(
+      value1 ==
+        entry(
+          key: "key",
+          touched: 1,
+          value: "value"
+        )
+    )
 
     # attempt to update some values
     update1 = Cachex.Actions.update(state, "key", entry_mod(value: "yek"))
     update2 = Cachex.Actions.update(state, "nop", entry_mod(value: "yek"))
 
     # the first should be ok
-    assert(update1 == { :ok, true })
+    assert(update1 == {:ok, true})
 
     # the second is missing
-    assert(update2 == { :ok, false })
+    assert(update2 == {:ok, false})
 
     # retrieve the value
     value2 = Cachex.Actions.read(state, "key")
 
     # validate the update took effect
-    assert(value2 == entry(
-      key: "key",
-      touched: 1,
-      value: "yek"
-    ))
+    assert(
+      value2 ==
+        entry(
+          key: "key",
+          touched: 1,
+          value: "yek"
+        )
+    )
   end
 
   # This test just ensures that we correctly convert return values to either a
@@ -106,9 +117,9 @@ defmodule Cachex.ActionsTest do
   # behaviour is a :commit Tuple for backwards compatibility.
   test "normalizing commit/ignore return values" do
     # define our base Tuples to test against
-    tuple1 = { :commit, true }
-    tuple2 = { :ignore, true }
-    tuple3 = { :error,  true }
+    tuple1 = {:commit, true}
+    tuple2 = {:ignore, true}
+    tuple3 = {:error, true}
 
     # define our base value
     value1 = true

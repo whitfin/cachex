@@ -20,7 +20,7 @@ defmodule CachexCase.Helper do
   # unnecessarily.
   def create_cache(args \\ []) do
     name = create_name()
-    { :ok, _pid } = Cachex.start_link(name, args)
+    {:ok, _pid} = Cachex.start_link(name, args)
     delete_on_exit(name)
   end
 
@@ -29,30 +29,30 @@ defmodule CachexCase.Helper do
   #
   # The name of the cache is returned, along with the names of the nodes in
   # the cluster to enable calling out directly.
-  def create_cache_cluster(amount, args \\ [])
-  when is_integer(amount) do
+  def create_cache_cluster(amount, args \\ []) when is_integer(amount) do
     # no-op when done multiple times
     LocalCluster.start()
 
     name = create_name()
-    nodes = [ node() | LocalCluster.start_nodes(name, amount - 1) ]
+    nodes = [node() | LocalCluster.start_nodes(name, amount - 1)]
 
     # basic match to ensure that the result is as expected
-    { [ { :ok, _pid1 }, { :ok, _pid2 } ], [] } = :rpc.multicall(
-      nodes,
-      Cachex,
-      :start,
-      [ name, [ nodes: nodes ] ++ args ]
-    )
+    {[{:ok, _pid1}, {:ok, _pid2}], []} =
+      :rpc.multicall(
+        nodes,
+        Cachex,
+        :start,
+        [name, [nodes: nodes] ++ args]
+      )
 
     # stop all children on exit, even though it's automatic
     TestHelper.on_exit("stop #{name} children", fn ->
       nodes
       |> List.delete(node())
-      |> LocalCluster.stop_nodes
+      |> LocalCluster.stop_nodes()
     end)
 
-    { name, nodes }
+    {name, nodes}
   end
 
   @doc false
@@ -71,7 +71,7 @@ defmodule CachexCase.Helper do
           do: unquote(interval)
 
         def execute(state),
-          do: apply(unquote(execution), [ state ])
+          do: apply(unquote(execution), [state])
       end
     end
   end
@@ -84,7 +84,7 @@ defmodule CachexCase.Helper do
   def create_name do
     8
     |> gen_rand_bytes
-    |> String.to_atom
+    |> String.to_atom()
   end
 
   @doc false
@@ -112,8 +112,8 @@ defmodule CachexCase.Helper do
   # names and (sufficiently) random keys throughout test cycles.
   def gen_rand_bytes(num) when is_number(num) do
     1..num
-    |> Enum.map(fn(_) -> Enum.random(@alphabet) end)
-    |> List.to_string
+    |> Enum.map(fn _ -> Enum.random(@alphabet) end)
+    |> List.to_string()
   end
 
   @doc false
@@ -130,6 +130,7 @@ defmodule CachexCase.Helper do
         unless start_time + timeout > now() do
           raise e
         end
+
         poll(timeout, expected, generator, start_time)
     end
   end

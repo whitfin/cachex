@@ -38,11 +38,11 @@ defmodule Cachex.Options do
   If the value satisfies the condition provided, it will be returned. Otherwise
   the default value provided is returned instead. Used for basic validations.
   """
-  @spec get(Keyword.t, atom, (any -> boolean), any) :: any
+  @spec get(Keyword.t(), atom, (any -> boolean), any) :: any
   def get(options, key, condition, default \\ nil) do
-    transform(options, key, fn(val) ->
+    transform(options, key, fn val ->
       try do
-        condition.(val) && val || default
+        (condition.(val) && val) || default
       rescue
         _ -> default
       end
@@ -57,28 +57,29 @@ defmodule Cachex.Options do
   other areas of the library without needing to validate. As such, this code can
   easily become a little messy - but that's ok!
   """
-  @spec parse(atom, Keyword.t) :: { :ok, Spec.cache } | { :error, atom }
+  @spec parse(atom, Keyword.t()) :: {:ok, Spec.cache()} | {:error, atom}
   def parse(name, options) when is_list(options) do
+    # iterate all option parsers and accumulate a cache record
     parsed =
-      # iterate all option parsers and accumulate a cache record
-      Enum.reduce_while(@option_parsers, name, fn(type, state) ->
+      Enum.reduce_while(@option_parsers, name, fn type, state ->
         case parse_type(type, state, options) do
           cache() = new_state ->
-            { :cont, new_state }
+            {:cont, new_state}
+
           error ->
-            { :halt, error }
+            {:halt, error}
         end
       end)
 
     # wrap for compatibility
     with cache() <- parsed,
-      do: { :ok, parsed }
+         do: {:ok, parsed}
   end
 
   @doc """
   Transforms and returns an option inside a Keyword List.
   """
-  @spec transform(Keyword.t, atom, (any -> any)) :: any
+  @spec transform(Keyword.t(), atom, (any -> any)) :: any
   def transform(options, key, transformer) do
     options
     |> Keyword.get(key)
@@ -98,39 +99,41 @@ defmodule Cachex.Options do
     commands =
       transform(options, :commands, fn
         # map parsing is allowed
-        (map) when is_map(map) -> map
-
+        map when is_map(map) -> map
         # keyword list parsing is allowed
-        (list) when is_list(list) -> list
-
+        list when is_list(list) -> list
         # missing is fine
-        (nil) -> []
-
+        nil -> []
         # anything else, nope!
-        (_invalid) -> nil
+        _invalid -> nil
       end)
 
     case commands do
-      nil  -> error(:invalid_command)
+      nil ->
+        error(:invalid_command)
+
       cmds ->
         validated =
           Enum.all?(cmds, fn
-            ({ _name, command }) ->
+            {_name, command} ->
               Validator.valid?(:command, command)
-            (_invalid_elements) ->
+
+            _invalid_elements ->
               false
           end)
 
-      case validated do
-        false -> error(:invalid_command)
-        true  ->
-          cmds_to_set =
-            cmds
-            |> Enum.reverse
-            |> Enum.into(%{})
+        case validated do
+          false ->
+            error(:invalid_command)
 
-          cache(cache, commands: cmds_to_set)
-      end
+          true ->
+            cmds_to_set =
+              cmds
+              |> Enum.reverse()
+              |> Enum.into(%{})
+
+            cache(cache, commands: cmds_to_set)
+        end
     end
   end
 
@@ -139,9 +142,10 @@ defmodule Cachex.Options do
   # This will simply configure the `:compressed` field in the cache
   # record and return the modified record with the flag attached.
   defp parse_type(:compressed, cache, options),
-    do: cache(cache, [
-      compressed: get(options, :compressed, &is_boolean/1, false)
-    ])
+    do:
+      cache(cache,
+        compressed: get(options, :compressed, &is_boolean/1, false)
+      )
 
   # Configures an expiration options record for a cache.
   #
@@ -152,22 +156,22 @@ defmodule Cachex.Options do
     expiration =
       transform(options, :expiration, fn
         # provided expiration, woohoo!
-        (expiration() = expiration) ->
+        expiration() = expiration ->
           expiration
 
         # unset so default
-        (nil) ->
+        nil ->
           expiration()
 
         # anything else, no thanks!
-        (_invalid) ->
+        _invalid ->
           nil
       end)
 
     # validate using the spec validator
     case Validator.valid?(:expiration, expiration) do
       false -> error(:invalid_expiration)
-      true  -> cache(cache, expiration: expiration)
+      true -> cache(cache, expiration: expiration)
     end
   end
 
@@ -180,26 +184,26 @@ defmodule Cachex.Options do
     fallback =
       transform(options, :fallback, fn
         # provided fallback is great!
-        (fallback() = fallback) ->
+        fallback() = fallback ->
           fallback
 
         # allow shorthand of a function
-        (fun) when is_function(fun) ->
+        fun when is_function(fun) ->
           fallback(default: fun)
 
         # unset so default
-        (nil) ->
+        nil ->
           fallback()
 
         # anything else, no thanks!
-        (_invalid) ->
+        _invalid ->
           nil
       end)
 
     # validate using the spec validator
     case Validator.valid?(:fallback, fallback) do
       false -> error(:invalid_fallback)
-      true  -> cache(cache, fallback: fallback)
+      true -> cache(cache, fallback: fallback)
     end
   end
 
@@ -208,38 +212,46 @@ defmodule Cachex.Options do
   # In addition to the hooks already provided, this will also deal with the
   # notion of statistics hooks and limits, as they can both define hooks.
   defp parse_type(:hooks, cache(name: name, limit: limit) = cache, options) do
-    hooks = Enum.concat([
-      # stats hook generation
-      case !!options[:stats] do
-        false -> []
-        true  -> [ hook(
-          module: Cachex.Stats,
-          name: name(name, :stats)
-        ) ]
-      end,
+    hooks =
+      Enum.concat([
+        # stats hook generation
+        case !!options[:stats] do
+          false ->
+            []
 
-      # limit hook generation
-      case limit do
-        limit(size: nil) ->
-          []
-        limit(policy: policy) ->
-          apply(policy, :hooks, [ limit ])
-      end,
+          true ->
+            [
+              hook(
+                module: Cachex.Stats,
+                name: name(name, :stats)
+              )
+            ]
+        end,
 
-      # provided hooks lists
-      options
-      |> Keyword.get(:hooks, [])
-      |> List.wrap
-    ])
+        # limit hook generation
+        case limit do
+          limit(size: nil) ->
+            []
+
+          limit(policy: policy) ->
+            apply(policy, :hooks, [limit])
+        end,
+
+        # provided hooks lists
+        options
+        |> Keyword.get(:hooks, [])
+        |> List.wrap()
+      ])
 
     # validation and division into a hooks record
     case validated?(hooks, :hook) do
       false ->
         error(:invalid_hook)
-      true  ->
+
+      true ->
         type = Enum.group_by(hooks, &hook(&1, :module).type())
 
-        pre  = Map.get(type,  :pre, [])
+        pre = Map.get(type, :pre, [])
         post = Map.get(type, :post, [])
 
         cache(cache, hooks: hooks(pre: pre, post: post))
@@ -260,7 +272,7 @@ defmodule Cachex.Options do
 
     case Validator.valid?(:limit, limit) do
       false -> error(:invalid_limit)
-      true  -> cache(cache, limit: limit)
+      true -> cache(cache, limit: limit)
     end
   end
 
@@ -279,10 +291,10 @@ defmodule Cachex.Options do
   defp parse_type(:nodes, cache, options) do
     nodes =
       options
-      |> Keyword.get(:nodes, [ ])
-      |> Enum.concat([ node() ])
-      |> Enum.uniq
-      |> Enum.sort
+      |> Keyword.get(:nodes, [])
+      |> Enum.concat([node()])
+      |> Enum.uniq()
+      |> Enum.sort()
 
     valid =
       nodes
@@ -291,9 +303,12 @@ defmodule Cachex.Options do
 
     case valid do
       # coveralls-ignore-start
-      false -> error(:invalid_nodes)
-      true  -> cache(cache, [ nodes: nodes ])
-      # coveralls-ignore-stop
+      false ->
+        error(:invalid_nodes)
+
+      true ->
+        cache(cache, nodes: nodes)
+        # coveralls-ignore-stop
     end
   end
 
@@ -302,9 +317,10 @@ defmodule Cachex.Options do
   # This will simply configure the `:transactional` field in the cache
   # record and return the modified record with the flag attached.
   defp parse_type(:transactional, cache, options),
-    do: cache(cache, [
-      transactional: get(options, :transactional, &is_boolean/1, false)
-    ])
+    do:
+      cache(cache,
+        transactional: get(options, :transactional, &is_boolean/1, false)
+      )
 
   # Configures any warmers assigned to the cache.
   #
@@ -316,12 +332,12 @@ defmodule Cachex.Options do
     warmers =
       options
       |> Keyword.get(:warmers, [])
-      |> List.wrap
+      |> List.wrap()
 
     # validation of all warmer records
     case validated?(warmers, :warmer) do
       false -> error(:invalid_warmer)
-      true  -> cache(cache, warmers: warmers)
+      true -> cache(cache, warmers: warmers)
     end
   end
 

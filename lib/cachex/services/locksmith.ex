@@ -35,12 +35,12 @@ defmodule Cachex.Services.Locksmith do
   This may become configurable in future, but this table will likelyn never
   cause issues in the first place (as it only handles very basic operations).
   """
-  @spec start_link :: GenServer.on_start
+  @spec start_link :: GenServer.on_start()
   def start_link do
     Eternal.start_link(
       @table_name,
-      [ read_concurrency: true, write_concurrency: true ],
-      [ quiet: true ]
+      [read_concurrency: true, write_concurrency: true],
+      quiet: true
     )
   end
 
@@ -51,14 +51,14 @@ defmodule Cachex.Services.Locksmith do
   returned boolean will signal if the lock was successful. A lock can fail
   if one of the provided keys is already locked.
   """
-  @spec lock(Spec.cache, [ any ]) :: boolean
+  @spec lock(Spec.cache(), [any]) :: boolean
   def lock(cache(name: name), keys) do
     t_proc = self()
 
     writes =
       keys
-      |> List.wrap
-      |> Enum.map(&({ { name, &1 }, t_proc }))
+      |> List.wrap()
+      |> Enum.map(&{{name, &1}, t_proc})
 
     :ets.insert_new(@table_name, writes)
   end
@@ -69,9 +69,9 @@ defmodule Cachex.Services.Locksmith do
   This uses some ETS matching voodoo to pull back the locked keys. They
   won't be returned in any specific order, so don't rely on it.
   """
-  @spec locked(Spec.cache) :: [ any ]
+  @spec locked(Spec.cache()) :: [any]
   def locked(cache(name: name)),
-    do: :ets.select(@table_name, [ { { { name, :"$1" }, :_ }, [], [ :"$1" ] } ])
+    do: :ets.select(@table_name, [{{{name, :"$1"}, :_}, [], [:"$1"]}])
 
   @doc """
   Determines if a key is able to be written to by the current process.
@@ -79,12 +79,13 @@ defmodule Cachex.Services.Locksmith do
   For a key to be writeable, it must either have no lock or be locked by the
   calling process.
   """
-  @spec locked?(Spec.cache, [ any ]) :: true | false
+  @spec locked?(Spec.cache(), [any]) :: true | false
   def locked?(cache(name: name), keys) when is_list(keys) do
-    Enum.any?(keys, fn(key) ->
-      case :ets.lookup(@table_name, { name, key }) do
-        [{ _key, proc }] ->
+    Enum.any?(keys, fn key ->
+      case :ets.lookup(@table_name, {name, key}) do
+        [{_key, proc}] ->
           proc != self()
+
         _else ->
           false
       end
@@ -100,10 +101,10 @@ defmodule Cachex.Services.Locksmith do
 
   This is mainly shorthand to avoid having to handle row locking explicitly.
   """
-  @spec transaction(Spec.cache, [ any ], ( -> any)) :: any
+  @spec transaction(Spec.cache(), [any], (() -> any)) :: any
   def transaction(cache() = cache, keys, fun) when is_list(keys) do
     case transaction?() do
-      true  -> fun.()
+      true -> fun.()
       false -> Queue.transaction(cache, keys, fun)
     end
   end
@@ -137,11 +138,11 @@ defmodule Cachex.Services.Locksmith do
   is a little less desirable, but needs must.
   """
   # TODO: figure out how to remove atomically
-  @spec unlock(Spec.cache, [ any ]) :: true
+  @spec unlock(Spec.cache(), [any]) :: true
   def unlock(cache(name: name), keys) do
     keys
-    |> List.wrap
-    |> Enum.all?(&:ets.delete(@table_name, { name, &1 }))
+    |> List.wrap()
+    |> Enum.all?(&:ets.delete(@table_name, {name, &1}))
   end
 
   @doc """
@@ -154,12 +155,13 @@ defmodule Cachex.Services.Locksmith do
   transactions executed against it we skip the lock check as any of
   our ETS writes are atomic and so do not require a lock.
   """
-  @spec write(Spec.cache, any, (() -> any)) :: any
+  @spec write(Spec.cache(), any, (() -> any)) :: any
   def write(cache(transactional: false), _keys, fun),
     do: fun.()
+
   def write(cache() = cache, keys, fun) do
     case transaction?() or !locked?(cache, keys) do
-      true  -> fun.()
+      true -> fun.()
       false -> Queue.execute(cache, fun)
     end
   end

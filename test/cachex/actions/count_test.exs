@@ -8,17 +8,17 @@ defmodule Cachex.Actions.CountTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache([ hooks: [ hook ] ])
+    cache = Helper.create_cache(hooks: [hook])
 
     # fill with some items
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
-    { :ok, true } = Cachex.put(cache, 3, 3)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 3, 3)
 
     # add some expired items
-    { :ok, true } = Cachex.put(cache, 4, 4, ttl: 1)
-    { :ok, true } = Cachex.put(cache, 5, 5, ttl: 1)
-    { :ok, true } = Cachex.put(cache, 6, 6, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 4, 4, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 5, 5, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 6, 6, ttl: 1)
 
     # let entries expire
     :timer.sleep(2)
@@ -30,10 +30,10 @@ defmodule Cachex.Actions.CountTest do
     result = Cachex.count(cache)
 
     # only 3 items should come back
-    assert(result == { :ok, 3 })
+    assert(result == {:ok, 3})
 
     # verify the hooks were updated with the count
-    assert_receive({ { :count, [[]] }, ^result })
+    assert_receive({{:count, [[]]}, ^result})
   end
 
   # This test verifies that the distributed router correctly controls
@@ -44,18 +44,18 @@ defmodule Cachex.Actions.CountTest do
   @tag distributed: true
   test "counting items in a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
 
     # retrieve both the local and remote counts
-    count1 = Cachex.count(cache, [ local: true ])
-    count2 = Cachex.count(cache, [ local: false ])
+    count1 = Cachex.count(cache, local: true)
+    count2 = Cachex.count(cache, local: false)
 
     # check each node has 1
-    assert(count1 == { :ok, 1 })
-    assert(count2 == { :ok, 2 })
+    assert(count1 == {:ok, 1})
+    assert(count2 == {:ok, 2})
   end
 end

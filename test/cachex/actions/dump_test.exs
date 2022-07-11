@@ -13,7 +13,7 @@ defmodule Cachex.Actions.DumpTest do
     cache = Helper.create_cache()
 
     # add some cache entries
-    { :ok, true } = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 1, 1)
 
     # create a local path to write to
     path = Path.join(tmp, Helper.gen_rand_bytes(8))
@@ -24,17 +24,17 @@ defmodule Cachex.Actions.DumpTest do
     result3 = Cachex.size(cache)
 
     # verify the result and clearance
-    assert(result1 == { :ok, true })
-    assert(result2 == { :ok, 1 })
-    assert(result3 == { :ok, 0 })
+    assert(result1 == {:ok, true})
+    assert(result2 == {:ok, 1})
+    assert(result3 == {:ok, 0})
 
     # load the cache from the disk
     result4 = Cachex.load(cache, path)
     result5 = Cachex.size(cache)
 
     # verify that the load was ok
-    assert(result4 == { :ok, true })
-    assert(result5 == { :ok, 1 })
+    assert(result4 == {:ok, true})
+    assert(result5 == {:ok, 1})
   end
 
   # This test covers the backing up of a cache cluster to a local disk location. We
@@ -46,44 +46,44 @@ defmodule Cachex.Actions.DumpTest do
     tmp = System.tmp_dir!()
 
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1)
-    { :ok, true } = Cachex.put(cache, 2, 2)
+    {:ok, true} = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 2, 2)
 
     # create a local path to write to
     path1 = Path.join(tmp, Helper.gen_rand_bytes(8))
     path2 = Path.join(tmp, Helper.gen_rand_bytes(8))
 
     # dump the cache to a local file for local/remote
-    dump1 = Cachex.dump(cache, path1, [ local: true ])
-    dump2 = Cachex.dump(cache, path2, [ local: false ])
+    dump1 = Cachex.dump(cache, path1, local: true)
+    dump2 = Cachex.dump(cache, path2, local: false)
 
     # verify the dump results
-    assert(dump1 == { :ok, true })
-    assert(dump2 == { :ok, true })
+    assert(dump1 == {:ok, true})
+    assert(dump2 == {:ok, true})
 
     # clear the cache to remove all
-    { :ok, 2 } = Cachex.clear(cache)
+    {:ok, 2} = Cachex.clear(cache)
 
     # load the local cache from the disk
     load1 = Cachex.load(cache, path1)
     size1 = Cachex.size(cache)
 
     # verify that the load was ok
-    assert(load1 == { :ok, true })
-    assert(size1 == { :ok, 1 })
+    assert(load1 == {:ok, true})
+    assert(size1 == {:ok, 1})
 
     # clear the cache again
-    { :ok, 1 } = Cachex.clear(cache)
+    {:ok, 1} = Cachex.clear(cache)
 
     # load the full cache from the disk
     load2 = Cachex.load(cache, path2)
     size2 = Cachex.size(cache)
 
     # verify that the load was ok
-    assert(load2 == { :ok, true })
-    assert(size2 == { :ok, 2 })
+    assert(load2 == {:ok, true})
+    assert(size2 == {:ok, 2})
   end
 end

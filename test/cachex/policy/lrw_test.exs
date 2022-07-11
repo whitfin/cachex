@@ -13,7 +13,7 @@ defmodule Cachex.Policy.LRWTest do
 
     # add 5000 keys to the cache
     for x <- 1..5000 do
-      { :ok, true } = Cachex.put(state, x, x)
+      {:ok, true} = Cachex.put(state, x, x)
     end
 
     # retrieve the cache size
@@ -33,15 +33,16 @@ defmodule Cachex.Policy.LRWTest do
     hook = ForwardHook.create()
 
     # define our cache limit
-    limit = limit(
-      size: 100,
-      policy: Cachex.Policy.LRW,
-      reclaim: 0.75,
-      options: [ batch_size: 25 ]
-    )
+    limit =
+      limit(
+        size: 100,
+        policy: Cachex.Policy.LRW,
+        reclaim: 0.75,
+        options: [batch_size: 25]
+      )
 
     # create a cache with a max size
-    cache = Helper.create_cache([ hooks: [ hook ], limit: limit ])
+    cache = Helper.create_cache(hooks: [hook], limit: limit)
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -49,7 +50,7 @@ defmodule Cachex.Policy.LRWTest do
     # add 1000 keys to the cache
     for x <- 1..100 do
       # add the entry to the cache
-      { :ok, true } = Cachex.put(state, x, x)
+      {:ok, true} = Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -65,7 +66,7 @@ defmodule Cachex.Policy.LRWTest do
     Helper.flush()
 
     # add a new key to the cache to trigger evictions
-    { :ok, true } = Cachex.put(state, 101, 101)
+    {:ok, true} = Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 25%
     Helper.poll(250, 25, fn ->
@@ -73,7 +74,7 @@ defmodule Cachex.Policy.LRWTest do
     end)
 
     # our validation step
-    validate = fn(range, expected) ->
+    validate = fn range, expected ->
       # iterate all keys in the range
       for x <- range do
         # retrieve whether the key exists
@@ -91,13 +92,13 @@ defmodule Cachex.Policy.LRWTest do
     validate.(77..101, true)
 
     # finally, verify hooks are notified
-    assert_receive({ { :clear, [[]] }, { :ok, 76 } })
+    assert_receive({{:clear, [[]]}, {:ok, 76}})
 
     # retrieve the policy hook definition
-    cache(hooks: hooks(post: [ hook1 | _ ])) = state
+    cache(hooks: hooks(post: [hook1 | _])) = state
 
     # just ensure that notifying errors to the policy doesn't cause a crash
-    Services.Informant.notify([ hook1 ], { :action, [] }, { :error, false })
+    Services.Informant.notify([hook1], {:action, []}, {:error, false})
   end
 
   # This test ensures that the cache eviction policy will evict any expired values
@@ -108,15 +109,16 @@ defmodule Cachex.Policy.LRWTest do
   # the cache size back under the maximum size.
   test "evicting by removing expired keys" do
     # define our cache limit
-    limit = limit(
-      size: 100,
-      policy: Cachex.Policy.LRW,
-      reclaim: 0.3,
-      options: [ batch_size: -1 ]
-    )
+    limit =
+      limit(
+        size: 100,
+        policy: Cachex.Policy.LRW,
+        reclaim: 0.3,
+        options: [batch_size: -1]
+      )
 
     # create a cache with a max size
-    cache = Helper.create_cache([ limit: limit ])
+    cache = Helper.create_cache(limit: limit)
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -124,7 +126,7 @@ defmodule Cachex.Policy.LRWTest do
     # set 50 keys without ttl
     for x <- 1..50 do
       # set the key
-      { :ok, true } = Cachex.put(state, x, x)
+      {:ok, true} = Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -133,7 +135,7 @@ defmodule Cachex.Policy.LRWTest do
     # set a more recent 50 keys
     for x <- 51..100 do
       # set the key
-      { :ok, true } = Cachex.put(state, x, x, ttl: 1)
+      {:ok, true} = Cachex.put(state, x, x, ttl: 1)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -146,7 +148,7 @@ defmodule Cachex.Policy.LRWTest do
     assert(size1 == 100)
 
     # add a new key to the cache to trigger evictions
-    { :ok, true } = Cachex.put(state, 101, 101)
+    {:ok, true} = Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 51%
     Helper.poll(250, 51, fn ->
@@ -154,7 +156,7 @@ defmodule Cachex.Policy.LRWTest do
     end)
 
     # our validation step
-    validate = fn(range, expected) ->
+    validate = fn range, expected ->
       # iterate all keys in the range
       for x <- range do
         # retrieve whether the key exists

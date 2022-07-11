@@ -10,26 +10,26 @@ defmodule Cachex.Actions.UpdateTest do
     cache = Helper.create_cache()
 
     # set a value with no TTL inside the cache
-    { :ok, true } = Cachex.put(cache, 1, 1)
+    {:ok, true} = Cachex.put(cache, 1, 1)
 
     # set a value with a TTL in the cache
-    { :ok, true } = Cachex.put(cache, 2, 2, ttl: 10000)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 10000)
 
     # attempt to update both keys
     update1 = Cachex.update(cache, 1, 3)
     update2 = Cachex.update(cache, 2, 3)
 
     # ensure both succeeded
-    assert(update1 == { :ok, true })
-    assert(update2 == { :ok, true })
+    assert(update1 == {:ok, true})
+    assert(update2 == {:ok, true})
 
     # retrieve the modified keys
     value1 = Cachex.get(cache, 1)
     value2 = Cachex.get(cache, 2)
 
     # verify the updates
-    assert(value1 == { :ok, 3 })
-    assert(value2 == { :ok, 3 })
+    assert(value1 == {:ok, 3})
+    assert(value2 == {:ok, 3})
 
     # pull back the TTLs
     ttl1 = Cachex.ttl!(cache, 1)
@@ -53,8 +53,8 @@ defmodule Cachex.Actions.UpdateTest do
     update2 = Cachex.update(cache, 2, 3)
 
     # ensure both failed
-    assert(update1 == { :ok, false })
-    assert(update2 == { :ok, false })
+    assert(update1 == {:ok, false})
+    assert(update2 == {:ok, false})
   end
 
   # This test verifies that this action is correctly distributed across
@@ -63,22 +63,22 @@ defmodule Cachex.Actions.UpdateTest do
   @tag distributed: true
   test "updating a key in a cache cluster" do
     # create a new cache cluster
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    { :ok, true } = Cachex.put(cache, 1, 1, [ ttl: 500 ])
-    { :ok, true } = Cachex.put(cache, 2, 2, [ ttl: 500 ])
+    {:ok, true} = Cachex.put(cache, 1, 1, ttl: 500)
+    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 500)
 
     # run updates against both keys
-    { :ok, true } = Cachex.update(cache, 1, -1)
-    { :ok, true } = Cachex.update(cache, 2, -2)
+    {:ok, true} = Cachex.update(cache, 1, -1)
+    {:ok, true} = Cachex.update(cache, 2, -2)
 
     # try to retrieve both of the set keys
     updated1 = Cachex.get(cache, 1)
     updated2 = Cachex.get(cache, 2)
 
     # check the update occurred
-    assert(updated1 == { :ok, -1 })
-    assert(updated2 == { :ok, -2 })
+    assert(updated1 == {:ok, -1})
+    assert(updated2 == {:ok, -2})
   end
 end

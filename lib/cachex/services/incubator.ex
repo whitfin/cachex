@@ -19,9 +19,10 @@ defmodule Cachex.Services.Incubator do
   the provided cache record. If no warmers are attached in the cache record,
   this will skip creation to avoid unnecessary processes running.
   """
-  @spec start_link(Spec.cache) :: Supervisor.on_start
+  @spec start_link(Spec.cache()) :: Supervisor.on_start()
   def start_link(cache(warmers: [])),
     do: :ignore
+
   def start_link(cache(warmers: warmers) = cache) do
     warmers
     |> Enum.map(&spec(&1, cache))
@@ -34,5 +35,5 @@ defmodule Cachex.Services.Incubator do
 
   # Generates a Supervisor specification for a hook.
   defp spec(warmer(module: module, state: state), cache),
-    do: %{ id: module, start: { GenServer, :start_link, [ module, { cache, state } ] } }
+    do: %{id: module, start: {GenServer, :start_link, [module, {cache, state}]}}
 end

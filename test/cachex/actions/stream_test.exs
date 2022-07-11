@@ -9,23 +9,23 @@ defmodule Cachex.Actions.StreamTest do
     cache = Helper.create_cache()
 
     # add some keys to the cache
-    { :ok, true } = Cachex.put(cache, "key1", "value1")
-    { :ok, true } = Cachex.put(cache, "key2", "value2")
-    { :ok, true } = Cachex.put(cache, "key3", "value3")
+    {:ok, true} = Cachex.put(cache, "key1", "value1")
+    {:ok, true} = Cachex.put(cache, "key2", "value2")
+    {:ok, true} = Cachex.put(cache, "key3", "value3")
 
     # grab the raw versions of each record
-    { :ok, entry1 } = Cachex.inspect(cache, { :entry, "key1" })
-    { :ok, entry2 } = Cachex.inspect(cache, { :entry, "key2" })
-    { :ok, entry3 } = Cachex.inspect(cache, { :entry, "key3" })
+    {:ok, entry1} = Cachex.inspect(cache, {:entry, "key1"})
+    {:ok, entry2} = Cachex.inspect(cache, {:entry, "key2"})
+    {:ok, entry3} = Cachex.inspect(cache, {:entry, "key3"})
 
     # create a cache stream
-    { :ok, stream } = Cachex.stream(cache)
+    {:ok, stream} = Cachex.stream(cache)
 
     # consume the stream
     result = Enum.sort(stream)
 
     # verify the results are the ordered entries
-    assert(result == [ entry1, entry2, entry3 ])
+    assert(result == [entry1, entry2, entry3])
   end
 
   # This test covers the use case of custom match patterns, by testing various
@@ -36,31 +36,33 @@ defmodule Cachex.Actions.StreamTest do
     cache = Helper.create_cache()
 
     # add some keys to the cache
-    { :ok, true } = Cachex.put(cache, "key1", "value1")
-    { :ok, true } = Cachex.put(cache, "key2", "value2")
-    { :ok, true } = Cachex.put(cache, "key3", "value3")
+    {:ok, true} = Cachex.put(cache, "key1", "value1")
+    {:ok, true} = Cachex.put(cache, "key2", "value2")
+    {:ok, true} = Cachex.put(cache, "key3", "value3")
 
     # create two test queries
-    query1 = Cachex.Query.create(true, { :key, :value })
+    query1 = Cachex.Query.create(true, {:key, :value})
     query2 = Cachex.Query.create(true, :key)
 
     # create cache streams
-    { :ok, stream1 } = Cachex.stream(cache, query1)
-    { :ok, stream2 } = Cachex.stream(cache, query2)
+    {:ok, stream1} = Cachex.stream(cache, query1)
+    {:ok, stream2} = Cachex.stream(cache, query2)
 
     # consume the streams
     result1 = Enum.sort(stream1)
     result2 = Enum.sort(stream2)
 
     # verify the first results
-    assert(result1 == [
-      { "key1", "value1" },
-      { "key2", "value2" },
-      { "key3", "value3" }
-    ])
+    assert(
+      result1 == [
+        {"key1", "value1"},
+        {"key2", "value2"},
+        {"key3", "value3"}
+      ]
+    )
 
     # verify the second results
-    assert(result2 == [ "key1", "key2", "key3" ])
+    assert(result2 == ["key1", "key2", "key3"])
   end
 
   # If an invalid match spec is provided in the of option, an error is returned.
@@ -70,10 +72,10 @@ defmodule Cachex.Actions.StreamTest do
     cache = Helper.create_cache()
 
     # create cache stream
-    result  = Cachex.stream(cache, { :invalid })
+    result = Cachex.stream(cache, {:invalid})
 
     # verify the stream fails
-    assert(result == { :error, :invalid_match })
+    assert(result == {:error, :invalid_match})
   end
 
   # This test verifies that this action is correctly disabled in a cluster,
@@ -81,9 +83,9 @@ defmodule Cachex.Actions.StreamTest do
   @tag distributed: true
   test "streaming is disabled in a cache cluster" do
     # create a new cache cluster for cleaning
-    { cache, _nodes } = Helper.create_cache_cluster(2)
+    {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we shouldn't be able to stream a cache on multiple nodes
-    assert(Cachex.stream(cache) == { :error, :non_distributed })
+    assert(Cachex.stream(cache) == {:error, :non_distributed})
   end
 end

@@ -26,7 +26,7 @@ defmodule Cachex.Actions.Touch do
   expiration to the offset of the two.
   """
   def execute(cache() = cache, key, _options) do
-    Locksmith.transaction(cache, [ key ], fn ->
+    Locksmith.transaction(cache, [key], fn ->
       cache
       |> Ttl.execute(key, [])
       |> handle_ttl(cache, key)
@@ -42,10 +42,14 @@ defmodule Cachex.Actions.Touch do
   # If the expiration if unset, we update just the touch time insude the entry
   # as we don't have to account for the offset. If an expiration is set, we
   # also update the expiration on the record to be the returned offset.
-  defp handle_ttl({ :ok, value }, cache, key) do
-    Actions.update(cache, key, case value do
-      nil -> entry_mod_now()
-      ttl -> entry_mod_now(ttl: ttl)
-    end)
+  defp handle_ttl({:ok, value}, cache, key) do
+    Actions.update(
+      cache,
+      key,
+      case value do
+        nil -> entry_mod_now()
+        ttl -> entry_mod_now(ttl: ttl)
+      end
+    )
   end
 end

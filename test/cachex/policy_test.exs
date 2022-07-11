@@ -9,5 +9,5 @@ defmodule Cachex.PolicyTest do
   end
 
   defmodule DefaultPolicy,
-    do: use Cachex.Policy
+    do: use(Cachex.Policy)
 end

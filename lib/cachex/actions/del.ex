@@ -20,8 +20,8 @@ defmodule Cachex.Actions.Del do
   being used inside a transaction in other places in the codebase.
   """
   def execute(cache(name: name) = cache, key, _options) do
-    Locksmith.write(cache, [ key ], fn ->
-      { :ok, :ets.delete(name, key) }
+    Locksmith.write(cache, [key], fn ->
+      {:ok, :ets.delete(name, key)}
     end)
   end
 end

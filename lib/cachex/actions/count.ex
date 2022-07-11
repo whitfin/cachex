@@ -21,5 +21,5 @@ defmodule Cachex.Actions.Count do
   to the count. Lazy expiration does not apply to this call.
   """
   def execute(cache(name: name), _options),
-    do: { :ok, :ets.select_count(name, Query.unexpired(true)) }
+    do: {:ok, :ets.select_count(name, Query.unexpired(true))}
 end

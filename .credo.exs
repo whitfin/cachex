@@ -44,10 +44,10 @@
         # Priority values are: `low, normal, high, higher`
         {Credo.Check.Design.AliasUsage, priority: :low},
         # For others you can set parameters
-        {Credo.Check.Design.DuplicatedCode, mass_threshold: 16, nodes_threshold: 2},
+        {Credo.Check.Design.DuplicatedCode,
+         mass_threshold: 16, nodes_threshold: 2},
         {Credo.Check.Design.TagTODO, false},
         {Credo.Check.Design.TagFIXME, false},
-
         {Credo.Check.Readability.FunctionNames},
         {Credo.Check.Readability.LargeNumbers},
         {Credo.Check.Readability.MaxLineLength, priority: :low, max_length: 80},
@@ -64,7 +64,6 @@
         {Credo.Check.Readability.TrailingWhiteSpace},
         {Credo.Check.Readability.VariableNames},
         {Credo.Check.Refactor.DoubleBooleanNegation},
-
         {Credo.Check.Refactor.ABCSize, max_size: 50},
         {Credo.Check.Refactor.CaseTrivialMatches, false},
         {Credo.Check.Refactor.CondStatements},
@@ -81,7 +80,6 @@
         {Credo.Check.Refactor.Nesting},
         {Credo.Check.Refactor.UnlessWithElse},
         {Credo.Check.Refactor.VariableRebinding},
-
         {Credo.Check.Warning.BoolOperationOnSameValues},
         {Credo.Check.Warning.IExPry},
         {Credo.Check.Warning.IoInspect},

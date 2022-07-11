@@ -3,8 +3,8 @@ Application.ensure_all_started(:cachex)
 
 # require test lib files
 "#{Path.dirname(__ENV__.file)}/lib/**/*"
-|> Path.wildcard
-|> Enum.filter(&!File.dir?(&1))
+|> Path.wildcard()
+|> Enum.filter(&(!File.dir?(&1)))
 |> Enum.each(&Code.require_file/1)
 
 # start ExUnit!
@@ -23,14 +23,10 @@ defmodule TestHelper do
   require CachexCase.ForwardHook
 
   # create default execute hook
-  CachexCase.ExecuteHook.bind([
-    default_execute_hook: []
-  ])
+  CachexCase.ExecuteHook.bind(default_execute_hook: [])
 
   # create default forward hook
-  CachexCase.ForwardHook.bind([
-    default_forward_hook: []
-  ])
+  CachexCase.ForwardHook.bind(default_forward_hook: [])
 
   @doc false
   # Schedules a cache to be deleted at the end of the current test context.

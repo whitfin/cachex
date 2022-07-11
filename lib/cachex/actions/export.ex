@@ -21,5 +21,5 @@ defmodule Cachex.Actions.Export do
   to the memory overhead involved, as well as the large concatenations.
   """
   def execute(cache(name: name), _options),
-    do: { :ok, :ets.tab2list(name) }
+    do: {:ok, :ets.tab2list(name)}
 end

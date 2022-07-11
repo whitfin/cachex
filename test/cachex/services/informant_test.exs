@@ -4,17 +4,17 @@ defmodule Cachex.Services.InformantTest do
   # Bind any required hooks for test execution
   setup_all do
     # bind the required forward hooks for testing
-    ForwardHook.bind([
-      informant_forward_hook_pre: [ type: :pre ],
-      informant_forward_hook_post: [ type: :post ],
-      informant_forward_hook_actions_get: [ actions: [ :get ] ]
-    ])
+    ForwardHook.bind(
+      informant_forward_hook_pre: [type: :pre],
+      informant_forward_hook_post: [type: :post],
+      informant_forward_hook_actions_get: [actions: [:get]]
+    )
 
     # bind the required execute hooks for testing
-    ExecuteHook.bind([
-      informant_execute_hook_sync: [ async: false ],
-      informant_execute_hook_sync_timeout: [ async: false, timeout: 50 ]
-    ])
+    ExecuteHook.bind(
+      informant_execute_hook_sync: [async: false],
+      informant_execute_hook_sync_timeout: [async: false, timeout: 50]
+    )
 
     # done
     :ok
@@ -29,9 +29,9 @@ defmodule Cachex.Services.InformantTest do
     hook3 = ForwardHook.create(:informant_forward_hook_actions_get)
 
     # start a cache with the hooks
-    cache1 = Helper.create_cache([ hooks: [ hook1 ] ])
-    cache2 = Helper.create_cache([ hooks: [ hook2 ] ])
-    cache3 = Helper.create_cache([ hooks: [ hook3 ] ])
+    cache1 = Helper.create_cache(hooks: [hook1])
+    cache2 = Helper.create_cache(hooks: [hook2])
+    cache3 = Helper.create_cache(hooks: [hook3])
 
     # grab a state instance for the broadcast
     state1 = Services.Overseer.retrieve(cache1)
@@ -39,22 +39,22 @@ defmodule Cachex.Services.InformantTest do
     state3 = Services.Overseer.retrieve(cache3)
 
     # broadcast using the cache name
-    Services.Informant.broadcast(state1, { :action, [] }, :result)
+    Services.Informant.broadcast(state1, {:action, []}, :result)
 
     # verify pre hooks aren't notified
-    refute_receive({ { :action, [] }, nil })
+    refute_receive({{:action, []}, nil})
 
     # broadcast using the cache name
-    Services.Informant.broadcast(state2, { :action, [] }, :result)
+    Services.Informant.broadcast(state2, {:action, []}, :result)
 
     # verify only one message is forwarded
-    assert_receive({ { :action, [] }, :result })
+    assert_receive({{:action, []}, :result})
 
     # send an unwhitelisted message
-    Services.Informant.broadcast(state3, { :action, [] }, :result)
+    Services.Informant.broadcast(state3, {:action, []}, :result)
 
     # verify hooks aren't notified
-    refute_receive({ { :action, [] }, nil })
+    refute_receive({{:action, []}, nil})
   end
 
   # This test ensures that Hook notifications function correctly, trying various
@@ -82,42 +82,48 @@ defmodule Cachex.Services.InformantTest do
     hook5 = ForwardHook.create()
 
     # initialize caches to initialize the hooks
-    cache1 = Helper.create_cache([ hooks: hook1 ])
-    cache2 = Helper.create_cache([ hooks: hook2 ])
-    cache3 = Helper.create_cache([ hooks: hook3 ])
-    cache4 = Helper.create_cache([ hooks: hook4 ])
+    cache1 = Helper.create_cache(hooks: hook1)
+    cache2 = Helper.create_cache(hooks: hook2)
+    cache3 = Helper.create_cache(hooks: hook3)
+    cache4 = Helper.create_cache(hooks: hook4)
 
     # update our hooks from the caches
-    cache(hooks: hooks(pre:  [ hook1 ])) = Services.Overseer.retrieve(cache1)
-    cache(hooks: hooks(post: [ hook2 ])) = Services.Overseer.retrieve(cache2)
-    cache(hooks: hooks(post: [ hook3 ])) = Services.Overseer.retrieve(cache3)
-    cache(hooks: hooks(post: [ hook4 ])) = Services.Overseer.retrieve(cache4)
+    cache(hooks: hooks(pre: [hook1])) = Services.Overseer.retrieve(cache1)
+    cache(hooks: hooks(post: [hook2])) = Services.Overseer.retrieve(cache2)
+    cache(hooks: hooks(post: [hook3])) = Services.Overseer.retrieve(cache3)
+    cache(hooks: hooks(post: [hook4])) = Services.Overseer.retrieve(cache4)
 
     # uninitialized hooks shouldn't emit
-    Services.Informant.notify([ hook5 ], { :action, [] }, :result)
+    Services.Informant.notify([hook5], {:action, []}, :result)
 
     # ensure nothing is received
-    refute_receive({ { :action, [] }, :result })
+    refute_receive({{:action, []}, :result})
 
     # pre hooks only ever get the action
-    Services.Informant.notify([ hook1 ], { :pre_hooks, [] }, :result)
+    Services.Informant.notify([hook1], {:pre_hooks, []}, :result)
 
     # ensure only the action is received
-    assert_receive({  { :pre_hooks, [] }, :result })
+    assert_receive({{:pre_hooks, []}, :result})
 
     # post hooks can receive results if requested
-    Services.Informant.notify([ hook2 ], { :post_hooks, [] }, :result)
+    Services.Informant.notify([hook2], {:post_hooks, []}, :result)
 
     # ensure the messages are received
-    assert_receive({ { :post_hooks, [] }, :result })
+    assert_receive({{:post_hooks, []}, :result})
 
     # synchronous hooks can block the notify call
-    { time1, _value } = :timer.tc(fn ->
-      Services.Informant.notify([ hook3 ], { :exec, fn ->
-        :timer.sleep(25)
-        :sync_hook
-      end }, nil)
-    end)
+    {time1, _value} =
+      :timer.tc(fn ->
+        Services.Informant.notify(
+          [hook3],
+          {:exec,
+           fn ->
+             :timer.sleep(25)
+             :sync_hook
+           end},
+          nil
+        )
+      end)
 
     # ensure we received the message
     assert_receive(:sync_hook)
@@ -126,12 +132,18 @@ defmodule Cachex.Services.InformantTest do
     assert_in_delta(time1, 25000, 10000)
 
     # synchronous hooks can block the notify call up to a limit
-    { time2, _value } = :timer.tc(fn ->
-      Services.Informant.notify([ hook4 ], { :exec, fn ->
-        :timer.sleep(1000)
-        :sync_hook
-      end }, nil)
-    end)
+    {time2, _value} =
+      :timer.tc(fn ->
+        Services.Informant.notify(
+          [hook4],
+          {:exec,
+           fn ->
+             :timer.sleep(1000)
+             :sync_hook
+           end},
+          nil
+        )
+      end)
 
     # ensure it took roughly 50ms
     assert_in_delta(time2, 57500, 7500)
