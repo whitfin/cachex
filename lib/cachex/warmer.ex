@@ -70,11 +70,11 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init({cache, warmer(sync: sync, state: state)}) do
-        if sync do
-          handle_info(:cachex_warmer, {cache, state})
-        else
+      def init({cache, warmer(async: async, state: state)}) do
+        if async do
           send(self(), :cachex_warmer)
+        else
+          handle_info(:cachex_warmer, {cache, state})
         end
 
         {:ok, {cache, state}}

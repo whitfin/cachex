@@ -98,7 +98,7 @@ defmodule Cachex.Spec do
           record(:warmer,
             module: atom,
             state: any,
-            sync: boolean
+            async: boolean
           )
 
   ###########
@@ -253,7 +253,7 @@ defmodule Cachex.Spec do
   defrecord :warmer,
     module: nil,
     state: nil,
-    sync: true
+    async: false
 
   ###############
   # Record Docs #

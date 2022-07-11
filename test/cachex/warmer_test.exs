@@ -51,7 +51,7 @@ defmodule Cachex.WarmerTest do
     end)
 
     # create a cache instance with a warmer
-    warmer = warmer(module: :async_warmer, sync: false)
+    warmer = warmer(module: :async_warmer, async: true)
     cache = Helper.create_cache(warmers: [warmer])
 
     # check that the key was not warmed
