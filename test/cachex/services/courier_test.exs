@@ -44,11 +44,11 @@ defmodule Cachex.Services.CourierTest do
     # dispatch an arbitrary task from the current process
     result = Services.Courier.dispatch(cache, "my_key", task)
 
-    # check the forwarded task completed
-    assert_receive({:commit, "my_value"})
-
     # check the returned value
     assert result == {:commit, "my_value"}
+
+    # check the forwarded task completed
+    assert_receive({:ok, "my_value"})
 
     # check the key was placed in the table
     retrieved = Cachex.get(cache, "my_key")
