@@ -92,9 +92,8 @@ defmodule Cachex.Spec.Validator do
     check3 = check2 and nillable?(name, &(is_atom(&1) or is_pid(&1)))
     check4 = check3 and nillable?(module.timeout(), &is_positive_integer/1)
 
-    check5 =
-      check4 and
-        (enum?(module.actions(), &is_atom/1) or module.actions() == :all)
+    action = check4 and module.actions()
+    check5 = check4 and (enum?(action, &is_atom/1) or action == :all)
 
     check6 = check5 and enum?(module.provisions(), &is_atom/1)
     check7 = check6 and module.type() in [:post, :pre]

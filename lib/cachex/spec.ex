@@ -97,7 +97,8 @@ defmodule Cachex.Spec do
   @type warmer ::
           record(:warmer,
             module: atom,
-            state: any
+            state: any,
+            sync: boolean
           )
 
   ###########
@@ -251,7 +252,8 @@ defmodule Cachex.Spec do
   """
   defrecord :warmer,
     module: nil,
-    state: nil
+    state: nil,
+    sync: true
 
   ###############
   # Record Docs #

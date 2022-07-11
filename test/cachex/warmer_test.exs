@@ -43,6 +43,21 @@ defmodule Cachex.WarmerTest do
     assert Cachex.empty?(!cache)
   end
 
+  test "warmers which aren't blocking" do
+    # create a test warmer to pass to the cache
+    Helper.create_warmer(:async_warmer, 50, fn _ ->
+      :timer.sleep(3000)
+      {:ok, [{1, 1}]}
+    end)
+
+    # create a cache instance with a warmer
+    warmer = warmer(module: :async_warmer, sync: false)
+    cache = Helper.create_cache(warmers: [warmer])
+
+    # check that the key was not warmed
+    assert Cachex.get!(cache, 1) == nil
+  end
+
   test "providing warmers with states" do
     # create a test warmer to pass to the cache
     Helper.create_warmer(:state_warmer, 50, fn state ->

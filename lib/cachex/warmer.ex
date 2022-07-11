@@ -70,9 +70,14 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init(state) do
-        handle_info(:cachex_warmer, state)
-        {:ok, state}
+      def init({cache, warmer(sync: sync, state: state)}) do
+        if sync do
+          handle_info(:cachex_warmer, {cache, state})
+        else
+          trigger()
+        end
+
+        {:ok, {cache, state}}
       end
 
       @doc false
@@ -83,7 +88,7 @@ defmodule Cachex.Warmer do
       # cache via `Cachex.put_many/3` if returns in a Tuple tagged with the
       # `:ok` atom. If `:ignore` is returned, nothing happens aside from
       # scheduling the next execution of the warming to occur on interval.
-      def handle_info(:cachex_warmer, {cache, state} = process_state) do
+      def handle_info(:cachex_warmer, {cache, state} = persist_state) do
         # execute, passing state
         case execute(state) do
           # no changes
@@ -99,12 +104,16 @@ defmodule Cachex.Warmer do
             Cachex.put_many(cache, pairs, options)
         end
 
-        # trigger the warming to happen again after the interval
-        :erlang.send_after(interval(), self(), :cachex_warmer)
+        # fire again!
+        trigger()
 
-        # no reply, and the state persist
-        {:noreply, process_state}
+        # repeat with the state
+        {:noreply, persist_state}
       end
+
+      # Trigger a run to happen in the future.
+      defp trigger,
+        do: :erlang.send_after(interval(), self(), :cachex_warmer)
     end
   end
 end
