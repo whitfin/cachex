@@ -74,7 +74,7 @@ defmodule Cachex.Warmer do
         if sync do
           handle_info(:cachex_warmer, {cache, state})
         else
-          trigger()
+          send(self(), :cachex_warmer)
         end
 
         {:ok, {cache, state}}
@@ -104,16 +104,12 @@ defmodule Cachex.Warmer do
             Cachex.put_many(cache, pairs, options)
         end
 
-        # fire again!
-        trigger()
+        # trigger the warming to happen again after the interval
+        :erlang.send_after(interval(), self(), :cachex_warmer)
 
         # repeat with the state
         {:noreply, persist_state}
       end
-
-      # Trigger a run to happen in the future.
-      defp trigger,
-        do: :erlang.send_after(interval(), self(), :cachex_warmer)
     end
   end
 end
