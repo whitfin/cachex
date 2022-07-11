@@ -88,7 +88,7 @@ defmodule Cachex.Warmer do
       # cache via `Cachex.put_many/3` if returns in a Tuple tagged with the
       # `:ok` atom. If `:ignore` is returned, nothing happens aside from
       # scheduling the next execution of the warming to occur on interval.
-      def handle_info(:cachex_warmer, {cache, state} = persist_state) do
+      def handle_info(:cachex_warmer, {cache, state} = process_state) do
         # execute, passing state
         case execute(state) do
           # no changes
@@ -108,7 +108,7 @@ defmodule Cachex.Warmer do
         :erlang.send_after(interval(), self(), :cachex_warmer)
 
         # repeat with the state
-        {:noreply, persist_state}
+        {:noreply, process_state}
       end
     end
   end
