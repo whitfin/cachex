@@ -109,9 +109,29 @@ defmodule Cachex.Services.Courier do
   #
   # This will update all processes waiting for the result of the
   # specified task, and remove the task from the tracked state.
+  #
+  # Any processes waiting for the result will be given an `:ok`
+  # tag rather than a `:commit` tag, to make it possible to know
+  # which call to `fetch/4` actually loaded the backing value.
   def handle_info({:notify, key, result}, {cache, tasks}) do
-    for caller <- Map.get(tasks, key, []) do
-      GenServer.reply(caller, result)
+    callers =
+      tasks
+      |> Map.get(key, [])
+      |> Enum.reverse()
+
+    with [owner | listeners] <- callers do
+      GenServer.reply(owner, result)
+
+      result =
+        if elem(result, 0) == :commit do
+          put_elem(result, 0, :ok)
+        else
+          result
+        end
+
+      for caller <- listeners do
+        GenServer.reply(caller, result)
+      end
     end
 
     {:noreply, {cache, Map.delete(tasks, key)}}
