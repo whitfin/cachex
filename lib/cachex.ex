@@ -1180,7 +1180,7 @@ defmodule Cachex do
       { :error, :stats_disabled }
 
   """
-  @spec stats(cache, Keyword.t()) :: {status, %{}}
+  @spec stats(cache, Keyword.t()) :: {status, map()}
   def stats(cache, options \\ []) when is_list(options),
     do: Router.call(cache, {:stats, [options]})
 
