@@ -62,6 +62,8 @@ defmodule Cachex.Warmer do
     quote location: :keep, generated: true do
       use GenServer
 
+      import Cachex.Spec
+
       # enforce the behaviour
       @behaviour Cachex.Warmer
 
