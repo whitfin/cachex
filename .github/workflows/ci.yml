@@ -14,10 +14,14 @@ jobs:
       fail-fast: false
       matrix:
         otp:
-          - '24.3'
+          - '25'
         elixir:
-          - '1.13'
+          - '1.14'
         include:
+          - elixir: '1.14'
+            otp: '23.3'
+          - elixir: '1.13'
+            otp: '22.3'
           - elixir: '1.12'
             otp: '22.3'
           - elixir: '1.11'
