@@ -97,7 +97,7 @@ defmodule Cachex.Mixfile do
       {:sleeplocks, "~> 1.1"},
       {:unsafe, "~> 1.0"},
       # Testing dependencies
-      {:excoveralls, "~> 0.14", optional: true, only: [:cover]},
+      {:excoveralls, "~> 0.15", optional: true, only: [:cover]},
       {:local_cluster, "~> 1.1", optional: true, only: [:cover, :test]},
       # Linting dependencies
       {:credo, "~> 1.6", optional: true, only: [:lint]},
@@ -105,7 +105,7 @@ defmodule Cachex.Mixfile do
       {:benchee, "~> 1.1", optional: true, only: [:bench]},
       {:benchee_html, "~> 1.0", optional: true, only: [:bench]},
       # Documentation dependencies
-      {:ex_doc, "~> 0.28", optional: true, only: [:docs]}
+      {:ex_doc, "~> 0.29", optional: true, only: [:docs]}
     ]
   end
 end
