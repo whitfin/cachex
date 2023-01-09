@@ -59,7 +59,6 @@ defmodule Cachex.Services do
     |> Enum.concat(incubator_spec(cache))
     |> Enum.concat(courier_spec(cache))
     |> Enum.concat(janitor_spec(cache))
-    |> Enum.concat(limit_spec(cache))
   end
 
   @doc """
@@ -147,30 +146,6 @@ defmodule Cachex.Services do
         start: {Services.Janitor, :start_link, [cache]}
       }
     ]
-
-  # Creates any require limit specifications for the supervision tree.
-  #
-  # This will rarely be used in the out-of-the-box experience, it's mainly
-  # provided for use in custom limit implementations by developers.
-  defp limit_spec(cache(limit: limit(size: nil))),
-    do: []
-
-  defp limit_spec(cache(limit: limit(policy: policy) = limit)) do
-    case apply(policy, :child_spec, [limit]) do
-      [] ->
-        []
-
-      cs ->
-        [
-          %{
-            id: Supervisor,
-            start:
-              {Supervisor, :start_link,
-               [cs, [strategy: apply(policy, :strategy, [])]]}
-          }
-        ]
-    end
-  end
 
   # Creates the required Locksmith queue specification for a cache.
   #
