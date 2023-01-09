@@ -73,7 +73,7 @@ defmodule Cachex.Policy.LRW.Scheduled do
   # This will execute a bounds check on a cache and schedule a new check.
   def handle_info(:policy_check, {cache, limit} = opts) do
     unless is_nil(cache) do
-      LRW.enforce_bounds(cache, limit)
+      LRW.enforce(cache, limit)
     end
 
     schedule(limit) && {:noreply, opts}

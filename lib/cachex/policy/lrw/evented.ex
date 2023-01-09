@@ -87,7 +87,7 @@ defmodule Cachex.Policy.LRW.Evented do
   # able to cause a net gain in cache size (so removals are also ignored).
   def handle_notify(_message, {status, _value}, {cache, limit} = opts)
       when status not in @ignored,
-      do: LRW.enforce_bounds(cache, limit) && {:ok, opts}
+      do: LRW.enforce(cache, limit) && {:ok, opts}
 
   def handle_notify(_message, _result, opts),
     do: {:ok, opts}

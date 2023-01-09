@@ -51,7 +51,8 @@ defmodule Cachex.Policy.LRW do
   entries should be removed at once by this policy. This will default to a batch
   size of 100 entries at a time.
   """
-  def enforce_bounds(cache, limit() = limit) do
+  @spec enforce(Spec.cache(), Spec.limit()) :: :ok
+  def enforce(cache() = cache, limit() = limit) do
     limit(size: max_size, reclaim: reclaim, options: options) = limit
 
     batch_size =
@@ -169,5 +170,5 @@ defmodule Cachex.Policy.LRW do
     do: Informant.broadcast(state, {:clear, [[]]}, {:ok, offset})
 
   defp notify_worker(_offset, _state),
-    do: {:ok, 0}
+    do: :ok
 end
