@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRW.EventedTest do
+defmodule Cachex.Policy.LRW.ScheduledTest do
   use CachexCase
 
   # This test just ensures that there are no artificial limits placed on a cache
@@ -36,9 +36,9 @@ defmodule Cachex.Policy.LRW.EventedTest do
     limit =
       limit(
         size: 100,
-        policy: Cachex.Policy.LRW.Evented,
+        policy: Cachex.Policy.LRW.Scheduled,
         reclaim: 0.75,
-        options: [batch_size: 25]
+        options: [batch_size: 25, frequency: 100]
       )
 
     # create a cache with a max size
@@ -112,9 +112,9 @@ defmodule Cachex.Policy.LRW.EventedTest do
     limit =
       limit(
         size: 100,
-        policy: Cachex.Policy.LRW.Evented,
+        policy: Cachex.Policy.LRW.Scheduled,
         reclaim: 0.3,
-        options: [batch_size: -1]
+        options: [batch_size: -1, frequency: 100]
       )
 
     # create a cache with a max size
