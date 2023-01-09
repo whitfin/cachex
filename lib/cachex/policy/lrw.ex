@@ -34,7 +34,7 @@ defmodule Cachex.Policy.LRW do
 
   @doc false
   # Backwards compatibility with < v3.5.x defaults
-  defdelegate hooks(limit), to: __MODULE__.Evented
+  defdelegate hooks(limit), to: __MODULE__.Scheduled
 
   #############
   # Algorithm #
