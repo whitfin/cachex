@@ -1,23 +1,18 @@
 defmodule Cachex.Policy.LRW do
   @moduledoc """
-  Least recently written eviction policy for Cachex.
+  Least recently written eviction policies for Cachex.
 
-  This module provides an eviction policy for Cachex, evicting the least-recently
-  written entries from the cache. This is determined by the touched time inside
-  each cache record, which means that this eviction is almost zero cost, consuming
-  no additional memory beyond that of the running GenServer.
+  This module provides general utilities for implementing an eviction policy for
+  Cachex which will evict the least-recently written entries from the cache. This
+  is determined by the touched time inside each cache record, which means that we
+  don't have to store any additional tables to keep track of access time.
 
-  This policy accepts a reclaim space to determine how much of the cache to evict,
-  allowing the user to determine exactly how much they'd like to trim in the event
-  they've gone over the limit.
+  There are several policies implemented using this algorithm:
 
-  The `:batch_size` option can be set in the limit options to dictate how many
-  entries should be removed at once by this policy. This will default to a batch
-  size of 100 entries at a time.
+  * `Cachex.Policy.LRW.Evented`
 
-  This eviction is relatively fast, and should keep the cache below bounds at most
-  times. Note that many writes in a very short amount of time can flood the cache,
-  but it should recover given a few seconds.
+  Although the functions in this module are public, the way they function internally
+  should be treated as private and subject to change at any point.
   """
   use Cachex.Hook
   use Cachex.Policy
@@ -29,9 +24,6 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Query
   alias Cachex.Services.Informant
 
-  # actions which didn't trigger a write
-  @ignored [:error, :ignored]
-
   # compile our QLC match at runtime to avoid recalculating
   @qlc_match Query.raw(true, {:key, :touched})
 
@@ -39,54 +31,27 @@ defmodule Cachex.Policy.LRW do
   # Policy Behaviour #
   ####################
 
-  @doc """
-  Retrieves a list of hooks required to run against this policy.
-  """
-  @spec hooks(Spec.limit()) :: [Spec.hook()]
-  def hooks(limit),
-    do: [hook(module: __MODULE__, state: limit)]
-
-  ######################
-  # Hook Configuration #
-  ######################
-
-  @doc """
-  Returns the actions this policy should listen on.
-
-  This returns as a `MapSet` to optimize the lookups
-  on actions to O(n) in the broadcasting algorithm.
-  """
-  @spec actions :: [atom]
-  def actions,
-    do: [
-      :put,
-      :decr,
-      :incr,
-      :fetch,
-      :update,
-      :put_many,
-      :get_and_update
-    ]
-
-  @doc """
-  Returns the provisions this policy requires.
-  """
-  @spec provisions :: [atom]
-  def provisions,
-    do: [:cache]
-
-  ####################
-  # Server Callbacks #
-  ####################
-
   @doc false
-  # Initializes this policy using the limit being enforced.
-  #
-  # The maximum size is stored in the state, alongside the pre-calculated
-  # number to trim down to. The batch size to use when removing records is
-  # also configurable via the provided options.
-  def init(limit(size: max_size, reclaim: reclaim, options: options)) do
-    trim_bound = round(max_size * reclaim)
+  # Backwards compatibility with < v3.5.x defaults
+  defdelegate hooks(limit), to: __MODULE__.Evented
+
+  #############
+  # Algorithm #
+  #############
+
+  @doc """
+  Enforces cache bounds based on the provided limit.
+
+  This function will enforce cache bounds using a least recently written (LRW)
+  eviction policy. It will trigger a Janitor purge to clear expired records
+  before attempting to trim older cache entries.
+
+  The `:batch_size` option can be set in the limit options to dictate how many
+  entries should be removed at once by this policy. This will default to a batch
+  size of 100 entries at a time.
+  """
+  def enforce_bounds(cache, limit() = limit) do
+    limit(size: max_size, reclaim: reclaim, options: options) = limit
 
     batch_size =
       case Keyword.get(options, :batch_size, 100) do
@@ -94,69 +59,17 @@ defmodule Cachex.Policy.LRW do
         val -> val
       end
 
-    {:ok, {max_size, trim_bound, batch_size, nil}}
-  end
+    reclaim_bound = round(max_size * reclaim)
 
-  @doc false
-  # Handles notification of a cache action.
-  #
-  # This will check if the action can modify the size of the cache, and if so will
-  # execute the boundary enforcement to trim the size as needed.
-  #
-  # Note that this will ignore error results and only operates on actions which are
-  # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, {status, _value}, opts)
-      when status not in @ignored,
-      do: enforce_bounds(opts) && {:ok, opts}
-
-  def handle_notify(_message, _result, opts),
-    do: {:ok, opts}
-
-  @doc false
-  # Receives a provisioned cache instance.
-  #
-  # The provided cache is then stored in the cache and used for cache calls going
-  # forwards, in order to skip the lookups inside the cache overseer for performance.
-  def handle_provision({:cache, cache}, {max_size, reclaim, batch, _cache}),
-    do: {:ok, {max_size, reclaim, batch, cache}}
-
-  #############
-  # Algorithm #
-  #############
-
-  # Enforces the bounds of a cache based on the provided state.
-  #
-  # Suggest stepping through this pipeline a function at a time and reading the
-  # associated comments. This pipeline controls the trimming of the cache to fit
-  # the appropriate size.
-  #
-  # We start with the current size of the cache and pass it through to a function
-  # which will calculate the a number of slots to reclaim in the cache. If the
-  # number is positive, we carry out a Janitor purge and see if that brings us
-  # back under the maximum size. If so, we're done and stop. If not, we then trim
-  # the cache using a QLC cursor through the cache, deleting entries in batches.
-  # Note that these deletions are sorted by the touch time to ensure we delete
-  # the oldest first.
-  #
-  # Upon completion, we notify the worker itself to broadcast a message to all
-  # hooks to ensure that hooks are notified of the evictions. This is only done
-  # in the case that something has actually been removed, in order to avoid edge
-  # cases and potentially breaking existing hook implementations.
-  #
-  # It's safe to always run through the pipeline here, but we check the cache
-  # size as an optimization to speed up message processing when no evictions need
-  # to happen. This is a slight speed boost, but it's noticeable - tests will fail
-  # intermittently if this is not checked in this way.
-  defp enforce_bounds({max_size, reclaim, batch, cache}) do
     case Cachex.size!(cache, const(:notify_false)) do
       cache_size when cache_size <= max_size ->
         notify_worker(0, cache)
 
       cache_size ->
         cache_size
-        |> calculate_reclaim(max_size, reclaim)
+        |> calculate_reclaim(max_size, reclaim_bound)
         |> calculate_poffset(cache)
-        |> erase_lower_bound(cache, batch)
+        |> erase_lower_bound(cache, batch_size)
         |> notify_worker(cache)
     end
   end
