@@ -10,6 +10,7 @@ defmodule Cachex.Policy.LRW do
   There are several policies implemented using this algorithm:
 
   * `Cachex.Policy.LRW.Evented`
+  * `Cachex.Policy.LRW.Scheduled`
 
   Although the functions in this module are public, the way they function internally
   should be treated as private and subject to change at any point.

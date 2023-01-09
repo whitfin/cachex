@@ -1,16 +1,20 @@
-defmodule Cachex.Policy.LRW.Evented do
+defmodule Cachex.Policy.LRW.Scheduled do
   @moduledoc """
-  Evented least recently written eviction policy for Cachex.
+  Schedule least recently written eviction policy for Cachex.
 
-  This module implements an evented LRW eviction policy for Cachex, using a hook
-  to listen for new key additions to a cache and enforcing bounds in a reactive
-  way. This policy enforces cache bounds and limits far more accurately than other
-  scheduled implementations, but comes at a higher memory cost (due to the message
-  passing between hooks).
+  This module implements an evented LRW eviction policy for Cachex, using a basic
+  timer to trigger bound enforcement in a scheduled way. This has the same bound
+  accuracy as `Cachex.Policy.LRW.Evented`, but has potential for some delay. The
+  main advantage of this implementation is a far lower memory cost due to not
+  using hook messages.
 
   The `:batch_size` option can be set in the limit options to dictate how many
   entries should be removed at once by this policy. This will default to a batch
   size of 100 entries at a time.
+
+  The `:frequency` option can also be set in the limit options to specify how
+  frequently this policy will fire. This defaults to every few seconds (but may
+  change at any point).
 
   This eviction is relatively fast, and should keep the cache below bounds at most
   times. Note that many writes in a very short amount of time can flood the cache,
@@ -24,9 +28,6 @@ defmodule Cachex.Policy.LRW.Evented do
 
   # add internal aliases
   alias Cachex.Policy.LRW
-
-  # actions which didn't trigger a write
-  @ignored [:error, :ignored]
 
   ####################
   # Policy Behaviour #
@@ -45,21 +46,10 @@ defmodule Cachex.Policy.LRW.Evented do
 
   @doc """
   Returns the actions this policy should listen on.
-
-  This returns as a `MapSet` to optimize the lookups
-  on actions to O(n) in the broadcasting algorithm.
   """
   @spec actions :: [atom]
   def actions,
-    do: [
-      :put,
-      :decr,
-      :incr,
-      :fetch,
-      :update,
-      :put_many,
-      :get_and_update
-    ]
+    do: []
 
   @doc """
   Returns the provisions this policy requires.
@@ -75,22 +65,19 @@ defmodule Cachex.Policy.LRW.Evented do
   @doc false
   # Initializes this policy using the limit being enforced.
   def init(limit() = limit),
-    do: {:ok, {nil, limit}}
+    do: {schedule(limit), {nil, limit}}
 
   @doc false
   # Handles notification of a cache action.
   #
-  # This will check if the action can modify the size of the cache, and if so will
-  # execute the boundary enforcement to trim the size as needed.
-  #
-  # Note that this will ignore error results and only operates on actions which are
-  # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, {status, _value}, {cache, limit} = opts)
-      when status not in @ignored,
-      do: LRW.enforce_bounds(cache, limit) && {:ok, opts}
+  # This will execute a bounds check on a cache and schedule a new check.
+  def handle_info(:policy_check, {cache, limit} = opts) do
+    unless is_nil(cache) do
+      LRW.enforce_bounds(cache, limit)
+    end
 
-  def handle_notify(_message, _result, opts),
-    do: {:ok, opts}
+    schedule(limit) && {:noreply, opts}
+  end
 
   @doc false
   # Receives a provisioned cache instance.
@@ -99,4 +86,17 @@ defmodule Cachex.Policy.LRW.Evented do
   # forwards, in order to skip the lookups inside the cache overseer for performance.
   def handle_provision({:cache, cache}, {_cache, limit}),
     do: {:ok, {cache, limit}}
+
+  ###############
+  # Private API #
+  ###############
+
+  # Schedules a check to occur after the designated interval.
+  defp schedule(limit(options: options)) do
+    options
+    |> Keyword.get(:frequency, 1000)
+    |> :erlang.send_after(self(), :policy_check)
+
+    :ok
+  end
 end
