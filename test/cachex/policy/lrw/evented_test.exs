@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRWTest do
+defmodule Cachex.Policy.LRW.EventedTest do
   use CachexCase
 
   # This test just ensures that there are no artificial limits placed on a cache
