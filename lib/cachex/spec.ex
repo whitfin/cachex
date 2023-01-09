@@ -162,7 +162,7 @@ defmodule Cachex.Spec do
   An expiration record contains properties defining expiration policies for a cache.
 
   A default value can be provided which will then be added as a default TTL to all keys
-  which do not have one set explicitly. This must be a valid millisecond integer.
+  which do not have one set explicitly. This must be a positive millisecond integer.
 
   The interval being controlled here is the Janitor service schedule; it controls how
   often the purge runs in the background of your application to remove expired records.
