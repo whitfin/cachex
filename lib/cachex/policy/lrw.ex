@@ -7,15 +7,36 @@ defmodule Cachex.Policy.LRW do
   is determined by the touched time inside each cache record, which means that we
   don't have to store any additional tables to keep track of access time.
 
-  There are several policies implemented using this algorithm:
+  There are several options recognised by this policy which can be passed inside the
+  limit structure when configuring your cache at startup:
 
-  * `Cachex.Policy.LRW.Evented`
-  * `Cachex.Policy.LRW.Scheduled`
+    * `:batch_size`
 
-  Although the functions in this module are public, the way they function internally
-  should be treated as private and subject to change at any point.
+      The batch size to use when paginating the cache to evict records. This defaults
+      to 100, which is typically going to be fine for most cases, but this option is
+      exposed in case there is need to customize it.
+
+    * `:frequency`
+
+      When this policy operates in scheduled mode, this option controls the frequency
+      with which bounds will be checked. This is specified in milliseconds, and will
+      default to once per second (1000). Feel free to tune this based on how strictly
+      you wish to enforce your cache limits.
+
+    * `:immediate`
+
+      Sets this policy to enforce bounds reactively. If this option is set to `true`,
+      bounds will be checked immediately when a write is made to the cache rather than
+      on a timed schedule. This has the result of being much more accurate with the
+      size of a cache, but has higher overhead due to listening on cache writes.
+
+      Setting this to `true` will disable the scheduled checks and thus the `:frequency`
+      option is ignored in this case.
+
+  While the overall behaviour of this policy should always result in the same outcome,
+  the way it operates internally may change. As such, the internals of this module
+  should not be relied upon and should not be considered part of the public API.
   """
-  use Cachex.Hook
   use Cachex.Policy
 
   # import macros
@@ -32,27 +53,35 @@ defmodule Cachex.Policy.LRW do
   # Policy Behaviour #
   ####################
 
-  @doc false
-  # Backwards compatibility with < v3.5.x defaults
-  defdelegate hooks(limit), to: __MODULE__.Scheduled
+  @doc """
+  Configures hooks required to back this policy.
+  """
+  def hooks(limit(options: options) = limit),
+    do: [
+      hook(
+        state: limit,
+        module:
+          case Keyword.get(options, :immediate) do
+            true -> __MODULE__.Evented
+            _not -> __MODULE__.Scheduled
+          end
+      )
+    ]
 
   #############
   # Algorithm #
   #############
 
-  @doc """
-  Enforces cache bounds based on the provided limit.
-
-  This function will enforce cache bounds using a least recently written (LRW)
-  eviction policy. It will trigger a Janitor purge to clear expired records
-  before attempting to trim older cache entries.
-
-  The `:batch_size` option can be set in the limit options to dictate how many
-  entries should be removed at once by this policy. This will default to a batch
-  size of 100 entries at a time.
-  """
-  @spec enforce(Spec.cache(), Spec.limit()) :: :ok
-  def enforce(cache() = cache, limit() = limit) do
+  @doc false
+  # Enforces cache bounds based on the provided limit.
+  #
+  # This function will enforce cache bounds using a least recently written (LRW)
+  # eviction policy. It will trigger a Janitor purge to clear expired records
+  # before attempting to trim older cache entries.
+  #
+  # Please see module documentation for options available inside the limits.
+  @spec apply_limit(Spec.cache(), Spec.limit()) :: :ok
+  def apply_limit(cache() = cache, limit() = limit) do
     limit(size: max_size, reclaim: reclaim, options: options) = limit
 
     batch_size =

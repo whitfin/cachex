@@ -36,9 +36,9 @@ defmodule Cachex.Policy.LRW.EventedTest do
     limit =
       limit(
         size: 100,
-        policy: Cachex.Policy.LRW.Evented,
+        policy: Cachex.Policy.LRW,
         reclaim: 0.75,
-        options: [batch_size: 25]
+        options: [batch_size: 25, immediate: true]
       )
 
     # create a cache with a max size
@@ -112,9 +112,9 @@ defmodule Cachex.Policy.LRW.EventedTest do
     limit =
       limit(
         size: 100,
-        policy: Cachex.Policy.LRW.Evented,
+        policy: Cachex.Policy.LRW,
         reclaim: 0.3,
-        options: [batch_size: -1]
+        options: [batch_size: -1, immediate: true]
       )
 
     # create a cache with a max size

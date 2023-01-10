@@ -36,7 +36,7 @@ defmodule Cachex.Policy.LRW.ScheduledTest do
     limit =
       limit(
         size: 100,
-        policy: Cachex.Policy.LRW.Scheduled,
+        policy: Cachex.Policy.LRW,
         reclaim: 0.75,
         options: [batch_size: 25, frequency: 100]
       )
@@ -112,7 +112,7 @@ defmodule Cachex.Policy.LRW.ScheduledTest do
     limit =
       limit(
         size: 100,
-        policy: Cachex.Policy.LRW.Scheduled,
+        policy: Cachex.Policy.LRW,
         reclaim: 0.3,
         options: [batch_size: -1, frequency: 100]
       )

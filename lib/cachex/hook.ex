@@ -91,6 +91,10 @@ defmodule Cachex.Hook do
       def init(args),
         do: {:ok, args}
 
+      @doc false
+      def child_spec(args),
+        do: super(args)
+
       # allow overriding of init
       defoverridable init: 1
 
