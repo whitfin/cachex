@@ -14,10 +14,10 @@ defmodule Cachex.Services.Courier do
   use GenServer
 
   # import spec macros
-  import Cachex.Actions
   import Cachex.Spec
 
   # add some aliases
+  alias Cachex.Actions
   alias Cachex.Actions.Put
   alias Cachex.ExecutionError
 
@@ -86,7 +86,7 @@ defmodule Cachex.Services.Courier do
                   }
               end
 
-            normalized = normalize_commit(result)
+            normalized = Actions.normalize_commit(result)
 
             with {:commit, val} <- normalized do
               Put.execute(cache, key, val, const(:notify_false))
