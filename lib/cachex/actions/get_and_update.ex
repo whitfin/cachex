@@ -31,18 +31,19 @@ defmodule Cachex.Actions.GetAndUpdate do
     Locksmith.transaction(cache, [key], fn ->
       {_label, value} = Cachex.get(cache, key, [])
 
-      normalized =
+      formatted =
         value
         |> update_fun.()
-        |> Actions.normalize_commit()
+        |> Actions.format_fetch_value()
 
       operation = Actions.write_op(value)
+      normalized = Actions.normalize_commit(formatted)
 
-      with {:commit, new_value} <- normalized do
-        apply(Cachex, operation, [cache, key, new_value, []])
+      with {:commit, new_value, options} <- normalized do
+        apply(Cachex, operation, [cache, key, new_value, options])
       end
 
-      normalized
+      formatted
     end)
   end
 end
