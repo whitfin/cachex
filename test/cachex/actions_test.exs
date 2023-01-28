@@ -115,28 +115,47 @@ defmodule Cachex.ActionsTest do
   # This test just ensures that we correctly convert return values to either a
   # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
   # behaviour is a :commit Tuple for backwards compatibility.
-  test "normalizing commit/ignore return values" do
+  test "formatting commit/ignore return values" do
     # define our base Tuples to test against
     tuple1 = {:commit, true}
     tuple2 = {:ignore, true}
     tuple3 = {:error, true}
+    tuple4 = {:commit, true, []}
 
     # define our base value
     value1 = true
 
-    # normalize all values
-    result1 = Cachex.Actions.normalize_commit(tuple1)
-    result2 = Cachex.Actions.normalize_commit(tuple2)
-    result3 = Cachex.Actions.normalize_commit(tuple3)
-    result4 = Cachex.Actions.normalize_commit(value1)
+    # format all values
+    result1 = Cachex.Actions.format_fetch_value(tuple1)
+    result2 = Cachex.Actions.format_fetch_value(tuple2)
+    result3 = Cachex.Actions.format_fetch_value(tuple3)
+    result4 = Cachex.Actions.format_fetch_value(tuple4)
+    result5 = Cachex.Actions.format_fetch_value(value1)
 
     # the first three should persist
     assert(result1 == tuple1)
     assert(result2 == tuple2)
     assert(result3 == tuple3)
+    assert(result4 == tuple4)
 
     # the value should be converted to the first
-    assert(result4 == tuple1)
+    assert(result5 == tuple1)
+  end
+
+  # Simple test to ensure that commit normalization correctly assigns
+  # options to a commit tuple without, and maintains those with.
+  test "normalizing formatted :commit values" do
+    # define our base Tuples to test against
+    tuple1 = {:commit, true}
+    tuple2 = {:commit, true, []}
+
+    # normalize all values
+    result1 = Cachex.Actions.normalize_commit(tuple1)
+    result2 = Cachex.Actions.normalize_commit(tuple2)
+
+    # both should have options
+    assert(result1 == tuple2)
+    assert(result2 == tuple2)
   end
 
   # This test just provides basic coverage of the write_op function, by using

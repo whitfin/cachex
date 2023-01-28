@@ -86,13 +86,14 @@ defmodule Cachex.Services.Courier do
                   }
               end
 
-            normalized = Actions.normalize_commit(result)
+            formatted = Actions.format_fetch_value(result)
+            normalized = Actions.normalize_commit(formatted)
 
-            with {:commit, val} <- normalized do
-              Put.execute(cache, key, val, const(:notify_false))
+            with {:commit, val, options} <- normalized do
+              Put.execute(cache, key, val, [const(:notify_false) | options])
             end
 
-            send(parent, {:notify, key, normalized})
+            send(parent, {:notify, key, formatted})
           end)
 
           [caller]
