@@ -643,6 +643,12 @@ defmodule Cachex do
   cache. If you return a value which does not fit this structure, it
   will be assumed that you are committing the value.
 
+  As of Cachex v3.6, you can also provide a third element in a `:commit`
+  Tuple, to allow passthrough of options from within your fallback. The
+  options supported in this list match the options you can provide to a
+  call of `put/4`. An example is the `:ttl` option to set an expiration
+  from directly inside your fallback.
+
   If a fallback function has an arity of 1, the requested entry key
   will be passed through to allow for contextual computation. If a
   function has an arity of 2, the `:provide` option from the global
@@ -671,6 +677,11 @@ defmodule Cachex do
       ...>   { :commit, String.reverse(key) }
       ...> end)
       { :commit, "yek_gnissim" }
+
+      iex> Cachex.fetch(:my_cache, "missing_key_ttl", fn(key) ->
+      ...>   { :commit, String.reverse(key), ttl: :timer.seconds(60) }
+      ...> end)
+      { :commit, "ltt_yek_gnissim", [ttl: 60000] }
 
   """
   @spec fetch(cache, any, function | nil, Keyword.t()) ::
@@ -713,7 +724,9 @@ defmodule Cachex do
   This function accepts the same return syntax as fallback functions, in that if
   you return a Tuple of the form `{ :ignore, value }`, the value is returned from
   the call but is not written to the cache. You can use this to abandon writes
-  which began eagerly (for example if a key is actually missing).
+  which began eagerly (for example if a key is actually missing)
+
+  See the `fetch/4` documentation for more information on return formats.
 
   ## Examples
 
