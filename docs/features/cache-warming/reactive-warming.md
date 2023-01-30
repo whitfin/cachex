@@ -56,7 +56,15 @@ The new `Courier` service in Cachex v3 will actually queue the second and third 
 
 ## Expirations
 
-If you wish to set an expiration on a value retrieved via a fallback execution, you can use the return value of your cache call to determine when it's appropriate. In the case your value was retrieved via a fallback, the first value in the returned Tuple will be the `:commit` (or `:ignore`) atom to signify that the value was loaded via a fallback. You can use this to conditionally set an expiration if you need to, but note that if your cache has a defined default TTL, it will be applied to fallback values automatically.
+Sometimes you might want to set an expiration based on a value retrieved via a fallback execution. For this case, as of Cachex v3.6.0, you can (finally) provide expiration options in your returned `:commit` tuple.
+
+```elixir
+Cachex.fetch(:my_cache, "key", fn ->
+  { :commit, do_something(), ttl: :timer.seconds(60) }
+end)
+```
+
+This inlining is faster than previous solutions, while maintaining correctness and being easy to use. If you are using an older version of Cachex, you can conditionally assign an expiration based on the return value of your cache call in the case of a cache `:commit`:
 
 ```elixir
 # retrieve the value from the cache, match if loaded
@@ -66,9 +74,11 @@ with { :commit, value } = res <- Cachex.fetch(:my_cache, "key") do
 end
 ```
 
+Also note that if your cache has a defined default TTL, it will be applied to fallback values automatically.
+
 ## Use Cases
 
-Fallbacks allow you to build very simple bindings using a cache in order to reduce overhead on your backing systems. A very common use case is to use a cachex instance with fallbacks to a remote system to lower the jumps across network. With effective use of expirations and fallbacks, you can ensure that your application doesn't receive stale data and yet minimizes network overhead and the number of remote operations.
+Fallbacks allow you to build very simple bindings using a cache in order to reduce overhead on your backing systems. A very common use case is to use a `Cachex` instance with fallbacks to a remote system to lower the jumps across network. With effective use of expirations and fallbacks, you can ensure that your application doesn't receive stale data and yet minimizes network overhead and the number of remote operations.
 
 The snippet below demonstrates an application using a cache to read from a remote database **at most** every 5 minutes, and retrieves the cached value from local memory in the meantime:
 
