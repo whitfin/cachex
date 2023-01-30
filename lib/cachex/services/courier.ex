@@ -124,10 +124,15 @@ defmodule Cachex.Services.Courier do
       GenServer.reply(owner, result)
 
       result =
-        if elem(result, 0) == :commit do
-          put_elem(result, 0, :ok)
-        else
-          result
+        case result do
+          {:commit, value, _} ->
+            {:ok, value}
+
+          {:commit, value} ->
+            {:ok, value}
+
+          value ->
+            value
         end
 
       for caller <- listeners do
