@@ -138,6 +138,27 @@ defmodule Cachex.Actions.FetchTest do
     end
   end
 
+  test "fetching and setting an expiration on a key from a fallback" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # create a fallback with an expiration
+    purged = [ttl: 60000]
+    fb_opt = &{:commit, String.reverse(&1), purged}
+
+    # fetch our key using our fallback
+    result = Cachex.fetch(cache, "key", fb_opt)
+
+    # verify fetching an existing key
+    assert(result == {:commit, "yek", purged})
+
+    # fetch back the expiration of the key
+    expiration = Cachex.ttl!(cache, "key")
+
+    # check we have a set expiration
+    assert_in_delta(expiration, 60000, 250)
+  end
+
   # This test verifies that this action is correctly distributed across
   # a cache cluster, instead of just the local node. We're not concerned
   # about the actual behaviour here, only the routing of the action.

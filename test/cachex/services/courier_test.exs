@@ -28,7 +28,8 @@ defmodule Cachex.Services.CourierTest do
 
     # define our task function
     task = fn ->
-      :timer.sleep(250) && "my_value"
+      :timer.sleep(250)
+      {:commit, "my_value", ttl: :timer.seconds(60)}
     end
 
     # start a new cache
@@ -44,10 +45,10 @@ defmodule Cachex.Services.CourierTest do
     # dispatch an arbitrary task from the current process
     result = Services.Courier.dispatch(cache, "my_key", task)
 
-    # check the returned value
-    assert result == {:commit, "my_value"}
+    # check the returned value with the options set
+    assert result == {:commit, "my_value", [ttl: 60000]}
 
-    # check the forwarded task completed
+    # check the forwarded task completed (no options)
     assert_receive({:ok, "my_value"})
 
     # check the key was placed in the table
