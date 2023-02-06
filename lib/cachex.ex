@@ -685,7 +685,7 @@ defmodule Cachex do
 
   """
   @spec fetch(cache, any, function | nil, Keyword.t()) ::
-          {status | :commit | :ignore, any}
+          {status | :commit | :ignore, any} | {:commit, any, any}
   def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
     Overseer.enforce cache do
       case fallback || fallback(cache(cache, :fallback), :default) do
