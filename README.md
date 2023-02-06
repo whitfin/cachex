@@ -64,11 +64,11 @@ All of these features are optional and are off by default so you can pick and ch
 
 ## Installation
 
-As of v0.8.0, Cachex is available on [Hex](https://hex.pm/). You can install the package via:
+As of v0.8, Cachex is available on [Hex](https://hex.pm/). You can install the package via:
 
 ```elixir
 def deps do
-  [{:cachex, "~> 3.5"}]
+  [{:cachex, "~> 3.6"}]
 end
 ```
 
