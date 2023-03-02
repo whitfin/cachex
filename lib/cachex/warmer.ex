@@ -72,6 +72,8 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
+      #
+      # Pass `async: true` if you want initial warmup to occur outside cache startup.
       def init({cache, warmer(async: async, state: state)}) do
         if async do
           send(self(), :cachex_warmer)
