@@ -11,7 +11,7 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 - Asynchronous write operations
 - Distribution across app nodes
 - Syncing to a local filesystem
-- Idomatic cache streaming
+- Idiomatic cache streaming
 - Batched write operations
 - User command invocation
 - Statistics gathering
