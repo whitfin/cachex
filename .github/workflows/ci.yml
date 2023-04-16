@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
@@ -17,26 +17,38 @@ jobs:
           - '24.3'
         elixir:
           - '1.14'
+        runner:
+          - 'ubuntu-20.04'
         include:
-          - elixir: '1.14'
+          - runner: 'ubuntu-20.04'
+            elixir: '1.14'
             otp: '23.3'
-          - elixir: '1.13'
+          - runner: 'ubuntu-20.04'
+            elixir: '1.13'
             otp: '22.3'
-          - elixir: '1.12'
+          - runner: 'ubuntu-20.04'
+            elixir: '1.12'
             otp: '22.3'
-          - elixir: '1.11'
+          - runner: 'ubuntu-20.04'
+            elixir: '1.11'
             otp: '21.3'
-          - elixir: '1.10'
+          - runner: 'ubuntu-20.04'
+            elixir: '1.10'
             otp: '21.3'
-          - elixir: '1.9'
+          - runner: 'ubuntu-20.04'
+            elixir: '1.9'
             otp: '20.3'
-          - elixir: '1.8'
+          - runner: 'ubuntu-18.04'
+            elixir: '1.8'
             otp: '20.3'
-          - elixir: '1.7'
+          - runner: 'ubuntu-18.04'
+            elixir: '1.7'
             otp: '19.3'
-          - elixir: '1.6'
+          - runner: 'ubuntu-18.04'
+            elixir: '1.6'
             otp: '19.3'
-          - elixir: '1.5'
+          - runner: 'ubuntu-18.04'
+            elixir: '1.5'
             otp: '18.3'
 
     steps:
@@ -60,7 +72,7 @@ jobs:
 
   coverage:
     name: Coverage Reporting
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.runner }}
     env:
       MIX_ENV: cover
     steps:
@@ -86,7 +98,7 @@ jobs:
 
   lint:
     name: Code Linting
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v2
 
