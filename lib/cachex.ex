@@ -200,7 +200,7 @@ defmodule Cachex do
           ...>     default: &String.reverse/1,
           ...>
           ...>     # anything to pass to fallbacks
-          ...>     provide: { }
+          ...>     state: { }
           ...>   )
           ...> ])
           { :ok, _pid }
