@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +60,7 @@ jobs:
 
   coverage:
     name: Coverage Reporting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       MIX_ENV: cover
     steps:
@@ -86,7 +86,7 @@ jobs:
 
   lint:
     name: Code Linting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
