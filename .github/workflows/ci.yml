@@ -30,12 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{ matrix.otp }}
-          elixir-version: ${{ matrix.elixir }}
-
       - name: Setup Environment
         run: |
           epmd -daemon
@@ -50,7 +44,7 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     container:
-      image: elixir:${{ matrix.elixir }}
+      image: elixir:1.14
     env:
       MIX_ENV: cover
     steps:
@@ -78,15 +72,9 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     container:
-      image: elixir:${{ matrix.elixir }}
+      image: elixir:1.14
     steps:
       - uses: actions/checkout@v2
-
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          elixir-version: '1.13'
-          otp-version: '24.3'
 
       - name: Setup Environment
         run: |
