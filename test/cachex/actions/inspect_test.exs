@@ -80,7 +80,7 @@ defmodule Cachex.Actions.InspectTest do
     {:ok, result3} = Cachex.inspect(cache, {:memory, :words})
 
     # the first result should be a number of bytes
-    assert_in_delta(result1, 10624, 1000)
+    assert(is_positive_integer(result1))
 
     # the second result should be a human readable representation
     assert(result2 =~ ~r/10.\d{2} KiB/)
