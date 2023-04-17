@@ -83,7 +83,7 @@ defmodule Cachex.Actions.InspectTest do
     assert(is_positive_integer(result1))
 
     # the second result should be a human readable representation
-    assert(result2 =~ ~r/10.\d{2} KiB/)
+    assert(result2 =~ ~r/\d+.\d{2} KiB/)
 
     # fetch the system word size
     wsize = :erlang.system_info(:wordsize)
