@@ -16,18 +16,16 @@ jobs:
       fail-fast: false
       matrix:
         elixir:
-          - '1.14'
-        include:
-          - elixir: '1.14'
-          - elixir: '1.13'
-          - elixir: '1.12'
-          - elixir: '1.11'
-          - elixir: '1.10'
-          - elixir: '1.9'
-          - elixir: '1.8'
-          - elixir: '1.7'
-          - elixir: '1.6'
-          - elixir: '1.5'
+        - '1.14'
+        - '1.13'
+        - '1.12'
+        - '1.11'
+        - '1.10'
+        - '1.9'
+        - '1.8'
+        - '1.7'
+        - '1.6'
+        - '1.5'
 
     steps:
       - uses: actions/checkout@v2
@@ -49,7 +47,7 @@ jobs:
         run: mix test --trace
 
   coverage:
-    name: Coverage Reporting
+    name: Coverage
     runs-on: ubuntu-latest
     container:
       image: elixir:${{ matrix.elixir }}
@@ -77,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   lint:
-    name: Code Linting
+    name: Linting
     runs-on: ubuntu-latest
     container:
       image: elixir:${{ matrix.elixir }}
