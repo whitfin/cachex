@@ -50,12 +50,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          elixir-version: '1.13'
-          otp-version: '24.3'
-
       - name: Setup Environment
         run: |
           epmd -daemon
