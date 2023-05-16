@@ -6,7 +6,8 @@ To start a cache you can use either `start/2` or `start_link/2`, and in general 
 
 ```elixir
 Supervisor.start_link(
-  [ {Cachex, name: :my_cache} ]
+  [{Cachex, name: :my_cache}],
+  [strategy: :one_for_one]
 )
 ```
 
