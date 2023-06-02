@@ -710,6 +710,8 @@ defmodule Cachex do
       iex> Cachex.get(:my_cache, "missing_key")
       { :ok, nil }
 
+      iex> Cachex.get(:missing_cache, "missing_key")
+      { :error, :no_cache }
   """
   @spec get(cache, any, Keyword.t()) :: {atom, any}
   def get(cache, key, options \\ []) when is_list(options),
