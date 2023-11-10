@@ -33,7 +33,7 @@ defmodule Cachex.Actions.StatsTest do
 
   # This test just verifies that we receive an error trying to retrieve stats
   # when they have already been disabled.
-  test "retrieving stats from a diabled cache" do
+  test "retrieving stats from a disabled cache" do
     # create a test cache
     cache = Helper.create_cache(stats: false)
 

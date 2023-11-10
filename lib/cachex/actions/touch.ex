@@ -5,7 +5,7 @@ defmodule Cachex.Actions.Touch do
   # Touching an entry is the act of resetting the touch time to the current
   # time, without affecting the expiration set against the record. As such
   # it's incredibly useful for implementing least-recently used caching
-  # systems without breaking expiration based constracts.
+  # systems without breaking expiration based contracts.
   alias Cachex.Actions
   alias Cachex.Services.Locksmith
   alias Actions.Ttl

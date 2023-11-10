@@ -144,7 +144,7 @@ defmodule Cachex.Spec do
   @doc """
   Creates an entry record from the provided values.
 
-  An entry record reprents a single entry in a cache table.
+  An entry record represents a single entry in a cache table.
 
   Each entry has a key/value, along with a touch time and ttl. These records should never
   be used outside of the Cachex codebase other than when debugging, as they can change

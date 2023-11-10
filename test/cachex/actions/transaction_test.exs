@@ -83,7 +83,7 @@ defmodule Cachex.Actions.TransactionTest do
   # a cache cluster, instead of just the local node. We're not concerned
   # about the actual behaviour here, only the routing of the action.
   @tag distributed: true
-  test "transcations inside a cache cluster" do
+  test "transactions inside a cache cluster" do
     # create a new cache cluster for cleaning
     {cache, _nodes} = Helper.create_cache_cluster(2)
 
