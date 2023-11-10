@@ -45,7 +45,7 @@ defmodule Cachex.Services.JanitorTest do
   # The Janitor process can run on a schedule too, to automatically purge records.
   # This test should verify a Janitor running on a schedule, as well as make sure
   # that the Janitor sends a notification to hooks whenever the process removes
-  # some keys, as Janitor actions should be subscribable. This test will als
+  # some keys, as Janitor actions should be subscribable. This test will also
   # verify that the metadata of the last run is updated alongside the changes.
   test "purging records on a schedule" do
     # create our forwarding hook

@@ -19,7 +19,7 @@ defmodule Cachex.Stats do
   # add our aliases
   alias Cachex.Options
 
-  # update incrementers
+  # update increments
   @update_calls [
     :expire,
     :expire_at,

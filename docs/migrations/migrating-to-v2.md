@@ -12,7 +12,7 @@ In order to migrate away from this, you should now implement a backing datastore
 
 The decision to remove the remote interface does not come lightly; I have spent many weeks trying to conjure something which satisfies the desire of both speed and distribution and the sad truth is that it's quite simply hard to do well. The consistency issues which plague the land of distributed data are just not possible to handle whilst keeping Cachex as fast as it is (and at the end of the day, a cache is supposed to be fast). The final tipping point was the concept of building LRU style caches in a remote context; it's simply not possible to guarantee the consistency of your data without a huge performance hit (we're talking upwards of 1000x slower) due to Cachex operating in the realm of a microsecond.
 
-Do not despair though; if you were totally set on using a native Elixir/Erlang datastore witout having to have something separate such as Redis, I'm planning on writing a separate library which is dedicated more to handling the distributed nature as opposed to the feature set that Cachex offers. At the end of the day, I see caching as a different use case to remote data replication - I believe remote Cachex was closer to a distributed state table, rather than a local mirror of data.
+Do not despair though; if you were totally set on using a native Elixir/Erlang datastore without having to have something separate such as Redis, I'm planning on writing a separate library which is dedicated more to handling the distributed nature as opposed to the feature set that Cachex offers. At the end of the day, I see caching as a different use case to remote data replication - I believe remote Cachex was closer to a distributed state table, rather than a local mirror of data.
 
 In addition, you can obviously keep on using Cachex `v1.x` as long as you need - it's still on Hex.pm and has a tag on the repo. I can't promise anything new will be added to that codebase, but for what it's worth I do intend to answer any issues reporting bugs on that branch, so file issues as you see fit - just make sure to flag that you're talking about `v1.x`.
 
@@ -97,7 +97,7 @@ There are a few minor tweaks to the options when starting a cache:
 
 ## Transactions
 
-As of Cachex v2.x, Mnesia has been removed in favour of direct ETS interation. As a result of this, there are several changes in the way transactions work.
+As of Cachex v2.x, Mnesia has been removed in favour of direct ETS integration. As a result of this, there are several changes in the way transactions work.
 
 The first change is down to optimizations of key locking, and requires that you now pass a list of keys to lock as your second parameter to a `transaction/3` call. This is part of the new locking implementation which allows for several optimizations by being explicit with your locks. This optimization provides roughly a 5x speedup, so it's much more efficient than previously. This is pretty easy to adopt:
 

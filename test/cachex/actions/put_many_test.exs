@@ -3,7 +3,7 @@ defmodule Cachex.Actions.PutManyTest do
 
   # This test verifies the addition of many new entries to a cache. It will
   # ensure that values can be added and can be expired as necessary. These
-  # test cases operate in the same way as the `set()` tests, jsut using the
+  # test cases operate in the same way as the `set()` tests, just using the
   # batch insertion method for a cache instead of the default insert.
   test "adding many new values to the cache" do
     # create a forwarding hook

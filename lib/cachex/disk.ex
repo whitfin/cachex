@@ -1,6 +1,6 @@
 defmodule Cachex.Disk do
   @moduledoc """
-  Module dedicated to basic filesystem iteractions.
+  Module dedicated to basic filesystem interactions.
 
   This module contains the required interactions with a filesystem for serializing
   terms directly to a given file path. This is mainly used by the backup/restore
