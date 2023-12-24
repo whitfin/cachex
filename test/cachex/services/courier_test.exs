@@ -73,4 +73,28 @@ defmodule Cachex.Services.CourierTest do
     assert match?({:error, %Cachex.ExecutionError{}}, result)
     assert elem(result, 1).message == "argument error"
   end
+
+  test "recovering from failed tasks" do
+    # start a new cache
+    cache = Helper.create_cache()
+    cache = Services.Overseer.retrieve(cache)
+
+    # kill in flight task
+    parent =
+      spawn(fn ->
+        receive do
+          pid -> Process.exit(pid, :kill)
+        end
+      end)
+
+    # dispatch a long running task
+    result =
+      Services.Courier.dispatch(cache, "my_key", fn ->
+        send(parent, self())
+        :timer.sleep(60000)
+      end)
+
+    # check we caught the killed task
+    assert result == {:error, :killed}
+  end
 end
