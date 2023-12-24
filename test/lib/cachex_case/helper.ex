@@ -47,6 +47,8 @@ defmodule CachexCase.Helper do
 
     # stop all children on exit, even though it's automatic
     TestHelper.on_exit("stop #{name} children", fn ->
+      Supervisor.stop(name)
+
       nodes
       |> List.delete(node())
       |> LocalCluster.stop_nodes()
