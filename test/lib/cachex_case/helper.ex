@@ -45,10 +45,11 @@ defmodule CachexCase.Helper do
         [name, [nodes: nodes] ++ args]
       )
 
+    # cleanup the cache on exit
+    TestHelper.delete_on_exit(name)
+
     # stop all children on exit, even though it's automatic
     TestHelper.on_exit("stop #{name} children", fn ->
-      Supervisor.stop(name)
-
       nodes
       |> List.delete(node())
       |> LocalCluster.stop_nodes()
