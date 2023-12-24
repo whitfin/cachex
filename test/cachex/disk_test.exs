@@ -12,7 +12,7 @@ defmodule Cachex.DiskTest do
     values = [
       1,
       "two",
-      'three',
+      ~c"three",
       :four,
       %{"five" => true}
     ]

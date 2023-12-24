@@ -384,7 +384,9 @@ defmodule Cachex.OptionsTest do
       Cachex.Options.parse(name, warmers: warmer(module: :options_test_warmer))
 
     results3 =
-      Cachex.Options.parse(name, warmers: [warmer(module: :options_test_warmer)])
+      Cachex.Options.parse(name,
+        warmers: [warmer(module: :options_test_warmer)]
+      )
 
     results4 = Cachex.Options.parse(name, warmers: ["warmer"])
 

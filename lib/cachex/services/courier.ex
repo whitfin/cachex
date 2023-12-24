@@ -39,7 +39,7 @@ defmodule Cachex.Services.Courier do
   simplify the interfaces internally. This is a blocking remote
   call which will wait until a result can be loaded.
   """
-  @spec dispatch(Spec.cache(), any, (() -> any)) :: any
+  @spec dispatch(Spec.cache(), any, (-> any)) :: any
   def dispatch(cache() = cache, key, task) when is_function(task, 0),
     do: service_call(cache, :courier, {:dispatch, key, task, local_stack()})
 

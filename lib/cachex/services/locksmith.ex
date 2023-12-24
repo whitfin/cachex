@@ -101,7 +101,7 @@ defmodule Cachex.Services.Locksmith do
 
   This is mainly shorthand to avoid having to handle row locking explicitly.
   """
-  @spec transaction(Spec.cache(), [any], (() -> any)) :: any
+  @spec transaction(Spec.cache(), [any], (-> any)) :: any
   def transaction(cache() = cache, keys, fun) when is_list(keys) do
     case transaction?() do
       true -> fun.()
@@ -155,7 +155,7 @@ defmodule Cachex.Services.Locksmith do
   transactions executed against it we skip the lock check as any of
   our ETS writes are atomic and so do not require a lock.
   """
-  @spec write(Spec.cache(), any, (() -> any)) :: any
+  @spec write(Spec.cache(), any, (-> any)) :: any
   def write(cache(transactional: false), _keys, fun),
     do: fun.()
 

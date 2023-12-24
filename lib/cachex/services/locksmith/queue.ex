@@ -30,14 +30,14 @@ defmodule Cachex.Services.Locksmith.Queue do
   @doc """
   Executes a function in a lock-free context.
   """
-  @spec execute(Spec.cache(), (() -> any)) :: any
+  @spec execute(Spec.cache(), (-> any)) :: any
   def execute(cache() = cache, func) when is_function(func, 0),
     do: service_call(cache, :locksmith, {:exec, func})
 
   @doc """
   Executes a function in a transactional context.
   """
-  @spec transaction(Spec.cache(), [any], (() -> any)) :: any
+  @spec transaction(Spec.cache(), [any], (-> any)) :: any
   def transaction(cache() = cache, keys, func)
       when is_list(keys) and is_function(func, 0),
       do: service_call(cache, :locksmith, {:transaction, keys, func})
