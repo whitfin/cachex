@@ -52,10 +52,8 @@ defmodule Cachex.Services.Courier do
   #
   # This will create a Tuple to store the cache record as well
   # as the Map used to track the internal task referencing.
-  def init(cache) do
-    Process.flag(:trap_exit, true)
-    {:ok, {cache, %{}}}
-  end
+  def init(cache),
+    do: Process.flag(:trap_exit, true) || {:ok, {cache, %{}}}
 
   @doc false
   # Dispatches a tasks to be carried out by the Courier.
