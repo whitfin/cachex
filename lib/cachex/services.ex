@@ -11,7 +11,6 @@ defmodule Cachex.Services do
 
   # add some aliases
   alias Cachex.Services
-  alias Supervisor.Spec
 
   ##############
   # Public API #
@@ -26,7 +25,7 @@ defmodule Cachex.Services do
   At the time of writing, the order does not matter - but that does not
   mean this will always be the case, so please be careful when modifying.
   """
-  @spec app_spec :: [Spec.spec()]
+  @spec app_spec :: [Supervisor.Spec.spec()]
   def app_spec,
     do: [
       %{
@@ -50,7 +49,7 @@ defmodule Cachex.Services do
   Definition order here matters, as there's inter-dependency between each
   of the child processes (such as the Janitor -> Locksmith).
   """
-  @spec cache_spec(Spec.cache()) :: [Spec.spec()]
+  @spec cache_spec(Cachex.Spec.cache()) :: [Supervisor.Spec.spec()]
   def cache_spec(cache() = cache) do
     []
     |> Enum.concat(table_spec(cache))
@@ -66,7 +65,7 @@ defmodule Cachex.Services do
 
   This will return `nil` if the service does not exist, or is not running.
   """
-  @spec locate(Spec.cache(), atom) :: pid | nil
+  @spec locate(Cachex.Spec.cache(), atom) :: pid | nil
   def locate(cache() = cache, service) do
     Enum.find_value(services(cache), fn
       {^service, pid, _tag, _id} -> pid
@@ -80,7 +79,7 @@ defmodule Cachex.Services do
   This is used to view the children of the specified cache, whilst filtering
   out any services which may not have been started based on the cache options.
   """
-  @spec services(Spec.cache()) :: [Spec.spec()]
+  @spec services(Cachex.Spec.cache()) :: [Supervisor.Spec.spec()]
   def services(cache(name: cache)) do
     cache
     |> Supervisor.which_children()

@@ -15,7 +15,7 @@ defmodule Cachex.Policy do
   @doc """
   Returns any hook definitions required for this policy.
   """
-  @callback hooks(Spec.limit()) :: [Spec.hook()]
+  @callback hooks(Cachex.Spec.limit()) :: [Cachex.Spec.hook()]
 
   ##################
   # Implementation #

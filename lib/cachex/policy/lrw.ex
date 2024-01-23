@@ -80,7 +80,7 @@ defmodule Cachex.Policy.LRW do
   # before attempting to trim older cache entries.
   #
   # Please see module documentation for options available inside the limits.
-  @spec apply_limit(Spec.cache(), Spec.limit()) :: :ok
+  @spec apply_limit(Cachex.Spec.cache(), Cachex.Spec.limit()) :: :ok
   def apply_limit(cache() = cache, limit() = limit) do
     limit(size: max_size, reclaim: reclaim, options: options) = limit
 

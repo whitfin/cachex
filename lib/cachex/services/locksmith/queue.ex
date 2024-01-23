@@ -23,21 +23,21 @@ defmodule Cachex.Services.Locksmith.Queue do
   This is little more than starting a GenServer process using this module,
   although it does use the provided cache record to name the new server.
   """
-  @spec start_link(Spec.cache()) :: [GenServer.on_start()]
+  @spec start_link(Cachex.Spec.cache()) :: [GenServer.on_start()]
   def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, name: name(name, :locksmith))
 
   @doc """
   Executes a function in a lock-free context.
   """
-  @spec execute(Spec.cache(), (-> any)) :: any
+  @spec execute(Cachex.Spec.cache(), (() -> any)) :: any
   def execute(cache() = cache, func) when is_function(func, 0),
     do: service_call(cache, :locksmith, {:exec, func})
 
   @doc """
   Executes a function in a transactional context.
   """
-  @spec transaction(Spec.cache(), [any], (-> any)) :: any
+  @spec transaction(Cachex.Spec.cache(), [any], (() -> any)) :: any
   def transaction(cache() = cache, keys, func)
       when is_list(keys) and is_function(func, 0),
       do: service_call(cache, :locksmith, {:transaction, keys, func})

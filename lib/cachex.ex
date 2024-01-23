@@ -56,7 +56,7 @@ defmodule Cachex do
   import Kernel, except: [inspect: 2]
 
   # the cache type
-  @type cache :: atom | Spec.cache()
+  @type cache :: atom | Cachex.Spec.cache()
 
   # custom status type
   @type status :: :ok | :error
@@ -337,7 +337,7 @@ defmodule Cachex do
   #
   # This will start all cache services required using the `Cachex.Services`
   # module and attach them under a Supervisor instance backing the cache.
-  @spec init(cache :: Spec.cache()) :: Supervisor.on_start()
+  @spec init(cache :: Cachex.Spec.cache()) :: Supervisor.on_start()
   def init(cache() = cache) do
     cache
     |> Services.cache_spec()
@@ -621,7 +621,7 @@ defmodule Cachex do
       { :ok, [ { :entry, "key", 1538714590095, nil, "value" } ] }
 
   """
-  @spec export(cache, Keyword.t()) :: {status, [Spec.entry()]}
+  @spec export(cache, Keyword.t()) :: {status, [Cachex.Spec.entry()]}
   def export(cache, options \\ []) when is_list(options),
     do: Router.call(cache, {:export, [options]})
 
@@ -782,7 +782,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec import(cache, [Spec.entry()], Keyword.t()) :: {status, any}
+  @spec import(cache, [Cachex.Spec.entry()], Keyword.t()) :: {status, any}
   def import(cache, entries, options \\ [])
       when is_list(entries) and is_list(options),
       do: Router.call(cache, {:import, [entries, options]})
