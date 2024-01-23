@@ -23,7 +23,7 @@ defmodule Cachex.Services.Locksmith.Queue do
   This is little more than starting a GenServer process using this module,
   although it does use the provided cache record to name the new server.
   """
-  @spec start_link(Cachex.Spec.cache()) :: [GenServer.on_start()]
+  @spec start_link(Cachex.Spec.cache()) :: GenServer.on_start()
   def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, name: name(name, :locksmith))
 
