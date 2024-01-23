@@ -39,7 +39,7 @@ defmodule Cachex.Services.Janitor do
   @doc """
   Pulls an expiration associated with an entry.
   """
-  @spec expiration(Cachex.Spec.cache(), integer) :: integer
+  @spec expiration(Cachex.Spec.cache(), integer | nil) :: integer
   def expiration(cache(expiration: expiration(default: default)), nil),
     do: default
 
