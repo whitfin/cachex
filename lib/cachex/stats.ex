@@ -50,7 +50,7 @@ defmodule Cachex.Stats do
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec retrieve(Cachex.Spec.cache()) :: %{}
+  @spec retrieve(Cachex.Spec.cache()) :: {:ok, map()} | {:error, atom()}
   def retrieve(cache(name: name) = cache) do
     case enabled?(cache) do
       false ->
