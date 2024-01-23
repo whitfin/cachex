@@ -25,7 +25,7 @@ defmodule Cachex.Services do
   At the time of writing, the order does not matter - but that does not
   mean this will always be the case, so please be careful when modifying.
   """
-  @spec app_spec :: [Supervisor.Spec.spec()]
+  @spec app_spec :: [Supervisor.child_spec()]
   def app_spec,
     do: [
       %{
