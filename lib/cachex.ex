@@ -327,8 +327,9 @@ defmodule Cachex do
   """
   @spec start(atom, Keyword.t()) :: {atom, pid}
   def start(name, options \\ []) do
-    with {:ok, pid} <- start_link(name, options) do
-      :erlang.unlink(pid) && {:ok, pid}
+    with {:ok, pid} <- start_link(name, options),
+         true <- :erlang.unlink(pid) do
+      {:ok, pid}
     end
   end
 
