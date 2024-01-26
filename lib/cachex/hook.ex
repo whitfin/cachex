@@ -175,7 +175,7 @@ defmodule Cachex.Hook do
               end)
 
             case Task.yield(task, val) || Task.shutdown(task) do
-              {:ok, {:ok, new_state}} -> {:noreply, state}
+              {:ok, {:ok, new_state}} -> {:noreply, new_state}
               nil -> {:noreply, state}
             end
         end
