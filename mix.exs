@@ -65,7 +65,8 @@ defmodule Cachex.Mixfile do
         "coveralls.travis": :cover
       ],
       aliases: [
-        bench: "run benchmarks/main.exs"
+        bench: "run benchmarks/main.exs",
+        test: [&start_epmd/1, "test"]
       ]
     ]
   end
@@ -107,5 +108,11 @@ defmodule Cachex.Mixfile do
       # Documentation dependencies
       {:ex_doc, "~> 0.29", optional: true, only: [:docs]}
     ]
+  end
+
+  defp start_epmd(_) do
+    {_, 0} = System.cmd("epmd", ["-daemon"])
+
+    :ok
   end
 end
