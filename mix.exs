@@ -110,9 +110,9 @@ defmodule Cachex.Mixfile do
     ]
   end
 
+  # Start epmd before test cases are run.
   defp start_epmd(_) do
     {_, 0} = System.cmd("epmd", ["-daemon"])
-
     :ok
   end
 end
