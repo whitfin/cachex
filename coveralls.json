@@ -4,6 +4,7 @@
   },
   "skip_files": [
     "lib/cachex/router.ex",
-    "lib/cachex/spec.ex"
+    "lib/cachex/spec.ex",
+    "mix.exs"
   ]
 }
