@@ -20,7 +20,7 @@ defmodule Cachex.Services.Informant do
   the provided cache record. If no hooks are attached in the cache record,
   this will skip creating an unnecessary Supervisor process.
   """
-  @spec start_link(Spec.cache()) :: Supervisor.on_start()
+  @spec start_link(Cachex.Spec.cache()) :: Supervisor.on_start()
   def start_link(cache(hooks: hooks(pre: [], post: []))),
     do: :ignore
 
@@ -36,14 +36,14 @@ defmodule Cachex.Services.Informant do
 
   This will send a nil result, as the result does not yet exist.
   """
-  @spec broadcast(Spec.cache(), tuple) :: :ok
+  @spec broadcast(Cachex.Spec.cache(), tuple) :: :ok
   def broadcast(cache(hooks: hooks(pre: pre_hooks)), action),
     do: broadcast_action(pre_hooks, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
-  @spec broadcast(Spec.cache(), tuple, any) :: :ok
+  @spec broadcast(Cachex.Spec.cache(), tuple, any) :: :ok
   def broadcast(cache(hooks: hooks(post: post_hooks)), action, result),
     do: broadcast_action(post_hooks, action, result)
 
@@ -54,7 +54,7 @@ defmodule Cachex.Services.Informant do
   are not named in a deterministic way. It will look up all hooks using
   the Supervisor children and place them in a modified cache record.
   """
-  @spec link(Spec.cache()) :: {:ok, Spec.cache()}
+  @spec link(Cachex.Spec.cache()) :: {:ok, Cachex.Spec.cache()}
   def link(cache(hooks: hooks(pre: [], post: [])) = cache),
     do: {:ok, cache}
 
@@ -80,7 +80,7 @@ defmodule Cachex.Services.Informant do
   This is the underlying implementation for `broadcast/2` and `broadcast/3`,
   but it's general purpose enough that it's exposed as part of the public API.
   """
-  @spec notify([Spec.hook()], tuple, any) :: :ok
+  @spec notify([Cachex.Spec.hook()], tuple, any) :: :ok
   def notify(hooks, {_name, _args} = action, result) when is_list(hooks) do
     Enum.each(hooks, fn
       # not running, so skip

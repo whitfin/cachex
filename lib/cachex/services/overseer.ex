@@ -17,7 +17,6 @@ defmodule Cachex.Services.Overseer do
 
   # add any aliases
   alias Cachex.Services
-  alias Supervisor.Spec
 
   # add service aliases
   alias Services.Overseer
@@ -59,7 +58,7 @@ defmodule Cachex.Services.Overseer do
   Ensuring a cache will map the provided argument to a
   cache record if available, otherwise a nil value.
   """
-  @spec ensure(atom | Spec.cache()) :: Spec.cache() | nil
+  @spec ensure(atom | Cachex.Spec.cache()) :: Cachex.Spec.cache() | nil
   def ensure(cache() = cache),
     do: cache
 
@@ -79,14 +78,14 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Registers a cache record against a name.
   """
-  @spec register(atom, Spec.cache()) :: true
+  @spec register(atom, Cachex.Spec.cache()) :: true
   def register(name, cache() = cache) when is_atom(name),
     do: :ets.insert(@table_name, {name, cache})
 
   @doc """
   Retrieves a cache record, or `nil` if none exists.
   """
-  @spec retrieve(atom) :: Spec.cache() | nil
+  @spec retrieve(atom) :: Cachex.Spec.cache() | nil
   def retrieve(name) do
     case :ets.lookup(@table_name, name) do
       [{^name, state}] ->
@@ -107,7 +106,7 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Carries out a transaction against the state table.
   """
-  @spec transaction(atom, (-> any)) :: any
+  @spec transaction(atom, (() -> any)) :: any
   def transaction(name, fun) when is_atom(name) and is_function(fun, 0),
     do: :sleeplocks.execute(@manager_name, fun)
 
@@ -124,8 +123,11 @@ defmodule Cachex.Services.Overseer do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(atom, Spec.cache() | (Spec.cache() -> Spec.cache())) ::
-          Spec.cache()
+  @spec update(
+          atom,
+          Cachex.Spec.cache() | (Cachex.Spec.cache() -> Cachex.Spec.cache())
+        ) ::
+          Cachex.Spec.cache()
   def update(name, fun) when is_atom(name) and is_function(fun, 1) do
     transaction(name, fn ->
       cstate = retrieve(name)
