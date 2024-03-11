@@ -54,6 +54,9 @@ defmodule Cachex.Spec do
             value: any
           )
 
+  # Helper type for entry types
+  @type entries :: entry | [entry]
+
   # Record specification for a cache expiration
   @type expiration ::
           record(:expiration,

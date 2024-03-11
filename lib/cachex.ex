@@ -327,8 +327,7 @@ defmodule Cachex do
   """
   @spec start(atom, Keyword.t()) :: {atom, pid}
   def start(name, options \\ []) do
-    with {:ok, pid} <- start_link(name, options),
-         true <- :erlang.unlink(pid) do
+    with {:ok, pid} <- start_link(name, options), true <- :erlang.unlink(pid) do
       {:ok, pid}
     end
   end
@@ -339,9 +338,7 @@ defmodule Cachex do
   # This will start all cache services required using the `Cachex.Services`
   # module and attach them under a Supervisor instance backing the cache.
   @spec init(cache :: Cachex.Spec.cache()) ::
-          {:ok,
-           {Supervisor.sup_flags(),
-            [Supervisor.child_spec() | (old_erlang_child_spec :: Supervisor.child_spec())]}}
+          {:ok, {Supervisor.sup_flags(), [Supervisor.child_spec()]}}
   def init(cache() = cache) do
     cache
     |> Services.cache_spec()
