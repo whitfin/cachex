@@ -251,7 +251,8 @@ defmodule Cachex.Spec do
 
   A warmer should have a valid module provided, which correctly implements the behaviour
   associated with `Cachex.Warmer`. A state can also be provided, which will be passed
-  to the execution callback of the provided module (which defaults to `nil`).
+  to the execution callback of the provided module (which defaults to `nil`). Async flag
+  determines if initial warmup will occur during cache startup or not (defaults to `false`).
   """
   defrecord :warmer,
     module: nil,
