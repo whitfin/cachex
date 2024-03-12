@@ -23,7 +23,6 @@ Cachex.start_link(:my_cache, [
 ```
 
 These are the only two fields in a `warmer()` record; a `:module` tag to define the module, and a `:state` field to define the state to be provided to the warmer (used later). The state in this case is a connection handle to our database, since we'll need that for queries we're trying to warm. All that remains is to implement our `DatabaseWarmer` module which implements the warmer behaviour:
-You can also pass `async: true` to execute cache warmup outside of cache startup flow. This is useful when you are starting the cache in your supervision tree and warmup takes time. Do note that your application might start without cache being warmed up, in which case you might want to complement this with [reactive warming](reactive-warming.md) or find another way to prevent from app starting in invalid state. 
 
 ```elixir
 defmodule MyProject.DatabaseWarmer do
