@@ -98,7 +98,8 @@ defmodule Cachex do
     touch: [2, 3],
     transaction: [3, 4],
     ttl: [2, 3],
-    update: [3, 4]
+    update: [3, 4],
+    warm: [1, 2]
   ]
 
   ##############
@@ -1367,6 +1368,37 @@ defmodule Cachex do
   @spec update(cache, any, any, Keyword.t()) :: {status, any}
   def update(cache, key, value, options \\ []) when is_list(options),
     do: Router.call(cache, {:update, [key, value, options]})
+
+  @doc """
+  Triggers a manual warming in a cache.
+
+  This allows for manual warming of a cache in situations where
+  you already know the backing state has been updated. The return
+  value of this function will contain the list of modules which
+  were warmed as a result of this call.
+
+  ## Options
+
+    * `:modules`
+
+      An optional list of modules to warm, acting as a whitelist. The default
+      behaviour of this function is to trigger warming in all modules.
+
+  ## Examples
+
+      iex> Cachex.warm(:my_cache)
+      { :ok, [MyWarmer] }
+
+      iex> Cachex.warm(:my_cache, modules: [MyWarmer])
+      { :ok, [MyWarmer] }
+
+      iex> Cachex.warm(:my_cache, modules: [])
+      { :ok, [] }
+
+  """
+  @spec warm(cache, Keyword.t()) :: {status, [atom()]}
+  def warm(cache, options \\ []),
+    do: Router.call(cache, {:warm, [options]})
 
   ###############
   # Private API #

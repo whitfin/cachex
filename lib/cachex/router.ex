@@ -187,7 +187,8 @@ defmodule Cachex.Router do
     :purge,
     :reset,
     :size,
-    :stats
+    :stats,
+    :warm
   ]
 
   # Provides handling of cross-node actions distributed over remote nodes.

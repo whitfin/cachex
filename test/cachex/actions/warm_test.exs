@@ -1,0 +1,70 @@
+defmodule Cachex.Actions.WarmTest do
+  use CachexCase
+
+  # This test covers the basic case of manually rewarming a cache,
+  # after manually clearing it but checking again before the schedule.
+  test "manually warming a cache" do
+    # create a test warmer to pass to the cache
+    Helper.create_warmer(:manual_warmer1, :timer.hours(1), fn _ ->
+      {:ok, [{1, 1}]}
+    end)
+
+    # create a cache instance with a warmer
+    cache = Helper.create_cache(warmers: [warmer(module: :manual_warmer1)])
+
+    # check that the key was warmed
+    assert Cachex.get!(cache, 1) == 1
+
+    # clean out our cache entries
+    assert Cachex.clear!(cache) == 1
+    assert Cachex.get!(cache, 1) == nil
+
+    # manually trigger a cache warming of all modules
+    assert Cachex.warm(cache) == {:ok, [:manual_warmer1]}
+
+    # wait for the warming
+    :timer.sleep(50)
+
+    # check that our key has been put back
+    assert Cachex.get!(cache, 1) == 1
+  end
+
+  # This test covers the case where you manually specify a list of modules
+  # to use for the warming. It also covers cases where no modules match the
+  # provided list, and therefore no cache warming actually executes.
+  test "manually warming a cache using specific warmers" do
+    # create a test warmer to pass to the cache
+    Helper.create_warmer(:manual_warmer2, :timer.hours(1), fn _ ->
+      {:ok, [{1, 1}]}
+    end)
+
+    # create a cache instance with a warmer
+    cache = Helper.create_cache(warmers: [warmer(module: :manual_warmer2)])
+
+    # check that the key was warmed
+    assert Cachex.get!(cache, 1) == 1
+
+    # clean out our cache entries
+    assert Cachex.clear!(cache) == 1
+    assert Cachex.get!(cache, 1) == nil
+
+    # manually trigger a cache warming
+    assert Cachex.warm(cache, modules: []) == {:ok, []}
+
+    # wait for the warming
+    :timer.sleep(50)
+
+    # check that our key was never put back
+    assert Cachex.get!(cache, 1) == nil
+
+    # manually trigger a cache warming, specifying our module
+    assert Cachex.warm(cache, modules: [:manual_warmer2]) ==
+             {:ok, [:manual_warmer2]}
+
+    # wait for the warming
+    :timer.sleep(50)
+
+    # check that our key has been put back
+    assert Cachex.get!(cache, 1) == 1
+  end
+end
