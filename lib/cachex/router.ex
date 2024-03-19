@@ -187,8 +187,7 @@ defmodule Cachex.Router do
     :purge,
     :reset,
     :size,
-    :stats,
-    :warm
+    :stats
   ]
 
   # Provides handling of cross-node actions distributed over remote nodes.
@@ -247,7 +246,7 @@ defmodule Cachex.Router do
   end
 
   # actions which always run locally
-  @local_actions [:dump, :inspect, :load]
+  @local_actions [:dump, :inspect, :load, :warm]
 
   # Provides handling of `:inspect` operations.
   #
