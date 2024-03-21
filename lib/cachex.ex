@@ -270,6 +270,16 @@ defmodule Cachex do
           ...> ])
           { :ok, _pid }
 
+    * `:ordered`
+
+      This option will specify whether this cache should enable ETS ordering, which can
+      improve performance if ordered traversal of a cache is required. Setting `:ordered`
+      to `true` will result in both insert and lookup times being proportional to the
+      logarithm of the number of objects in the table. This option defaults to `false`.
+
+          iex> Cachex.start_link(:my_cache, [ ordered: true ])
+          { :ok, _pid }
+
     * `:stats`
 
       This option can be used to toggle statistics gathering for a cache. This is a
@@ -292,17 +302,6 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ transactions: true ])
           { :ok, _pid }
 
-    * `:ordered`
-
-      This option will specify whether this cache should use the ETS table type,
-      of `:ordered_set` which can improve performance if ordered traversal of the
-      cache is required. When `:ordered` is `false` insert and lookup times are
-      constant, regardless of the table size. When `:ordered` is `true`  insert
-      and lookup times are proportional to the logarithm of the number of objects in
-      the table. This option defaults to `false`.
-
-          iex> Cachex.start_link(:my_cache, [ ordered: true ])
-          { :ok, _pid }
   """
   @spec start_link(atom | Keyword.t()) :: {atom, pid}
   def start_link(options) when is_list(options) do

@@ -20,13 +20,13 @@ defmodule Cachex.Options do
     :nodes,
     :limit,
     :hooks,
+    :ordered,
     :commands,
     :fallback,
     :compressed,
     :expiration,
     :transactional,
-    :warmers,
-    :ordered
+    :warmers
   ]
 
   ##############
@@ -313,6 +313,16 @@ defmodule Cachex.Options do
     end
   end
 
+  # Configures a cache based on ordering flags.
+  #
+  # This will simply configure the `:ordered` field in the cache
+  # record and return the modified record with the flag attached.
+  defp parse_type(:ordered, cache, options),
+    do:
+      cache(cache,
+        ordered: get(options, :ordered, &is_boolean/1, false)
+      )
+
   # Configures a cache based on transaction flags.
   #
   # This will simply configure the `:transactional` field in the cache
@@ -341,16 +351,6 @@ defmodule Cachex.Options do
       true -> cache(cache, warmers: warmers)
     end
   end
-
-  # Configures a cache based on `ordered` flag
-  #
-  # This will simply configure the `:ordered` field in the cache
-  # record and return the modified record with the flag attached.
-  defp parse_type(:ordered, cache, options),
-    do:
-      cache(cache,
-        ordered: get(options, :ordered, &is_boolean/1, false)
-      )
 
   # Shorthand validation of a record type.
   #

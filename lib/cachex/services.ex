@@ -167,8 +167,8 @@ defmodule Cachex.Services do
   # before any other services are started (to avoid race conditions).
   defp table_spec(cache(name: name, compressed: compressed, ordered: ordered)) do
     server_opts = [name: name(name, :eternal), quiet: true]
-    compressed_opt = (compressed && [:compressed]) || []
-    ordered_opt = (ordered && [:ordered_set]) || []
+    ordered_opts = (ordered && [:ordered_set]) || []
+    compressed_opts = (compressed && [:compressed]) || []
 
     [
       %{
@@ -177,7 +177,7 @@ defmodule Cachex.Services do
           {Eternal, :start_link,
            [
              name,
-             compressed_opt ++ ordered_opt ++ const(:table_options),
+             compressed_opts ++ ordered_opts ++ const(:table_options),
              server_opts
            ]},
         type: :supervisor
