@@ -135,6 +135,27 @@ defmodule Cachex.OptionsTest do
     refute comp3
   end
 
+  # This test will verify the parsing of compression flags to determine whether
+  # a cache has them enabled or disabled. This is simply checking whether the flag
+  # is set to true or false, and the default.
+  test "parsing :table_type flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # parse our values as options
+    {:ok, cache(table_type: type1)} =
+      Cachex.Options.parse(name, table_type: :set)
+
+    {:ok, cache(table_type: type2)} =
+      Cachex.Options.parse(name, table_type: :ordered_set)
+
+    {:ok, cache(table_type: type3)} = Cachex.Options.parse(name, [])
+
+    assert type1 == :set
+    assert type2 == :ordered_set
+    assert type3 == :set
+  end
+
   # This test verifies the parsing of TTL related flags. We have to test various
   # combinations of :ttl_interval and :default_ttl to verify each state correctly.
   test "parsing :expiration flags" do

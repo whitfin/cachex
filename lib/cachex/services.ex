@@ -165,9 +165,12 @@ defmodule Cachex.Services do
   # This specification should be included in a cache tree before any others
   # are started as we should provide the guarantee that the table exists
   # before any other services are started (to avoid race conditions).
-  defp table_spec(cache(name: name, compressed: compressed)) do
+  defp table_spec(
+         cache(name: name, compressed: compressed, table_type: table_type)
+       ) do
     server_opts = [name: name(name, :eternal), quiet: true]
-    tables_opts = (compressed && [:compressed]) || []
+    compressed_opt = (compressed && [:compressed]) || []
+    tables_opts = [table_type | compressed_opt]
 
     [
       %{

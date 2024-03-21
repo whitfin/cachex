@@ -25,7 +25,8 @@ defmodule Cachex.Options do
     :compressed,
     :expiration,
     :transactional,
-    :warmers
+    :warmers,
+    :table_type
   ]
 
   ##############
@@ -340,6 +341,17 @@ defmodule Cachex.Options do
       true -> cache(cache, warmers: warmers)
     end
   end
+
+  # Configures a cache based on ets table_type
+  #
+  # This will simply configure the `:table_type` field in the cache
+  # record and return the modified record with the flag attached.
+  defp parse_type(:table_type, cache, options),
+    do:
+      cache(cache,
+        table_type:
+          get(options, :table_type, &(&1 in [:set, :ordered_set]), :set)
+      )
 
   # Shorthand validation of a record type.
   #
