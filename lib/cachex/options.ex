@@ -25,7 +25,8 @@ defmodule Cachex.Options do
     :compressed,
     :expiration,
     :transactional,
-    :warmers
+    :warmers,
+    :ordered
   ]
 
   ##############
@@ -340,6 +341,16 @@ defmodule Cachex.Options do
       true -> cache(cache, warmers: warmers)
     end
   end
+
+  # Configures a cache based on `ordered` flag
+  #
+  # This will simply configure the `:ordered` field in the cache
+  # record and return the modified record with the flag attached.
+  defp parse_type(:ordered, cache, options),
+    do:
+      cache(cache,
+        ordered: get(options, :ordered, &is_boolean/1, false)
+      )
 
   # Shorthand validation of a record type.
   #

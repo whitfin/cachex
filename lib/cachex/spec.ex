@@ -35,7 +35,8 @@ defmodule Cachex.Spec do
             limit: limit,
             nodes: [atom],
             transactional: boolean,
-            warmers: [warmer]
+            warmers: [warmer],
+            ordered: boolean
           )
 
   # Record specification for a command instance
@@ -125,7 +126,8 @@ defmodule Cachex.Spec do
     limit: nil,
     nodes: [],
     transactional: false,
-    warmers: []
+    warmers: [],
+    ordered: false
 
   @doc """
   Creates a command record from the provided values.
