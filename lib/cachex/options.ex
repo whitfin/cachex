@@ -26,7 +26,7 @@ defmodule Cachex.Options do
     :expiration,
     :transactional,
     :warmers,
-    :table_type
+    :ordered
   ]
 
   ##############
@@ -342,15 +342,14 @@ defmodule Cachex.Options do
     end
   end
 
-  # Configures a cache based on ets table_type
+  # Configures a cache based on `ordered` flag
   #
-  # This will simply configure the `:table_type` field in the cache
+  # This will simply configure the `:ordered` field in the cache
   # record and return the modified record with the flag attached.
-  defp parse_type(:table_type, cache, options),
+  defp parse_type(:ordered, cache, options),
     do:
       cache(cache,
-        table_type:
-          get(options, :table_type, &(&1 in [:set, :ordered_set]), :set)
+        ordered: get(options, :ordered, &is_boolean/1, false)
       )
 
   # Shorthand validation of a record type.

@@ -36,7 +36,7 @@ defmodule Cachex.Spec do
             nodes: [atom],
             transactional: boolean,
             warmers: [warmer],
-            table_type: :set | :ordered_set
+            ordered: boolean
           )
 
   # Record specification for a command instance
@@ -127,7 +127,7 @@ defmodule Cachex.Spec do
     nodes: [],
     transactional: false,
     warmers: [],
-    table_type: :set
+    ordered: false
 
   @doc """
   Creates a command record from the provided values.

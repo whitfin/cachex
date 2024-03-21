@@ -292,17 +292,16 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ transactions: true ])
           { :ok, _pid }
 
-    * `:table_type`
+    * `:ordered`
 
-      This option will specify the type for the underlying ets table, the current
-      options are :set and :ordered_set.  Both of these table types can only have
-      one object associated with each key.  For :set type table insert and lookup
-      times are constant, regardless of the table size while for :ordered_set insert
+      This option will specify whether this cache should use the ETS table type,
+      of `:ordered_set` which can improve performance if ordered traversal of the
+      cache is required. When `:ordered` is `false` insert and lookup times are
+      constant, regardless of the table size. When `:ordered` is `true`  insert
       and lookup times are proportional to the logarithm of the number of objects in
-      the table.  Type :ordered_set should only be used if a guaranteed traversal
-      order is required. This option defaults to `:set`.
+      the table. This option defaults to `false`.
 
-          iex> Cachex.start_link(:my_cache, [ table_type: :ordered_set ])
+          iex> Cachex.start_link(:my_cache, [ ordered: true ])
           { :ok, _pid }
   """
   @spec start_link(atom | Keyword.t()) :: {atom, pid}
