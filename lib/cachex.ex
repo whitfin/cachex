@@ -301,8 +301,10 @@ defmodule Cachex do
          {:ok, cache} <- setup_env(name, options),
          {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
          {:ok, link} = Informant.link(cache),
-         ^link <- Overseer.update(name, link),
-         do: {:ok, pid}
+         ^link <- Overseer.update(name, link) do
+      _ = run_warmers(cache)
+      {:ok, pid}
+    end
   end
 
   def start_link(name) when not is_atom(name),
@@ -1447,6 +1449,26 @@ defmodule Cachex do
         _ ->
           error(:invalid_option)
           # coveralls-ignore-stop
+      end
+    end
+  end
+
+  # Run warmers on cache startup
+  #
+  # This will find the cache's warmer pids by getting the children from the
+  # Incubator server, matching those pids to the warmer by module, and then
+  # executing the warmer based on the warmer's `async` attribute
+  defp run_warmers(cache(warmers: warmers) = cache) do
+    parent = Services.locate(cache, Services.Incubator)
+    children = if parent, do: Supervisor.which_children(parent), else: []
+    warmer_map = Map.new(children, fn {mod, pid, _, _} -> {mod, pid} end)
+
+    for warmer(module: module, async: async) <- warmers,
+        pid = warmer_map[module] do
+      if async do
+        send(pid, :cachex_warmer)
+      else
+        GenServer.call(pid, :blocking_cachex_warmer, :infinity)
       end
     end
   end

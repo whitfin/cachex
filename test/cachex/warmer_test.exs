@@ -76,4 +76,34 @@ defmodule Cachex.WarmerTest do
     # check that the key was warmed with state
     assert Cachex.get!(cache, "state") == state
   end
+
+  test "warmer triggers hook for sync and async warmers" do
+    expected_values = [{1, 1}]
+    expected_opts = [ttl: 1_000]
+
+    warmer_state = %{
+      expected_values: expected_values,
+      expected_opts: expected_opts
+    }
+
+    hook = ForwardHook.create()
+
+    # create a test warmer to pass to the cache
+    Helper.create_warmer(:test_warmer, 500, fn state ->
+      {:ok, state.expected_values, state.expected_opts}
+    end)
+
+    for async <- [true, false] do
+      # create a cache instance with a warmer and hook
+      Helper.create_cache(
+        warmers: [
+          warmer(module: :test_warmer, state: warmer_state, async: async)
+        ],
+        hooks: [hook]
+      )
+
+      assert_receive {{:put_many, [^expected_values, ^expected_opts]},
+                      {:ok, true}}
+    end
+  end
 end
