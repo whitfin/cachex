@@ -28,7 +28,7 @@ defmodule Cachex.Actions.Warm do
   def execute(cache() = cache, options) do
     mods = Keyword.get(options, :modules, nil)
     parent = Services.locate(cache, Services.Incubator)
-    children = Supervisor.which_children(parent)
+    children = if parent, do: Supervisor.which_children(parent), else: []
 
     handlers =
       for {mod, pid, _, _} <- children, mods == nil or mod in mods do
