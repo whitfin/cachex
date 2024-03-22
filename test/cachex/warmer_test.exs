@@ -77,33 +77,31 @@ defmodule Cachex.WarmerTest do
     assert Cachex.get!(cache, "state") == state
   end
 
-  test "warmer triggers hook for sync and async warmers" do
-    expected_values = [{1, 1}]
-    expected_opts = [ttl: 1_000]
-
-    warmer_state = %{
-      expected_values: expected_values,
-      expected_opts: expected_opts
-    }
-
-    hook = ForwardHook.create()
-
+  test "triggering cache hooks from within warmers" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:test_warmer, 500, fn state ->
-      {:ok, state.expected_values, state.expected_opts}
+    Helper.create_warmer(:hook_warmer_async, 15000, fn _ ->
+      {:ok, [{1, 1}]}
     end)
 
-    for async <- [true, false] do
-      # create a cache instance with a warmer and hook
-      Helper.create_cache(
-        warmers: [
-          warmer(module: :test_warmer, state: warmer_state, async: async)
-        ],
-        hooks: [hook]
-      )
+    # create a test warmer to pass to the cache
+    Helper.create_warmer(:hook_warmer_sync, 15000, fn _ ->
+      {:ok, [{2, 2}]}
+    end)
 
-      assert_receive {{:put_many, [^expected_values, ^expected_opts]},
-                      {:ok, true}}
-    end
+    # create a hook to forward messages
+    hook = ForwardHook.create()
+
+    # create a cache instance with a warmer and hook
+    Helper.create_cache(
+      hooks: [hook],
+      warmers: [
+        warmer(module: :hook_warmer_async, async: true),
+        warmer(module: :hook_warmer_sync, async: false)
+      ]
+    )
+
+    # ensure that we receive the creation of both warmers
+    assert_receive({{:put_many, [[{1, 1}], []]}, {:ok, true}})
+    assert_receive({{:put_many, [[{2, 2}], []]}, {:ok, true}})
   end
 end

@@ -1478,7 +1478,7 @@ defmodule Cachex do
       if async do
         send(pid, :cachex_warmer)
       else
-        GenServer.call(pid, :blocking_cachex_warmer, :infinity)
+        GenServer.call(pid, :cachex_warmer, :infinity)
       end
     end
   end
