@@ -31,8 +31,8 @@ defmodule Cachex.Services.LocksmithTest do
   # ensure that writes are queued unnecessarily.
   test "executing a write outside of a transaction" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache(transactional: true)
-    cache2 = Helper.create_cache(transactional: false)
+    cache1 = Helper.create_cache(transactions: true)
+    cache2 = Helper.create_cache(transactions: false)
 
     # fetch the states for the caches
     state1 = Services.Overseer.retrieve(cache1)
@@ -59,8 +59,8 @@ defmodule Cachex.Services.LocksmithTest do
   # itself, as it's needed to test the write execution.
   test "executing a transactional block" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache(transactional: false)
-    cache2 = Helper.create_cache(transactional: true)
+    cache1 = Helper.create_cache(transactions: false)
+    cache2 = Helper.create_cache(transactions: true)
 
     # fetch the states for the caches
     state1 = Services.Overseer.retrieve(cache1)
@@ -174,7 +174,7 @@ defmodule Cachex.Services.LocksmithTest do
     assert(Enum.sort(locked5) == ["key1", "key2", "key3"])
   end
 
-  # The Locksmith provides a `transactional/1` function to set the current
+  # The Locksmith provides a `start_transaction/1` function to set the current
   # process as transactional. This test just makes sure that this sets the flag
   # correctly between true/false.
   test "setting a transactional context" do

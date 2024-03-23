@@ -21,7 +21,7 @@ The second and third arguments are both optional and represent cache and server 
 |       hooks      |     list of `hook()`     |        A list of execution hooks to listen on cache actions.       |
 |       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
 |       stats      |          boolean         |         Whether to track statistics for this cache or not.         |
-|   transactional  |          boolean         |           Whether to turn on transactions at cache start.          |
+|   transactions   |          boolean         |           Whether to turn on transactions at cache start.          |
 |      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.          |
 
 ## Main Interface

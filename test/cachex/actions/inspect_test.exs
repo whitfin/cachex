@@ -138,7 +138,7 @@ defmodule Cachex.Actions.InspectTest do
     # update the state to have a different setting
     state2 =
       Services.Overseer.update(cache, fn state ->
-        cache(state, transactional: true)
+        cache(state, transactions: true)
       end)
 
     # retrieve the state via inspection

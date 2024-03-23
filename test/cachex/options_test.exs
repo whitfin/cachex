@@ -370,18 +370,18 @@ defmodule Cachex.OptionsTest do
   # a cache has them enabled or disabled. This is simply checking whether the flag
   # is set to true or false, and the default. We also verify that the transaction
   # locksmith has its name set inside the returned state.
-  test "parsing :transactional flags" do
+  test "parsing :transactions flags" do
     # grab a cache name
     name = Helper.create_name()
 
     # parse our values as options
-    {:ok, cache(transactional: trans1)} =
-      Cachex.Options.parse(name, transactional: true)
+    {:ok, cache(transactions: trans1)} =
+      Cachex.Options.parse(name, transactions: true)
 
-    {:ok, cache(transactional: trans2)} =
-      Cachex.Options.parse(name, transactional: false)
+    {:ok, cache(transactions: trans2)} =
+      Cachex.Options.parse(name, transactions: false)
 
-    {:ok, cache(transactional: trans3)} = Cachex.Options.parse(name, [])
+    {:ok, cache(transactions: trans3)} = Cachex.Options.parse(name, [])
 
     # the first one should be truthy, and the latter two falsey
     assert trans1

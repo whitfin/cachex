@@ -289,7 +289,7 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ stats: true ])
           { :ok, _pid }
 
-    * `:transactional`
+    * `:transactions`
 
       This option will specify whether this cache should have transactions and row
       locking enabled from cache startup. Please note that even if this is false,
@@ -1298,14 +1298,14 @@ defmodule Cachex do
       when is_function(operation, 1) and is_list(keys) and is_list(options) do
     Overseer.enforce cache do
       trans_cache =
-        case cache(cache, :transactional) do
+        case cache(cache, :transactions) do
           true ->
             cache
 
           false ->
             cache
             |> cache(:name)
-            |> Overseer.update(&cache(&1, transactional: true))
+            |> Overseer.update(&cache(&1, transactions: true))
         end
 
       Router.call(trans_cache, {:transaction, [keys, operation, options]})

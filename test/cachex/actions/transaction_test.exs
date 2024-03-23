@@ -10,7 +10,7 @@ defmodule Cachex.Actions.TransactionTest do
   # the value for the first time.
   test "executing a transaction is atomic" do
     # create a test cache
-    cache = Helper.create_cache(transactional: true)
+    cache = Helper.create_cache(transactions: true)
 
     # spawn a transaction to increment a key
     spawn(fn ->
@@ -67,7 +67,7 @@ defmodule Cachex.Actions.TransactionTest do
     state1 = Services.Overseer.retrieve(cache)
 
     # verify transactions are disabled
-    assert(cache(state1, :transactional) == false)
+    assert(cache(state1, :transactions) == false)
 
     # execute a transactions
     Cachex.transaction(cache, [], & &1)
@@ -76,7 +76,7 @@ defmodule Cachex.Actions.TransactionTest do
     state2 = Services.Overseer.retrieve(cache)
 
     # verify transactions are now enabled
-    assert(cache(state2, :transactional) == true)
+    assert(cache(state2, :transactions) == true)
   end
 
   # This test verifies that this action is correctly distributed across

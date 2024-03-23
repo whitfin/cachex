@@ -35,7 +35,7 @@ defmodule Cachex.Spec do
             limit: limit,
             nodes: [atom],
             ordered: boolean,
-            transactional: boolean,
+            transactions: boolean,
             warmers: [warmer]
           )
 
@@ -126,7 +126,7 @@ defmodule Cachex.Spec do
     limit: nil,
     nodes: [],
     ordered: false,
-    transactional: false,
+    transactions: false,
     warmers: []
 
   @doc """
