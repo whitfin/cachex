@@ -25,7 +25,7 @@ defmodule Cachex.Options do
     :fallback,
     :compressed,
     :expiration,
-    :transactional,
+    :transactions,
     :warmers
   ]
 
@@ -325,12 +325,12 @@ defmodule Cachex.Options do
 
   # Configures a cache based on transaction flags.
   #
-  # This will simply configure the `:transactional` field in the cache
+  # This will simply configure the `:transactions` field in the cache
   # record and return the modified record with the flag attached.
-  defp parse_type(:transactional, cache, options),
+  defp parse_type(:transactions, cache, options),
     do:
       cache(cache,
-        transactional: get(options, :transactional, &is_boolean/1, false)
+        transactions: get(options, :transactions, &is_boolean/1, false)
       )
 
   # Configures any warmers assigned to the cache.

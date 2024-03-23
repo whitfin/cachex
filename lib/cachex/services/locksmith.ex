@@ -156,7 +156,7 @@ defmodule Cachex.Services.Locksmith do
   our ETS writes are atomic and so do not require a lock.
   """
   @spec write(Cachex.Spec.cache(), any, (-> any)) :: any
-  def write(cache(transactional: false), _keys, fun),
+  def write(cache(transactions: false), _keys, fun),
     do: fun.()
 
   def write(cache() = cache, keys, fun) do
