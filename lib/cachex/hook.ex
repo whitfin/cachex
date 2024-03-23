@@ -58,7 +58,7 @@ defmodule Cachex.Hook do
 
   @doc false
   defmacro __using__(_) do
-    quote location: :keep do
+    quote location: :keep, generated: true do
       # force the Hook behaviours
       @behaviour Cachex.Hook
 

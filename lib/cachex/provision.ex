@@ -39,7 +39,7 @@ defmodule Cachex.Provision do
 
   @doc false
   defmacro __using__(_) do
-    quote location: :keep do
+    quote location: :keep, generated: true do
       # use the provision behaviour
       @behaviour Cachex.Provision
 
