@@ -33,18 +33,26 @@ defmodule Cachex.Services.Steward do
     cache(hooks: hooks(pre: pre_hooks, post: post_hooks)) = cache
     cache(warmers: warmers) = cache
 
-    hook_pairs =
-      pre_hooks
-      |> Enum.concat(post_hooks)
-      |> Enum.map(fn hook(module: mod, name: name) -> {name, mod} end)
-
-    warmer_pairs =
+    provisioned =
       warmers
-      |> Enum.map(fn warmer(module: mod) -> {mod, mod} end)
+      |> Enum.concat(pre_hooks)
+      |> Enum.concat(post_hooks)
+      |> Enum.map(&map_names/1)
 
-    warmer_pairs
-    |> Enum.concat(hook_pairs)
-    |> Enum.filter(fn {_, mod} -> key in mod.provisions() end)
-    |> Enum.each(fn {name, _} -> send(name, {:cachex_provision, provision}) end)
+    for {name, mod} <- provisioned, key in mod.provisions() do
+      send(name, {:cachex_provision, provision})
+    end
   end
+
+  ##############
+  # Private API #
+  ##############
+
+  # Map a hook into the name and module tuple
+  defp map_names(hook(name: name, module: module)),
+    do: {name, module}
+
+  # Map a warmer into the name and module tuple
+  defp map_names(warmer(module: module)),
+    do: {module, module}
 end
