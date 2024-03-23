@@ -71,7 +71,6 @@ defmodule Cachex.Warmer do
       @doc """
       Return the provisions warmers require.
       """
-      @spec provisions :: [atom]
       def provisions,
         do: [:cache]
 
