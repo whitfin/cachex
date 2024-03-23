@@ -89,8 +89,6 @@ defmodule Cachex do
     put_many: [2, 3],
     refresh: [2, 3],
     reset: [1, 2],
-    set: [3, 4],
-    set_many: [2, 3],
     size: [1, 2],
     stats: [1, 2],
     stream: [1, 2, 3],
