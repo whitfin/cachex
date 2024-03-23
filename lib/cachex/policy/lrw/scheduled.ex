@@ -58,7 +58,7 @@ defmodule Cachex.Policy.LRW.Scheduled do
   @doc false
   # Receives a provisioned cache instance.
   #
-  # The provided cache is then stored in the cache and used for cache calls going
+  # The provided cache is then stored in the state and used for cache calls going
   # forwards, in order to skip the lookups inside the cache overseer for performance.
   def handle_provision({:cache, cache}, {_cache, limit}),
     do: {:ok, {cache, limit}}

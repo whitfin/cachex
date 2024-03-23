@@ -61,18 +61,26 @@ defmodule Cachex.Warmer do
   defmacro __using__(_) do
     quote location: :keep, generated: true do
       use GenServer
+      use Cachex.Provision
 
       import Cachex.Spec
 
       # enforce the behaviour
       @behaviour Cachex.Warmer
 
+      @doc """
+      Return the provisions warmers require.
+      """
+      @spec provisions :: [atom]
+      def provisions,
+        do: [:cache]
+
       @doc false
       # Initializes the warmer from a provided state.
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init({cache(name: cache), warmer(state: state)}) do
+      def init({cache() = cache, warmer(state: state)}) do
         {:ok, {cache, state, nil}}
       end
 
@@ -120,6 +128,14 @@ defmodule Cachex.Warmer do
         # pass the new state
         {:noreply, new_state}
       end
+
+      @doc false
+      # Receives a provisioned cache instance.
+      #
+      # The provided cache is then stored in the state and used for cache calls going
+      # forwards, in order to skip the lookups inside the cache overseer for performance.
+      def handle_provision({:cache, cache}, {_cache, state, timer}),
+        do: {:ok, {cache, state, timer}}
     end
   end
 end

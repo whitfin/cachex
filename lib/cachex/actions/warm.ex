@@ -5,9 +5,6 @@ defmodule Cachex.Actions.Warm do
   # The only reason to call this command is the case in which you already
   # know the backing state of your cache has been updated and you need to
   # immediately refresh your warmed entries.
-  alias Cachex.Services
-
-  # we need our imports
   import Cachex.Spec
 
   ##############
@@ -25,14 +22,12 @@ defmodule Cachex.Actions.Warm do
   set of warmer modules. The list of modules which had a warming triggered will
   be returned in the result of this call.
   """
-  def execute(cache() = cache, options) do
+  def execute(cache(warmers: warmers), options) do
     mods = Keyword.get(options, :modules, nil)
-    parent = Services.locate(cache, Services.Incubator)
-    children = if parent, do: Supervisor.which_children(parent), else: []
 
     handlers =
-      for {mod, pid, _, _} <- children, mods == nil or mod in mods do
-        send(pid, :cachex_warmer) && mod
+      for warmer(module: mod) <- warmers, mods == nil or mod in mods do
+        send(mod, :cachex_warmer) && mod
       end
 
     {:ok, handlers}

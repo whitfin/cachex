@@ -37,6 +37,6 @@ defmodule Cachex.Services.Incubator do
   defp spec(warmer(module: module) = warmer, cache),
     do: %{
       id: module,
-      start: {GenServer, :start_link, [module, {cache, warmer}]}
+      start: {GenServer, :start_link, [module, {cache, warmer}, [name: module]]}
     }
 end
