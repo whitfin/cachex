@@ -17,7 +17,7 @@ defmodule Cachex.Spec do
   #############
 
   # a list of accepted service suffixes for a cache instance
-  @services [:courier, :eternal, :janitor, :locksmith, :stats]
+  @services [:courier, :eternal, :janitor, :locksmith, :stats, :steward]
 
   #############
   # Typespecs #

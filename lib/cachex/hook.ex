@@ -28,19 +28,6 @@ defmodule Cachex.Hook do
   @callback async? :: boolean
 
   @doc """
-  Returns an enumerable of provisions this hook requires.
-
-  The current provisions available to a hook are:
-
-    * `cache` - a cache instance used to make cache calls from inside a hook
-      with zero overhead.
-
-  This should always return an enumerable of atoms; in the case of no required
-  provisions an empty enumerable should be returned.
-  """
-  @callback provisions :: [atom]
-
-  @doc """
   Returns the timeout for all calls to this hook.
 
   This will be applied to hooks regardless of whether they're synchronous or
@@ -65,15 +52,6 @@ defmodule Cachex.Hook do
   """
   @callback handle_notify(tuple, tuple, any) :: {:ok, any}
 
-  @doc """
-  Handles a provisioning call.
-
-  The provided argument will be a Tuple dictating the type of value being
-  provisioned along with the value itself. This can be used to listen on
-  states required for hook executions (such as cache records).
-  """
-  @callback handle_provision({atom, any}, any) :: {:ok, any}
-
   ##################
   # Implementation #
   ##################
@@ -86,6 +64,7 @@ defmodule Cachex.Hook do
 
       # inherit server
       use GenServer
+      use Cachex.Provision
 
       @doc false
       def init(args),
@@ -111,10 +90,6 @@ defmodule Cachex.Hook do
         do: true
 
       @doc false
-      def provisions,
-        do: []
-
-      @doc false
       def timeout,
         do: nil
 
@@ -125,7 +100,6 @@ defmodule Cachex.Hook do
       # config overrides
       defoverridable actions: 0,
                      async?: 0,
-                     provisions: 0,
                      timeout: 0,
                      type: 0
 
@@ -137,13 +111,8 @@ defmodule Cachex.Hook do
       def handle_notify(event, result, state),
         do: {:ok, state}
 
-      @doc false
-      def handle_provision(provisions, state),
-        do: {:ok, state}
-
       # listener override
-      defoverridable handle_notify: 3,
-                     handle_provision: 2
+      defoverridable handle_notify: 3
 
       ##########################
       # Private Implementation #
@@ -152,12 +121,6 @@ defmodule Cachex.Hook do
       @doc false
       def handle_info({:cachex_reset, args}, state) do
         {:ok, new_state} = init(args)
-        {:noreply, new_state}
-      end
-
-      @doc false
-      def handle_info({:cachex_provision, provisions}, state) do
-        {:ok, new_state} = handle_provision(provisions, state)
         {:noreply, new_state}
       end
 

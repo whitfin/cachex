@@ -20,6 +20,7 @@ defmodule Cachex.Services.Overseer do
 
   # add service aliases
   alias Services.Overseer
+  alias Services.Steward
 
   # constants for manager/table names
   @manager_name :cachex_overseer_manager
@@ -135,13 +136,7 @@ defmodule Cachex.Services.Overseer do
 
       register(name, nstate)
 
-      with hooks(pre: pre_hooks, post: post_hooks) <- cache(nstate, :hooks) do
-        pre_hooks
-        |> Enum.concat(post_hooks)
-        |> Enum.filter(&requires_state?/1)
-        |> Enum.map(&hook(&1, :name))
-        |> Enum.each(&send(&1, {:cachex_provision, {:cache, nstate}}))
-      end
+      Steward.provide(nstate, {:cache, nstate})
 
       nstate
     end)
@@ -180,12 +175,4 @@ defmodule Cachex.Services.Overseer do
       end
     end
   end
-
-  ###############
-  # Private API #
-  ###############
-
-  # Verifies if a hook has a cache provisioned.
-  defp requires_state?(hook(module: module)),
-    do: :cache in module.provisions()
 end

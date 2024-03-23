@@ -60,24 +60,21 @@ defmodule CachexCase.ForwardHook do
           Forwards received messages to the state process.
           """
           def handle_notify(msg, results, proc) do
-            handle_info({msg, results}, proc)
-            {:ok, proc}
+            {:ok, handle_info({msg, results}, proc) && proc}
           end
 
           @doc """
           Forwards received messages to the state process.
           """
           def handle_provision(provision, proc) do
-            handle_info(provision, proc)
-            {:ok, proc}
+            {:ok, handle_info(provision, proc) && proc}
           end
 
           @doc """
           Forwards received messages to the state process.
           """
           def handle_info(msg, proc) do
-            send(proc, msg)
-            {:noreply, proc}
+            {:noreply, send(proc, msg) && proc}
           end
         end
       end
