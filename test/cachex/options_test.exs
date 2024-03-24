@@ -406,7 +406,7 @@ defmodule Cachex.OptionsTest do
 
     results3 =
       Cachex.Options.parse(name,
-        warmers: [warmer(module: :options_test_warmer)]
+        warmers: [warmer(module: :options_test_warmer, name: :test)]
       )
 
     results4 = Cachex.Options.parse(name, warmers: ["warmer"])
@@ -419,7 +419,7 @@ defmodule Cachex.OptionsTest do
     # and then we check the warmers...
     assert warmers1 == []
     assert warmers2 == [warmer(module: :options_test_warmer)]
-    assert warmers3 == warmers2
+    assert warmers3 == [warmer(module: :options_test_warmer, name: :test)]
 
     # the last one should be invalid
     assert results4 == {:error, :invalid_warmer}
