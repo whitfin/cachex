@@ -45,7 +45,6 @@ defmodule Cachex do
   alias Cachex.Services
 
   # alias any services
-  alias Services.Informant
   alias Services.Overseer
 
   # import util macros
@@ -308,7 +307,7 @@ defmodule Cachex do
          {:ok, true} <- ensure_unused(name),
          {:ok, cache} <- setup_env(name, options),
          {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
-         {:ok, link} = Informant.link(cache),
+         {:ok, link} = Services.link(cache),
          ^link <- Overseer.update(name, link) do
       _ = run_warmers(cache)
       {:ok, pid}
@@ -1371,20 +1370,21 @@ defmodule Cachex do
 
   ## Options
 
-    * `:modules`
+    * `:only`
 
       An optional list of modules to warm, acting as a whitelist. The default
-      behaviour of this function is to trigger warming in all modules.
+      behaviour of this function is to trigger warming in all modules. You may
+      provide either the module name, or the registered warmer name.
 
   ## Examples
 
       iex> Cachex.warm(:my_cache)
       { :ok, [MyWarmer] }
 
-      iex> Cachex.warm(:my_cache, modules: [MyWarmer])
+      iex> Cachex.warm(:my_cache, only: [MyWarmer])
       { :ok, [MyWarmer] }
 
-      iex> Cachex.warm(:my_cache, modules: [])
+      iex> Cachex.warm(:my_cache, only: [])
       { :ok, [] }
 
   """
