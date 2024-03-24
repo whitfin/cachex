@@ -72,26 +72,17 @@ defmodule Cachex.Services do
     do: {:ok, cache}
 
   def link(cache(hooks: hooks(pre: pre, post: post), warmers: warmers) = cache) do
-    hook_processes =
-      case locate(cache, Services.Informant) do
-        nil -> []
-        pid -> Supervisor.which_children(pid)
-      end
-
-    warmer_processes =
-      case locate(cache, Services.Incubator) do
-        nil -> []
-        pid -> Supervisor.which_children(pid)
-      end
+    hook_children = find_children(cache, Services.Informant)
+    warmer_children = find_children(cache, Services.Incubator)
 
     linked =
       cache(cache,
         hooks:
           hooks(
-            pre: attach_child(pre, hook_processes),
-            post: attach_child(post, hook_processes)
+            pre: attach_child(pre, hook_children),
+            post: attach_child(post, hook_children)
           ),
-        warmers: attach_child(warmers, warmer_processes)
+        warmers: attach_child(warmers, warmer_children)
       )
 
     {:ok, linked}
@@ -237,6 +228,14 @@ defmodule Cachex.Services do
     end)
   end
 
+  # Finds a list of running children for a service.
+  defp find_children(cache, service) do
+    case locate(cache, service) do
+      nil -> []
+      pid -> Supervisor.which_children(pid)
+    end
+  end
+
   # Locates a process identifier for the given module.
   #
   # This uses a list of child modules; if no child is
@@ -244,7 +243,7 @@ defmodule Cachex.Services do
   defp find_pid(children, module) do
     Enum.find_value(children, fn
       {^module, pid, _, _} -> pid
-      _ -> nil
+      _ -> false
     end)
   end
 
