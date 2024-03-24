@@ -48,33 +48,6 @@ defmodule Cachex.Services.Informant do
     do: broadcast_action(post_hooks, action, result)
 
   @doc """
-  Links all hooks in a cache to their running process.
-
-  This is a required post-step as hooks are started independently and
-  are not named in a deterministic way. It will look up all hooks using
-  the Supervisor children and place them in a modified cache record.
-  """
-  @spec link(Cachex.Spec.cache()) :: {:ok, Cachex.Spec.cache()}
-  def link(cache(hooks: hooks(pre: [], post: [])) = cache),
-    do: {:ok, cache}
-
-  def link(
-        cache(name: name, hooks: hooks(pre: pre_hooks, post: post_hooks)) =
-          cache
-      ) do
-    children =
-      name
-      |> Supervisor.which_children()
-      |> find_pid(__MODULE__)
-      |> Supervisor.which_children()
-
-    link_pre = attach_hook_pid(pre_hooks, children)
-    link_post = attach_hook_pid(post_hooks, children)
-
-    {:ok, cache(cache, hooks: hooks(pre: link_pre, post: link_post))}
-  end
-
-  @doc """
   Notifies a set of hooks of the passed in data.
 
   This is the underlying implementation for `broadcast/2` and `broadcast/3`,
@@ -104,19 +77,6 @@ defmodule Cachex.Services.Informant do
   # Private API #
   ###############
 
-  # Iterates a list of hooks and finds their reference in list of children.
-  #
-  # When there is a reference found, the hook is updated with the new PID.
-  defp attach_hook_pid(hooks, children) do
-    Enum.map(hooks, fn
-      hook(module: module, name: nil) = hook ->
-        hook(hook, name: find_pid(children, module))
-
-      hook ->
-        hook
-    end)
-  end
-
   # Broadcasts an action to hooks listening for it.
   #
   # This will enforce the actions list inside a hook definition to ensure
@@ -131,17 +91,6 @@ defmodule Cachex.Services.Informant do
       end)
 
     notify(actionable, msg, result)
-  end
-
-  # Locates a process identifier for the given module.
-  #
-  # This uses a list of child modules; if no child is
-  # found, the value returned is nil.
-  defp find_pid(children, module) do
-    Enum.find_value(children, fn
-      {^module, pid, _, _} -> pid
-      _ -> nil
-    end)
   end
 
   # Generates a Supervisor specification for a hook.

@@ -61,16 +61,52 @@ defmodule Cachex.Services do
   end
 
   @doc """
+  Links all hooks in a cache to their running process.
+
+  This is a required post-step as hooks are started independently and
+  are not named in a deterministic way. It will look up all hooks using
+  the Supervisor children and place them in a modified cache record.
+  """
+  @spec link(Cachex.Spec.cache()) :: {:ok, Cachex.Spec.cache()}
+  def link(cache(hooks: hooks(pre: [], post: []), warmers: []) = cache),
+    do: {:ok, cache}
+
+  def link(cache(hooks: hooks(pre: pre, post: post), warmers: warmers) = cache) do
+    hook_processes =
+      case locate(cache, Services.Informant) do
+        nil -> []
+        pid -> Supervisor.which_children(pid)
+      end
+
+    warmer_processes =
+      case locate(cache, Services.Incubator) do
+        nil -> []
+        pid -> Supervisor.which_children(pid)
+      end
+
+    linked =
+      cache(cache,
+        hooks:
+          hooks(
+            pre: attach_child_pid(pre, hook_processes),
+            post: attach_child_pid(post, hook_processes)
+          ),
+        warmers: attach_child_pid(warmers, warmer_processes)
+      )
+
+    {:ok, linked}
+  end
+
+  @doc """
   Retrieves the process identifier of the provided service.
 
   This will return `nil` if the service does not exist, or is not running.
   """
   @spec locate(Cachex.Spec.cache(), atom) :: pid | nil
   def locate(cache() = cache, service) do
-    Enum.find_value(services(cache), fn
-      {^service, pid, _tag, _id} -> pid
-      _ -> false
-    end)
+    cache
+    |> services
+    |> find_pid(service)
   end
 
   @doc """
@@ -183,6 +219,33 @@ defmodule Cachex.Services do
         type: :supervisor
       }
     ]
+  end
+
+  # Iterates a list of hooks and finds their reference in list of children.
+  #
+  # When there is a reference found, the hook is updated with the new PID.
+  defp attach_child_pid(struct, children) do
+    Enum.map(struct, fn
+      warmer(module: module, name: nil) = warmer ->
+        warmer(warmer, name: find_pid(children, module))
+
+      hook(module: module, name: nil) = hook ->
+        hook(hook, name: find_pid(children, module))
+
+      value ->
+        value
+    end)
+  end
+
+  # Locates a process identifier for the given module.
+  #
+  # This uses a list of child modules; if no child is
+  # found, the value returned is nil.
+  defp find_pid(children, module) do
+    Enum.find_value(children, fn
+      {^module, pid, _, _} -> pid
+      _ -> nil
+    end)
   end
 
   # Determines if a module is a Cachex service.

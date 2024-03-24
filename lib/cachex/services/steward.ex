@@ -53,6 +53,6 @@ defmodule Cachex.Services.Steward do
     do: {name, module}
 
   # Map a warmer into the name and module tuple
-  defp map_names(warmer(module: module)),
-    do: {module, module}
+  defp map_names(warmer(name: name, module: module)),
+    do: {name, module}
 end

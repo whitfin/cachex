@@ -102,7 +102,8 @@ defmodule Cachex.Spec do
           record(:warmer,
             module: atom,
             state: any,
-            async: boolean
+            async: boolean,
+            name: GenServer.server()
           )
 
   ###########
@@ -259,7 +260,8 @@ defmodule Cachex.Spec do
   defrecord :warmer,
     module: nil,
     state: nil,
-    async: false
+    async: false,
+    name: nil
 
   ###############
   # Record Docs #
