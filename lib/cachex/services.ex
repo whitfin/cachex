@@ -88,10 +88,10 @@ defmodule Cachex.Services do
       cache(cache,
         hooks:
           hooks(
-            pre: attach_child_pid(pre, hook_processes),
-            post: attach_child_pid(post, hook_processes)
+            pre: attach_child(pre, hook_processes),
+            post: attach_child(post, hook_processes)
           ),
-        warmers: attach_child_pid(warmers, warmer_processes)
+        warmers: attach_child(warmers, warmer_processes)
       )
 
     {:ok, linked}
@@ -224,8 +224,8 @@ defmodule Cachex.Services do
   # Iterates a list of hooks and finds their reference in list of children.
   #
   # When there is a reference found, the hook is updated with the new PID.
-  defp attach_child_pid(struct, children) do
-    Enum.map(struct, fn
+  defp attach_child(structs, children) do
+    Enum.map(structs, fn
       warmer(module: module, name: nil) = warmer ->
         warmer(warmer, name: find_pid(children, module))
 

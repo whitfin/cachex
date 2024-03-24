@@ -10,7 +10,15 @@ defmodule Cachex.Actions.WarmTest do
     end)
 
     # create a cache instance with a warmer
-    cache = Helper.create_cache(warmers: [warmer(module: :manual_warmer1)])
+    cache =
+      Helper.create_cache(
+        warmers: [
+          warmer(
+            module: :manual_warmer1,
+            name: :manual_warmer1
+          )
+        ]
+      )
 
     # check that the key was warmed
     assert Cachex.get!(cache, 1) == 1
@@ -39,7 +47,15 @@ defmodule Cachex.Actions.WarmTest do
     end)
 
     # create a cache instance with a warmer
-    cache = Helper.create_cache(warmers: [warmer(module: :manual_warmer2)])
+    cache =
+      Helper.create_cache(
+        warmers: [
+          warmer(
+            module: :manual_warmer2,
+            name: :manual_warmer2
+          )
+        ]
+      )
 
     # check that the key was warmed
     assert Cachex.get!(cache, 1) == 1
@@ -49,7 +65,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming
-    assert Cachex.warm(cache, modules: []) == {:ok, []}
+    assert Cachex.warm(cache, only: []) == {:ok, []}
 
     # wait for the warming
     :timer.sleep(50)
@@ -58,7 +74,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming, specifying our module
-    assert Cachex.warm(cache, modules: [:manual_warmer2]) ==
+    assert Cachex.warm(cache, only: [:manual_warmer2]) ==
              {:ok, [:manual_warmer2]}
 
     # wait for the warming
