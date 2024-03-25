@@ -37,10 +37,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == 1
   end
 
-  # This test covers the case where you manually specify a list of modules
-  # to use for the warming. It also covers cases where no modules match the
-  # provided list, and therefore no cache warming actually executes.
-  test "manually warming a cache using specific warmers" do
+  test "manually warming a cache and awaiting results" do
     # create a test warmer to pass to the cache
     Helper.create_warmer(:manual_warmer2, :timer.hours(1), fn _ ->
       {:ok, [{1, 1}]}
@@ -64,6 +61,38 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.clear!(cache) == 1
     assert Cachex.get!(cache, 1) == nil
 
+    # manually trigger a cache warming of all modules
+    assert Cachex.warm(cache, wait: true) == {:ok, [:manual_warmer2]}
+    assert Cachex.get!(cache, 1) == 1
+  end
+
+  # This test covers the case where you manually specify a list of modules
+  # to use for the warming. It also covers cases where no modules match the
+  # provided list, and therefore no cache warming actually executes.
+  test "manually warming a cache using specific warmers" do
+    # create a test warmer to pass to the cache
+    Helper.create_warmer(:manual_warmer3, :timer.hours(1), fn _ ->
+      {:ok, [{1, 1}]}
+    end)
+
+    # create a cache instance with a warmer
+    cache =
+      Helper.create_cache(
+        warmers: [
+          warmer(
+            module: :manual_warmer3,
+            name: :manual_warmer3
+          )
+        ]
+      )
+
+    # check that the key was warmed
+    assert Cachex.get!(cache, 1) == 1
+
+    # clean out our cache entries
+    assert Cachex.clear!(cache) == 1
+    assert Cachex.get!(cache, 1) == nil
+
     # manually trigger a cache warming
     assert Cachex.warm(cache, only: []) == {:ok, []}
 
@@ -74,8 +103,8 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming, specifying our module
-    assert Cachex.warm(cache, only: [:manual_warmer2]) ==
-             {:ok, [:manual_warmer2]}
+    assert Cachex.warm(cache, only: [:manual_warmer3]) ==
+             {:ok, [:manual_warmer3]}
 
     # wait for the warming
     :timer.sleep(50)

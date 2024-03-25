@@ -25,17 +25,43 @@ defmodule Cachex.Actions.Warm do
   """
   def execute(cache(warmers: warmers), options) do
     only = Keyword.get(options, :only, nil)
-
-    match =
-      Enum.filter(warmers, fn warmer(module: mod, name: name) ->
-        only == nil or mod in only or name in only
-      end)
+    wait = Keyword.get(options, :wait, false)
 
     warmed =
-      for warmer(name: name) <- match do
-        send(name, :cachex_warmer) && name
-      end
+      warmers
+      |> Enum.filter(&filter_mod(&1, only))
+      |> Enum.map(&spawn_call(&1, wait))
+      |> Task.yield_many()
+      |> Enum.map(&extract_name/1)
 
     {:ok, warmed}
   end
+
+  ###############
+  # Private API #
+  ###############
+
+  # Filters warmers based on the :only flag for module/name.
+  defp filter_mod(warmer(module: mod, name: name), only),
+    do: only == nil or mod in only or name in only
+
+  # Spawns a task to invoke the call to the remote warmer.
+  defp spawn_call(warmer(name: name) = warmer, wait) do
+    Task.async(fn ->
+      call_warmer(warmer, wait)
+      name
+    end)
+  end
+
+  # Invokes a warmer with blocking enabled.
+  defp call_warmer(warmer(name: name), true),
+    do: GenServer.call(name, :cachex_warmer, :infinity)
+
+  # Invokes a warmer with blocking disabled.
+  defp call_warmer(warmer(name: name), _),
+    do: send(name, :cachex_warmer)
+
+  # Converts a task result to a name reference.
+  defp extract_name({_, {:ok, name}}),
+    do: name
 end

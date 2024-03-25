@@ -308,8 +308,8 @@ defmodule Cachex do
          {:ok, cache} <- setup_env(name, options),
          {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
          {:ok, link} = Services.link(cache),
-         ^link <- Overseer.update(name, link) do
-      _ = run_warmers(cache)
+         ^link <- Overseer.update(name, link),
+         :ok <- setup_warmers(link) do
       {:ok, pid}
     end
   end
@@ -1376,6 +1376,12 @@ defmodule Cachex do
       behaviour of this function is to trigger warming in all modules. You may
       provide either the module name, or the registered warmer name.
 
+    * `:wait`
+
+      Whether to wait for warmer completion or not, as a boolean. By default
+      warmers are triggered to run in the background, but passing `true` here
+      will block the return of this call until all warmers have completed.
+
   ## Examples
 
       iex> Cachex.warm(:my_cache)
@@ -1386,6 +1392,9 @@ defmodule Cachex do
 
       iex> Cachex.warm(:my_cache, only: [])
       { :ok, [] }
+
+      iex> Cachex.warm(:my_cache, wait: true)
+      { :ok, [MyWarmer]}
 
   """
   @spec warm(cache, Keyword.t()) :: {status, [atom()]}
@@ -1443,23 +1452,19 @@ defmodule Cachex do
     end
   end
 
-  # Run warmers on cache startup
+  # Initializes cache warmers on startup.
   #
-  # This will find the cache's warmer pids by getting the children from the
-  # Incubator server, matching those pids to the warmer by module, and then
-  # executing the warmer based on the warmer's `async` attribute
-  defp run_warmers(cache(warmers: warmers) = cache) do
-    parent = Services.locate(cache, Services.Incubator)
-    children = if parent, do: Supervisor.which_children(parent), else: []
-    warmer_map = Map.new(children, fn {mod, pid, _, _} -> {mod, pid} end)
+  # This will trigger the initial cache warming via `Cachex.warm/2` while
+  # also respecting whether certain warmers should block startup or not.
+  defp setup_warmers(cache(warmers: warmers) = cache) do
+    groups = Enum.group_by(warmers, &warmer(&1, :async), &warmer(&1, :name))
 
-    for warmer(module: module, async: async) <- warmers,
-        pid = warmer_map[module] do
-      if async do
-        send(pid, :cachex_warmer)
-      else
-        GenServer.call(pid, :cachex_warmer, :infinity)
-      end
+    startup = [wait: true, only: Map.get(groups, false, [])]
+    spawned = [wait: false, only: Map.get(groups, true, [])]
+
+    with {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ spawned),
+         {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ startup) do
+      :ok
     end
   end
 
