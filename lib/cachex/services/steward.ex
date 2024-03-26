@@ -30,13 +30,13 @@ defmodule Cachex.Services.Steward do
   """
   @spec provide(Cachex.Spec.cache(), {atom, any}) :: :ok
   def provide(cache() = cache, {key, _} = provision) when key in @provisions do
-    cache(hooks: hooks(pre: pre_hooks, post: post_hooks)) = cache
+    cache(hooks: hooks(pre: pre, post: post)) = cache
     cache(warmers: warmers) = cache
 
     provisioned =
       warmers
-      |> Enum.concat(pre_hooks)
-      |> Enum.concat(post_hooks)
+      |> Enum.concat(pre)
+      |> Enum.concat(post)
       |> Enum.map(&map_names/1)
 
     for {name, mod} <- provisioned, key in mod.provisions() do

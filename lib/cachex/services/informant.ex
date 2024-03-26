@@ -24,9 +24,9 @@ defmodule Cachex.Services.Informant do
   def start_link(cache(hooks: hooks(pre: [], post: []))),
     do: :ignore
 
-  def start_link(cache(hooks: hooks(pre: pre_hooks, post: post_hooks))) do
-    pre_hooks
-    |> Enum.concat(post_hooks)
+  def start_link(cache(hooks: hooks(pre: pre, post: post))) do
+    pre
+    |> Enum.concat(post)
     |> Enum.map(&spec/1)
     |> Supervisor.start_link(strategy: :one_for_one)
   end
@@ -37,15 +37,15 @@ defmodule Cachex.Services.Informant do
   This will send a nil result, as the result does not yet exist.
   """
   @spec broadcast(Cachex.Spec.cache(), tuple) :: :ok
-  def broadcast(cache(hooks: hooks(pre: pre_hooks)), action),
-    do: broadcast_action(pre_hooks, action, nil)
+  def broadcast(cache(hooks: hooks(pre: pre)), action),
+    do: broadcast_action(pre, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
   @spec broadcast(Cachex.Spec.cache(), tuple, any) :: :ok
-  def broadcast(cache(hooks: hooks(post: post_hooks)), action, result),
-    do: broadcast_action(post_hooks, action, result)
+  def broadcast(cache(hooks: hooks(post: post)), action, result),
+    do: broadcast_action(post, action, result)
 
   @doc """
   Notifies a set of hooks of the passed in data.
