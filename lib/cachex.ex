@@ -1432,10 +1432,10 @@ defmodule Cachex do
   # This will trigger the initial cache warming via `Cachex.warm/2` while
   # also respecting whether certain warmers should block startup or not.
   defp setup_warmers(cache(warmers: warmers) = cache) do
-    {required, optional} = Enum.split_with(warmers, &warmer(&1, :required))
+    {req, opt} = Enum.split_with(warmers, &warmer(&1, :required))
 
-    required = [only: Enum.map(required, &warmer(&1, :name)), wait: true]
-    optional = [only: Enum.map(optional, &warmer(&1, :name)), wait: false]
+    required = [only: Enum.map(req, &warmer(&1, :name)), wait: true]
+    optional = [only: Enum.map(opt, &warmer(&1, :name)), wait: false]
 
     with {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ required),
          {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ optional) do
