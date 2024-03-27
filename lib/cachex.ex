@@ -305,7 +305,7 @@ defmodule Cachex do
     with {:ok, name} <- Keyword.fetch(options, :name),
          {:ok, true} <- ensure_started(),
          {:ok, true} <- ensure_unused(name),
-         {:ok, cache} <- setup_env(name, options),
+         {:ok, cache} <- Options.parse(name, options),
          {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
          {:ok, link} = Services.link(cache),
          ^link <- Overseer.update(name, link),
@@ -1427,43 +1427,18 @@ defmodule Cachex do
     end
   end
 
-  # Configures the environment for a new cache.
-  #
-  # This will first parse all provided options into a cache record, if
-  # the options provided are valid (errors if not). Then we create a
-  # new base ETS table to validate the ETS options, before deleting
-  # the table and reporting that everything is ready.
-  #
-  # At a glance this seems very strange, but we use Eternal to manage
-  # our table and so the Supervisor would simply crash on invalid
-  # table options, which does not allow us to explain to the user.
-  defp setup_env(name, options) when is_list(options) do
-    with {:ok, cache} <- Options.parse(name, options) do
-      try do
-        :ets.new(name, [:named_table | const(:table_options)])
-        :ets.delete(name)
-        {:ok, cache}
-      rescue
-        # coveralls-ignore-start
-        _ ->
-          error(:invalid_option)
-          # coveralls-ignore-stop
-      end
-    end
-  end
-
   # Initializes cache warmers on startup.
   #
   # This will trigger the initial cache warming via `Cachex.warm/2` while
   # also respecting whether certain warmers should block startup or not.
   defp setup_warmers(cache(warmers: warmers) = cache) do
-    groups = Enum.group_by(warmers, &warmer(&1, :async), &warmer(&1, :name))
+    {required, optional} = Enum.split_with(warmers, &warmer(&1, :required))
 
-    startup = [wait: true, only: Map.get(groups, false, [])]
-    spawned = [wait: false, only: Map.get(groups, true, [])]
+    required = [only: Enum.map(required, &warmer(&1, :name)), wait: true]
+    optional = [only: Enum.map(optional, &warmer(&1, :name)), wait: false]
 
-    with {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ spawned),
-         {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ startup) do
+    with {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ required),
+         {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ optional) do
       :ok
     end
   end
