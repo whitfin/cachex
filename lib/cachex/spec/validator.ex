@@ -133,14 +133,15 @@ defmodule Cachex.Spec.Validator do
 
   # Validates a warmer specification record.
   #
-  # This will validate that the provided module correctly implements
-  # the behaviour of `Cachex.Warmer` via function checking.
-  def valid?(:warmer, warmer(module: module, name: name)) do
+  # This will validate that the provided module correctly implements the
+  # behaviour of `Cachex.Warmer` via function checking.
+  def valid?(:warmer, warmer(module: module, name: name, required: required)) do
     check1 = behaviour?(module, Cachex.Warmer)
     check2 = check1 and {:interval, 0} in module.__info__(:functions)
     check3 = check2 and {:execute, 1} in module.__info__(:functions)
     check4 = check3 and nillable?(name, &(is_atom(&1) or is_pid(&1)))
-    check4
+    check5 = check4 and is_boolean(required)
+    check5
   end
 
   # Catch-all for invalid records.

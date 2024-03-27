@@ -100,9 +100,9 @@ defmodule Cachex.Spec do
   # Record specification for a cache warmer
   @type warmer ::
           record(:warmer,
+            required: boolean,
             module: atom,
             state: any,
-            async: boolean,
             name: GenServer.server()
           )
 
@@ -254,13 +254,13 @@ defmodule Cachex.Spec do
 
   A warmer should have a valid module provided, which correctly implements the behaviour
   associated with `Cachex.Warmer`. A state can also be provided, which will be passed
-  to the execution callback of the provided module (which defaults to `nil`). An async
-  flag determines if initial warmup will run asynchronously cache startup.
+  to the execution callback of the provided module (which defaults to `nil`). The flag
+  `:required` determines if the warmer much execute on cache startup.
   """
   defrecord :warmer,
+    required: true,
     module: nil,
     state: nil,
-    async: false,
     name: nil
 
   ###############

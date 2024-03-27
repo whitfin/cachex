@@ -45,13 +45,13 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which aren't blocking" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:async_warmer, 50, fn _ ->
+    Helper.create_warmer(:optional_warmer, 50, fn _ ->
       :timer.sleep(3000)
       {:ok, [{1, 1}]}
     end)
 
     # create a cache instance with a warmer
-    warmer = warmer(module: :async_warmer, async: true)
+    warmer = warmer(module: :optional_warmer, required: false)
     cache = Helper.create_cache(warmers: [warmer])
 
     # check that the key was not warmed
@@ -79,12 +79,12 @@ defmodule Cachex.WarmerTest do
 
   test "triggering cache hooks from within warmers" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:hook_warmer_async, 15000, fn _ ->
+    Helper.create_warmer(:hook_warmer_optional, 15000, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:hook_warmer_sync, 15000, fn _ ->
+    Helper.create_warmer(:hook_warmer_required, 15000, fn _ ->
       {:ok, [{2, 2}]}
     end)
 
@@ -95,8 +95,8 @@ defmodule Cachex.WarmerTest do
     Helper.create_cache(
       hooks: [hook],
       warmers: [
-        warmer(module: :hook_warmer_async, async: true),
-        warmer(module: :hook_warmer_sync, async: false)
+        warmer(module: :hook_warmer_optional, required: false),
+        warmer(module: :hook_warmer_required, required: true)
       ]
     )
 

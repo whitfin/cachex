@@ -17,12 +17,19 @@ import Cachex.Spec
 # define the cache with our warmer
 Cachex.start_link(:my_cache, [
   warmers: [
-    warmer(module: MyProject.DatabaseWarmer, state: connection)
+    warmer(
+      module: MyProject.DatabaseWarmer,
+      state: connection
+    )
   ]
 ])
 ```
 
-These are the only two fields in a `warmer()` record; a `:module` tag to define the module, and a `:state` field to define the state to be provided to the warmer (used later). The state in this case is a connection handle to our database, since we'll need that for queries we're trying to warm. All that remains is to implement our `DatabaseWarmer` module which implements the warmer behaviour:
+These are generally the only two fields you'll have to set in a `warmer()~ record; a `:module` tag to define the module, and a `:state` field to define the state to be provided to the warmer (used later). The state in this case is a connection handle to our database, since we'll need that for queries we're trying to warm.
+
+In terms of other useful options, you may pass a `:name` to use as the warmer's process name, which will default to the PID used by the process. You can also use the `:required` flag to signal whether it is necessary for a warmer to fully execute before your cache is deemed available. This defaults to `true`, but can easily be set to `false` if you're happy for your data to load asynchronously.
+
+With our cache created, all that remains is to implement our `DatabaseWarmer` module which implements the warmer behaviour:
 
 ```elixir
 defmodule MyProject.DatabaseWarmer do
