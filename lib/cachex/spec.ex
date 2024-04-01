@@ -27,6 +27,7 @@ defmodule Cachex.Spec do
   @type cache ::
           record(:cache,
             name: atom,
+            cluster: cluster,
             commands: map,
             compressed: boolean,
             expiration: expiration,
@@ -37,6 +38,14 @@ defmodule Cachex.Spec do
             ordered: boolean,
             transactions: boolean,
             warmers: [warmer]
+          )
+
+  # Record specification for a cluster instance
+  @type cluster ::
+          record(:cluster,
+            enabled: boolean,
+            router: (any, any -> atom),
+            nodes: any
           )
 
   # Record specification for a command instance
@@ -119,6 +128,7 @@ defmodule Cachex.Spec do
   """
   defrecord :cache,
     name: nil,
+    cluster: nil,
     commands: %{},
     compressed: false,
     expiration: nil,
@@ -129,6 +139,11 @@ defmodule Cachex.Spec do
     ordered: false,
     transactions: false,
     warmers: []
+
+  defrecord :cluster,
+    enabled: false,
+    router: nil,
+    nodes: nil
 
   @doc """
   Creates a command record from the provided values.
@@ -272,6 +287,12 @@ defmodule Cachex.Spec do
   """
   @spec cache(cache, Keyword.t()) :: cache
   defmacro cache(record, args)
+
+  @doc """
+  Updates a cluster record from the provided values.
+  """
+  @spec cluster(cluster, Keyword.t()) :: cluster
+  defmacro cluster(record, args)
 
   @doc """
   Updates a command record from the provided values.

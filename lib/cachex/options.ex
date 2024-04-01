@@ -308,7 +308,20 @@ defmodule Cachex.Options do
         error(:invalid_nodes)
 
       true ->
-        cache(cache, nodes: nodes)
+        cache(cache,
+          nodes: nodes,
+          cluster:
+            cluster(
+              enabled: nodes != [node()],
+              router: fn key, nodes ->
+                key
+                |> :erlang.phash2()
+                |> Jumper.slot(length(nodes))
+              end,
+              nodes: nodes
+            )
+        )
+
         # coveralls-ignore-stop
     end
   end
