@@ -73,8 +73,9 @@ defmodule Cachex.Options do
       end)
 
     # wrap for compatibility
-    with cache() <- parsed,
-         do: {:ok, parsed}
+    with cache() <- parsed do
+      {:ok, parsed}
+    end
   end
 
   @doc """
@@ -309,16 +310,18 @@ defmodule Cachex.Options do
 
       true ->
         cache(cache,
-          nodes: nodes,
           cluster:
             cluster(
               enabled: nodes != [node()],
               router: fn key, nodes ->
-                key
-                |> :erlang.phash2()
-                |> Jumper.slot(length(nodes))
+                slot =
+                  key
+                  |> :erlang.phash2()
+                  |> Jumper.slot(length(nodes))
+
+                Enum.at(nodes, slot)
               end,
-              nodes: nodes
+              state: nodes
             )
         )
 

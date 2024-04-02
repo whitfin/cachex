@@ -34,7 +34,6 @@ defmodule Cachex.Spec do
             fallback: fallback,
             hooks: hooks,
             limit: limit,
-            nodes: [atom],
             ordered: boolean,
             transactions: boolean,
             warmers: [warmer]
@@ -45,7 +44,7 @@ defmodule Cachex.Spec do
           record(:cluster,
             enabled: boolean,
             router: (any, any -> atom),
-            nodes: any
+            state: any
           )
 
   # Record specification for a command instance
@@ -135,7 +134,6 @@ defmodule Cachex.Spec do
     fallback: nil,
     hooks: nil,
     limit: nil,
-    nodes: [],
     ordered: false,
     transactions: false,
     warmers: []
@@ -143,7 +141,7 @@ defmodule Cachex.Spec do
   defrecord :cluster,
     enabled: false,
     router: nil,
-    nodes: nil
+    state: nil
 
   @doc """
   Creates a command record from the provided values.
