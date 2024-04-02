@@ -27,7 +27,7 @@ defmodule Cachex.Router do
   Dispatches a call to an appropriate execution environment.
 
   This acts as a macro just to avoid the overhead of slicing up module
-  names are runtime, when they can be guaranteed at compile time much
+  names at runtime, when they can be guaranteed at compile time much
   more easily.
   """
   defmacro call(cache, {action, _arguments} = call) do
@@ -41,7 +41,11 @@ defmodule Cachex.Router do
 
     quote do
       Overseer.enforce unquote(cache) do
-        Router.execute(var!(cache), unquote(act_join), unquote(call))
+        call = unquote(call)
+        cache = var!(cache)
+        module = unquote(act_join)
+
+        Router.execute(cache, module, call)
       end
     end
   end
@@ -52,23 +56,17 @@ defmodule Cachex.Router do
   This macro should not be called externally; the only reason it remains
   public is due to the code injected by the `dispatch/2` macro.
   """
-  defmacro execute(cache, module, call) do
-    quote do
-      current = node()
+  @spec execute(Cachex.Spec.cache(), atom, {atom, [any]}) :: any
+  def execute(cache(cluster: cluster(enabled: false)) = cache, module, call),
+    do: route_local(cache, module, call)
 
-      case unquote(cache) do
-        cache(nodes: [^current]) ->
-          unquote(configure_local(cache, module, call))
+  def execute(cache(cluster: cluster(enabled: true)) = cache, module, call),
+    do: route_cluster(cache, module, call)
 
-        cache(nodes: remote_nodes) ->
-          unquote(
-            configure_remote(cache, module, call, quote(do: remote_nodes))
-          )
-      end
-    end
-  end
+  ###############
+  # Private API #
+  ###############
 
-  @doc false
   # Results merging for distributed cache results.
   #
   # Follows these rules:
@@ -80,16 +78,16 @@ defmodule Cachex.Router do
   #
   # This has to be public due to scopes, but we hide the docs
   # because we don't really care for anybody else calling it.
-  def result_merge(left, right) when is_list(left),
+  defp result_merge(left, right) when is_list(left),
     do: left ++ right
 
-  def result_merge(left, right) when is_number(left),
+  defp result_merge(left, right) when is_number(left),
     do: left + right
 
-  def result_merge(left, right) when is_boolean(left),
+  defp result_merge(left, right) when is_boolean(left),
     do: left && right
 
-  def result_merge(left, right) when is_map(left) do
+  defp result_merge(left, right) when is_map(left) do
     Map.merge(left, right, fn
       :creation_date, _left, right ->
         right
@@ -102,10 +100,6 @@ defmodule Cachex.Router do
     end)
   end
 
-  ###############
-  # Private API #
-  ###############
-
   # Provides handling for local actions on this node.
   #
   # This will provide handling of notifications across hooks before and after
@@ -116,36 +110,29 @@ defmodule Cachex.Router do
   # simply executed as is. If `via` is provided, you can override the handle
   # passed to the hooks (useful for re-use of functions). An example of this
   # is `decr/4` which simply calls `incr/4` with `via: { :decr, arguments }`.
-  defp configure_local(cache, module, {_action, arguments} = call) do
-    quote do
-      call = unquote(call)
-      cache = unquote(cache)
-      module = unquote(module)
-      arguments = unquote(arguments)
+  defp route_local(cache, module, {_action, arguments} = call) do
+    option = List.last(arguments)
+    notify = Keyword.get(option, :notify, true)
 
-      option = List.last(arguments)
-      notify = Keyword.get(option, :notify, true)
+    message =
+      notify &&
+        case option[:via] do
+          msg when not is_tuple(msg) -> call
+          msg -> msg
+        end
 
-      message =
-        notify &&
-          case option[:via] do
-            msg when not is_tuple(msg) -> call
-            msg -> msg
-          end
+    notify && Informant.broadcast(cache, message)
+    result = apply(module, :execute, [cache | arguments])
 
-      notify && Informant.broadcast(cache, message)
-      result = apply(module, :execute, [cache | arguments])
-
-      if notify do
-        Informant.broadcast(
-          cache,
-          message,
-          Keyword.get(option, :hook_result, result)
-        )
-      end
-
-      result
+    if notify do
+      Informant.broadcast(
+        cache,
+        message,
+        Keyword.get(option, :hook_result, result)
+      )
     end
+
+    result
   end
 
   # actions based on a key
@@ -172,9 +159,11 @@ defmodule Cachex.Router do
   # the total number of slots available (i.e. the count of the nodes). If it comes
   # out to the local node, just execute the local code, otherwise RPC the base call
   # to the remote node, and just assume that it'll correctly handle it.
-  defp configure_remote(cache, module, {action, [key | _]} = call, nodes)
-       when action in @keyed_actions,
-       do: call_slot(cache, module, call, nodes, slot_key(key, nodes))
+  defp route_cluster(cache, module, {action, [key | _]} = call)
+       when action in @keyed_actions do
+    cache(cluster: cluster(router: router, state: nodes)) = cache
+    route_node(cache, module, call, router.(key, nodes))
+  end
 
   # actions which merge outputs
   @merge_actions [
@@ -196,53 +185,47 @@ defmodule Cachex.Router do
   # them with the results on the local node. The hooks will only be notified
   # on the local node, due to an annoying recursion issue when handling the
   # same across all nodes - seems to provide better logic though.
-  defp configure_remote(cache, module, {action, arguments} = call, nodes)
+  defp route_cluster(cache, module, {action, arguments} = call)
        when action in @merge_actions do
-    quote do
-      # :bind_quoted
-      call = unquote(call)
-      cache = unquote(cache)
-      nodes = unquote(nodes)
-      module = unquote(module)
-      arguments = unquote(arguments)
+    # fetch the nodes from the cluster state
+    cache(cluster: cluster(state: nodes)) = cache
 
-      # all calls have options we can use
-      options = List.last(arguments)
+    # all calls have options we can use
+    options = List.last(arguments)
 
-      # can force local node setting local: true
-      results =
-        case Keyword.get(options, :local) do
-          true ->
-            []
+    # can force local node setting local: true
+    results =
+      case Keyword.get(options, :local) do
+        true ->
+          []
 
-          _any ->
-            # don't want to execute on the local node
-            other_nodes = List.delete(nodes, node())
+        _any ->
+          # don't want to execute on the local node
+          other_nodes = List.delete(nodes, node())
 
-            # execute the call on all other nodes
-            {results, _} =
-              :rpc.multicall(
-                other_nodes,
-                module,
-                :execute,
-                [cache | arguments]
-              )
+          # execute the call on all other nodes
+          {results, _} =
+            :rpc.multicall(
+              other_nodes,
+              module,
+              :execute,
+              [cache | arguments]
+            )
 
-            results
-        end
+          results
+      end
 
-      # execution on the local node, using the local macros and then unpack
-      {:ok, result} = unquote(configure_local(cache, module, call))
+    # execution on the local node, using the local macros and then unpack
+    {:ok, result} = route_local(cache, module, call)
 
-      # results merge
-      merge_result =
-        results
-        |> Enum.map(&elem(&1, 1))
-        |> Enum.reduce(result, &Router.result_merge/2)
+    # results merge
+    merge_result =
+      results
+      |> Enum.map(&elem(&1, 1))
+      |> Enum.reduce(result, &result_merge/2)
 
-      # return after merge
-      {:ok, merge_result}
-    end
+    # return after merge
+    {:ok, merge_result}
   end
 
   # actions which always run locally
@@ -251,108 +234,75 @@ defmodule Cachex.Router do
   # Provides handling of `:inspect` operations.
   #
   # These operations are guaranteed to run on the local nodes.
-  defp configure_remote(cache, module, {action, _arguments} = call, _nodes)
+  defp route_cluster(cache, module, {action, _arguments} = call)
        when action in @local_actions,
-       do: configure_local(cache, module, call)
+       do: route_local(cache, module, call)
 
   # Provides handling of `:put_many` operations.
   #
   # These operations can only execute if their keys slot to the same remote nodes.
-  defp configure_remote(cache, module, {:put_many, _arguments} = call, nodes),
-    do: multi_call_slot(cache, module, call, nodes, quote(do: &elem(&1, 0)))
+  defp route_cluster(cache, module, {:put_many, _arguments} = call),
+    do: route_batch(cache, module, call, &elem(&1, 0))
 
   # Provides handling of `:transaction` operations.
   #
   # These operations can only execute if their keys slot to the same remote nodes.
-  defp configure_remote(cache, module, {:transaction, [keys | _]} = call, nodes) do
+  defp route_cluster(cache, module, {:transaction, [keys | _]} = call) do
     case keys do
-      [] -> configure_local(cache, module, call)
-      _ -> multi_call_slot(cache, module, call, nodes, quote(do: & &1))
+      [] -> route_local(cache, module, call)
+      _ -> route_batch(cache, module, call, & &1)
     end
   end
 
   # Any other actions are explicitly disabled in distributed environments.
-  defp configure_remote(_cache, _module, _call, _nodes),
+  defp route_cluster(_cache, _module, _call),
     do: error(:non_distributed)
-
-  # Calls a slot for the provided cache action.
-  #
-  # This will determine a local slot and delegate locally if so, bypassing
-  # any RPC calls required. This function currently assumes that there is
-  # a local variable available named "remote_nodes" and "slot", until I
-  # figure out how to better improve the macro scoping in use locally.
-  defp call_slot(cache, module, {action, arguments} = call, nodes, slot) do
-    quote do
-      slot = unquote(slot)
-      nodes = unquote(nodes)
-      action = unquote(action)
-      arguments = unquote(arguments)
-      cache(name: name) = unquote(cache)
-
-      case Enum.at(nodes, slot) do
-        ^current ->
-          unquote(configure_local(cache, module, call))
-
-        targeted ->
-          result =
-            :rpc.call(
-              targeted,
-              Cachex,
-              action,
-              [name | arguments]
-            )
-
-          with {:badrpc, reason} <- result do
-            {:error, reason}
-          end
-      end
-    end
-  end
 
   # Calls a slot for the provided cache action if all keys slot to the same node.
   #
-  # This is a delegate handler for `call_slot/5`, but ensures that all keys slot to the
+  # This is a delegate handler for `route_node/4`, but ensures that all keys slot to the
   # same node to avoid the case where we have to fork a call out internally.
-  defp multi_call_slot(cache, module, call, nodes, mapper) do
-    {_action, [keys | _]} = call
+  defp route_batch(cache, module, {_action, [keys | _]} = call, mapper) do
+    # map all keys to a slot in the nodes list
+    cache(cluster: cluster(router: router, state: nodes)) = cache
+    slots = Enum.map(keys, &router.(mapper.(&1), nodes))
 
-    quote do
-      # :bind_quoted
-      keys = unquote(keys)
-      mapper = unquote(mapper)
+    # unique to avoid dups
+    case Enum.uniq(slots) do
+      # if there's a single slot it's safe to continue with the call to the remote
+      [slot] ->
+        route_node(cache, module, call, slot)
 
-      # map all keys to a slot in the nodes list
-      slots =
-        Enum.map(keys, fn key ->
-          # basically just slot_key(mapper.(key), nodes)
-          unquote(slot_key(quote(do: mapper.(key)), nodes))
-        end)
-
-      # unique to avoid dups
-      case Enum.uniq(slots) do
-        # if there's a single slot it's safe to continue with the call to the remote
-        [slot] ->
-          unquote(call_slot(cache, module, call, nodes, quote(do: slot)))
-
-        # otherwise, cross_slot errors!
-        _disable ->
-          error(:cross_slot)
-      end
+      # otherwise, cross_slot errors!
+      _disable ->
+        error(:cross_slot)
     end
   end
 
-  # Slots a key into the list of provided nodes.
+  # Calls a node for the provided cache action.
   #
-  # This uses `:erlang.phash2/1` to hash the key to a numeric value,
-  # as keys can be basically any type - so others hashes would be
-  # more expensive due to the serialization costs. Note that the
-  # collision possibility isn't really relevant, as long as there's
-  # a uniformly random collision possibility.
-  defp slot_key(key, nodes) do
-    quote bind_quoted: [key: key, nodes: nodes] do
-      key
-      |> :erlang.phash2()
-      |> Jumper.slot(length(nodes))
+  # This will determine a local slot and delegate locally if so, bypassing
+  # any RPC calls in order to gain a slight bit of performance.
+  defp route_node(cache, module, {action, arguments} = call, node) do
+    current = node()
+    cache(name: name) = cache
+
+    case node do
+      ^current ->
+        route_local(cache, module, call)
+
+      targeted ->
+        result =
+          :rpc.call(
+            targeted,
+            Cachex,
+            action,
+            [name | arguments]
+          )
+
+        with {:badrpc, reason} <- result do
+          {:error, reason}
+        end
     end
   end
 end
