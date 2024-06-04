@@ -18,6 +18,7 @@ defmodule Cachex.Services.Courier do
 
   # add some aliases
   alias Cachex.Actions
+  alias Cachex.Actions.Get
   alias Cachex.Actions.Put
   alias Cachex.ExecutionError
 
@@ -65,45 +66,50 @@ defmodule Cachex.Services.Courier do
   # Due to the nature of the async behaviour, this call will return before
   # the task has been completed, and the :notify callback will receive the
   # results from the task after completion (regardless of outcome).
-  def handle_call({:dispatch, key, task, stack}, caller, {cache, tasks}) do
-    references =
-      case Map.get(tasks, key) do
-        {pid, listeners} ->
-          {pid, [caller | listeners]}
+  def handle_call({:dispatch, key, task, stack}, caller, {cache, tasks} = state) do
+    case Map.get(tasks, key) do
+      {pid, listeners} ->
+        {:noreply, {cache, Map.put(tasks, key, {pid, [caller | listeners]})}}
 
-        nil ->
-          parent = self()
+      nil ->
+        case Get.execute(cache, key, []) do
+          {:ok, nil} ->
+            parent = self()
 
-          worker =
-            spawn_link(fn ->
-              result =
-                try do
-                  task.()
-                rescue
-                  e ->
-                    {
-                      :error,
-                      %ExecutionError{
-                        message: Exception.message(e),
-                        stack: stack_compat() ++ stack
+            worker =
+              spawn_link(fn ->
+                result =
+                  try do
+                    task.()
+                  rescue
+                    e ->
+                      {
+                        :error,
+                        %ExecutionError{
+                          message: Exception.message(e),
+                          stack: stack_compat() ++ stack
+                        }
                       }
-                    }
+                  end
+
+                formatted = Actions.format_fetch_value(result)
+                normalized = Actions.normalize_commit(formatted)
+
+                with {:commit, val, options} <- normalized do
+                  Put.execute(cache, key, val, [
+                    const(:notify_false) | options
+                  ])
                 end
 
-              formatted = Actions.format_fetch_value(result)
-              normalized = Actions.normalize_commit(formatted)
+                send(parent, {:notify, key, formatted})
+              end)
 
-              with {:commit, val, options} <- normalized do
-                Put.execute(cache, key, val, [const(:notify_false) | options])
-              end
+            {:noreply, {cache, Map.put(tasks, key, {worker, [caller]})}}
 
-              send(parent, {:notify, key, formatted})
-            end)
-
-          {worker, [caller]}
-      end
-
-    {:noreply, {cache, Map.put(tasks, key, references)}}
+          {:ok, _value} = res ->
+            {:reply, res, state}
+        end
+    end
   end
 
   @doc false
