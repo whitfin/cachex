@@ -180,4 +180,26 @@ defmodule Cachex.Actions.FetchTest do
     assert(get1 == {:ok, "1"})
     assert(get2 == {:ok, "2"})
   end
+
+  # This test ensures that the fallback is executed just once per key, per ttl
+  test "fetching will only call fallback once per key" do
+    cache = Helper.create_cache()
+    agent = start_supervised!({Agent, fn -> %{} end})
+
+    for test_index <- 1..100 do
+      test_key = "test_key_#{test_index}"
+
+      1..(System.schedulers_online() * 2)
+      |> Task.async_stream(fn _ ->
+        Cachex.fetch(cache, test_key, fn ->
+          Agent.update(agent, fn state ->
+            Map.update(state, test_key, 1, &(&1 + 1))
+          end)
+        end)
+      end)
+      |> Stream.run()
+
+      assert 1 == Agent.get(agent, &Map.get(&1, test_key))
+    end
+  end
 end
