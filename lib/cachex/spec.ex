@@ -500,18 +500,6 @@ defmodule Cachex.Spec do
     do: quote(do: [{:via, unquote(action)} | unquote(options)])
 
   @doc """
-  Retrieves the currently handled stacktrace.
-  """
-  @spec stack_compat :: any
-  defmacro stack_compat() do
-    if Version.match?(System.version(), ">= 1.7.0") do
-      quote(do: __STACKTRACE__)
-    else
-      quote(do: System.stacktrace())
-    end
-  end
-
-  @doc """
   Wraps a value inside a tagged Tuple using the provided tag.
   """
   @spec wrap(any, atom) :: {atom, any}
