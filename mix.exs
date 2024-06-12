@@ -24,7 +24,7 @@ defmodule Cachex.Mixfile do
         maintainers: ["Isaac Whitfield"]
       },
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.7",
       deps: deps(),
       docs: [
         source_ref: "v#{@version}",
@@ -101,7 +101,7 @@ defmodule Cachex.Mixfile do
       {:excoveralls, "~> 0.15", optional: true, only: [:cover]},
       {:local_cluster, "~> 1.1", optional: true, only: [:cover, :test]},
       # Linting dependencies
-      {:credo, "~> 1.6", optional: true, only: [:lint]},
+      {:credo, "~> 1.7", optional: true, only: [:lint]},
       # Benchmarking dependencies
       {:benchee, "~> 1.1", optional: true, only: [:bench]},
       {:benchee_html, "~> 1.0", optional: true, only: [:bench]},

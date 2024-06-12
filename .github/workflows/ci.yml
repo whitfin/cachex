@@ -26,8 +26,6 @@ jobs:
         - '1.9'
         - '1.8'
         - '1.7'
-        - '1.6'
-        - '1.5'
 
     steps:
       - uses: actions/checkout@v3

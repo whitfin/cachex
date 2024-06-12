@@ -180,4 +180,50 @@ defmodule Cachex.Actions.FetchTest do
     assert(get1 == {:ok, "1"})
     assert(get2 == {:ok, "2"})
   end
+
+  # This test ensures that the fallback is executed just once per key, per TTL,
+  # due to a race condition that previously existed inside the Courier. If the
+  # bug were to reappear, this test should fail and catch it.
+  test "fetching will only call fallback once per key" do
+    # create a test cache
+    cache = Helper.create_cache()
+
+    # create a test agent to hold our test state
+    {:ok, agent} = Agent.start_link(fn -> %{} end)
+
+    # execute 100 fetches
+    for idx <- 1..100 do
+      # with a unique key
+      key = "key_#{idx}"
+      count = System.schedulers_online() * 2
+
+      # track all changes caused by fetch
+      tasks =
+        Task.async_stream(1..count, fn _ ->
+          Cachex.fetch(cache, key, fn ->
+            Agent.update(agent, fn state ->
+              Map.update(state, key, 1, &(&1 + 1))
+            end)
+          end)
+        end)
+
+      # run the tasks together
+      Stream.run(tasks)
+    end
+
+    # fetch the agent state
+    state = Agent.get(agent, & &1)
+
+    # determine call frequency
+    calls =
+      Enum.reduce(state, %{}, fn {_key, count}, acc ->
+        case acc do
+          %{^count => value} -> %{acc | count => value + 1}
+          %{} -> Map.put(acc, count, 1)
+        end
+      end)
+
+    # all should have been called just once
+    assert %{1 => 100} == calls
+  end
 end
