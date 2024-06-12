@@ -87,7 +87,7 @@ defmodule Cachex.Services.Courier do
                         :error,
                         %ExecutionError{
                           message: Exception.message(e),
-                          stack: stack_compat() ++ stack
+                          stack: __STACKTRACE__ ++ stack
                         }
                       }
                   end
