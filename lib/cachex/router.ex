@@ -13,12 +13,12 @@ defmodule Cachex.Router do
   #############
 
   @doc """
-  Initializes a routing state using a list of nodes.
+  Initialize a routing state using a list of nodes.
   """
   @callback init(nodes :: [atom], options :: Keyword.t()) :: any
 
   @doc """
-  Retrieves the list of nodes from a routing state.
+  Retrieve the list of nodes from a routing state.
   """
   @callback nodes(state :: any) :: [atom]
 

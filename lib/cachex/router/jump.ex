@@ -13,7 +13,7 @@ defmodule Cachex.Router.Jump do
   use Cachex.Router
 
   @doc """
-  Initializes a routing state using a list of nodes.
+  Initialize a routing state using a list of nodes.
 
   In the case of this router the routing state is simply the list
   of nodes being tracked, with duplicate entries removed.
@@ -23,7 +23,7 @@ defmodule Cachex.Router.Jump do
     do: Enum.uniq(nodes)
 
   @doc """
-  Retrieves the list of nodes from a routing state.
+  Retrieve the list of nodes from a routing state.
   """
   @spec nodes(nodes :: [atom]) :: [atom]
   def nodes(nodes),
