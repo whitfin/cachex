@@ -17,6 +17,7 @@ defmodule Cachex.ErrorsTest do
       invalid_nodes: "Invalid nodes list provided",
       invalid_option: "Invalid option syntax provided",
       invalid_pairs: "Invalid insertion pairs provided",
+      invalid_router: "Invalid router definition provided",
       invalid_warmer: "Invalid warmer definition provided",
       janitor_disabled: "Specified janitor process running",
       no_cache: "Specified cache not running",

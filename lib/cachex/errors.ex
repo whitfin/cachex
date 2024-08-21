@@ -23,6 +23,7 @@ defmodule Cachex.Errors do
     :invalid_nodes,
     :invalid_option,
     :invalid_pairs,
+    :invalid_router,
     :invalid_warmer,
     :janitor_disabled,
     :no_cache,
@@ -98,6 +99,9 @@ defmodule Cachex.Errors do
 
   def long_form(:invalid_pairs),
     do: "Invalid insertion pairs provided"
+
+  def long_form(:invalid_router),
+    do: "Invalid router definition provided"
 
   def long_form(:invalid_warmer),
     do: "Invalid warmer definition provided"

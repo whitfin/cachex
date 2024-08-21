@@ -41,15 +41,15 @@ defmodule Cachex do
   alias Cachex.ExecutionError
   alias Cachex.Options
   alias Cachex.Query
-  alias Cachex.Router
   alias Cachex.Services
 
   # alias any services
+  alias Services.Conductor
   alias Services.Overseer
 
   # import util macros
+  require Conductor
   require Overseer
-  require Router
 
   # avoid inspect clashes
   import Kernel, except: [inspect: 2]
@@ -277,6 +277,23 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ ordered: true ])
           { :ok, _pid }
 
+    * `:router`
+
+      This option determines which module is used for cache routing inside distributed
+      caches. You can provide either a full `record` structure or simply a module name.
+
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
+          ...>   router: router(
+          ...>     module: Cachex.Router.Jump,
+          ...>     options: []
+          ...>   )
+          ...> ])
+          { :ok, _pid }
+
+      Please see the `Cachex.Spec.router/1` documentation for further customization options.
+
     * `:stats`
 
       This option can be used to toggle statistics gathering for a cache. This is a
@@ -299,6 +316,33 @@ defmodule Cachex do
           iex> Cachex.start_link(:my_cache, [ transactions: true ])
           { :ok, _pid }
 
+    * `:warmers`
+
+      The `:warmers` option allows the user to attach a list of warming modules to
+      a cache. These cache warmers must implement the `Cachex.Warmer` behaviour
+      and are defined as `warmer` records.
+
+      The only required value is the `:module` definition, although you can also
+      choose to provide a name and state to attach to the warmer process. The flag
+      `:required` is used to control whether the warmer must finish execution before
+      the cache supervision tree can be considered fully started.
+
+          iex> import Cachex.Spec
+          ...>
+          ...> Cachex.start_link(:my_cache, [
+          ...>   warmers: [
+          ...>     warmer(
+          ...>       required: true,
+          ...>       module: MyProject.DatabaseWarmer,
+          ...>       state: connection,
+          ...>       name: MyProject.DatabaseWarmer
+          ...>     )
+          ...>   ]
+          ...> ])
+          { :ok, _pid }
+
+      Please see the `Cachex.Spec.warmer/1` documentation for further customization options.
+
   """
   @spec start_link(atom | Keyword.t()) :: {atom, pid}
   def start_link(options) when is_list(options) do
@@ -307,9 +351,10 @@ defmodule Cachex do
          {:ok, true} <- ensure_unused(name),
          {:ok, cache} <- Options.parse(name, options),
          {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
-         {:ok, link} = Services.link(cache),
-         ^link <- Overseer.update(name, link),
-         :ok <- setup_warmers(link) do
+         {:ok, cache} = Services.link(cache),
+         {:ok, cache} <- setup_router(cache),
+         ^cache <- Overseer.update(name, cache),
+         :ok <- setup_warmers(cache) do
       {:ok, pid}
     end
   end
@@ -378,7 +423,7 @@ defmodule Cachex do
   """
   @spec clear(cache, Keyword.t()) :: {status, integer}
   def clear(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:clear, [options]})
+    do: Conductor.route(cache, {:clear, [options]})
 
   @doc """
   Retrieves the number of unexpired records in a cache.
@@ -399,7 +444,7 @@ defmodule Cachex do
   """
   @spec count(cache, Keyword.t()) :: {status, number}
   def count(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:count, [options]})
+    do: Conductor.route(cache, {:count, [options]})
 
   @doc """
   Decrements an entry in the cache.
@@ -455,7 +500,7 @@ defmodule Cachex do
   """
   @spec del(cache, any, Keyword.t()) :: {status, boolean}
   def del(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:del, [key, options]})
+    do: Conductor.route(cache, {:del, [key, options]})
 
   @doc """
   Serializes a cache to a location on a filesystem.
@@ -489,7 +534,7 @@ defmodule Cachex do
   @spec dump(cache, binary, Keyword.t()) :: {status, any}
   def dump(cache, path, options \\ [])
       when is_binary(path) and is_list(options),
-      do: Router.call(cache, {:dump, [path, options]})
+      do: Conductor.route(cache, {:dump, [path, options]})
 
   @doc """
   Determines whether a cache contains any entries.
@@ -511,7 +556,7 @@ defmodule Cachex do
   """
   @spec empty?(cache, Keyword.t()) :: {status, boolean}
   def empty?(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:empty?, [options]})
+    do: Conductor.route(cache, {:empty?, [options]})
 
   @doc """
   Executes multiple functions in the context of a cache.
@@ -565,7 +610,7 @@ defmodule Cachex do
   """
   @spec exists?(cache, any, Keyword.t()) :: {status, boolean}
   def exists?(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:exists?, [key, options]})
+    do: Conductor.route(cache, {:exists?, [key, options]})
 
   @doc """
   Places an expiration time on an entry in a cache.
@@ -589,7 +634,7 @@ defmodule Cachex do
   @spec expire(cache, any, number | nil, Keyword.t()) :: {status, boolean}
   def expire(cache, key, expiration, options \\ [])
       when (is_nil(expiration) or is_number(expiration)) and is_list(options),
-      do: Router.call(cache, {:expire, [key, expiration, options]})
+      do: Conductor.route(cache, {:expire, [key, expiration, options]})
 
   @doc """
   Updates an entry in a cache to expire at a given time.
@@ -634,7 +679,7 @@ defmodule Cachex do
   """
   @spec export(cache, Keyword.t()) :: {status, [Cachex.Spec.entry()]}
   def export(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:export, [options]})
+    do: Conductor.route(cache, {:export, [options]})
 
   @doc """
   Fetches an entry from a cache, generating a value on cache miss.
@@ -701,7 +746,7 @@ defmodule Cachex do
     Overseer.enforce cache do
       case fallback || fallback(cache(cache, :fallback), :default) do
         val when is_function(val) ->
-          Router.call(cache, {:fetch, [key, val, options]})
+          Conductor.route(cache, {:fetch, [key, val, options]})
 
         _na ->
           error(:invalid_fallback)
@@ -724,7 +769,7 @@ defmodule Cachex do
   """
   @spec get(cache, any, Keyword.t()) :: {atom, any}
   def get(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:get, [key, options]})
+    do: Conductor.route(cache, {:get, [key, options]})
 
   @doc """
   Retrieves and updates an entry in a cache.
@@ -754,9 +799,9 @@ defmodule Cachex do
   """
   @spec get_and_update(cache, any, function, Keyword.t()) ::
           {:commit | :ignore, any}
-  def get_and_update(cache, key, update_function, options \\ [])
-      when is_function(update_function) and is_list(options),
-      do: Router.call(cache, {:get_and_update, [key, update_function, options]})
+  def get_and_update(cache, key, updater, options \\ [])
+      when is_function(updater) and is_list(options),
+      do: Conductor.route(cache, {:get_and_update, [key, updater, options]})
 
   @doc """
   Retrieves a list of all entry keys from a cache.
@@ -778,7 +823,7 @@ defmodule Cachex do
   """
   @spec keys(cache, Keyword.t()) :: {status, [any]}
   def keys(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:keys, [options]})
+    do: Conductor.route(cache, {:keys, [options]})
 
   @doc """
   Imports an export set into a cache.
@@ -796,7 +841,7 @@ defmodule Cachex do
   @spec import(cache, [Cachex.Spec.entry()], Keyword.t()) :: {status, any}
   def import(cache, entries, options \\ [])
       when is_list(entries) and is_list(options),
-      do: Router.call(cache, {:import, [entries, options]})
+      do: Conductor.route(cache, {:import, [entries, options]})
 
   @doc """
   Increments an entry in the cache.
@@ -827,7 +872,7 @@ defmodule Cachex do
   @spec incr(cache, any, integer, Keyword.t()) :: {status, integer}
   def incr(cache, key, amount \\ 1, options \\ [])
       when is_integer(amount) and is_list(options),
-      do: Router.call(cache, {:incr, [key, amount, options]})
+      do: Conductor.route(cache, {:incr, [key, amount, options]})
 
   @doc """
   Inspects various aspects of a cache.
@@ -913,7 +958,7 @@ defmodule Cachex do
   """
   @spec inspect(cache, atom | tuple, Keyword.t()) :: {status, any}
   def inspect(cache, option, options \\ []) when is_list(options),
-    do: Router.call(cache, {:inspect, [option, options]})
+    do: Conductor.route(cache, {:inspect, [option, options]})
 
   @doc """
   Invokes a custom command against a cache entry.
@@ -939,7 +984,7 @@ defmodule Cachex do
   """
   @spec invoke(cache, atom, any, Keyword.t()) :: any
   def invoke(cache, cmd, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:invoke, [cmd, key, options]})
+    do: Conductor.route(cache, {:invoke, [cmd, key, options]})
 
   @doc """
   Deserializes a cache from a location on a filesystem.
@@ -982,7 +1027,7 @@ defmodule Cachex do
   @spec load(cache, binary, Keyword.t()) :: {status, any}
   def load(cache, path, options \\ [])
       when is_binary(path) and is_list(options),
-      do: Router.call(cache, {:load, [path, options]})
+      do: Conductor.route(cache, {:load, [path, options]})
 
   @doc """
   Removes an expiration time from an entry in a cache.
@@ -1017,7 +1062,7 @@ defmodule Cachex do
   """
   @spec purge(cache, Keyword.t()) :: {status, number}
   def purge(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:purge, [options]})
+    do: Conductor.route(cache, {:purge, [options]})
 
   @doc """
   Places an entry in a cache.
@@ -1045,7 +1090,7 @@ defmodule Cachex do
   # TODO: maybe rename TTL to be expiration?
   @spec put(cache, any, any, Keyword.t()) :: {status, boolean}
   def put(cache, key, value, options \\ []) when is_list(options),
-    do: Router.call(cache, {:put, [key, value, options]})
+    do: Conductor.route(cache, {:put, [key, value, options]})
 
   @doc """
   Places a batch of entries in a cache.
@@ -1076,7 +1121,7 @@ defmodule Cachex do
   @spec put_many(cache, [{any, any}], Keyword.t()) :: {status, boolean}
   def put_many(cache, pairs, options \\ [])
       when is_list(pairs) and is_list(options),
-      do: Router.call(cache, {:put_many, [pairs, options]})
+      do: Conductor.route(cache, {:put_many, [pairs, options]})
 
   @doc """
   Refreshes an expiration for an entry in a cache.
@@ -1103,7 +1148,7 @@ defmodule Cachex do
   """
   @spec refresh(cache, any, Keyword.t()) :: {status, boolean}
   def refresh(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:refresh, [key, options]})
+    do: Conductor.route(cache, {:refresh, [key, options]})
 
   @doc """
   Resets a cache by clearing the keyspace and restarting any hooks.
@@ -1142,7 +1187,7 @@ defmodule Cachex do
   """
   @spec reset(cache, Keyword.t()) :: {status, true}
   def reset(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:reset, [options]})
+    do: Conductor.route(cache, {:reset, [options]})
 
   @doc """
   Retrieves the total size of a cache.
@@ -1163,7 +1208,7 @@ defmodule Cachex do
   """
   @spec size(cache, Keyword.t()) :: {status, number}
   def size(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:size, [options]})
+    do: Conductor.route(cache, {:size, [options]})
 
   @doc """
   Retrieves statistics about a cache.
@@ -1188,7 +1233,7 @@ defmodule Cachex do
   """
   @spec stats(cache, Keyword.t()) :: {status, map()}
   def stats(cache, options \\ []) when is_list(options),
-    do: Router.call(cache, {:stats, [options]})
+    do: Conductor.route(cache, {:stats, [options]})
 
   @doc """
   Creates a `Stream` of entries in a cache.
@@ -1235,7 +1280,7 @@ defmodule Cachex do
   @spec stream(cache, any, Keyword.t()) :: {status, Enumerable.t()}
   def stream(cache, query \\ Query.create(true), options \\ [])
       when is_list(options),
-      do: Router.call(cache, {:stream, [query, options]})
+      do: Conductor.route(cache, {:stream, [query, options]})
 
   @doc """
   Takes an entry from a cache.
@@ -1258,7 +1303,7 @@ defmodule Cachex do
   """
   @spec take(cache, any, Keyword.t()) :: {status, any}
   def take(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:take, [key, options]})
+    do: Conductor.route(cache, {:take, [key, options]})
 
   @doc """
   Updates the last write time on a cache entry.
@@ -1268,7 +1313,7 @@ defmodule Cachex do
   """
   @spec touch(cache, any, Keyword.t()) :: {status, boolean}
   def touch(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:touch, [key, options]})
+    do: Conductor.route(cache, {:touch, [key, options]})
 
   @doc """
   Executes multiple functions in the context of a transaction.
@@ -1307,7 +1352,7 @@ defmodule Cachex do
             |> Overseer.update(&cache(&1, transactions: true))
         end
 
-      Router.call(trans_cache, {:transaction, [keys, operation, options]})
+      Conductor.route(trans_cache, {:transaction, [keys, operation, options]})
     end
   end
 
@@ -1332,7 +1377,7 @@ defmodule Cachex do
   """
   @spec ttl(cache, any, Keyword.t()) :: {status, integer | nil}
   def ttl(cache, key, options \\ []) when is_list(options),
-    do: Router.call(cache, {:ttl, [key, options]})
+    do: Conductor.route(cache, {:ttl, [key, options]})
 
   @doc """
   Updates an entry in a cache.
@@ -1358,7 +1403,7 @@ defmodule Cachex do
   """
   @spec update(cache, any, any, Keyword.t()) :: {status, any}
   def update(cache, key, value, options \\ []) when is_list(options),
-    do: Router.call(cache, {:update, [key, value, options]})
+    do: Conductor.route(cache, {:update, [key, value, options]})
 
   @doc """
   Triggers a manual warming in a cache.
@@ -1399,7 +1444,7 @@ defmodule Cachex do
   """
   @spec warm(cache, Keyword.t()) :: {status, [atom()]}
   def warm(cache, options \\ []),
-    do: Router.call(cache, {:warm, [options]})
+    do: Conductor.route(cache, {:warm, [options]})
 
   ###############
   # Private API #
@@ -1425,6 +1470,19 @@ defmodule Cachex do
       nil -> {:ok, true}
       pid -> {:error, {:already_started, pid}}
     end
+  end
+
+  # Initializes cache router on startup.
+  #
+  # This will initialize the base router state and attach all nodes
+  # provided at cache startup to the router state.
+  defp setup_router(cache(nodes: nodes, router: router) = cache) do
+    router(module: module, options: options) = router
+
+    state = module.init(nodes, options)
+    local = module.nodes(state) == [node()]
+
+    {:ok, cache(cache, router: router(router, state: state, enabled: !local))}
   end
 
   # Initializes cache warmers on startup.

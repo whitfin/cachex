@@ -27,24 +27,17 @@ defmodule Cachex.Spec do
   @type cache ::
           record(:cache,
             name: atom,
-            cluster: cluster,
             commands: map,
             compressed: boolean,
             expiration: expiration,
             fallback: fallback,
             hooks: hooks,
             limit: limit,
+            nodes: [atom],
             ordered: boolean,
+            router: router,
             transactions: boolean,
             warmers: [warmer]
-          )
-
-  # Record specification for a cluster instance
-  @type cluster ::
-          record(:cluster,
-            enabled: boolean,
-            router: (any, any -> atom),
-            state: any
           )
 
   # Record specification for a command instance
@@ -105,6 +98,14 @@ defmodule Cachex.Spec do
             options: Keyword.t()
           )
 
+  # Record specification for a router instance
+  @type router ::
+          record(:router,
+            enabled: boolean,
+            module: atom,
+            state: any
+          )
+
   # Record specification for a cache warmer
   @type warmer ::
           record(:warmer,
@@ -134,14 +135,11 @@ defmodule Cachex.Spec do
     fallback: nil,
     hooks: nil,
     limit: nil,
+    nodes: [],
     ordered: false,
+    router: nil,
     transactions: false,
     warmers: []
-
-  defrecord :cluster,
-    enabled: false,
-    router: nil,
-    state: nil
 
   @doc """
   Creates a command record from the provided values.
@@ -261,6 +259,21 @@ defmodule Cachex.Spec do
     options: []
 
   @doc """
+  Creates a router record from the provided values.
+
+  A router record reprsents routing within a distributed cache. Each router record should have a
+  valid routing module provided, which correct implements the behaviour defined in `Cachex.Router`.
+
+  Options to be passed on router state initialization can also be provided, but note that all other
+  values inside this structure are for internal use and will be overwritten as needed.
+  """
+  defrecord :router,
+    enabled: false,
+    options: [],
+    module: Cachex.Router.Jump,
+    state: nil
+
+  @doc """
   Creates a warmer record from the provided values.
 
   A warmer record represents cache warmer processes to be run to populate keys.
@@ -285,12 +298,6 @@ defmodule Cachex.Spec do
   """
   @spec cache(cache, Keyword.t()) :: cache
   defmacro cache(record, args)
-
-  @doc """
-  Updates a cluster record from the provided values.
-  """
-  @spec cluster(cluster, Keyword.t()) :: cluster
-  defmacro cluster(record, args)
 
   @doc """
   Updates a command record from the provided values.
@@ -333,6 +340,12 @@ defmodule Cachex.Spec do
   """
   @spec limit(limit, Keyword.t()) :: limit
   defmacro limit(record, args)
+
+  @doc """
+  Updates a router record from the provided values.
+  """
+  @spec router(router, Keyword.t()) :: router
+  defmacro router(record, args)
 
   @doc """
   Updates a warmer record from the provided values.
