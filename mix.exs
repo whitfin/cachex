@@ -95,6 +95,7 @@ defmodule Cachex.Mixfile do
       # Production dependencies
       {:eternal, "~> 1.2"},
       {:jumper, "~> 1.0"},
+      {:libring, "~> 1.6"},
       {:sleeplocks, "~> 1.1"},
       {:unsafe, "~> 1.0"},
       # Testing dependencies

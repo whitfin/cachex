@@ -20,6 +20,7 @@ defmodule Cachex.Options do
     :nodes,
     :limit,
     :hooks,
+    :router,
     :ordered,
     :commands,
     :fallback,
@@ -309,22 +310,7 @@ defmodule Cachex.Options do
         error(:invalid_nodes)
 
       true ->
-        cache(cache,
-          cluster:
-            cluster(
-              enabled: nodes != [node()],
-              router: fn key, nodes ->
-                slot =
-                  key
-                  |> :erlang.phash2()
-                  |> Jumper.slot(length(nodes))
-
-                Enum.at(nodes, slot)
-              end,
-              state: nodes
-            )
-        )
-
+        cache(cache, nodes: nodes)
         # coveralls-ignore-stop
     end
   end
@@ -338,6 +324,37 @@ defmodule Cachex.Options do
       cache(cache,
         ordered: get(options, :ordered, &is_boolean/1, false)
       )
+
+  # Configures a cache based on router flags.
+  #
+  # This allows a user to provide a custom router for distributed
+  # caches, with the default being set to a default router record.
+  defp parse_type(:router, cache() = cache, options) do
+    router =
+      transform(options, :router, fn
+        # provided full record, woohoo!
+        router() = router ->
+          router
+
+        # unset so default
+        nil ->
+          router()
+
+        # shorthand router name
+        mod when is_atom(mod) ->
+          router(module: mod)
+
+        # anything else, no thanks!
+        _invalid ->
+          nil
+      end)
+
+    # validate using the spec validator
+    case Validator.valid?(:router, router) do
+      false -> error(:invalid_router)
+      true -> cache(cache, router: router)
+    end
+  end
 
   # Configures a cache based on transaction flags.
   #
