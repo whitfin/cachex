@@ -16,8 +16,8 @@ defmodule Cachex.Policy.LRW.Evented do
   # add internal aliases
   alias Cachex.Policy.LRW
 
-  # actions which didn't trigger a write
-  @ignored [:error, :ignored]
+  # actions which didn't trigger
+  @ignored [:error, :ignore]
 
   ######################
   # Hook Configuration #

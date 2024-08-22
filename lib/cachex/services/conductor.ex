@@ -44,6 +44,7 @@ defmodule Cachex.Services.Conductor do
   more easily.
   """
   defmacro route(cache, {action, _arguments} = call) do
+    # coveralls-ignore-start
     act_name =
       action
       |> Kernel.to_string()
@@ -51,6 +52,7 @@ defmodule Cachex.Services.Conductor do
       |> Macro.camelize()
 
     act_join = :"Elixir.Cachex.Actions.#{act_name}"
+    # coveralls-ignore-stop
 
     quote do
       Overseer.enforce unquote(cache) do

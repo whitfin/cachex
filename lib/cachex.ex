@@ -1479,7 +1479,7 @@ defmodule Cachex do
   defp setup_router(cache(nodes: nodes, router: router) = cache) do
     router(module: module, options: options) = router
 
-    state = module.init(nodes, options)
+    state = module.new(nodes, options)
     local = module.nodes(state) == [node()]
 
     {:ok, cache(cache, router: router(router, state: state, enabled: !local))}

@@ -7,6 +7,7 @@ defmodule CachexCase do
       alias CachexCase.ExecuteHook
       alias CachexCase.ForwardHook
       alias CachexCase.Helper
+      alias Cachex.Router
       alias Cachex.Services
 
       import Cachex.Spec

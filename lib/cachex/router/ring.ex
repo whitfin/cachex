@@ -12,7 +12,8 @@ defmodule Cachex.Router.Ring do
   @doc """
   Initialize a ring using a list of nodes.
   """
-  def init(nodes, _options \\ []) do
+  @spec new(nodes :: [atom], options :: Keyword.t()) :: HashRing.t()
+  def new(nodes, _options \\ []) do
     ring = HashRing.new()
     ring = HashRing.add_nodes(ring, nodes)
     ring
@@ -21,20 +22,32 @@ defmodule Cachex.Router.Ring do
   @doc """
   Retrieve the list of nodes from a ring.
   """
-  defdelegate nodes(ring), to: HashRing, as: :nodes
+  @spec nodes(ring :: HashRing.t()) :: [atom]
+  def nodes(ring) do
+    ring
+    |> HashRing.nodes()
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
 
   @doc """
   Route a provided key to a node in a ring.
   """
-  defdelegate route(ring, key), to: HashRing, as: :key_to_node
+  @spec route(ring :: HashRing.t(), key :: any) :: atom
+  def route(ring, key),
+    do: HashRing.key_to_node(ring, key)
 
   @doc """
   Attach a new node to a ring.
   """
-  defdelegate attach(ring, node), to: HashRing, as: :add_node
+  @spec attach(ring :: HashRing.t(), node :: atom) :: HashRing.t()
+  def attach(ring, node),
+    do: HashRing.add_node(ring, node)
 
   @doc """
   Detach an existing node to a ring.
   """
-  defdelegate detach(ring, node), to: HashRing, as: :remove_node
+  @spec detach(ring :: HashRing.t(), node :: atom) :: HashRing.t()
+  def detach(ring, node),
+    do: HashRing.remove_node(ring, node)
 end
