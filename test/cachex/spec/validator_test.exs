@@ -206,6 +206,32 @@ defmodule Cachex.Spec.ValidatorTest do
     refute Validator.valid?(:limit, limit8)
   end
 
+  test "validation of router records" do
+    # define some valid records
+    router1 = router(module: Router.Jump)
+    router2 = router(module: Router.Jump, options: [])
+    router3 = router(module: Router.Jump, enabled: true)
+
+    # ensure all records are valid
+    assert Validator.valid?(:router, router1)
+    assert Validator.valid?(:router, router2)
+    assert Validator.valid?(:router, router3)
+
+    # define some invalid records
+    router5 = router(module: " ")
+    router6 = router(module: :missing)
+    router7 = router(module: __MODULE__)
+    router8 = router(module: Router.Jump, options: "")
+    router9 = router(module: Router.Jump, enabled: "yes")
+
+    # ensure all records are invalid
+    refute Validator.valid?(:router, router5)
+    refute Validator.valid?(:router, router6)
+    refute Validator.valid?(:router, router7)
+    refute Validator.valid?(:router, router8)
+    refute Validator.valid?(:router, router9)
+  end
+
   test "validation of warmer records" do
     # create a warmer for validation
     Helper.create_warmer(:validator_warmer, 1000, fn _ ->
