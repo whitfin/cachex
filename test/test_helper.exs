@@ -7,8 +7,8 @@ Application.ensure_all_started(:cachex)
 |> Enum.filter(&(!File.dir?(&1)))
 |> Enum.each(&Code.require_file/1)
 
-# start ExUnit!
-ExUnit.start()
+# start ExUnit with skips
+ExUnit.start(exclude: [:skip])
 
 # internal module
 defmodule TestHelper do
