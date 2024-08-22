@@ -191,8 +191,8 @@ defmodule Cachex.Actions.FetchTest do
     # create a test agent to hold our test state
     {:ok, agent} = Agent.start_link(fn -> %{} end)
 
-    # execute 100 fetches
-    for idx <- 1..100 do
+    # execute 1000 fetches
+    for idx <- 1..1000 do
       # with a unique key
       key = "key_#{idx}"
       count = System.schedulers_online() * 2
@@ -224,6 +224,6 @@ defmodule Cachex.Actions.FetchTest do
       end)
 
     # all should have been called just once
-    assert %{1 => 100} == calls
+    assert %{1 => 1000} == calls
   end
 end
