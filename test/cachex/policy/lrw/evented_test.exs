@@ -47,7 +47,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
 
-    # add 1000 keys to the cache
+    # add 100 keys to the cache
     for x <- 1..100 do
       # add the entry to the cache
       {:ok, true} = Cachex.put(state, x, x)
@@ -64,6 +64,18 @@ defmodule Cachex.Policy.LRW.EventedTest do
 
     # flush all existing hook events
     Helper.flush()
+
+    # run a no-op fetch to verify no change
+    {:ignore, nil} =
+      Cachex.fetch(state, 101, fn ->
+        {:ignore, nil}
+      end)
+
+    # retrieve the cache size
+    size2 = Cachex.size!(cache)
+
+    # verify the cache size
+    assert(size2 == 100)
 
     # add a new key to the cache to trigger evictions
     {:ok, true} = Cachex.put(state, 101, 101)

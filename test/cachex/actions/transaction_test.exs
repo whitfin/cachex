@@ -88,7 +88,8 @@ defmodule Cachex.Actions.TransactionTest do
     {cache, _nodes} = Helper.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
-    {:ok, result} = Cachex.transaction(cache, [2, 3], &:erlang.phash2/1)
+    {:ok, result} = Cachex.transaction(cache, [], &:erlang.phash2/1)
+    {:ok, ^result} = Cachex.transaction(cache, [2, 3], &:erlang.phash2/1)
 
     # check the result phashed ok
     assert(result > 0 && is_integer(result))

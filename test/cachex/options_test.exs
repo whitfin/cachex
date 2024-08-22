@@ -135,27 +135,6 @@ defmodule Cachex.OptionsTest do
     refute comp3
   end
 
-  # This test will verify the parsing of compression flags to determine whether
-  # a cache has them enabled or disabled. This is simply checking whether the flag
-  # is set to true or false, and the default.
-  test "parsing :ordered flags" do
-    # grab a cache name
-    name = Helper.create_name()
-
-    # parse our values as options
-    {:ok, cache(ordered: ordered1)} =
-      Cachex.Options.parse(name, ordered: true)
-
-    {:ok, cache(ordered: ordered2)} =
-      Cachex.Options.parse(name, ordered: false)
-
-    {:ok, cache(ordered: ordered3)} = Cachex.Options.parse(name, [])
-
-    assert ordered1
-    refute ordered2
-    refute ordered3
-  end
-
   # This test verifies the parsing of TTL related flags. We have to test various
   # combinations of :ttl_interval and :default_ttl to verify each state correctly.
   test "parsing :expiration flags" do
@@ -343,6 +322,53 @@ defmodule Cachex.OptionsTest do
 
     # check the fourth causes an error
     assert(msg == :invalid_limit)
+  end
+
+  # This test will verify the parsing of compression flags to determine whether
+  # a cache has them enabled or disabled. This is simply checking whether the flag
+  # is set to true or false, and the default.
+  test "parsing :ordered flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # parse our values as options
+    {:ok, cache(ordered: ordered1)} =
+      Cachex.Options.parse(name, ordered: true)
+
+    {:ok, cache(ordered: ordered2)} =
+      Cachex.Options.parse(name, ordered: false)
+
+    {:ok, cache(ordered: ordered3)} = Cachex.Options.parse(name, [])
+
+    assert ordered1
+    refute ordered2
+    refute ordered3
+  end
+
+  # This test will ensure that we can parse router values successfully. Routers
+  # can be provided as either an atom module name, or a router struct.
+  test "parsing :router flags" do
+    # grab a cache name
+    name = Helper.create_name()
+
+    # parse out valid router combinations
+    {:ok, cache(router: router1)} = Cachex.Options.parse(name, [])
+
+    {:ok, cache(router: router2)} =
+      Cachex.Options.parse(name, router: Cachex.Router.Ring)
+
+    # parse out invalid hook combinations
+    {:error, msg} = Cachex.Options.parse(name, router: "[router]")
+    {:error, ^msg} = Cachex.Options.parse(name, router: router(module: Missing))
+
+    # check the router for the first state and the default value
+    assert(router1 == router(module: Cachex.Router.Jump))
+
+    # check the router in the second state
+    assert(router2 == router(module: Cachex.Router.Ring))
+
+    # check the invalid router message
+    assert(msg == :invalid_router)
   end
 
   # This test will verify the ability to record stats in a state. This option

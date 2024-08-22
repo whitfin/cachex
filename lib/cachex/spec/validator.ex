@@ -140,7 +140,7 @@ defmodule Cachex.Spec.Validator do
 
     check1 = behaviour?(module, Cachex.Router)
     check2 = check1 and is_boolean(enabled)
-    check3 = check2 and {:init, 2} in module.__info__(:functions)
+    check3 = check2 and {:new, 2} in module.__info__(:functions)
     check4 = check3 and {:nodes, 1} in module.__info__(:functions)
     check5 = check4 and {:route, 2} in module.__info__(:functions)
     check6 = check5 and {:attach, 2} in module.__info__(:functions)

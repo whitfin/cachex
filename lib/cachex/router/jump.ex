@@ -18,9 +18,12 @@ defmodule Cachex.Router.Jump do
   In the case of this router the routing state is simply the list
   of nodes being tracked, with duplicate entries removed.
   """
-  @spec init(nodes :: [atom], options :: Keyword.t()) :: [atom]
-  def init(nodes, _options),
-    do: Enum.uniq(nodes)
+  @spec new(nodes :: [atom], options :: Keyword.t()) :: [atom]
+  def new(nodes, _options \\ []) do
+    nodes
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
 
   @doc """
   Retrieve the list of nodes from a routing state.
