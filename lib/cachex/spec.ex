@@ -127,7 +127,6 @@ defmodule Cachex.Spec do
   """
   defrecord :cache,
     name: nil,
-    cluster: nil,
     commands: %{},
     compressed: false,
     expiration: nil,

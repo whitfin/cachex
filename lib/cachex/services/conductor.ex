@@ -46,11 +46,9 @@ defmodule Cachex.Services.Conductor do
     do: {:ok, module.nodes(state)}
 
   @doc """
-  Executes a previously dispatched action.
-
-  This macro should not be called externally; the only reason it remains
-  public is due to the code injected by the `dispatch/2` macro.
+  Executes a previously dispatched action..
   """
+  # The first match short circuits local-only caches
   @spec route(Cachex.Spec.cache(), atom, {atom, [any]}) :: any
   def route(cache(router: router(module: Router.Local)) = cache, module, call),
     do: route_local(cache, module, call)
