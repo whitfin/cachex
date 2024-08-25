@@ -37,13 +37,18 @@ defmodule CachexCase.Helper do
     nodes = [node() | LocalCluster.start_nodes(name, amount - 1)]
 
     # basic match to ensure that the result is as expected
-    {[{:ok, _pid1}, {:ok, _pid2}], []} =
+    {results, []} =
       :rpc.multicall(
         nodes,
         Cachex,
         :start,
-        [name, [nodes: nodes] ++ args]
+        [name, args ++ [router: router(module: Cachex.Router.Jump)]]
       )
+
+    # double check all pids
+    for result <- results do
+      assert match?({:ok, pid} when is_pid(pid), result)
+    end
 
     # cleanup the cache on exit
     TestHelper.delete_on_exit(name)
@@ -53,6 +58,8 @@ defmodule CachexCase.Helper do
       nodes
       |> List.delete(node())
       |> LocalCluster.stop_nodes()
+
+      poll(250, [], fn -> Node.list(:connected) end)
     end)
 
     {name, nodes}
@@ -82,13 +89,11 @@ defmodule CachexCase.Helper do
   @doc false
   # Creates a cache name.
   #
-  # These names are atoms of 8 random characters between the letters A - Z. This
-  # is used to generate random cache names for tests.
-  def create_name do
-    8
-    |> gen_rand_bytes
-    |> String.to_atom()
-  end
+  # These names start and end with _ with 8 A-Z letters in between. This is used
+  # to generate random cache names for tests. The underscores are to ensure we
+  # keep a guaranteed sorting order when using distributed clusters.
+  def create_name,
+    do: String.to_atom("_#{gen_rand_bytes(8)}_")
 
   @doc false
   # Triggers a cache to be deleted at the end of the test.
@@ -127,7 +132,7 @@ defmodule CachexCase.Helper do
   # raise the last known assertion error to bubble back to ExUnit.
   def poll(timeout, expected, generator, start_time \\ now()) do
     try do
-      assert(generator.() == expected)
+      assert generator.() == expected
     rescue
       e ->
         unless start_time + timeout > now() do

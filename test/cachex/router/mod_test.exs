@@ -1,11 +1,11 @@
-defmodule Cachex.Router.JumpTest do
+defmodule Cachex.Router.ModTest do
   use CachexCase
 
-  test "routing keys via a jump router" do
+  test "routing keys via a modulo router" do
     # create a test cache cluster for nodes
     {cache, nodes} =
       Helper.create_cache_cluster(3,
-        router: Cachex.Router.Jump
+        router: Cachex.Router.Mod
       )
 
     # convert the name to a cache and sort
@@ -17,11 +17,11 @@ defmodule Cachex.Router.JumpTest do
 
     # test that we can route to expected nodes
     assert Services.Conductor.nodes(cache) == {:ok, nodes}
-    assert Cachex.Router.Jump.route(state, "elixir") == Enum.at(nodes, 1)
-    assert Cachex.Router.Jump.route(state, "erlang") == Enum.at(nodes, 2)
+    assert Cachex.Router.Mod.route(state, "elixir") == Enum.at(nodes, 1)
+    assert Cachex.Router.Mod.route(state, "erlang") == Enum.at(nodes, 0)
   end
 
-  test "routing keys via a jump router with defined nodes" do
+  test "routing keys via a modulo router with defined nodes" do
     # create our nodes
     nodes = [:a, :b, :c]
 
@@ -41,7 +41,7 @@ defmodule Cachex.Router.JumpTest do
 
     # test that we can route to expected nodes
     assert Services.Conductor.nodes(cache) == {:ok, nodes}
-    assert Cachex.Router.Jump.route(state, "elixir") == Enum.at(nodes, 1)
-    assert Cachex.Router.Jump.route(state, "erlang") == Enum.at(nodes, 2)
+    assert Cachex.Router.Mod.route(state, "elixir") == Enum.at(nodes, 1)
+    assert Cachex.Router.Mod.route(state, "erlang") == Enum.at(nodes, 0)
   end
 end

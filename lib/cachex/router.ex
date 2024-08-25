@@ -8,14 +8,27 @@ defmodule Cachex.Router do
   on it being included in Cachex.
   """
 
+  ##############
+  # Public API #
+  ##############
+
+  @doc """
+  Retrieve all currently connected nodes (including this one).
+  """
+  @spec connected() :: [atom]
+  def connected(),
+    do: [node() | :erlang.nodes(:connected)]
+
   #############
   # Behaviour #
   #############
 
   @doc """
-  Initialize a routing state using a list of nodes.
+  Initialize a routing state for a cache.
+
+  Please see all child implementations for supported options.
   """
-  @callback new(nodes :: [atom], options :: Keyword.t()) :: any
+  @callback init(cache :: Cachex.Spec.cache(), options :: Keyword.t()) :: any
 
   @doc """
   Retrieve the list of nodes from a routing state.
@@ -23,42 +36,35 @@ defmodule Cachex.Router do
   @callback nodes(state :: any) :: [atom]
 
   @doc """
-  Route a provided key to a node in a routing state.
+  Route a key to a node in a routing state.
   """
   @callback route(state :: any, key :: any) :: atom
 
   @doc """
-  Attach a new node to a routing state.
+  Create a child specification to back a routing state.
   """
-  @callback attach(state :: any, node :: atom) :: any
+  @callback spec(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
+              Supervisor.child_spec()
 
-  @doc """
-  Detach an existing node from a routing state.
-  """
-  @callback detach(state :: any, node :: atom) :: any
+  ##################
+  # Implementation #
+  ##################
 
   @doc false
   defmacro __using__(_) do
     quote location: :keep, generated: true do
-      # inherit the behaviour
       @behaviour Cachex.Router
 
       @doc false
-      def attach(state, node),
-        do:
-          raise(RuntimeError,
-            message: "Router does not support node addition"
-          )
+      def init(cache, options \\ []),
+        do: nil
 
       @doc false
-      def detach(state, node),
-        do:
-          raise(RuntimeError,
-            message: "Router does not support node removal"
-          )
+      def spec(cache, options),
+        do: :ignore
 
       # state modifiers are overridable
-      defoverridable attach: 2, detach: 2
+      defoverridable init: 2, spec: 2
     end
   end
 end

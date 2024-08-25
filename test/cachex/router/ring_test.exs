@@ -1,42 +1,49 @@
 defmodule Cachex.Router.RingTest do
   use CachexCase
 
-  test "routing keys within a ring router" do
-    # create a router from three node names
-    router = Router.Ring.new([:a, :b, :c])
+  test "routing keys via a ring router" do
+    # create a test cache cluster for nodes
+    {cache, _nodes} =
+      Helper.create_cache_cluster(3,
+        router:
+          router(
+            module: Cachex.Router.Ring,
+            options: [
+              nodes: [:a, :b, :c]
+            ]
+          )
+      )
+
+    # convert the name to a cache and sort
+    cache = Services.Overseer.retrieve(cache)
+
+    # fetch the router state after initialize
+    cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Router.Ring.nodes(router) == [:a, :b, :c]
-    assert Router.Ring.route(router, "elixir") == :c
-    assert Router.Ring.route(router, "erlang") == :b
+    assert Services.Conductor.nodes(cache) == {:ok, [:c, :b, :a]}
+    assert Cachex.Router.Ring.route(state, "elixir") == :c
+    assert Cachex.Router.Ring.route(state, "erlang") == :b
   end
 
-  test "attaching and detaching node in a ring router" do
-    # create a router from three node names
-    router = Router.Ring.new([:a, :b, :c])
+  test "routing keys via a ring router with monitored nodes" do
+    # create a test cache cluster for nodes
+    {cache, nodes} =
+      Helper.create_cache_cluster(3,
+        router:
+          router(
+            module: Cachex.Router.Ring,
+            options: [
+              monitor_nodes: true
+            ]
+          )
+      )
 
-    # verify the routing of various keys
-    assert Router.Ring.nodes(router) == [:a, :b, :c]
-    assert Router.Ring.route(router, "elixir") == :c
-    assert Router.Ring.route(router, "erlang") == :b
-    assert Router.Ring.route(router, "fsharp") == :c
+    # convert the name to a cache and sort
+    cache = Services.Overseer.retrieve(cache)
+    nodes = Enum.reverse(nodes)
 
-    # attach a new node :d to the router
-    router = Router.Ring.attach(router, :d)
-
-    # route the same keys again, fsharp is resharded
-    assert Router.Ring.nodes(router) == [:a, :b, :c, :d]
-    assert Router.Ring.route(router, "elixir") == :c
-    assert Router.Ring.route(router, "erlang") == :b
-    assert Router.Ring.route(router, "fsharp") == :d
-
-    # remove the node :d from the router
-    router = Router.Ring.detach(router, :d)
-
-    # the key fsharp is routed back to the initial
-    assert Router.Ring.nodes(router) == [:a, :b, :c]
-    assert Router.Ring.route(router, "elixir") == :c
-    assert Router.Ring.route(router, "erlang") == :b
-    assert Router.Ring.route(router, "fsharp") == :c
+    # test that we can route to expected nodes
+    assert Services.Conductor.nodes(cache) == {:ok, nodes}
   end
 end

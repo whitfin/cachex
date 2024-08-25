@@ -1,53 +1,58 @@
 defmodule Cachex.Router.Ring do
   @moduledoc """
-  Simple routing implementation based on a consistent hash ring.
+  Routing implementation using a consistent hash ring.
 
-  This implementation makes use of a hashing ring to better enable
-  modification of the internal node listing. Cachex uses the library
-  [libring](https://github.com/bitwalker/libring) to do the heavy
-  lifting here.
+  This router provides the most resilient routing for a distributed cache,
+  due to being much more resilient to addition and removal of nodes in
+  the cluster. Most distributed caches will end up using this router if
+  they have the requirement to handle such cases.
+
+  The implementation inside this router is entirely provided by the
+  [libring](https://github.com/bitwalker/libring) library. As such the
+  initialization of this router will accept all options available when
+  calling `HashRing.Managed.new/2`.
+
+  The documentation (pinned at the version used by Cachex) can be found
+  [here](https://hexdocs.pm/libring/1.6.0/HashRing.Managed.html#new/2).
   """
   use Cachex.Router
+  import Cachex.Spec
 
   @doc """
-  Initialize a ring using a list of nodes.
+  Initialize a ring routing state for a cache.
+
+  To see the list of options supported for this call, please visit the `libring`
+  [documentation](https://hexdocs.pm/libring/1.6.0/HashRing.Managed.html#new/2).
   """
-  @spec new(nodes :: [atom], options :: Keyword.t()) :: HashRing.t()
-  def new(nodes, _options \\ []) do
-    ring = HashRing.new()
-    ring = HashRing.add_nodes(ring, nodes)
-    ring
-  end
+  @spec init(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
+          HashRing.Managed.ring()
+  def init(cache(name: name), _options),
+    do: name
 
   @doc """
-  Retrieve the list of nodes from a ring.
+  Retrieve the list of nodes from a  routing state.
   """
-  @spec nodes(ring :: HashRing.t()) :: [atom]
-  def nodes(ring) do
-    ring
-    |> HashRing.nodes()
-    |> Enum.uniq()
-    |> Enum.sort()
-  end
+  @spec nodes(ring :: HashRing.Managed.ring()) :: [atom]
+  defdelegate nodes(ring), to: HashRing.Managed
 
   @doc """
-  Route a provided key to a node in a ring.
+  Route a key to a node in a ring routing state.
   """
-  @spec route(ring :: HashRing.t(), key :: any) :: atom
-  def route(ring, key),
-    do: HashRing.key_to_node(ring, key)
+  @spec route(ring :: HashRing.Managed.ring(), key :: any) :: atom
+  defdelegate route(ring, key), to: HashRing.Managed, as: :key_to_node
 
   @doc """
-  Attach a new node to a ring.
+  Create a child specification to back a ring routing state.
   """
-  @spec attach(ring :: HashRing.t(), node :: atom) :: HashRing.t()
-  def attach(ring, node),
-    do: HashRing.add_node(ring, node)
-
-  @doc """
-  Detach an existing node to a ring.
-  """
-  @spec detach(ring :: HashRing.t(), node :: atom) :: HashRing.t()
-  def detach(ring, node),
-    do: HashRing.remove_node(ring, node)
+  @spec spec(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
+          Supervisor.child_spec()
+  def spec(cache(name: name), options),
+    do: [
+      %{
+        id: name,
+        type: :worker,
+        restart: :permanent,
+        start: {HashRing.Worker, :start_link, [[{:name, name} | options]]}
+      }
+    ]
 end

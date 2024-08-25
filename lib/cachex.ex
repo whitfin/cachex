@@ -254,19 +254,6 @@ defmodule Cachex do
 
       Please see the `Cachex.Spec.limit/1` documentation for further customization options.
 
-    * `:nodes`
-
-      A list of nodes this cache will live on, to provide distributed behaviour across
-      physical nodes. This should be a list of node names, in the long form.
-
-          iex> Cachex.start_link(:my_cache, [
-          ...>   nodes: [
-          ...>     :foo@localhost,
-          ...>     :bar@localhost
-          ...>   ]
-          ...> ])
-          { :ok, _pid }
-
     * `:ordered`
 
       This option will specify whether this cache should enable ETS ordering, which can
@@ -1339,7 +1326,8 @@ defmodule Cachex do
   """
   @spec transaction(cache, [any], function, Keyword.t()) :: {status, any}
   def transaction(cache, keys, operation, options \\ [])
-      when is_function(operation, 1) and is_list(keys) and is_list(options) do
+      when (is_function(operation) or is_function(operation, 1)) and
+             is_list(keys) and is_list(options) do
     Overseer.enforce cache do
       trans_cache =
         case cache(cache, :transactions) do
@@ -1476,13 +1464,13 @@ defmodule Cachex do
   #
   # This will initialize the base router state and attach all nodes
   # provided at cache startup to the router state.
-  defp setup_router(cache(nodes: nodes, router: router) = cache) do
+  defp setup_router(cache(router: router) = cache) do
     router(module: module, options: options) = router
 
-    state = module.new(nodes, options)
-    local = module.nodes(state) == [node()]
+    state = module.init(cache, options)
+    route = router(router, state: state)
 
-    {:ok, cache(cache, router: router(router, state: state, enabled: !local))}
+    {:ok, cache(cache, router: route)}
   end
 
   # Initializes cache warmers on startup.

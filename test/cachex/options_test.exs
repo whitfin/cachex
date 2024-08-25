@@ -355,17 +355,17 @@ defmodule Cachex.OptionsTest do
     {:ok, cache(router: router1)} = Cachex.Options.parse(name, [])
 
     {:ok, cache(router: router2)} =
-      Cachex.Options.parse(name, router: Cachex.Router.Ring)
+      Cachex.Options.parse(name, router: Cachex.Router.Mod)
 
     # parse out invalid hook combinations
     {:error, msg} = Cachex.Options.parse(name, router: "[router]")
     {:error, ^msg} = Cachex.Options.parse(name, router: router(module: Missing))
 
     # check the router for the first state and the default value
-    assert(router1 == router(module: Cachex.Router.Jump))
+    assert(router1 == router(module: Cachex.Router.Local))
 
     # check the router in the second state
-    assert(router2 == router(module: Cachex.Router.Ring))
+    assert(router2 == router(module: Cachex.Router.Mod))
 
     # check the invalid router message
     assert(msg == :invalid_router)
