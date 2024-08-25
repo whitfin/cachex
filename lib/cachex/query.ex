@@ -18,13 +18,6 @@ defmodule Cachex.Query do
   ##############
 
   @doc """
-  Creates an expiration-aware query.
-  """
-  @spec create(any, any) :: [{tuple, [tuple], [any]}]
-  def create(condition, output \\ :"$_"),
-    do: raw({:andalso, unexpired_clause(), condition}, output)
-
-  @doc """
   Creates a query to retrieve all expired records.
   """
   @spec expired(any) :: [{tuple, [tuple], [any]}]
@@ -64,6 +57,13 @@ defmodule Cachex.Query do
   @spec unexpired_clause :: tuple
   def unexpired_clause,
     do: {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, now()}}
+
+  @doc """
+  Creates an expiration-aware query.
+  """
+  @spec where(any, any) :: [{tuple, [tuple], [any]}]
+  def where(condition, output \\ :"$_"),
+    do: raw({:andalso, unexpired_clause(), condition}, output)
 
   ###############
   # Private API #

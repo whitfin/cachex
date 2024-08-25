@@ -53,13 +53,21 @@ defmodule Cachex.Actions.Stream do
   # the cursor is spent, in which case we halt the stream and kill the cursor.
   defp init_stream(batch, name, spec) do
     Stream.resource(
-      fn -> [] end,
+      fn -> :"$start_of_table" end,
       fn
-        :"$end_of_table" -> {:halt, []}
-        [] -> :ets.select(name, spec, batch)
-        cursor -> :ets.select(cursor)
+        # we're finished!
+        :"$end_of_table" ->
+          {:halt, nil}
+
+        # we're starting!
+        :"$start_of_table" ->
+          :ets.select(name, spec, batch)
+
+        # we're continuing!
+        continuation ->
+          :ets.select(continuation)
       end,
-      fn _ -> [] end
+      & &1
     )
   end
 end
