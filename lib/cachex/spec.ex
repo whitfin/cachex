@@ -33,7 +33,6 @@ defmodule Cachex.Spec do
             fallback: fallback,
             hooks: hooks,
             limit: limit,
-            nodes: [atom],
             ordered: boolean,
             router: router,
             transactions: boolean,
@@ -101,7 +100,7 @@ defmodule Cachex.Spec do
   # Record specification for a router instance
   @type router ::
           record(:router,
-            enabled: boolean,
+            options: Keyword.t(),
             module: atom,
             state: any
           )
@@ -135,7 +134,6 @@ defmodule Cachex.Spec do
     fallback: nil,
     hooks: nil,
     limit: nil,
-    nodes: [],
     ordered: false,
     router: nil,
     transactions: false,
@@ -268,9 +266,8 @@ defmodule Cachex.Spec do
   values inside this structure are for internal use and will be overwritten as needed.
   """
   defrecord :router,
-    enabled: false,
     options: [],
-    module: Cachex.Router.Jump,
+    module: Cachex.Router.Local,
     state: nil
 
   @doc """

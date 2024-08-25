@@ -22,6 +22,7 @@ defmodule Cachex.ServicesTest do
              },
              %{id: Services.Informant, start: {Services.Informant, _, _}},
              %{id: Services.Incubator, start: {Services.Incubator, _, _}},
+             %{id: Services.Conductor, start: {Services.Conductor, _, _}},
              %{id: Services.Courier, start: {Services.Courier, _, _}},
              %{id: Services.Janitor, start: {Services.Janitor, _, _}}
            ] = Services.cache_spec(cache)
@@ -41,6 +42,7 @@ defmodule Cachex.ServicesTest do
              },
              %{id: Services.Informant, start: {Services.Informant, _, _}},
              %{id: Services.Incubator, start: {Services.Incubator, _, _}},
+             %{id: Services.Conductor, start: {Services.Conductor, _, _}},
              %{id: Services.Courier, start: {Services.Courier, _, _}}
            ] = Services.cache_spec(cache)
   end

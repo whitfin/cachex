@@ -24,7 +24,10 @@ defmodule Cachex.Actions.Transaction do
   """
   def execute(cache() = cache, keys, operation, _options) do
     Locksmith.transaction(cache, keys, fn ->
-      {:ok, operation.(cache)}
+      case :erlang.fun_info(operation)[:arity] do
+        0 -> {:ok, operation.()}
+        1 -> {:ok, operation.(cache)}
+      end
     end)
   end
 end

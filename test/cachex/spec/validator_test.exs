@@ -208,9 +208,9 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of router records" do
     # define some valid records
-    router1 = router(module: Router.Jump)
-    router2 = router(module: Router.Jump, options: [])
-    router3 = router(module: Router.Jump, enabled: true)
+    router1 = router()
+    router2 = router(module: Cachex.Router.Jump)
+    router3 = router(module: Cachex.Router.Jump, options: [])
 
     # ensure all records are valid
     assert Validator.valid?(:router, router1)
@@ -218,18 +218,16 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:router, router3)
 
     # define some invalid records
-    router5 = router(module: " ")
-    router6 = router(module: :missing)
-    router7 = router(module: __MODULE__)
-    router8 = router(module: Router.Jump, options: "")
-    router9 = router(module: Router.Jump, enabled: "yes")
+    router4 = router(module: " ")
+    router5 = router(module: :missing)
+    router6 = router(module: __MODULE__)
+    router7 = router(module: Cachex.Router.Jump, options: "")
 
     # ensure all records are invalid
+    refute Validator.valid?(:router, router4)
     refute Validator.valid?(:router, router5)
     refute Validator.valid?(:router, router6)
     refute Validator.valid?(:router, router7)
-    refute Validator.valid?(:router, router8)
-    refute Validator.valid?(:router, router9)
   end
 
   test "validation of warmer records" do

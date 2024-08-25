@@ -1,24 +1,21 @@
-defmodule Cachex.Router.Jump do
+defmodule Cachex.Router.Mod do
   @moduledoc """
-  Routing implementation based on Jump Consistent Hash.
+  Routing implementation based on basic hashing.
 
-  This implementation backed Cachex's distribution in the v3.x lineage, and is
-  suitable for clusters of a static size. Each key is hashed and then slotted
-  against a node in the cluster. Please note that the hash algorithm should
+  This router provides the simplest (and quickest!) implementation for
+  clusters of a static size. Provided keys are hashed and routed to a node
+  via the modulo operation. Please note that the hash algorithm should
   not be relied upon and is not considered part of the public API.
 
   The initialization of this router accepts a `:nodes` option which enables
   the user to define the nodes to route amongst. If this is not provided the
   router will default to detecting a cluster via `Node.self/0` and `Node.list/2`.
-
-  For more information on the algorithm backing this router, please see the
-  appropriate [publication](https://arxiv.org/pdf/1406.2294).
   """
   use Cachex.Router
   alias Cachex.Router
 
   @doc """
-  Initialize a jump hash routing state for a cache.
+  Initialize a modulo routing state for a cache.
 
   ## Options
 
@@ -38,21 +35,21 @@ defmodule Cachex.Router.Jump do
   end
 
   @doc """
-  Retrieve the list of nodes from a jump hash routing state.
+  Retrieve the list of nodes from a modulo routing state.
   """
   @spec nodes(nodes :: [atom]) :: [atom]
   def nodes(nodes),
-    do: nodes
+    do: Enum.sort(nodes)
 
   @doc """
-  Route a key to a node in a jump hash routing state.
+  Route a key to a node in a modulo routing state.
   """
   @spec route(nodes :: [atom], key :: any) :: atom
   def route(nodes, key) do
     slot =
       key
       |> :erlang.phash2()
-      |> Jumper.slot(length(nodes))
+      |> rem(length(nodes))
 
     Enum.at(nodes, slot)
   end

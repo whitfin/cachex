@@ -136,17 +136,14 @@ defmodule Cachex.Spec.Validator do
   # This will validate the correctly implemented `Cachex.Router` behaviour
   # and confirm that the provided options are a keyword list.
   def valid?(:router, router() = router) do
-    router(options: options, module: module, enabled: enabled) = router
+    router(options: options, module: module) = router
 
     check1 = behaviour?(module, Cachex.Router)
-    check2 = check1 and is_boolean(enabled)
-    check3 = check2 and {:new, 2} in module.__info__(:functions)
-    check4 = check3 and {:nodes, 1} in module.__info__(:functions)
-    check5 = check4 and {:route, 2} in module.__info__(:functions)
-    check6 = check5 and {:attach, 2} in module.__info__(:functions)
-    check7 = check6 and {:detach, 2} in module.__info__(:functions)
-    check8 = check7 and Keyword.keyword?(options)
-    check8
+    check2 = check1 and {:init, 2} in module.__info__(:functions)
+    check3 = check2 and {:nodes, 1} in module.__info__(:functions)
+    check4 = check3 and {:route, 2} in module.__info__(:functions)
+    check5 = check4 and Keyword.keyword?(options)
+    check5
   end
 
   # Validates a warmer specification record.

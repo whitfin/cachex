@@ -20,7 +20,6 @@ defmodule Cachex.Errors do
     :invalid_limit,
     :invalid_match,
     :invalid_name,
-    :invalid_nodes,
     :invalid_option,
     :invalid_pairs,
     :invalid_router,
@@ -90,9 +89,6 @@ defmodule Cachex.Errors do
 
   def long_form(:invalid_name),
     do: "Invalid cache name provided"
-
-  def long_form(:invalid_nodes),
-    do: "Invalid nodes list provided"
 
   def long_form(:invalid_option),
     do: "Invalid option syntax provided"

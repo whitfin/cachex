@@ -38,7 +38,7 @@ defmodule Cachex.Actions.TransactionTest do
 
     # execute a broken transaction
     result1 =
-      Cachex.transaction(cache, [], fn _state ->
+      Cachex.transaction(cache, [], fn ->
         raise ArgumentError, message: "Error message"
       end)
 
@@ -47,7 +47,7 @@ defmodule Cachex.Actions.TransactionTest do
 
     # ensure a new transaction executes normally
     result2 =
-      Cachex.transaction(cache, [], fn _state ->
+      Cachex.transaction(cache, [], fn ->
         Cachex.Services.Locksmith.transaction?()
       end)
 

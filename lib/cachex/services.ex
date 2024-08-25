@@ -56,6 +56,7 @@ defmodule Cachex.Services do
     |> Enum.concat(locksmith_spec(cache))
     |> Enum.concat(informant_spec(cache))
     |> Enum.concat(incubator_spec(cache))
+    |> Enum.concat(conductor_spec(cache))
     |> Enum.concat(courier_spec(cache))
     |> Enum.concat(janitor_spec(cache))
   end
@@ -116,6 +117,21 @@ defmodule Cachex.Services do
   ###############
   # Private API #
   ###############
+
+  # Creates a specification for the Conductor service.
+  #
+  # The Conductor service provides a way to dispatch cache calls between
+  # nodes in a distributed cluster. It's a little complicated because a
+  # Conductor's routing logic can be either a separate process or the
+  # same process to avoid unnecessary overhead. If this makes no sense
+  # when you come to read it, that's probably why.
+  defp conductor_spec(cache() = cache),
+    do: [
+      %{
+        id: Services.Conductor,
+        start: {Services.Conductor, :start_link, [cache]}
+      }
+    ]
 
   # Creates a specification for the Courier service.
   #

@@ -8,6 +8,7 @@ defmodule Cachex.Services.Conductor do
   noisy. Now that all execution flows via the router, this is no longer an
   issue and it also serves as a gateway to distribution in the future.
   """
+  alias Cachex.Router
   alias Cachex.Services
 
   # add some service aliases
@@ -24,16 +25,37 @@ defmodule Cachex.Services.Conductor do
   ##############
 
   @doc """
+  Starts a new Conductor process for a cache.
+  """
+  @spec start_link(Cachex.Spec.cache()) :: Supervisor.on_start()
+  def start_link(cache(router: router(module: mod, options: opts)) = cache) do
+    case mod.spec(cache, opts) do
+      :ignore ->
+        :ignore
+
+      specification ->
+        Supervisor.start_link(specification, strategy: :one_for_one)
+    end
+  end
+
+  @doc """
+  Retrieve all routable nodes for a cache.
+  """
+  @spec nodes(Cachex.Spec.cache()) :: {:ok, [atom]}
+  def nodes(cache(router: router(module: module, state: state))),
+    do: {:ok, module.nodes(state)}
+
+  @doc """
   Executes a previously dispatched action.
 
   This macro should not be called externally; the only reason it remains
   public is due to the code injected by the `dispatch/2` macro.
   """
   @spec route(Cachex.Spec.cache(), atom, {atom, [any]}) :: any
-  def route(cache(router: router(enabled: false)) = cache, module, call),
+  def route(cache(router: router(module: Router.Local)) = cache, module, call),
     do: route_local(cache, module, call)
 
-  def route(cache(router: router(enabled: true)) = cache, module, call),
+  def route(cache() = cache, module, call),
     do: route_cluster(cache, module, call)
 
   @doc """
