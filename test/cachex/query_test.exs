@@ -6,8 +6,8 @@ defmodule Cachex.QueryTest do
   # creation default, which will attach the checks for expirations.
   test "creating basic queries" do
     # create a query with a true filter
-    query1 = Cachex.Query.create(true)
-    query2 = Cachex.Query.create(true, :key)
+    query1 = Cachex.Query.where(true)
+    query2 = Cachex.Query.where(true, :key)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
@@ -26,7 +26,7 @@ defmodule Cachex.QueryTest do
     assert [{_, _, [:"$1"]}] = query2
   end
 
-  # The `expired()` function is just a wrapper to `create` whilst inverting
+  # The `expired()` function is just a wrapper to `where` whilst inverting
   # the expiration checks. This test just covers this behaviour.
   test "creating expired queries" do
     # create a couple of expired queries

@@ -36,7 +36,7 @@ Cachex.put(:my_cache, "three", 3)
 filter = { :==, { :rem, :value, 2 }, 1 }
 
 # generate the query using the filter
-query = Cachex.Query.create(filter, :value)
+query = Cachex.Query.where(filter, :value)
 
 # 4
 :my_cache
@@ -44,4 +44,4 @@ query = Cachex.Query.create(filter, :value)
 |> Enum.sum
 ```
 
-Couple of things to mention here; first of all, you can use any of the `entry()` field names in your matches, and they'll be substituted out automatically. In this case we use `:value` in our filter, which would compile down to `:"$4"` instead. You might also have noticed that we can jump directly to `Enum.sum/1` here. The second (optional) argument to `create/2` controls the format of the stream elements, in this case just streaming the `:value` field of the entry. If the second argument is not provided, it'll stream entry records (just like the first example). It should be noted that `Cachex.Query.create/2` will automatically bind a filter clause to filter out expired documents. If you wish to run a query on the entire dataset, you can use `Cachex.Query.raw/2` instead.
+Couple of things to mention here; first of all, you can use any of the `entry()` field names in your matches, and they'll be substituted out automatically. In this case we use `:value` in our filter, which would compile down to `:"$4"` instead. You might also have noticed that we can jump directly to `Enum.sum/1` here. The second (optional) argument to `where/2` controls the format of the stream elements, in this case just streaming the `:value` field of the entry. If the second argument is not provided, it'll stream entry records (just like the first example). It should be noted that `Cachex.Query.where/2` will automatically bind a filter clause to filter out expired documents. If you wish to run a query on the entire dataset, you can use `Cachex.Query.raw/2` instead.

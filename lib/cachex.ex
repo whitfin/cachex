@@ -1236,8 +1236,8 @@ defmodule Cachex do
 
     * `:batch_size`
 
-      Allows customization of the internal batching when paginating the QLC
-      cursor coming back from ETS. It's unlikely this will ever need changing.
+      Allows customization of the internal batching when paginating the cursor
+      coming back from ETS. It's unlikely this will ever need changing.
 
   ## Examples
 
@@ -1251,21 +1251,21 @@ defmodule Cachex do
         {:entry, "c", 1519015805679, nil, 3},
         {:entry, "a", 1519015794445, nil, 1}]
 
-      iex> query = Cachex.Query.create(true, :key)
+      iex> query = Cachex.Query.where(true, :key)
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       ["b", "c", "a"]
 
-      iex> query = Cachex.Query.create(true, :value)
+      iex> query = Cachex.Query.where(true, :value)
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [2, 3, 1]
 
-      iex> query = Cachex.Query.create(true, { :key, :value })
+      iex> query = Cachex.Query.where(true, { :key, :value })
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [{"b", 2}, {"c", 3}, {"a", 1}]
 
   """
   @spec stream(cache, any, Keyword.t()) :: {status, Enumerable.t()}
-  def stream(cache, query \\ Query.create(true), options \\ [])
+  def stream(cache, query \\ Query.where(true), options \\ [])
       when is_list(options),
       do: Conductor.route(cache, {:stream, [query, options]})
 
