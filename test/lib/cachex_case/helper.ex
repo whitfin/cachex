@@ -33,8 +33,13 @@ defmodule CachexCase.Helper do
     # no-op when done multiple times
     LocalCluster.start()
 
+    # create our cluster and fetch back our node list
+    {:ok, cluster} = LocalCluster.start_link(amount - 1)
+    {:ok, nodes} = LocalCluster.nodes(cluster)
+
+    # create a cache name
     name = create_name()
-    nodes = [node() | LocalCluster.start_nodes(name, amount - 1)]
+    nodes = [node() | nodes]
 
     # basic match to ensure that the result is as expected
     {results, []} =
@@ -53,12 +58,8 @@ defmodule CachexCase.Helper do
     # cleanup the cache on exit
     TestHelper.delete_on_exit(name)
 
-    # stop all children on exit, even though it's automatic
+    # wait for all nodes to disconnect before continue
     TestHelper.on_exit("stop #{name} children", fn ->
-      nodes
-      |> List.delete(node())
-      |> LocalCluster.stop_nodes()
-
       poll(250, [], fn -> Node.list(:connected) end)
     end)
 

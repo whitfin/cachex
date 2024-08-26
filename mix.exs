@@ -100,7 +100,7 @@ defmodule Cachex.Mixfile do
       {:unsafe, "~> 1.0"},
       # Testing dependencies
       {:excoveralls, "~> 0.15", optional: true, only: [:cover]},
-      {:local_cluster, "~> 1.1", optional: true, only: [:cover, :test]},
+      {:local_cluster, "~> 2.0", optional: true, only: [:cover, :test]},
       # Linting dependencies
       {:credo, "~> 1.7", optional: true, only: [:lint]},
       # Benchmarking dependencies

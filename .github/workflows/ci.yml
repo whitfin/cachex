@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         elixir:
+        - '1.17'
         - '1.16'
         - '1.15'
         - '1.14'
@@ -44,7 +45,7 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     container:
-      image: elixir:1.16
+      image: elixir:1.17
     env:
       MIX_ENV: cover
     steps:
@@ -66,7 +67,7 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     container:
-      image: elixir:1.16
+      image: elixir:1.17
     steps:
       - uses: actions/checkout@v3
 
