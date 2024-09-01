@@ -9,7 +9,7 @@ defmodule Cachex.Actions.ClearTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -17,7 +17,7 @@ defmodule Cachex.Actions.ClearTest do
     {:ok, true} = Cachex.put(cache, 3, 3)
 
     # clear all hook
-    Helper.flush()
+    TestUtils.flush()
 
     # clear the cache
     result = Cachex.clear(cache)
@@ -50,7 +50,7 @@ defmodule Cachex.Actions.ClearTest do
   @tag distributed: true
   test "clearing a cache cluster of all items" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

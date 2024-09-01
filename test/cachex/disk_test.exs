@@ -20,7 +20,7 @@ defmodule Cachex.DiskTest do
     # define a validation function
     validate = fn options ->
       # generate a new path to write to
-      path = Path.join(tmp, Helper.gen_rand_bytes(8))
+      path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
       # write our base value to the file
       result1 = Cachex.Disk.write(values, path, options)

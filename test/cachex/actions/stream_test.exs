@@ -6,7 +6,7 @@ defmodule Cachex.Actions.StreamTest do
   # that the Stream correctly forms these Tuples using the default structure.
   test "streaming cache entries" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, "key1", "value1")
@@ -33,7 +33,7 @@ defmodule Cachex.Actions.StreamTest do
   # field in order to test this properly.
   test "streaming custom patterns" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, "key1", "value1")
@@ -69,7 +69,7 @@ defmodule Cachex.Actions.StreamTest do
   # We just ensure that this breaks accordingly and returns an invalid match error.
   test "streaming invalid patterns" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # create cache stream
     result = Cachex.stream(cache, {:invalid})
@@ -83,7 +83,7 @@ defmodule Cachex.Actions.StreamTest do
   @tag distributed: true
   test "streaming is disabled in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we shouldn't be able to stream a cache on multiple nodes
     assert(Cachex.stream(cache) == {:error, :non_distributed})

@@ -9,7 +9,7 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -22,7 +22,7 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     :timer.sleep(25)
 
     # flush all existing messages
-    Helper.flush()
+    TestUtils.flush()
 
     # update the first and second keys
     result1 = Cachex.get_and_update(cache, 1, &to_string/1)
@@ -102,7 +102,7 @@ defmodule Cachex.Actions.GetAndUpdateTest do
   @tag distributed: true
   test "retrieving and updated cache records in a cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

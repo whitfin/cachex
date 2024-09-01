@@ -6,7 +6,7 @@ defmodule Cachex.Actions.StatsTest do
   # filtered by the provided flags in order to customize output correctly.
   test "retrieving stats for a cache" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # retrieve current time
     ctime = now()
@@ -35,7 +35,7 @@ defmodule Cachex.Actions.StatsTest do
   # when they have already been disabled.
   test "retrieving stats from a disabled cache" do
     # create a test cache
-    cache = Helper.create_cache(stats: false)
+    cache = TestUtils.create_cache(stats: false)
 
     # retrieve default stats
     stats = Cachex.stats(cache)
@@ -49,10 +49,10 @@ defmodule Cachex.Actions.StatsTest do
   # 50% either way.
   test "retrieving different rate combinations" do
     # create test caches
-    cache1 = Helper.create_cache(stats: true)
-    cache2 = Helper.create_cache(stats: true)
-    cache3 = Helper.create_cache(stats: true)
-    cache4 = Helper.create_cache(stats: true)
+    cache1 = TestUtils.create_cache(stats: true)
+    cache2 = TestUtils.create_cache(stats: true)
+    cache3 = TestUtils.create_cache(stats: true)
+    cache4 = TestUtils.create_cache(stats: true)
 
     # set cache1 to 100% misses
     {:ok, nil} = Cachex.get(cache1, 1)
@@ -152,7 +152,7 @@ defmodule Cachex.Actions.StatsTest do
   @tag distributed: true
   test "retrieving stats for a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2, stats: true)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2, stats: true)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

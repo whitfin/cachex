@@ -9,7 +9,7 @@ defmodule Cachex.Actions.DecrTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # define write options
     opts1 = [initial: 10]
@@ -47,7 +47,7 @@ defmodule Cachex.Actions.DecrTest do
   # error flag in this case.
   test "decrementing a non-numeric value" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # set a non-numeric value
     {:ok, true} = Cachex.put(cache, "key", "value")
@@ -65,7 +65,7 @@ defmodule Cachex.Actions.DecrTest do
   @tag distributed: true
   test "decrementing items in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, -1} = Cachex.decr(cache, 1, 1)

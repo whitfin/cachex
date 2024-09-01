@@ -58,7 +58,7 @@ defmodule Cachex.Services.JanitorTest do
 
     # create a test cache
     cache =
-      Helper.create_cache(
+      TestUtils.create_cache(
         hooks: hooks,
         expiration: expiration(interval: ttl_interval)
       )

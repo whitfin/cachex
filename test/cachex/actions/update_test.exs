@@ -7,7 +7,7 @@ defmodule Cachex.Actions.UpdateTest do
   # not overwritten).
   test "updates against an existing key" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # set a value with no TTL inside the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -46,7 +46,7 @@ defmodule Cachex.Actions.UpdateTest do
   # update a value which does not exist inside the cache.
   test "updates against a missing key" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # attempt to update a missing key in the cache
     update1 = Cachex.update(cache, 1, 3)
@@ -63,7 +63,7 @@ defmodule Cachex.Actions.UpdateTest do
   @tag distributed: true
   test "updating a key in a cache cluster" do
     # create a new cache cluster
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1, ttl: 500)

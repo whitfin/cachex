@@ -10,7 +10,7 @@ defmodule Cachex.Actions.LoadTest do
     tmp = System.tmp_dir!()
 
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
     start = now()
 
     # add some cache entries
@@ -19,7 +19,7 @@ defmodule Cachex.Actions.LoadTest do
     {:ok, true} = Cachex.put(cache, 3, 3, ttl: 10_000)
 
     # create a local path to write to
-    path = Path.join(tmp, Helper.gen_rand_bytes(8))
+    path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # dump the cache to a local file
     result1 = Cachex.dump(cache, path)

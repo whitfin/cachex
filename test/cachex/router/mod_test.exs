@@ -4,7 +4,7 @@ defmodule Cachex.Router.ModTest do
   test "routing keys via a modulo router" do
     # create a test cache cluster for nodes
     {cache, nodes} =
-      Helper.create_cache_cluster(3,
+      TestUtils.create_cache_cluster(3,
         router: Cachex.Router.Mod
       )
 
@@ -33,7 +33,7 @@ defmodule Cachex.Router.ModTest do
       )
 
     # create a test cache and fetch back
-    cache = Helper.create_cache(router: router)
+    cache = TestUtils.create_cache(router: router)
     cache = Services.Overseer.retrieve(cache)
 
     # fetch the router state after initialize

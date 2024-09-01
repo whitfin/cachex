@@ -6,7 +6,7 @@ defmodule Cachex.Actions.ExecuteTest do
   # go back to the cache table.
   test "execution blocks can carry out many actions" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # start an execution block
     result =

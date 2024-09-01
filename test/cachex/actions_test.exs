@@ -18,7 +18,7 @@ defmodule Cachex.ActionsTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # retrieve the state
     state = Services.Overseer.retrieve(cache)
@@ -56,7 +56,7 @@ defmodule Cachex.ActionsTest do
 
   test "carrying out generic write actions" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the state
     state = Services.Overseer.retrieve(cache)

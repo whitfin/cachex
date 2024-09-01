@@ -6,7 +6,7 @@ defmodule Cachex.Actions.InspectTest do
   # count of expired keys, as well as retrieving a list of expired keys.
   test "inspecting expired keys" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # set several values in the cache
     for x <- 1..3 do
@@ -45,8 +45,8 @@ defmodule Cachex.Actions.InspectTest do
   # error is returned if there is no Janitor process started for the cache.
   test "inspecting janitor metadata" do
     # create a cache with no janitor and one with
-    cache1 = Helper.create_cache(expiration: expiration(interval: nil))
-    cache2 = Helper.create_cache(expiration: expiration(interval: 1))
+    cache1 = TestUtils.create_cache(expiration: expiration(interval: nil))
+    cache2 = TestUtils.create_cache(expiration: expiration(interval: 1))
 
     # let the janitor run
     :timer.sleep(2)
@@ -72,7 +72,7 @@ defmodule Cachex.Actions.InspectTest do
   # as either a binary or a number of bytes.
   test "inspecting cache memory" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the memory usage
     {:ok, result1} = Cachex.inspect(cache, {:memory, :bytes})
@@ -100,7 +100,7 @@ defmodule Cachex.Actions.InspectTest do
   # nil, and that an existing record returns the record.
   test "inspecting cache records" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # get the current time
     ctime = now()
@@ -130,7 +130,7 @@ defmodule Cachex.Actions.InspectTest do
   # than using the state passed in. This is the only thing to verify.
   test "inspecting cache state" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the cache state
     state1 = Services.Overseer.retrieve(cache)
@@ -155,7 +155,7 @@ defmodule Cachex.Actions.InspectTest do
   # is unrecognised. There's nothing else to validate beyond the error.
   test "inspecting invalid options" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve an invalid option
     result = Cachex.inspect(cache, :invalid)
@@ -170,7 +170,7 @@ defmodule Cachex.Actions.InspectTest do
   @tag distributed: true
   test "inspections always run on the local node" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

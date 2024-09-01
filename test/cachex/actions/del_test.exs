@@ -9,7 +9,7 @@ defmodule Cachex.Actions.DelTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # add some cache entries
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -41,7 +41,7 @@ defmodule Cachex.Actions.DelTest do
   @tag distributed: true
   test "removing entries from a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

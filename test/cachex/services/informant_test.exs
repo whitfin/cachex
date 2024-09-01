@@ -29,9 +29,9 @@ defmodule Cachex.Services.InformantTest do
     hook3 = ForwardHook.create(:informant_forward_hook_actions_get)
 
     # start a cache with the hooks
-    cache1 = Helper.create_cache(hooks: [hook1])
-    cache2 = Helper.create_cache(hooks: [hook2])
-    cache3 = Helper.create_cache(hooks: [hook3])
+    cache1 = TestUtils.create_cache(hooks: [hook1])
+    cache2 = TestUtils.create_cache(hooks: [hook2])
+    cache3 = TestUtils.create_cache(hooks: [hook3])
 
     # grab a state instance for the broadcast
     state1 = Services.Overseer.retrieve(cache1)
@@ -82,10 +82,10 @@ defmodule Cachex.Services.InformantTest do
     hook5 = ForwardHook.create()
 
     # initialize caches to initialize the hooks
-    cache1 = Helper.create_cache(hooks: hook1)
-    cache2 = Helper.create_cache(hooks: hook2)
-    cache3 = Helper.create_cache(hooks: hook3)
-    cache4 = Helper.create_cache(hooks: hook4)
+    cache1 = TestUtils.create_cache(hooks: hook1)
+    cache2 = TestUtils.create_cache(hooks: hook2)
+    cache3 = TestUtils.create_cache(hooks: hook3)
+    cache4 = TestUtils.create_cache(hooks: hook4)
 
     # update our hooks from the caches
     cache(hooks: hooks(pre: [hook1])) = Services.Overseer.retrieve(cache1)

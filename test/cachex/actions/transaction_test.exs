@@ -10,7 +10,7 @@ defmodule Cachex.Actions.TransactionTest do
   # the value for the first time.
   test "executing a transaction is atomic" do
     # create a test cache
-    cache = Helper.create_cache(transactions: true)
+    cache = TestUtils.create_cache(transactions: true)
 
     # spawn a transaction to increment a key
     spawn(fn ->
@@ -34,7 +34,7 @@ defmodule Cachex.Actions.TransactionTest do
   # and an error status is returned instead of crashing the transaction server.
   test "raising errors from inside transactions" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # execute a broken transaction
     result1 =
@@ -61,7 +61,7 @@ defmodule Cachex.Actions.TransactionTest do
   # have transactions enabled from that point onwards.
   test "transactions become enabled automatically" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the cache state
     state1 = Services.Overseer.retrieve(cache)
@@ -85,7 +85,7 @@ defmodule Cachex.Actions.TransactionTest do
   @tag distributed: true
   test "transactions inside a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
     {:ok, result} = Cachex.transaction(cache, [], &:erlang.phash2/1)
@@ -100,7 +100,7 @@ defmodule Cachex.Actions.TransactionTest do
   @tag distributed: true
   test "multiple slots will return a :cross_slot error" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 3 don't hash to the same slots
     transaction = Cachex.transaction(cache, [1, 2], &:erlang.phash2/1)

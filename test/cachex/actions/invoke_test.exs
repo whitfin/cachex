@@ -9,7 +9,7 @@ defmodule Cachex.Actions.InvokeTest do
   test "invoking :write commands" do
     # create a test cache
     cache =
-      Helper.create_cache(
+      TestUtils.create_cache(
         commands: [
           lpop: command(type: :write, execute: &lpop/1),
           rpop: command(type: :write, execute: &rpop/1)
@@ -56,7 +56,7 @@ defmodule Cachex.Actions.InvokeTest do
   test "invoking :read commands" do
     # create a test cache
     cache =
-      Helper.create_cache(
+      TestUtils.create_cache(
         commands: [
           last: command(type: :read, execute: &List.last/1)
         ]
@@ -87,7 +87,7 @@ defmodule Cachex.Actions.InvokeTest do
   # fail, as well as commands which have been badly formed due to arity or tag.
   test "invoking invalid commands" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the state
     state = Services.Overseer.retrieve(cache)
@@ -121,7 +121,7 @@ defmodule Cachex.Actions.InvokeTest do
   test "invoking commands in a cache cluster" do
     # create a new cache cluster for cleaning
     {cache, _nodes} =
-      Helper.create_cache_cluster(2,
+      TestUtils.create_cache_cluster(2,
         commands: [
           last: command(type: :read, execute: &List.last/1)
         ]

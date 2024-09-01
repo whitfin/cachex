@@ -232,7 +232,7 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of warmer records" do
     # create a warmer for validation
-    Helper.create_warmer(:validator_warmer, 1000, fn _ ->
+    TestUtils.create_warmer(:validator_warmer, 1000, fn _ ->
       :ignore
     end)
 

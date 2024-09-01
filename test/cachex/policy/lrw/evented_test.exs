@@ -6,7 +6,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
   # validation that there are no bad defaults set anywhere.
   test "evicting with no upper bound" do
     # create a cache with no max size
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -42,7 +42,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
       )
 
     # create a cache with a max size
-    cache = Helper.create_cache(hooks: [hook], limit: limit)
+    cache = TestUtils.create_cache(hooks: [hook], limit: limit)
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -63,7 +63,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
     assert(size1 == 100)
 
     # flush all existing hook events
-    Helper.flush()
+    TestUtils.flush()
 
     # run a no-op fetch to verify no change
     {:ignore, nil} =
@@ -81,7 +81,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
     {:ok, true} = Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 25%
-    Helper.poll(250, 25, fn ->
+    TestUtils.poll(250, 25, fn ->
       Cachex.size!(state)
     end)
 
@@ -130,7 +130,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
       )
 
     # create a cache with a max size
-    cache = Helper.create_cache(limit: limit)
+    cache = TestUtils.create_cache(limit: limit)
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -163,7 +163,7 @@ defmodule Cachex.Policy.LRW.EventedTest do
     {:ok, true} = Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 51%
-    Helper.poll(250, 51, fn ->
+    TestUtils.poll(250, 51, fn ->
       Cachex.size!(state)
     end)
 

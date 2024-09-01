@@ -16,7 +16,7 @@ defmodule Cachex.OverseerTest do
   # We also cover removal just to avoid duplicating a lot of test code again.
   test "adding and removing state in the table" do
     # grab a state name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # create our state
     state = cache(name: name)
@@ -39,7 +39,7 @@ defmodule Cachex.OverseerTest do
   # we should get a nil.
   test "ensuring a state" do
     # grab a state name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # create our state
     state = cache(name: name)
@@ -63,7 +63,7 @@ defmodule Cachex.OverseerTest do
   # table in the first place.
   test "retrieving a state from the table" do
     # grab a state name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # create our state
     state = cache(name: name)
@@ -88,7 +88,7 @@ defmodule Cachex.OverseerTest do
     hook = ForwardHook.create(:overseer_forward_hook_provision)
 
     # start up our cache using the helper
-    name = Helper.create_cache(hooks: hook)
+    name = TestUtils.create_cache(hooks: hook)
 
     # retrieve our state
     cache(expiration: expiration) = state = Services.Overseer.retrieve(name)

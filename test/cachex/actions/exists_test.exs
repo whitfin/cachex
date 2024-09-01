@@ -9,7 +9,7 @@ defmodule Cachex.Actions.ExistsTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -19,7 +19,7 @@ defmodule Cachex.Actions.ExistsTest do
     :timer.sleep(2)
 
     # clear messages
-    Helper.flush()
+    TestUtils.flush()
 
     # check if several keys exist
     exists1 = Cachex.exists?(cache, 1)
@@ -58,7 +58,7 @@ defmodule Cachex.Actions.ExistsTest do
   @tag distributed: true
   test "checking if a key exists in a cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)
