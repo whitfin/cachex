@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.DecrTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test covers various combinations of decrementing cache items, by tweaking
   # the options provided alongside the calls. We validate the flags and values

@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.InvokeTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test covers the ability to run commands tagged with the `:modify` type.
   # We test that we can return our own values whilst modifying Lists. There is

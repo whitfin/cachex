@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.KeysTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that it's possible to retrieve the keys inside a cache.
   # It should be noted that the keys function takes TTL into account and only

@@ -1,5 +1,5 @@
 defmodule Cachex.ErrorsTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures the integrity of all Error functions and forms. We iterate
   # all errors and check that the long form of the error is as expected.

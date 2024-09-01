@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.TransactionTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures that a transaction will block any write operations on the
   # same keys by ensuring the the transaction has executed completely before any

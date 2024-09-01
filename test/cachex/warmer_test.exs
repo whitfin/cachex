@@ -1,5 +1,5 @@
 defmodule Cachex.WarmerTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "warmers which set basic values" do
     # create a test warmer to pass to the cache

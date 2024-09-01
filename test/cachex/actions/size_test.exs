@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.SizeTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies the size of a cache. It should be noted that size is the
   # total size of the cache, regardless of any evictions (unlike count). We make

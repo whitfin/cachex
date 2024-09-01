@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.DelTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This case tests that we can safely remove items from the cache. We test the
   # removal of both existing and missing keys, as the behaviour is the same for

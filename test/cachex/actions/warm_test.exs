@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.WarmTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test covers the basic case of manually rewarming a cache,
   # after manually clearing it but checking again before the schedule.

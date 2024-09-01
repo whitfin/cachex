@@ -1,5 +1,5 @@
 defmodule Cachex.Services.JanitorTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # We have a common utility to check whether a TTL has passed or not based on
   # an input of a write time and a TTL length. This test ensures that this returns

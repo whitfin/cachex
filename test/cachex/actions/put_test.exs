@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.PutTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies the addition of new entries to the cache. We ensure that
   # values can be added and can be given expiration values. We also test the case

@@ -1,5 +1,5 @@
 defmodule Cachex.Services.LocksmithTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that we can detect when we're running inside a transactional
   # context within a process. This is used to automatically detect nested transactions

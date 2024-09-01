@@ -1,5 +1,5 @@
 defmodule Cachex.ActionsTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   require Cachex.Actions
 

@@ -1,5 +1,5 @@
 defmodule Cachex.OverseerTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # Bind any required hooks for test execution
   setup_all do

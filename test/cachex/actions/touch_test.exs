@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.TouchTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures that we can safely update the touch time of a key without
   # affecting when the key will be removed. We verify the TTL before and after

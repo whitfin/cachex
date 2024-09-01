@@ -1,5 +1,5 @@
 defmodule Cachex.QueryTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # All queries are run through the basic query generation, so this test
   # will just validate the passing of query clauses through to the query

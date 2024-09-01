@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.DumpTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test covers the backing up of a cache to a local disk location. We only
   # cover the happy path as there are separate tests covering issues with the

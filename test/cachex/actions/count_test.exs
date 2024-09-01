@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.CountTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that a cache can be successfully counted. Counting a cache
   # will return the size of the cache, but ignoring the number of expired entries.

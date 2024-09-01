@@ -1,3 +1,3 @@
 defmodule Cachex.HookTest do
-  use CachexCase
+  use Cachex.Test.Case
 end

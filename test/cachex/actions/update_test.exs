@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.UpdateTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test just ensures that we can update the value associated with a key
   # when the value already exists inside the cache. We make sure that any TTL

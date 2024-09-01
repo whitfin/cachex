@@ -1,5 +1,5 @@
 defmodule Cachex.ServicesTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "generating application service definitions" do
     assert [

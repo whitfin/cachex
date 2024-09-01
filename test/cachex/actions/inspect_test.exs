@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.InspectTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures that we can correctly inspect various things related to
   # expired keys inside the cache. We need to make sure that the check both the

@@ -1,5 +1,5 @@
 defmodule Cachex.SpecTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "default command record values",
     do: assert(command() == {:command, nil, nil})

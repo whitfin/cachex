@@ -1,5 +1,5 @@
 defmodule Cachex.Policy.LRW.EventedTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test just ensures that there are no artificial limits placed on a cache
   # by adding 5000 keys and making sure they're not evicted. It simply serves as

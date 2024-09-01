@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.GetTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that we can retrieve keys from the cache.
   # If a key has expired, the value is not returned and the hooks

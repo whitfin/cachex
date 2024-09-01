@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.StreamTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures that a default cache stream will stream cache entries
   # back in record form back to the calling process. This test just makes sure

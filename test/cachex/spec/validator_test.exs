@@ -1,5 +1,5 @@
 defmodule Cachex.Spec.ValidatorTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   alias Cachex.Spec.Validator
 

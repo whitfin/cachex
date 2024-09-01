@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ExpireTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test updates the expire time on a key to expire after a given period.
   # We make sure that TTLs are updated accordingly. If the period is negative,

@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.LoadTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test covers the backing up of a cache to a local disk location. We set
   # a value, dump to disk, then clear the cache. We then load the backup file to

@@ -1,5 +1,5 @@
 defmodule Cachex.DiskTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test just ensures that we can correctly write values to disk when using
   # varying levels of compression and that we can read back the exact same value
