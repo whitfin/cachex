@@ -4,7 +4,7 @@ defmodule Cachex.Router.RingTest do
   test "routing keys via a ring router" do
     # create a test cache cluster for nodes
     {cache, _nodes} =
-      Helper.create_cache_cluster(3,
+      TestUtils.create_cache_cluster(3,
         router:
           router(
             module: Cachex.Router.Ring,
@@ -29,7 +29,7 @@ defmodule Cachex.Router.RingTest do
   test "routing keys via a ring router with monitored nodes" do
     # create a test cache cluster for nodes
     {cache, nodes} =
-      Helper.create_cache_cluster(3,
+      TestUtils.create_cache_cluster(3,
         router:
           router(
             module: Cachex.Router.Ring,

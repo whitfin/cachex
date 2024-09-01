@@ -13,10 +13,10 @@ defmodule Cachex.Actions.FetchTest do
     concat = &(&1 <> "_" <> &2)
 
     # create a test cache
-    cache1 = Helper.create_cache(hooks: [hook])
+    cache1 = TestUtils.create_cache(hooks: [hook])
 
     cache2 =
-      Helper.create_cache(
+      TestUtils.create_cache(
         hooks: [hook],
         fallback: fallback(state: "val", default: concat)
       )
@@ -29,7 +29,7 @@ defmodule Cachex.Actions.FetchTest do
     :timer.sleep(2)
 
     # flush all existing messages
-    Helper.flush()
+    TestUtils.flush()
 
     # define the fallback options
     fb_opt1 = &String.reverse/1
@@ -103,7 +103,7 @@ defmodule Cachex.Actions.FetchTest do
   test "fetching and committing the same key simultaneously from a fallback" do
     for _ <- 1..10 do
       # create a test cache
-      cache = Helper.create_cache()
+      cache = TestUtils.create_cache()
 
       # basic fallback
       fallback1 = fn ->
@@ -140,7 +140,7 @@ defmodule Cachex.Actions.FetchTest do
 
   test "fetching and setting an expiration on a key from a fallback" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # create a fallback with an expiration
     purged = [ttl: 60000]
@@ -165,7 +165,7 @@ defmodule Cachex.Actions.FetchTest do
   @tag distributed: true
   test "fetching keys from a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes - have to make sure that we
     # use a known function, otherwise it fails with an undefined function.
@@ -186,7 +186,7 @@ defmodule Cachex.Actions.FetchTest do
   # bug were to reappear, this test should fail and catch it.
   test "fetching will only call fallback once per key" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # create a test agent to hold our test state
     {:ok, agent} = Agent.start_link(fn -> %{} end)

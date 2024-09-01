@@ -10,7 +10,7 @@ defmodule Cachex.ServicesTest do
 
   test "generating default cache specifications" do
     # generate the test cache state
-    name = Helper.create_cache()
+    name = TestUtils.create_cache()
     cache = Services.Overseer.retrieve(name)
 
     # validate the services
@@ -30,7 +30,7 @@ defmodule Cachex.ServicesTest do
 
   test "skipping cache janitor specifications" do
     # generate the test cache state with the Janitor disabled
-    name = Helper.create_cache(expiration: expiration(interval: nil))
+    name = TestUtils.create_cache(expiration: expiration(interval: nil))
     cache = Services.Overseer.retrieve(name)
 
     # validate the services
@@ -49,7 +49,7 @@ defmodule Cachex.ServicesTest do
 
   test "locating running services" do
     # generate the test cache state with the Janitor disabled
-    name = Helper.create_cache(expiration: expiration(interval: nil))
+    name = TestUtils.create_cache(expiration: expiration(interval: nil))
     cache = Services.Overseer.retrieve(name)
 
     # validate the service locations

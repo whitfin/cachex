@@ -1,4 +1,4 @@
-defmodule Cachex.Test.Helper do
+defmodule Cachex.Test.Utils do
   @moduledoc false
   # This module contains various helper functions for tests.
   #

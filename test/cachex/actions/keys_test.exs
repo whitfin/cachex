@@ -10,7 +10,7 @@ defmodule Cachex.Actions.KeysTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -26,7 +26,7 @@ defmodule Cachex.Actions.KeysTest do
     :timer.sleep(2)
 
     # clear all hook
-    Helper.flush()
+    TestUtils.flush()
 
     # retrieve the keys
     {status, keys} = Cachex.keys(cache)
@@ -52,7 +52,7 @@ defmodule Cachex.Actions.KeysTest do
   @tag distributed: true
   test "checking if a cache cluster is empty" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

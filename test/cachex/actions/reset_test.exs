@@ -11,10 +11,10 @@ defmodule Cachex.Actions.ResetTest do
   # coverage tools, as the entire point is that it doesn't do anything.
   test "resetting a cache" do
     # create a test cache
-    cache1 = Helper.create_cache(stats: true)
+    cache1 = TestUtils.create_cache(stats: true)
 
     # create a cache with no hooks
-    cache2 = Helper.create_cache()
+    cache2 = TestUtils.create_cache()
 
     # get current time
     ctime1 = now()
@@ -64,7 +64,7 @@ defmodule Cachex.Actions.ResetTest do
   # to verify that the cache is empty after the reset.
   test "resetting only a cache" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # get current time
     ctime1 = now()
@@ -105,7 +105,7 @@ defmodule Cachex.Actions.ResetTest do
   # that the creation_date of the stats hook is reset properly.
   test "resetting only a cache's hooks" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # get current time
     ctime1 = now()
@@ -167,7 +167,7 @@ defmodule Cachex.Actions.ResetTest do
   @tag distributed: true
   test "resetting a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

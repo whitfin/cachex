@@ -10,13 +10,13 @@ defmodule Cachex.Actions.PurgeTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # add a new cache entry
     {:ok, true} = Cachex.put(cache, "key", "value", ttl: 25)
 
     # flush messages
-    Helper.flush()
+    TestUtils.flush()
 
     # purge before the entry expires
     purge1 = Cachex.purge(cache)
@@ -54,7 +54,7 @@ defmodule Cachex.Actions.PurgeTest do
   @tag distributed: true
   test "purging expired records in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1, ttl: 1)

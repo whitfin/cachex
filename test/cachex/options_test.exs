@@ -15,7 +15,7 @@ defmodule Cachex.OptionsTest do
   # will just ensure that this is done correctly.
   test "adding a cache name to the state" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # parse the options into a validated cache state
     assert match?({:ok, cache(name: ^name)}, Cachex.Options.parse(name, []))
@@ -67,7 +67,7 @@ defmodule Cachex.OptionsTest do
   # as a Map - so we need to make sure the kept command is intuitive for the user.
   test "parsing :commands flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # define some functions
     fun1 = fn _ -> [1, 2, 3] end
@@ -118,7 +118,7 @@ defmodule Cachex.OptionsTest do
   # is set to true or false, and the default.
   test "parsing :compressed flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # parse our values as options
     {:ok, cache(compressed: comp1)} =
@@ -139,7 +139,7 @@ defmodule Cachex.OptionsTest do
   # combinations of :ttl_interval and :default_ttl to verify each state correctly.
   test "parsing :expiration flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # parse out valid combinations
     {:ok, cache(expiration: exp1)} =
@@ -201,7 +201,7 @@ defmodule Cachex.OptionsTest do
   # the provided value is a valid function (of any arity).
   test "parsing :fallback flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # define our falbacks
     fallback1 = fallback()
@@ -251,7 +251,7 @@ defmodule Cachex.OptionsTest do
   # Hooks are grouped into the correct pre/post groups inside the state.
   test "parsing :hooks flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # create our pre hook
     pre_hook = ForwardHook.create(:options_pre_forward_hook)
@@ -289,7 +289,7 @@ defmodule Cachex.OptionsTest do
   # to also be verified within this test.
   test "parsing :limit flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # create a default limit
     default = limit()
@@ -329,7 +329,7 @@ defmodule Cachex.OptionsTest do
   # is set to true or false, and the default.
   test "parsing :ordered flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # parse our values as options
     {:ok, cache(ordered: ordered1)} =
@@ -349,7 +349,7 @@ defmodule Cachex.OptionsTest do
   # can be provided as either an atom module name, or a router struct.
   test "parsing :router flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # parse out valid router combinations
     {:ok, cache(router: router1)} = Cachex.Options.parse(name, [])
@@ -376,7 +376,7 @@ defmodule Cachex.OptionsTest do
   # We just need to verify that the hook is added after being parsed.
   test "parsing :stats flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # create a stats hook
     hook =
@@ -398,7 +398,7 @@ defmodule Cachex.OptionsTest do
   # locksmith has its name set inside the returned state.
   test "parsing :transactions flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # parse our values as options
     {:ok, cache(transactions: trans1)} =
@@ -417,10 +417,10 @@ defmodule Cachex.OptionsTest do
 
   test "parsing :warmers flags" do
     # grab a cache name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # define our warmer to pass through to the cache
-    Helper.create_warmer(:options_test_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:options_test_warmer, 50, fn _ ->
       :ignore
     end)
 

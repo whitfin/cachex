@@ -10,7 +10,7 @@ defmodule Cachex.Actions.EmptyTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # check if the cache is empty
     result1 = Cachex.empty?(cache)
@@ -42,7 +42,7 @@ defmodule Cachex.Actions.EmptyTest do
   @tag distributed: true
   test "checking if a cache cluster is empty" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

@@ -10,11 +10,11 @@ defmodule Cachex.Actions.PutTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache1 = Helper.create_cache(hooks: [hook])
+    cache1 = TestUtils.create_cache(hooks: [hook])
 
     # create a test cache with a default ttl
     cache2 =
-      Helper.create_cache(hooks: [hook], expiration: expiration(default: 10000))
+      TestUtils.create_cache(hooks: [hook], expiration: expiration(default: 10000))
 
     # set some values in the cache
     set1 = Cachex.put(cache1, 1, 1)
@@ -71,7 +71,7 @@ defmodule Cachex.Actions.PutTest do
   @tag distributed: true
   test "adding new entries to a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

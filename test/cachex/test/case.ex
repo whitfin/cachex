@@ -6,7 +6,7 @@ defmodule Cachex.Test.Case do
 
       alias Cachex.Test.Hook.Execute, as: ExecuteHook
       alias Cachex.Test.Hook.Forward, as: ForwardHook
-      alias Cachex.Test.Helper, as: Helper
+      alias Cachex.Test.Utils, as: TestUtils
       alias Cachex.Services
 
       import Cachex.Spec
@@ -15,7 +15,7 @@ defmodule Cachex.Test.Case do
 
       require ExecuteHook
       require ForwardHook
-      require Helper
+      require TestUtils
     end
   end
 end

@@ -3,7 +3,7 @@ defmodule Cachex.Services.CourierTest do
 
   test "dispatching tasks" do
     # start a new cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
     cache = Services.Overseer.retrieve(cache)
 
     # dispatch an arbitrary task
@@ -33,7 +33,7 @@ defmodule Cachex.Services.CourierTest do
     end
 
     # start a new cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
     cache = Services.Overseer.retrieve(cache)
     parent = self()
 
@@ -60,7 +60,7 @@ defmodule Cachex.Services.CourierTest do
 
   test "gracefully handling crashes inside tasks" do
     # start a new cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
     cache = Services.Overseer.retrieve(cache)
 
     # dispatch an arbitrary task
@@ -76,7 +76,7 @@ defmodule Cachex.Services.CourierTest do
 
   test "recovering from failed tasks" do
     # start a new cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
     cache = Services.Overseer.retrieve(cache)
 
     # kill in flight task

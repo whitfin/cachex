@@ -3,12 +3,12 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which set basic values" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:basic_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:basic_warmer, 50, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
     # create a cache instance with a warmer
-    cache = Helper.create_cache(warmers: [warmer(module: :basic_warmer)])
+    cache = TestUtils.create_cache(warmers: [warmer(module: :basic_warmer)])
 
     # check that the key was warmed
     assert Cachex.get!(cache, 1) == 1
@@ -16,12 +16,12 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which set values with options" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:options_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:options_warmer, 50, fn _ ->
       {:ok, [{1, 1}], [ttl: 60000]}
     end)
 
     # create a cache instance with a warmer
-    cache = Helper.create_cache(warmers: [warmer(module: :options_warmer)])
+    cache = TestUtils.create_cache(warmers: [warmer(module: :options_warmer)])
 
     # check that the key was warmed
     assert Cachex.get!(cache, 1) == 1
@@ -32,12 +32,12 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which don't set values" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:ignore_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:ignore_warmer, 50, fn _ ->
       :ignore
     end)
 
     # create a cache instance with a warmer
-    cache = Helper.create_cache(warmers: [warmer(module: :ignore_warmer)])
+    cache = TestUtils.create_cache(warmers: [warmer(module: :ignore_warmer)])
 
     # check that the cache is empty
     assert Cachex.empty?(!cache)
@@ -45,14 +45,14 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which aren't blocking" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:optional_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:optional_warmer, 50, fn _ ->
       :timer.sleep(3000)
       {:ok, [{1, 1}]}
     end)
 
     # create a cache instance with a warmer
     warmer = warmer(module: :optional_warmer, required: false)
-    cache = Helper.create_cache(warmers: [warmer])
+    cache = TestUtils.create_cache(warmers: [warmer])
 
     # check that the key was not warmed
     assert Cachex.get!(cache, 1) == nil
@@ -60,7 +60,7 @@ defmodule Cachex.WarmerTest do
 
   test "providing warmers with states" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:state_warmer, 50, fn state ->
+    TestUtils.create_warmer(:state_warmer, 50, fn state ->
       {:ok, [{"state", state}]}
     end)
 
@@ -69,7 +69,7 @@ defmodule Cachex.WarmerTest do
 
     # create a cache instance with a warmer
     cache =
-      Helper.create_cache(
+      TestUtils.create_cache(
         warmers: [warmer(module: :state_warmer, state: state)]
       )
 
@@ -79,12 +79,12 @@ defmodule Cachex.WarmerTest do
 
   test "triggering cache hooks from within warmers" do
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:hook_warmer_optional, 15000, fn _ ->
+    TestUtils.create_warmer(:hook_warmer_optional, 15000, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
     # create a test warmer to pass to the cache
-    Helper.create_warmer(:hook_warmer_required, 15000, fn _ ->
+    TestUtils.create_warmer(:hook_warmer_required, 15000, fn _ ->
       {:ok, [{2, 2}]}
     end)
 
@@ -92,7 +92,7 @@ defmodule Cachex.WarmerTest do
     hook = ForwardHook.create()
 
     # create a cache instance with a warmer and hook
-    Helper.create_cache(
+    TestUtils.create_cache(
       hooks: [hook],
       warmers: [
         warmer(module: :hook_warmer_optional, required: false),

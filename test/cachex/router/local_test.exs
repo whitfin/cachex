@@ -3,7 +3,7 @@ defmodule Cachex.Router.LocalTest do
 
   test "routing keys via a local router" do
     # create a test cache
-    cache = Helper.create_cache(router: Cachex.Router.Local)
+    cache = TestUtils.create_cache(router: Cachex.Router.Local)
 
     # convert the name to a cache and sort
     cache = Services.Overseer.retrieve(cache)

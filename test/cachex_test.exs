@@ -7,12 +7,12 @@ defmodule CachexTest do
   # sure that the cache dies once the spawned process does.
   test "cache start with a link" do
     # fetch some names
-    name1 = Helper.create_name()
-    name2 = Helper.create_name()
+    name1 = TestUtils.create_name()
+    name2 = TestUtils.create_name()
 
     # cleanup on exit
-    Helper.delete_on_exit(name1)
-    Helper.delete_on_exit(name2)
+    TestUtils.delete_on_exit(name1)
+    TestUtils.delete_on_exit(name2)
 
     # this process should live
     {:ok, pid1} = Cachex.start_link(name1)
@@ -39,12 +39,12 @@ defmodule CachexTest do
   # process should stay alive after the process terminates.
   test "cache start without a link" do
     # fetch some names
-    name1 = Helper.create_name()
-    name2 = Helper.create_name()
+    name1 = TestUtils.create_name()
+    name2 = TestUtils.create_name()
 
     # cleanup on exit
-    Helper.delete_on_exit(name1)
-    Helper.delete_on_exit(name2)
+    TestUtils.delete_on_exit(name1)
+    TestUtils.delete_on_exit(name2)
 
     # this process should live
     {:ok, pid1} = Cachex.start(name1)
@@ -71,10 +71,10 @@ defmodule CachexTest do
   # global ETS table which stores cache states in the background.
   test "cache start when application not started" do
     # fetch a name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # cleanup on exit (just in case)
-    Helper.delete_on_exit(name)
+    TestUtils.delete_on_exit(name)
 
     # ensure that we start the app on exit
     on_exit(fn -> Application.ensure_all_started(:cachex) end)
@@ -108,10 +108,10 @@ defmodule CachexTest do
   # avoid bloating the Supervision tree.
   test "cache start with invalid options" do
     # fetch a name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # cleanup on exit (just in case)
-    Helper.delete_on_exit(name)
+    TestUtils.delete_on_exit(name)
 
     # try to start a cache with invalid hook definitions
     {:error, reason} = Cachex.start_link(name, hooks: hook(module: Missing))
@@ -125,10 +125,10 @@ defmodule CachexTest do
   # by returning a small atom error saying that the cache name already exists.
   test "cache start with existing cache name" do
     # fetch a name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # cleanup on exit (just in case)
-    Helper.delete_on_exit(name)
+    TestUtils.delete_on_exit(name)
 
     # this cache should start successfully
     {:ok, pid} = Cachex.start_link(name)
@@ -152,7 +152,7 @@ defmodule CachexTest do
   # both execution with valid and invalid names to make sure we catch both.
   test "cache execution with an invalid name" do
     # fetch a name
-    name = Helper.create_name()
+    name = TestUtils.create_name()
 
     # try to execute a cache action against a missing cache and an invalid name
     {:error, reason1} = Cachex.execute(name, & &1)
@@ -197,7 +197,7 @@ defmodule CachexTest do
     end
 
     # create a basic test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # validate an unsafe call to test handling
     assert_raise(Cachex.ExecutionError, fn ->

@@ -6,7 +6,7 @@ defmodule Cachex.Actions.ExportTest do
   # as it's covered more heavily by the test cases based on `dump/3`.
   test "exporting records from a cache" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # fill with some items
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -28,7 +28,7 @@ defmodule Cachex.Actions.ExportTest do
   @tag distributed: true
   test "exporting records from a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

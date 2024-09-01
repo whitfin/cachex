@@ -8,7 +8,7 @@ defmodule Cachex.StatsTest do
   # by 1 (as clearing is a single cache op).
   test "registering clear actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a few values in the cache
     for i <- 0..4 do
@@ -40,7 +40,7 @@ defmodule Cachex.StatsTest do
   # the result of the call (which is either true or false) under the del namespace.
   test "registering delete actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a few values in the cache
     for i <- 0..1 do
@@ -73,7 +73,7 @@ defmodule Cachex.StatsTest do
   # the global namespace based on whether the key exists or not.
   test "registering exists? actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a value in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -106,7 +106,7 @@ defmodule Cachex.StatsTest do
   # based on whether the key was in the cache.
   test "registering get actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a value in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -140,7 +140,7 @@ defmodule Cachex.StatsTest do
   # will also increment the miss count (as a key must miss in order to fall back).
   test "registering fetch actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a value in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -177,7 +177,7 @@ defmodule Cachex.StatsTest do
   # increment the updateCount. Both increment the operation count.
   test "registering incr/decr actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # incr values in the cache
     {:ok, 5} = Cachex.incr(cache, 1, 3, initial: 2)
@@ -218,7 +218,7 @@ defmodule Cachex.StatsTest do
 
     # create a test cache
     cache =
-      Helper.create_cache(
+      TestUtils.create_cache(
         stats: true,
         commands: [
           last: command(type: :read, execute: last),
@@ -265,7 +265,7 @@ defmodule Cachex.StatsTest do
   # evictionCount. This is because purged keys are removed due to TTL expiration.
   test "registering purge actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a few values in the cache
     for i <- 0..4 do
@@ -301,7 +301,7 @@ defmodule Cachex.StatsTest do
   # set namespace, in order to avoid false positives.
   test "registering put actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a few values in the cache
     for i <- 0..4 do
@@ -327,7 +327,7 @@ defmodule Cachex.StatsTest do
   # writing a batch will correctly count using the length of the batch itself.
   test "registering put_many actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a few values in the cache
     {:ok, true} =
@@ -360,7 +360,7 @@ defmodule Cachex.StatsTest do
   # missCount instead. Both also increment keys inside the take namespace.
   test "registering take actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a value in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -393,7 +393,7 @@ defmodule Cachex.StatsTest do
   # This test verifies the update actions and the incremenation of the necessary keys.
   test "registering update actions" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
 
     # set a value in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -422,7 +422,7 @@ defmodule Cachex.StatsTest do
   # module, so please refer to those tests for any issues with counters.
   test "retrieving the state of a stats hook" do
     # create a test cache
-    cache = Helper.create_cache(stats: true)
+    cache = TestUtils.create_cache(stats: true)
     cache = Services.Overseer.retrieve(cache)
 
     # retrieve the current time

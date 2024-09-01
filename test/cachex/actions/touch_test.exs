@@ -10,7 +10,7 @@ defmodule Cachex.Actions.TouchTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # pull back the state
     state = Services.Overseer.retrieve(cache)
@@ -20,7 +20,7 @@ defmodule Cachex.Actions.TouchTest do
     {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1000)
 
     # clear messages
-    Helper.flush()
+    TestUtils.flush()
 
     # retrieve the raw records
     entry(touched: touched1, ttl: ttl1) = Cachex.Actions.read(state, 1)
@@ -81,7 +81,7 @@ defmodule Cachex.Actions.TouchTest do
   @tag distributed: true
   test "adding new entries to a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

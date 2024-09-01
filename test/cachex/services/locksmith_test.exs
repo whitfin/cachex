@@ -6,7 +6,7 @@ defmodule Cachex.Services.LocksmithTest do
   # and should be false when run outside of the Locksmith server, otherwise true.
   test "detecting a transactional context" do
     # start a new cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # fetch the cache state
     state = Services.Overseer.retrieve(cache)
@@ -31,8 +31,8 @@ defmodule Cachex.Services.LocksmithTest do
   # ensure that writes are queued unnecessarily.
   test "executing a write outside of a transaction" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache(transactions: true)
-    cache2 = Helper.create_cache(transactions: false)
+    cache1 = TestUtils.create_cache(transactions: true)
+    cache2 = TestUtils.create_cache(transactions: false)
 
     # fetch the states for the caches
     state1 = Services.Overseer.retrieve(cache1)
@@ -59,8 +59,8 @@ defmodule Cachex.Services.LocksmithTest do
   # itself, as it's needed to test the write execution.
   test "executing a transactional block" do
     # start two caches, one transactional, one not
-    cache1 = Helper.create_cache(transactions: false)
-    cache2 = Helper.create_cache(transactions: true)
+    cache1 = TestUtils.create_cache(transactions: false)
+    cache2 = TestUtils.create_cache(transactions: true)
 
     # fetch the states for the caches
     state1 = Services.Overseer.retrieve(cache1)
@@ -113,7 +113,7 @@ defmodule Cachex.Services.LocksmithTest do
   # notifies the user of the error occurring without causing other issues.
   test "executing a crashing transaction" do
     # create a test cache
-    cache = Helper.create_cache(transactions: true)
+    cache = TestUtils.create_cache(transactions: true)
 
     # retrieve the state for our cache
     state = Services.Overseer.retrieve(cache)
@@ -133,7 +133,7 @@ defmodule Cachex.Services.LocksmithTest do
   # being covered in case of race conditions on locks).
   test "locking items in a table" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # retrieve the state for our cache
     state = Services.Overseer.retrieve(cache)

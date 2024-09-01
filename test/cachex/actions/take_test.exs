@@ -9,7 +9,7 @@ defmodule Cachex.Actions.TakeTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -19,7 +19,7 @@ defmodule Cachex.Actions.TakeTest do
     :timer.sleep(2)
 
     # flush all existing messages
-    Helper.flush()
+    TestUtils.flush()
 
     # take the first and second key
     result1 = Cachex.take(cache, 1)
@@ -60,7 +60,7 @@ defmodule Cachex.Actions.TakeTest do
   @tag distributed: true
   test "taking entries from a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

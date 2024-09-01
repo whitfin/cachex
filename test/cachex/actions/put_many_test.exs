@@ -10,11 +10,11 @@ defmodule Cachex.Actions.PutManyTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache1 = Helper.create_cache(hooks: [hook])
+    cache1 = TestUtils.create_cache(hooks: [hook])
 
     # create a test cache with a default ttl
     cache2 =
-      Helper.create_cache(hooks: [hook], expiration: expiration(default: 10000))
+      TestUtils.create_cache(hooks: [hook], expiration: expiration(default: 10000))
 
     # set some values in the cache
     set1 = Cachex.put_many(cache1, [{1, 1}, {2, 2}])
@@ -85,7 +85,7 @@ defmodule Cachex.Actions.PutManyTest do
   # short circuiting in order to speed up the empty batch.
   test "handling empty pairs in a batch" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # try set some values in the cache
     result = Cachex.put_many(cache, [])
@@ -102,7 +102,7 @@ defmodule Cachex.Actions.PutManyTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # try set some values in the cache
     set1 = Cachex.put_many(cache, [{1, 1}, "key"])
@@ -124,7 +124,7 @@ defmodule Cachex.Actions.PutManyTest do
   @tag distributed: true
   test "adding new entries to a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
     {:ok, true} = Cachex.put_many(cache, [{2, 2}, {3, 3}])
@@ -143,7 +143,7 @@ defmodule Cachex.Actions.PutManyTest do
   @tag distributed: true
   test "multiple slots will return a :cross_slot error" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 3 don't hash to the same slots
     put_many = Cachex.put_many(cache, [{1, 1}, {3, 3}])

@@ -10,13 +10,13 @@ defmodule Cachex.Actions.DumpTest do
     tmp = System.tmp_dir!()
 
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
 
     # add some cache entries
     {:ok, true} = Cachex.put(cache, 1, 1)
 
     # create a local path to write to
-    path = Path.join(tmp, Helper.gen_rand_bytes(8))
+    path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # dump the cache to a local file
     result1 = Cachex.dump(cache, path)
@@ -46,15 +46,15 @@ defmodule Cachex.Actions.DumpTest do
     tmp = System.tmp_dir!()
 
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)
     {:ok, true} = Cachex.put(cache, 2, 2)
 
     # create a local path to write to
-    path1 = Path.join(tmp, Helper.gen_rand_bytes(8))
-    path2 = Path.join(tmp, Helper.gen_rand_bytes(8))
+    path1 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
+    path2 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # dump the cache to a local file for local/remote
     dump1 = Cachex.dump(cache, path1, local: true)

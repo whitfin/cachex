@@ -8,7 +8,7 @@ defmodule Cachex.Actions.CountTest do
     hook = ForwardHook.create()
 
     # create a test cache
-    cache = Helper.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -24,7 +24,7 @@ defmodule Cachex.Actions.CountTest do
     :timer.sleep(2)
 
     # clear all hook
-    Helper.flush()
+    TestUtils.flush()
 
     # count the cache
     result = Cachex.count(cache)
@@ -44,7 +44,7 @@ defmodule Cachex.Actions.CountTest do
   @tag distributed: true
   test "counting items in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = Helper.create_cache_cluster(2)
+    {cache, _nodes} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

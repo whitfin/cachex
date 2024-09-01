@@ -6,7 +6,7 @@ defmodule Cachex.Actions.ImportTest do
   # import as it's covered more heavily by the test cases based on `load/2`.
   test "importing records into a cache" do
     # create a test cache
-    cache = Helper.create_cache()
+    cache = TestUtils.create_cache()
     start = now()
 
     # add some cache entries
