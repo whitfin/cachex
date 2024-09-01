@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ExpireAtTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test updates the expire time on a key to expire at a given timestamp.
   # We make sure that TTLs are updated accordingly. If a date in the past is

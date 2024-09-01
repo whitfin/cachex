@@ -1,5 +1,5 @@
 defmodule Cachex.Router.RingTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "routing keys via a ring router" do
     # create a test cache cluster for nodes

@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.PersistTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test just ensures that we can safely remove expiration times from a key.
   # We set a TTL on a key and then persist it and verify that there is then no

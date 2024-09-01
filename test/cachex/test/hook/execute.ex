@@ -1,21 +1,21 @@
-defmodule CachexCase.ForwardHook do
+defmodule Cachex.Test.Hook.Execute do
   @moduledoc false
-  # This module provides a Cachex hook interface which simply forwards all messages
-  # to the calling process.
+  # This module provides a Cachex hook interface which will execute
+  # forwarded functions.
   #
-  # This is useful to validate that messages sent actually do arrive as intended,
-  # without having to trust assertions inside the hooks themselves.
+  # This is useful to testing timeouts inside hooks, as well as any
+  # error handling and crash states (from inside the hook).
   use Cachex.Hook
   import Cachex.Spec
 
   @doc """
-  Returns a hook definition for the default forward hook.
+  Returns a hook definition for the default execute hook.
   """
   def create,
-    do: create(:default_forward_hook)
+    do: create(:default_execute_hook)
 
   @doc """
-  Returns a hook definition for a custom forward hook.
+  Returns a hook definition for a custom execute hook.
   """
   def create(module) when is_atom(module),
     do: hook(module: module, state: self())
@@ -57,24 +57,19 @@ defmodule CachexCase.ForwardHook do
             do: unquote(type)
 
           @doc """
-          Forwards received messages to the state process.
+          Executes a received function and forwards to the state process.
           """
-          def handle_notify(msg, results, proc) do
-            {:ok, handle_info({msg, results}, proc) && proc}
-          end
-
-          @doc """
-          Forwards received messages to the state process.
-          """
-          def handle_provision(provision, proc) do
-            {:ok, handle_info(provision, proc) && proc}
+          def handle_notify({_tag, fun}, _results, proc) do
+            handle_info(fun.(), proc)
+            {:ok, proc}
           end
 
           @doc """
           Forwards received messages to the state process.
           """
           def handle_info(msg, proc) do
-            {:noreply, send(proc, msg) && proc}
+            send(proc, msg)
+            {:noreply, proc}
           end
         end
       end

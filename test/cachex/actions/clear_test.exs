@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ClearTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that a cache can be successfully cleared. We fill the cache
   # and clear it, verifying that the entries were removed successfully. We also

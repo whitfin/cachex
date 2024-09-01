@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ExistsTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies whether a key exists in a cache. If it does, we return
   # true. If not we return false. If the key has expired, we return false and

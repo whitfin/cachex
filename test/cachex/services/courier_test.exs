@@ -1,5 +1,5 @@
 defmodule Cachex.Services.CourierTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "dispatching tasks" do
     # start a new cache

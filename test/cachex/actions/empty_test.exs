@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.EmptyTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that a cache is empty. We first check that it is before
   # adding any items, and after we add some we check that it's no longer empty.

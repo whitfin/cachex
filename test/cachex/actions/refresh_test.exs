@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.RefreshTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that we can reset the TTL time on a key. We check this
   # by settings keys with and without a TTL, waiting for some time to pass, and

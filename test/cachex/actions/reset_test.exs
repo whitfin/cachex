@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ResetTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures that we can reset a cache completely, resetting the state
   # of all hooks and emptying the cache of keys. We verify this using the stats

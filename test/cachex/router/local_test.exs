@@ -1,5 +1,5 @@
 defmodule Cachex.Router.LocalTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "routing keys via a local router" do
     # create a test cache

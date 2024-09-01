@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.TtlTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies the responses of checking TTLs inside the cache. We make
   # sure that TTLs are calculated correctly based on nil and set TTLs. If the

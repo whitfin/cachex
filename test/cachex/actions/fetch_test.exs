@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.FetchTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that we can retrieve keys from the cache with the
   # ability to compute values if they're missing. If a key has expired,

@@ -1,5 +1,5 @@
 defmodule Cachex.Router.ModTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "routing keys via a modulo router" do
     # create a test cache cluster for nodes

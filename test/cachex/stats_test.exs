@@ -1,5 +1,5 @@
 defmodule Cachex.StatsTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test ensures that we correctly register the clear action. When we clear
   # a cache, we need to increment the eviction count by the number of entries

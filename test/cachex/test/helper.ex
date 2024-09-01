@@ -1,4 +1,4 @@
-defmodule CachexCase.Helper do
+defmodule Cachex.Test.Helper do
   @moduledoc false
   # This module contains various helper functions for tests.
   #
@@ -7,6 +7,20 @@ defmodule CachexCase.Helper do
   # tests a lot easier and more convenient.
   import Cachex.Spec
   import ExUnit.Assertions
+
+  # alias the hooks to their legacy names
+  alias Cachex.Test.Hook.Execute, as: ExecuteHook
+  alias Cachex.Test.Hook.Forward, as: ForwardHook
+
+  # require hook related macros
+  require ExecuteHook
+  require ForwardHook
+
+  # create default execute hook
+  ExecuteHook.bind(default_execute_hook: [])
+
+  # create default forward hook
+  ForwardHook.bind(default_forward_hook: [])
 
   # a list of letters A - Z
   @alphabet Enum.to_list(?a..?z)
@@ -55,11 +69,11 @@ defmodule CachexCase.Helper do
       assert match?({:ok, pid} when is_pid(pid), result)
     end
 
-    # cleanup the cache on exit
-    TestHelper.delete_on_exit(name)
+    # cleanup the cache
+    delete_on_exit(name)
 
     # wait for all nodes to disconnect before continue
-    TestHelper.on_exit("stop #{name} children", fn ->
+    on_exit("stop #{name} children", fn ->
       poll(250, [], fn -> Node.list(:connected) end)
     end)
 
@@ -98,11 +112,22 @@ defmodule CachexCase.Helper do
 
   @doc false
   # Triggers a cache to be deleted at the end of the test.
-  #
-  # We have to pass this through to the `TestHelper` module as we don't have a
-  # valid ExUnit context to be able to define the execution hook correctly.
-  def delete_on_exit(name),
-    do: TestHelper.delete_on_exit(name) && name
+  def delete_on_exit(name) do
+    on_exit("delete #{name}", fn ->
+      try do
+        Supervisor.stop(name)
+      catch
+        :exit, _ -> :ok
+      end
+    end)
+
+    name
+  end
+
+  @doc false
+  # Runs a callable action by name on exit.
+  defdelegate on_exit(name, action),
+    to: ExUnit.Callbacks
 
   @doc false
   # Flush all messages in the process queue.

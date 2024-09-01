@@ -1,3 +1,3 @@
 defmodule Cachex.RouterTest do
-  use CachexCase
+  use Cachex.Test.Case
 end

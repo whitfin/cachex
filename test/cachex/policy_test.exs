@@ -1,5 +1,5 @@
 defmodule Cachex.PolicyTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "default policy implementations" do
     assert __MODULE__.DefaultPolicy.hooks(limit()) == []

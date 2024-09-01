@@ -1,5 +1,5 @@
 defmodule CachexTest do
-  use CachexCase
+  use Cachex.Test.Case
   import Integer
 
   # Ensures that we're able to start a cache and link it to the current process.

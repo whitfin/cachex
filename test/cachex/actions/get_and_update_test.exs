@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.GetAndUpdateTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that we can retrieve and update cache values. We make sure
   # to check the ability to ignore a value rather than committing, as well as the

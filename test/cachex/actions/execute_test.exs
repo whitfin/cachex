@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ExecuteTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test just makes sure that execution blocks are handled correctly in that
   # they can carry out many actions and return a joint result without having to

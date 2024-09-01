@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.PurgeTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test makes sure that we can manually purge expired records from the cache.
   # We attempt to purge before a key has expired and verify that it has not been

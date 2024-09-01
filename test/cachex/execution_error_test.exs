@@ -1,5 +1,5 @@
 defmodule Cachex.ExecutionErrorTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test just validates the default error message against an ExecutionError.
   # There is nothing more to validate beyond the returned message.

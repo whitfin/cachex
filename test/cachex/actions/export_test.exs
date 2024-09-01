@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.ExportTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test verifies that it's possible to export the entries from a cache.
   # As it stands, this is a barebones test to ensure the length of the export

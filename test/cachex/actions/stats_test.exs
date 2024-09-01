@@ -1,5 +1,5 @@
 defmodule Cachex.Actions.StatsTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   # This test covers stats retrieval by making sure that the numbers coming back
   # are both accurate and concise. We verify that the payload returned can be

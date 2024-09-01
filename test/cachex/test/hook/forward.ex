@@ -1,21 +1,21 @@
-defmodule CachexCase.ExecuteHook do
+defmodule Cachex.Test.Hook.Forward do
   @moduledoc false
-  # This module provides a Cachex hook interface which will execute
-  # forwarded functions.
+  # This module provides a Cachex hook interface which simply forwards all messages
+  # to the calling process.
   #
-  # This is useful to testing timeouts inside hooks, as well as any
-  # error handling and crash states (from inside the hook).
+  # This is useful to validate that messages sent actually do arrive as intended,
+  # without having to trust assertions inside the hooks themselves.
   use Cachex.Hook
   import Cachex.Spec
 
   @doc """
-  Returns a hook definition for the default execute hook.
+  Returns a hook definition for the default forward hook.
   """
   def create,
-    do: create(:default_execute_hook)
+    do: create(:default_forward_hook)
 
   @doc """
-  Returns a hook definition for a custom execute hook.
+  Returns a hook definition for a custom forward hook.
   """
   def create(module) when is_atom(module),
     do: hook(module: module, state: self())
@@ -57,19 +57,24 @@ defmodule CachexCase.ExecuteHook do
             do: unquote(type)
 
           @doc """
-          Executes a received function and forwards to the state process.
+          Forwards received messages to the state process.
           """
-          def handle_notify({_tag, fun}, _results, proc) do
-            handle_info(fun.(), proc)
-            {:ok, proc}
+          def handle_notify(msg, results, proc) do
+            {:ok, handle_info({msg, results}, proc) && proc}
+          end
+
+          @doc """
+          Forwards received messages to the state process.
+          """
+          def handle_provision(provision, proc) do
+            {:ok, handle_info(provision, proc) && proc}
           end
 
           @doc """
           Forwards received messages to the state process.
           """
           def handle_info(msg, proc) do
-            send(proc, msg)
-            {:noreply, proc}
+            {:noreply, send(proc, msg) && proc}
           end
         end
       end

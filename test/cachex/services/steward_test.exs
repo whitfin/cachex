@@ -1,5 +1,5 @@
 defmodule Cachex.Services.StewardTest do
-  use CachexCase
+  use Cachex.Test.Case
 
   test "provisioning cache state" do
     # bind our hook
