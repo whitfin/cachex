@@ -120,7 +120,7 @@ defmodule Cachex.Actions.InvokeTest do
   @tag distributed: true
   test "invoking commands in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} =
+    {cache, _nodes, _cluster} =
       TestUtils.create_cache_cluster(2,
         commands: [
           last: command(type: :read, execute: &List.last/1)

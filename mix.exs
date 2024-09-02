@@ -94,13 +94,13 @@ defmodule Cachex.Mixfile do
     [
       # Production dependencies
       {:eternal, "~> 1.2"},
+      {:ex_hash_ring, "~> 6.0"},
       {:jumper, "~> 1.0"},
-      {:libring, "~> 1.6"},
       {:sleeplocks, "~> 1.1"},
       {:unsafe, "~> 1.0"},
       # Testing dependencies
       {:excoveralls, "~> 0.15", optional: true, only: [:cover]},
-      {:local_cluster, "~> 2.0", optional: true, only: [:cover, :test]},
+      {:local_cluster, "~> 2.1", optional: true, only: [:cover, :test]},
       # Linting dependencies
       {:credo, "~> 1.7", optional: true, only: [:lint]},
       # Benchmarking dependencies

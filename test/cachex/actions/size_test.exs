@@ -57,7 +57,7 @@ defmodule Cachex.Actions.SizeTest do
   @tag distributed: true
   test "checking the total size of a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = TestUtils.create_cache_cluster(2)
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)
