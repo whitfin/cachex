@@ -152,7 +152,7 @@ defmodule Cachex.Actions.StatsTest do
   @tag distributed: true
   test "retrieving stats for a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = TestUtils.create_cache_cluster(2, stats: true)
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2, stats: true)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1)

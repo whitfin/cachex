@@ -77,7 +77,7 @@ defmodule Cachex.Test.Utils do
       poll(250, [], fn -> Node.list(:connected) end)
     end)
 
-    {name, nodes}
+    {name, nodes, cluster}
   end
 
   @doc false

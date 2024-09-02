@@ -83,7 +83,7 @@ defmodule Cachex.Actions.StreamTest do
   @tag distributed: true
   test "streaming is disabled in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = TestUtils.create_cache_cluster(2)
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we shouldn't be able to stream a cache on multiple nodes
     assert(Cachex.stream(cache) == {:error, :non_distributed})

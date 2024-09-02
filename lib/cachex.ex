@@ -54,7 +54,8 @@ defmodule Cachex do
   # avoid inspect clashes
   import Kernel, except: [inspect: 2]
 
-  # the cache type
+  # the type aliases for a cache type
+  @type t :: atom | Cachex.Spec.cache()
   @type cache :: atom | Cachex.Spec.cache()
 
   # custom status type

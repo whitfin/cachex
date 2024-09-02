@@ -54,7 +54,7 @@ defmodule Cachex.Actions.PurgeTest do
   @tag distributed: true
   test "purging expired records in a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = TestUtils.create_cache_cluster(2)
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
     {:ok, true} = Cachex.put(cache, 1, 1, ttl: 1)

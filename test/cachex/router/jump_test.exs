@@ -3,7 +3,7 @@ defmodule Cachex.Router.JumpTest do
 
   test "routing keys via a jump router" do
     # create a test cache cluster for nodes
-    {cache, nodes} =
+    {cache, nodes, _cluster} =
       TestUtils.create_cache_cluster(3,
         router: Cachex.Router.Jump
       )

@@ -85,7 +85,7 @@ defmodule Cachex.Actions.TransactionTest do
   @tag distributed: true
   test "transactions inside a cache cluster" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = TestUtils.create_cache_cluster(2)
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
     {:ok, result} = Cachex.transaction(cache, [], &:erlang.phash2/1)
@@ -100,7 +100,7 @@ defmodule Cachex.Actions.TransactionTest do
   @tag distributed: true
   test "multiple slots will return a :cross_slot error" do
     # create a new cache cluster for cleaning
-    {cache, _nodes} = TestUtils.create_cache_cluster(2)
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 3 don't hash to the same slots
     transaction = Cachex.transaction(cache, [1, 2], &:erlang.phash2/1)
