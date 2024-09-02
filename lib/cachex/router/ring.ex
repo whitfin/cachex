@@ -28,6 +28,12 @@ defmodule Cachex.Router.Ring do
 
   ## Options
 
+    * `:nodes`
+
+      The `:nodes` option allows a user to provide a list of nodes to treat
+      as a cluster. If this is not provided, the cluster will be inferred
+      by using `Node.self/1` and `Node.list/2`.
+
     * `:monitor`
 
       This option specifies whether to monitor Erlang `:nodeup` and `:nodedown`
@@ -51,12 +57,6 @@ defmodule Cachex.Router.Ring do
       The type of nodes to listen for and dynamically add to the internal ring.
       This defaults to `:all`, but can be any value accepted by the OTP function
       `:net_kernel.monitor_nodes/2`.
-
-    * `:nodes`
-
-      The `:nodes` option allows a user to provide a list of nodes to treat
-      as a cluster. If this is not provided, the cluster will be inferred
-      by using `Node.self/1` and `Node.list/2`.
 
   """
   @spec init(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
