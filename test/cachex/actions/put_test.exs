@@ -14,7 +14,10 @@ defmodule Cachex.Actions.PutTest do
 
     # create a test cache with a default ttl
     cache2 =
-      TestUtils.create_cache(hooks: [hook], expiration: expiration(default: 10000))
+      TestUtils.create_cache(
+        hooks: [hook],
+        expiration: expiration(default: 10000)
+      )
 
     # set some values in the cache
     set1 = Cachex.put(cache1, 1, 1)
