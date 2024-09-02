@@ -96,4 +96,71 @@ defmodule Cachex.Router.RingTest do
       length(routable3) == 3
     end)
   end
+
+  @tag distributed: true
+  test "routing keys via a ring router with included nodes" do
+    # create a test cache cluster for nodes
+    {cache, _nodes, _cluster} =
+      TestUtils.create_cache_cluster(3,
+        router:
+          router(
+            module: Cachex.Router.Ring,
+            options: [
+              monitor: true,
+              monitor_includes: [
+                ~r/^manager.*$/
+              ]
+            ]
+          )
+      )
+
+    # convert the name to a cache and sort
+    cache = Services.Overseer.retrieve(cache)
+
+    # verify that only the manage was attached to the ring
+    assert Services.Conductor.nodes(cache) == {:ok, [node()]}
+  end
+
+  @tag distributed: true
+  test "routing keys via a ring router with excluded nodes" do
+    # create a test cache cluster for nodes
+    {cache, _nodes, _cluster} =
+      TestUtils.create_cache_cluster(3,
+        router:
+          router(
+            module: Cachex.Router.Ring,
+            options: [
+              monitor: true,
+              monitor_excludes: [
+                ~r/^[a-zA-Z0-9]+\d@.*$/
+              ]
+            ]
+          )
+      )
+
+    # convert the name to a cache and sort
+    cache = Services.Overseer.retrieve(cache)
+
+    # verify that only the manage was attached to the ring
+    assert Services.Conductor.nodes(cache) == {:ok, [node()]}
+  end
+
+  test "matching node names against include/exclude params" do
+    name = Atom.to_string(node())
+
+    # accepting all patterns will always return truthy
+    assert Cachex.Router.Ring.included?(node(), [".*"], [])
+
+    # excluding all patterns will not return truthy
+    refute Cachex.Router.Ring.included?(node(), [], [".*"])
+
+    # invalid regex is ignored and treated as failure
+    assert Cachex.Router.Ring.included?(node(), [], ["**"])
+
+    # direct matching of binaries is acceptable
+    assert Cachex.Router.Ring.included?(node(), [name], [])
+
+    # invalid patterns are ignored, so this is valid
+    assert Cachex.Router.Ring.included?(node(), [], [1])
+  end
 end
