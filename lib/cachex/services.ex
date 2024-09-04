@@ -53,10 +53,10 @@ defmodule Cachex.Services do
   def cache_spec(cache() = cache) do
     []
     |> Enum.concat(table_spec(cache))
+    |> Enum.concat(router_spec(cache))
     |> Enum.concat(locksmith_spec(cache))
     |> Enum.concat(informant_spec(cache))
     |> Enum.concat(incubator_spec(cache))
-    |> Enum.concat(conductor_spec(cache))
     |> Enum.concat(courier_spec(cache))
     |> Enum.concat(janitor_spec(cache))
   end
@@ -117,21 +117,6 @@ defmodule Cachex.Services do
   ###############
   # Private API #
   ###############
-
-  # Creates a specification for the Conductor service.
-  #
-  # The Conductor service provides a way to dispatch cache calls between
-  # nodes in a distributed cluster. It's a little complicated because a
-  # Conductor's routing logic can be either a separate process or the
-  # same process to avoid unnecessary overhead. If this makes no sense
-  # when you come to read it, that's probably why.
-  defp conductor_spec(cache() = cache),
-    do: [
-      %{
-        id: Services.Conductor,
-        start: {Services.Conductor, :start_link, [cache]}
-      }
-    ]
 
   # Creates a specification for the Courier service.
   #
@@ -202,6 +187,14 @@ defmodule Cachex.Services do
         start: {Services.Locksmith.Queue, :start_link, [cache]}
       }
     ]
+
+  # Creates a specification for the cache router.
+  #
+  # The router provides a way to dispatch cache calls between nodes in a
+  # distributed cluster. A router can either be sync or async, so this
+  # may not start any managed services if none are required.
+  defp router_spec(cache(router: router(module: mod, options: opts)) = cache),
+    do: mod.spec(cache, opts)
 
   # Creates the required specifications for a backing cache table.
   #

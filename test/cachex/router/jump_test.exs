@@ -16,7 +16,7 @@ defmodule Cachex.Router.JumpTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, nodes}
+    assert Cachex.Router.nodes(cache) == {:ok, nodes}
     assert Cachex.Router.Jump.route(state, "elixir") == Enum.at(nodes, 1)
     assert Cachex.Router.Jump.route(state, "erlang") == Enum.at(nodes, 2)
   end
@@ -40,7 +40,7 @@ defmodule Cachex.Router.JumpTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, nodes}
+    assert Cachex.Router.nodes(cache) == {:ok, nodes}
     assert Cachex.Router.Jump.route(state, "elixir") == Enum.at(nodes, 1)
     assert Cachex.Router.Jump.route(state, "erlang") == Enum.at(nodes, 2)
   end

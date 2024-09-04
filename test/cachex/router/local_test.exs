@@ -12,7 +12,7 @@ defmodule Cachex.Router.LocalTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, [node()]}
+    assert Cachex.Router.nodes(cache) == {:ok, [node()]}
     assert Cachex.Router.Local.route(state, "elixir") == node()
     assert Cachex.Router.Local.route(state, "erlang") == node()
   end

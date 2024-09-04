@@ -15,7 +15,7 @@ defmodule Cachex.Router.RingTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, nodes}
+    assert Cachex.Router.nodes(cache) == {:ok, nodes}
     assert Cachex.Router.Ring.route(state, "elixir") in nodes
     assert Cachex.Router.Ring.route(state, "erlang") in nodes
   end
@@ -40,7 +40,7 @@ defmodule Cachex.Router.RingTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, [:a, :b, :c]}
+    assert Cachex.Router.nodes(cache) == {:ok, [:a, :b, :c]}
     assert Cachex.Router.Ring.route(state, "elixir") == :b
     assert Cachex.Router.Ring.route(state, "erlang") == :c
   end
@@ -62,8 +62,8 @@ defmodule Cachex.Router.RingTest do
     # convert the name to a cache and sort
     cache = Services.Overseer.retrieve(cache)
 
-    # pull back the routable nodes from Conductor
-    {:ok, routable1} = Services.Conductor.nodes(cache)
+    # pull back the routable nodes from router
+    {:ok, routable1} = Cachex.Router.nodes(cache)
 
     # test that we can route to expected nodes
     assert length(nodes) == length(routable1)
@@ -74,7 +74,7 @@ defmodule Cachex.Router.RingTest do
 
     # poll until async completion
     TestUtils.poll(250, true, fn ->
-      {:ok, routable2} = Services.Conductor.nodes(cache)
+      {:ok, routable2} = Cachex.Router.nodes(cache)
       length(routable2) == 5
     end)
 
@@ -83,7 +83,7 @@ defmodule Cachex.Router.RingTest do
 
     # poll until async completion
     TestUtils.poll(250, true, fn ->
-      {:ok, routable3} = Services.Conductor.nodes(cache)
+      {:ok, routable3} = Cachex.Router.nodes(cache)
       length(routable3) == 4
     end)
 
@@ -92,7 +92,7 @@ defmodule Cachex.Router.RingTest do
 
     # poll until async completion
     TestUtils.poll(250, true, fn ->
-      {:ok, routable3} = Services.Conductor.nodes(cache)
+      {:ok, routable3} = Cachex.Router.nodes(cache)
       length(routable3) == 3
     end)
   end
@@ -118,7 +118,7 @@ defmodule Cachex.Router.RingTest do
     cache = Services.Overseer.retrieve(cache)
 
     # verify that only the manage was attached to the ring
-    assert Services.Conductor.nodes(cache) == {:ok, [node()]}
+    assert Cachex.Router.nodes(cache) == {:ok, [node()]}
   end
 
   @tag distributed: true
@@ -142,7 +142,7 @@ defmodule Cachex.Router.RingTest do
     cache = Services.Overseer.retrieve(cache)
 
     # verify that only the manage was attached to the ring
-    assert Services.Conductor.nodes(cache) == {:ok, [node()]}
+    assert Cachex.Router.nodes(cache) == {:ok, [node()]}
   end
 
   test "matching node names against include/exclude params" do
