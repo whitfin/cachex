@@ -16,7 +16,7 @@ defmodule Cachex.Router.ModTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, nodes}
+    assert Cachex.Router.nodes(cache) == {:ok, nodes}
     assert Cachex.Router.Mod.route(state, "elixir") == Enum.at(nodes, 1)
     assert Cachex.Router.Mod.route(state, "erlang") == Enum.at(nodes, 0)
   end
@@ -40,7 +40,7 @@ defmodule Cachex.Router.ModTest do
     cache(router: router(state: state)) = cache
 
     # test that we can route to expected nodes
-    assert Services.Conductor.nodes(cache) == {:ok, nodes}
+    assert Cachex.Router.nodes(cache) == {:ok, nodes}
     assert Cachex.Router.Mod.route(state, "elixir") == Enum.at(nodes, 1)
     assert Cachex.Router.Mod.route(state, "erlang") == Enum.at(nodes, 0)
   end
