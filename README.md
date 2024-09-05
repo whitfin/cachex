@@ -62,13 +62,13 @@ Generally you should use the non-`!` versions to be more explicit in your code, 
 
 ## Options
 
-Caches also support many options provided at startup. These options are defined on a per-cache basis and can be used to control the features available to the cache.
+Caches also accept several options at startup to toggle various behaviour. These options are defined on a per-cache basis and can be used to control the features available to the cache:
 
 |      Options     |          Values          |                             Description                            |
 |:----------------:|:------------------------:|:------------------------------------------------------------------:|
 |     commands     |      map or keyword      |       A collection of custom commands to attach to the cache.      |
-|    expiration    |      `expiration()`      |      An expiration options record imported from Cachex.Spec.       |
-|     fallback     | function or `fallback()` |            A fallback record imported from Cachex.Spec.            |
+|    expiration    |      `expiration()`      |      An expiration options record imported from `Cachex.Spec`.     |
+|     fallback     | function or `fallback()` |            A fallback record imported from `Cachex.Spec`.          |
 |       hooks      |     list of `hook()`     |        A list of execution hooks to listen on cache actions.       |
 |       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
 |       stats      |          boolean         |         Whether to track statistics for this cache or not.         |
@@ -76,7 +76,7 @@ Caches also support many options provided at startup. These options are defined 
 |      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.
 
 
-For further information or examples on these features and options, please see the Cachex [documentation](docs).
+For further information or examples on these features and options, please see the [documentation](docs).
 
 ## Benchmarks
 
