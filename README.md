@@ -18,8 +18,6 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
 
-Please visit the [documentation](docs) for further information on all available options and features.
-
 ## Installation
 
 As of v0.8, Cachex is available on [Hex](https://hex.pm/). You can install the package via:
@@ -32,7 +30,7 @@ end
 
 ## Usage
 
-In the most typical use of Cachex, you only need to add your cache as a child of your application. If you created your project via `Mix` (passing the `--sup` flag) this is handled in `lib/my_app/application.ex`. This file will already contain an empty list of children to add to your application - simply add entries for your cache to this list:
+In general use of Cachex, you'll likely only need to add your cache as a child of your application. If you created your project via `Mix`, this is usually handled in `lib/my_app/application.ex`:
 
 ```elixir
 children = [
@@ -40,13 +38,45 @@ children = [
 ]
 ```
 
-If you wish to start a cache manually (for example, in `iex`), you can just use `Cachex.start_link/2`:
+If you wish to start a cache manually (for example, in `iex`), you can use `Cachex.start_link/2`:
 
 ```elixir
 Cachex.start_link(name: :my_cache)
 ```
 
-For anything else, please see the [documentation](docs).
+Once your cache has started, you can call any of the main Cachex API using the name of your cache. In the interest of convenience, all Cachex actions have an automatically generated "unsafe" equivalent (appended with `!`):
+
+```elixir
+iex(1)> Cachex.get(:my_cache, "key")
+{:ok, nil}
+iex(2)> Cachex.get!(:my_cache, "key")
+nil
+iex(3)> Cachex.get(:missing_cache, "key")
+{:error, :no_cache}
+iex(4)> Cachex.get!(:missing_cache, "key")
+** (Cachex.ExecutionError) Specified cache not running
+    (cachex) lib/cachex.ex:249: Cachex.get!/3
+```
+
+Generally you should use the non-`!` versions to be more explicit in your code, but the `!` version exists for convenience and to make assertions easier in unit testing.
+
+## Options
+
+Caches also support many options provided at startup. These options are defined on a per-cache basis and can be used to control the features available to the cache.
+
+|      Options     |          Values          |                             Description                            |
+|:----------------:|:------------------------:|:------------------------------------------------------------------:|
+|     commands     |      map or keyword      |       A collection of custom commands to attach to the cache.      |
+|    expiration    |      `expiration()`      |      An expiration options record imported from Cachex.Spec.       |
+|     fallback     | function or `fallback()` |            A fallback record imported from Cachex.Spec.            |
+|       hooks      |     list of `hook()`     |        A list of execution hooks to listen on cache actions.       |
+|       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
+|       stats      |          boolean         |         Whether to track statistics for this cache or not.         |
+|   transactions   |          boolean         |           Whether to turn on transactions at cache start.          |
+|      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.
+
+
+For anything further information on these features, please see the [documentation](docs).
 
 ## Benchmarks
 
