@@ -95,16 +95,13 @@ For anything else, please see the [documentation](https://github.com/whitfin/cac
 There are some very trivial benchmarks available using [Benchee](https://github.com/PragTob/benchee) in the `benchmarks/` directory. You can run the benchmarks using the following command:
 
 ```bash
-# default benchmarks, no modifiers
+# default benchmarks
 $ mix bench
 
-# enable underlying table compression
+# enable benchmarks for compressed tests
 $ CACHEX_BENCH_COMPRESS=true mix bench
 
-# use a state instead of a cache name
-$ CACHEX_BENCH_STATE=true mix bench
-
-# use a lock write context for all writes
+# enable benchmarks for transactional tests
 $ CACHEX_BENCH_TRANSACTIONS=true mix bench
 ```
 
