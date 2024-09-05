@@ -60,7 +60,7 @@ Sometimes you might want to set an expiration based on a value retrieved via a f
 
 ```elixir
 Cachex.fetch(:my_cache, "key", fn ->
-  { :commit, do_something(), ttl: :timer.seconds(60) }
+  { :commit, do_something(), expiration: :timer.seconds(60) }
 end)
 ```
 

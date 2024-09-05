@@ -29,7 +29,7 @@ defmodule Cachex.Services.CourierTest do
     # define our task function
     task = fn ->
       :timer.sleep(250)
-      {:commit, "my_value", ttl: :timer.seconds(60)}
+      {:commit, "my_value", expiration: :timer.seconds(60)}
     end
 
     # start a new cache
@@ -46,7 +46,7 @@ defmodule Cachex.Services.CourierTest do
     result = Services.Courier.dispatch(cache, "my_key", task)
 
     # check the returned value with the options set
-    assert result == {:commit, "my_value", [ttl: 60000]}
+    assert result == {:commit, "my_value", [expiration: 60000]}
 
     # check the forwarded task completed (no options)
     assert_receive({:ok, "my_value"})

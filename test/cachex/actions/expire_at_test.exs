@@ -14,8 +14,8 @@ defmodule Cachex.Actions.ExpireAtTest do
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 10)
-    {:ok, true} = Cachex.put(cache, 3, 3, ttl: 10)
+    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 10)
+    {:ok, true} = Cachex.put(cache, 3, 3, expiration: 10)
 
     # clear messages
     TestUtils.flush()

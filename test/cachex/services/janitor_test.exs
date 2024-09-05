@@ -65,7 +65,7 @@ defmodule Cachex.Services.JanitorTest do
 
     # set our interval values
     ttl_interval = 50
-    expiration = div(ttl_interval, 2)
+    ttl_value = div(ttl_interval, 2)
     ttl_wait = round(ttl_interval * 1.5)
 
     # create a test cache
@@ -78,7 +78,7 @@ defmodule Cachex.Services.JanitorTest do
     cache = Services.Overseer.retrieve(cache)
 
     # add a new cache entry
-    {:ok, true} = Cachex.put(cache, "key", "value", ttl: expiration)
+    {:ok, true} = Cachex.put(cache, "key", "value", expiration: ttl_value)
 
     # check that the key exists
     exists1 = Cachex.exists?(cache, "key")

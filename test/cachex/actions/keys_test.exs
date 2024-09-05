@@ -18,9 +18,9 @@ defmodule Cachex.Actions.KeysTest do
     {:ok, true} = Cachex.put(cache, 3, 3)
 
     # add some expired items
-    {:ok, true} = Cachex.put(cache, 4, 4, ttl: 1)
-    {:ok, true} = Cachex.put(cache, 5, 5, ttl: 1)
-    {:ok, true} = Cachex.put(cache, 6, 6, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 4, 4, expiration: 1)
+    {:ok, true} = Cachex.put(cache, 5, 5, expiration: 1)
+    {:ok, true} = Cachex.put(cache, 6, 6, expiration: 1)
 
     # let entries expire
     :timer.sleep(2)

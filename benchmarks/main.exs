@@ -41,9 +41,9 @@ inputs =
     Cachex.put(name, "gad_test", "gad_value")
     Cachex.put(name, "incr_test", 0)
     Cachex.put(name, "persist_test", 0)
-    Cachex.put(name, "refresh_test", "refresh_value", ttl: one_hour)
-    Cachex.put(name, "touch_test", "touch_value", ttl: one_hour)
-    Cachex.put(name, "ttl_test", "ttl_value", ttl: one_hour)
+    Cachex.put(name, "refresh_test", "refresh_value", expiration: one_hour)
+    Cachex.put(name, "touch_test", "touch_value", expiration: one_hour)
+    Cachex.put(name, "ttl_test", "ttl_value", expiration: one_hour)
     Cachex.put(name, "update_test", "update_value")
 
     if Keyword.get(options, :inspect) do

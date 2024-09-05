@@ -25,7 +25,7 @@ defmodule Cachex.ActionsTest do
 
     # write several values
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1)
 
     # let the TTL expire
     :timer.sleep(2)

@@ -28,10 +28,10 @@ defmodule Cachex.Actions.PutMany do
   inside a lock aware context to avoid clashing with other processes.
   """
   def execute(cache() = cache, pairs, options) do
-    ttlval = Options.get(options, :ttl, &is_integer/1)
-    expiry = Janitor.expiration(cache, ttlval)
+    expiration = Options.get(options, :expiration, &is_integer/1)
+    expiration = Janitor.expiration(cache, expiration)
 
-    with {:ok, keys, entries} <- map_entries(expiry, pairs, [], []) do
+    with {:ok, keys, entries} <- map_entries(expiration, pairs, [], []) do
       Locksmith.write(cache, keys, fn ->
         Actions.write(cache, entries)
       end)
@@ -50,17 +50,17 @@ defmodule Cachex.Actions.PutMany do
   #
   # If an unexpected pair is hit, an error will be returned and no
   # values will be written to the backing table.
-  defp map_entries(ttl, [{key, value} | pairs], keys, entries) do
-    entry = entry_now(key: key, expiration: ttl, value: value)
-    map_entries(ttl, pairs, [key | keys], [entry | entries])
+  defp map_entries(exp, [{key, value} | pairs], keys, entries) do
+    entry = entry_now(key: key, expiration: exp, value: value)
+    map_entries(exp, pairs, [key | keys], [entry | entries])
   end
 
-  defp map_entries(_ttl, [], [], _entries),
+  defp map_entries(_exp, [], [], _entries),
     do: {:ok, false}
 
-  defp map_entries(_ttl, [], keys, entries),
+  defp map_entries(_exp, [], keys, entries),
     do: {:ok, keys, entries}
 
-  defp map_entries(_ttl, _inv, _keys, _entries),
+  defp map_entries(_exp, _inv, _keys, _entries),
     do: error(:invalid_pairs)
 end

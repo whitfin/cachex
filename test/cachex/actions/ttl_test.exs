@@ -10,7 +10,7 @@ defmodule Cachex.Actions.TtlTest do
 
     # set several keys in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 10000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 10000)
 
     # verify the TTL of both keys
     ttl1 = Cachex.ttl(cache, 1)
@@ -38,8 +38,8 @@ defmodule Cachex.Actions.TtlTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1, ttl: 500)
-    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 500)
+    {:ok, true} = Cachex.put(cache, 1, 1, expiration: 500)
+    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 500)
 
     # check the expiration of each key in the cluster
     {:ok, expiration1} = Cachex.ttl(cache, 1)

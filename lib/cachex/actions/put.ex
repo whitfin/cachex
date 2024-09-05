@@ -26,10 +26,10 @@ defmodule Cachex.Actions.Put do
   inside a lock aware context to avoid clashing with other processes.
   """
   def execute(cache() = cache, key, value, options) do
-    ttlval = Options.get(options, :ttl, &is_integer/1)
-    expiry = Janitor.expiration(cache, ttlval)
+    expiration = Options.get(options, :expiration, &is_integer/1)
+    expiration = Janitor.expiration(cache, expiration)
 
-    record = entry_now(key: key, expiration: expiry, value: value)
+    record = entry_now(key: key, expiration: expiration, value: value)
 
     Locksmith.write(cache, [key], fn ->
       Actions.write(cache, record)
