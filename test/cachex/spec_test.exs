@@ -57,12 +57,8 @@ defmodule Cachex.SpecTest do
   end
 
   test "generating entry modifications with a touch time update" do
-    assert entry_mod_now() == [{entry_idx(:touched), _now}]
-
-    assert entry_mod_now(key: "key") == [
-             {entry_idx(:touched), _now},
-             {netry_idx(:key), "key"}
-           ]
+    assert [{4, _now}] = entry_mod_now()
+    assert [{4, _now}, {2, "key"}] = entry_mod_now(key: "key")
   end
 
   test "generating entries based on the current time" do
