@@ -150,8 +150,8 @@ defmodule Cachex.Services.Overseer do
       nil ->
         error(:no_cache)
 
-      cache ->
-        if :erlang.whereis(cache(cache, :name)) != :undefined do
+      cache(name: name) = cache ->
+        if :erlang.whereis(name) != :undefined do
           handler.(cache)
         else
           error(:no_cache)
