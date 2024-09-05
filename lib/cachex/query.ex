@@ -38,9 +38,9 @@ defmodule Cachex.Query do
   def raw(condition, output \\ :"$_"),
     do: [
       {
-        {:_, :"$1", :"$2", :"$3", :"$4"},
-        [map_clauses(condition)],
-        [clean_return(map_clauses(output))]
+        {:_, clause(:key), clause(:touched), clause(:ttl), clause(:value)},
+        [clause(condition)],
+        [clean(clause(output))]
       }
     ]
 
@@ -56,7 +56,9 @@ defmodule Cachex.Query do
   """
   @spec unexpired_clause :: tuple
   def unexpired_clause,
-    do: {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, now()}}
+    do:
+      {:orelse, {:==, clause(:ttl), nil},
+       {:>, {:+, clause(:touched), clause(:ttl)}, now()}}
 
   @doc """
   Creates an expiration-aware query.
@@ -74,34 +76,34 @@ defmodule Cachex.Query do
   # This allows the use of entry fields, such as `:key` as references in
   # query clauses (even if ETS doesn't). The fields will be mapped to the
   # index equivalent and returned in a sanitized clause value.
-  defp map_clauses(tpl) when is_tuple(tpl) do
+  defp clause(tpl) when is_tuple(tpl) do
     tpl
     |> Tuple.to_list()
-    |> map_clauses
+    |> clause
     |> List.to_tuple()
   end
 
-  defp map_clauses(list) when is_list(list),
-    do: Enum.map(list, &map_clauses/1)
+  defp clause(list) when is_list(list),
+    do: Enum.map(list, &clause/1)
 
   # basic entry field name substitution
   for key <- Keyword.keys(entry(entry())),
       do:
-        defp(map_clauses(unquote(key)),
+        defp(clause(unquote(key)),
           do: :"$#{entry(unquote(key))}"
         )
 
   # no-op, already valid
-  defp map_clauses(field),
+  defp clause(field),
     do: field
 
   # Sanitizes a returning value clause.
   #
   # This will just wrap any non-single element Tuples being returned as
   # this is required in order to provide valid return formats.
-  defp clean_return(tpl) when tuple_size(tpl) > 1,
+  defp clean(tpl) when tuple_size(tpl) > 1,
     do: {tpl}
 
-  defp clean_return(val),
+  defp clean(val),
     do: val
 end
