@@ -36,7 +36,7 @@ defmodule Cachex.ActionsTest do
     record3 = Cachex.Actions.read(state, 3)
 
     # the first should find a record
-    assert(match?({:entry, 1, _touched, nil, 1}, record1))
+    assert(match?(entry(key: 1, ttl: nil, value: 1), record1))
 
     # the second should expire
     assert(record2 == nil)

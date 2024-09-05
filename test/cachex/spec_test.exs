@@ -42,19 +42,23 @@ defmodule Cachex.SpecTest do
 
   test "generating entry index locations" do
     assert entry_idx(:key) == 2
-    assert entry_idx(:touched) == 3
-    assert entry_idx(:ttl) == 4
-    assert entry_idx(:value) == 5
+    assert entry_idx(:value) == 3
+    assert entry_idx(:touched) == 4
+    assert entry_idx(:ttl) == 5
   end
 
   test "generating entry modifications" do
-    assert entry_mod({:key, "key"}) == {2, "key"}
-    assert entry_mod(key: "key", value: "value") == [{2, "key"}, {5, "value"}]
+    assert entry_mod({:key, "key"}) == {entry_idx(:key), "key"}
+
+    assert entry_mod(key: "key", value: "value") == [
+             {entry_idx(:key), "key"},
+             {entry_idx(:value), "value"}
+           ]
   end
 
   test "generating entry modifications with a touch time update" do
-    assert [{3, _now}] = entry_mod_now()
-    assert [{3, _now}, {2, "key"}] = entry_mod_now(key: "key")
+    assert [{4, _now}] = entry_mod_now()
+    assert [{4, _now}, {2, "key"}] = entry_mod_now(key: "key")
   end
 
   test "generating entries based on the current time" do
