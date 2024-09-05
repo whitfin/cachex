@@ -59,7 +59,7 @@ defmodule Cachex.Spec do
           record(:entry,
             key: any,
             value: any,
-            touched: number,
+            modified: number,
             ttl: number
           )
 
@@ -175,7 +175,7 @@ defmodule Cachex.Spec do
   defrecord :entry,
     key: nil,
     value: nil,
-    touched: nil,
+    modified: nil,
     ttl: nil
 
   @doc """
@@ -442,22 +442,22 @@ defmodule Cachex.Spec do
   Generates a list of ETS modification Tuples with an updated touch time.
 
   This will pass the arguments through and behave exactly as `entry_mod/1`
-  except that it will automatically update the `:touched` field in the entry
+  except that it will automatically update the `:modified` field in the entry
   to the current time.
   """
   @spec entry_mod_now([{atom, any}]) :: [{integer, any}]
   defmacro entry_mod_now(pairs \\ []),
-    do: quote(do: entry_mod(unquote([touched: quote(do: now())] ++ pairs)))
+    do: quote(do: entry_mod(unquote([modified: quote(do: now())] ++ pairs)))
 
   @doc """
   Creates an entry record with an updated touch time.
 
-  This delegates through to `entry/1`, but ensures that the `:touched` field is
+  This delegates through to `entry/1`, but ensures that the `:modified` field is
   set to the current time as a millisecond timestamp.
   """
   @spec entry_now([{atom, any}]) :: [{integer, any}]
   defmacro entry_now(pairs \\ []),
-    do: quote(do: entry(unquote([touched: quote(do: now())] ++ pairs)))
+    do: quote(do: entry(unquote([modified: quote(do: now())] ++ pairs)))
 
   ############
   # Services #

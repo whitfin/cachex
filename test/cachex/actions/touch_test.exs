@@ -23,8 +23,8 @@ defmodule Cachex.Actions.TouchTest do
     TestUtils.flush()
 
     # retrieve the raw records
-    entry(touched: touched1, ttl: ttl1) = Cachex.Actions.read(state, 1)
-    entry(touched: touched2, ttl: ttl2) = Cachex.Actions.read(state, 2)
+    entry(modified: modified1, ttl: ttl1) = Cachex.Actions.read(state, 1)
+    entry(modified: modified2, ttl: ttl2) = Cachex.Actions.read(state, 2)
 
     # the first TTL should be nil
     assert(ttl1 == nil)
@@ -53,20 +53,20 @@ defmodule Cachex.Actions.TouchTest do
     assert_receive({{:touch, [3, []]}, ^touch3})
 
     # retrieve the raw records again
-    entry(touched: touched3, ttl: ttl3) = Cachex.Actions.read(state, 1)
-    entry(touched: touched4, ttl: ttl4) = Cachex.Actions.read(state, 2)
+    entry(modified: modified3, ttl: ttl3) = Cachex.Actions.read(state, 1)
+    entry(modified: modified4, ttl: ttl4) = Cachex.Actions.read(state, 2)
 
     # the first ttl should still be nil
     assert(ttl3 == nil)
 
     # the first touch time should be roughly 50ms after the first one
-    assert_in_delta(touched3, touched1 + 60, 11)
+    assert_in_delta(modified3, modified1 + 60, 11)
 
     # the second ttl should be roughly 50ms lower than the first
     assert_in_delta(ttl4, ttl2 - 60, 11)
 
     # the second touch time should also be 50ms after the first one
-    assert_in_delta(touched4, touched2 + 60, 11)
+    assert_in_delta(modified4, modified2 + 60, 11)
 
     # for good measure, retrieve the second ttl
     ttl5 = Cachex.ttl!(cache, 2)
@@ -97,8 +97,8 @@ defmodule Cachex.Actions.TouchTest do
     [record1, record2] = Enum.sort(export1)
 
     # unpack the records touch time
-    entry(touched: touched1) = record1
-    entry(touched: touched2) = record2
+    entry(modified: modified1) = record1
+    entry(modified: modified2) = record2
 
     # now touch both keys
     {:ok, true} = Cachex.touch(cache, 1)
@@ -111,11 +111,11 @@ defmodule Cachex.Actions.TouchTest do
     [record3, record4] = Enum.sort(export2)
 
     # unpack the records touch time
-    entry(touched: touched3) = record3
-    entry(touched: touched4) = record4
+    entry(modified: modified3) = record3
+    entry(modified: modified4) = record4
 
-    # new touched should be larger than old
-    assert(touched3 > touched1)
-    assert(touched4 > touched2)
+    # new modified should be larger than old
+    assert(modified3 > modified1)
+    assert(modified4 > modified2)
   end
 end

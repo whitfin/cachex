@@ -68,7 +68,7 @@ defmodule Cachex.Query do
   def unexpired_clause,
     do:
       {:orelse, {:==, map_clauses(:ttl), nil},
-       {:>, {:+, map_clauses(:touched), map_clauses(:ttl)}, now()}}
+       {:>, {:+, map_clauses(:modified), map_clauses(:ttl)}, now()}}
 
   @doc """
   Creates an expiration-aware query.

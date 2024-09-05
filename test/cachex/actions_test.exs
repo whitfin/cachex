@@ -67,7 +67,7 @@ defmodule Cachex.ActionsTest do
         state,
         entry(
           key: "key",
-          touched: 1,
+          modified: 1,
           value: "value"
         )
       )
@@ -83,7 +83,7 @@ defmodule Cachex.ActionsTest do
       value1 ==
         entry(
           key: "key",
-          touched: 1,
+          modified: 1,
           value: "value"
         )
     )
@@ -106,7 +106,7 @@ defmodule Cachex.ActionsTest do
       value2 ==
         entry(
           key: "key",
-          touched: 1,
+          modified: 1,
           value: "yek"
         )
     )

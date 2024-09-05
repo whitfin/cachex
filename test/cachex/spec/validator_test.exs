@@ -42,10 +42,10 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of entry records" do
     # define some valid records
-    entry1 = entry(key: "key", touched: 1, ttl: nil, value: "value")
-    entry2 = entry(key: "key", touched: 1, ttl: 1, value: "value")
-    entry3 = entry(key: "key", touched: 1, ttl: nil, value: nil)
-    entry4 = entry(key: nil, touched: 1, ttl: nil, value: nil)
+    entry1 = entry(key: "key", modified: 1, ttl: nil, value: "value")
+    entry2 = entry(key: "key", modified: 1, ttl: 1, value: "value")
+    entry3 = entry(key: "key", modified: 1, ttl: nil, value: nil)
+    entry4 = entry(key: nil, modified: 1, ttl: nil, value: nil)
 
     # ensure all records are valid
     assert Validator.valid?(:entry, entry1)
@@ -54,11 +54,11 @@ defmodule Cachex.Spec.ValidatorTest do
     assert Validator.valid?(:entry, entry4)
 
     # define some invalid records
-    entry5 = entry(key: "key", touched: nil, ttl: nil, value: nil)
-    entry6 = entry(key: "key", touched: " ", ttl: nil, value: nil)
-    entry7 = entry(key: "key", touched: -1, ttl: nil, value: nil)
-    entry8 = entry(key: "key", touched: 1, ttl: " ", value: nil)
-    entry9 = entry(key: "key", touched: 1, ttl: -1, value: nil)
+    entry5 = entry(key: "key", modified: nil, ttl: nil, value: nil)
+    entry6 = entry(key: "key", modified: " ", ttl: nil, value: nil)
+    entry7 = entry(key: "key", modified: -1, ttl: nil, value: nil)
+    entry8 = entry(key: "key", modified: 1, ttl: " ", value: nil)
+    entry9 = entry(key: "key", modified: 1, ttl: -1, value: nil)
 
     # ensure all records are invalid
     refute Validator.valid?(:entry, entry5)
