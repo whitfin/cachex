@@ -113,12 +113,13 @@ defmodule Cachex.Actions.InspectTest do
     record2 = Cachex.inspect(cache, {:entry, 2})
 
     # break down the first record
-    {:ok, entry(key: key, modified: modified, ttl: ttl, value: value)} = record1
+    {:ok, entry(key: key, modified: mod, expiration: exp, value: value)} =
+      record1
 
     # verify the first record
     assert(key == 1)
-    assert_in_delta(modified, ctime, 2)
-    assert(ttl == 1000)
+    assert_in_delta(mod, ctime, 2)
+    assert(exp == 1000)
     assert(value == "one")
 
     # the second should be nil

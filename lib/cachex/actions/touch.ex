@@ -48,7 +48,7 @@ defmodule Cachex.Actions.Touch do
       key,
       case value do
         nil -> entry_mod_now()
-        ttl -> entry_mod_now(ttl: ttl)
+        exp -> entry_mod_now(expiration: exp)
       end
     )
   end

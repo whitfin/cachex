@@ -61,8 +61,8 @@ defmodule Cachex.Services.Janitor do
   This will not cache lazy expiration settings into account.
   """
   @spec expired?(Cachex.Spec.entry()) :: boolean
-  def expired?(entry(modified: modified, ttl: ttl)) when is_number(ttl),
-    do: modified + ttl < now()
+  def expired?(entry(modified: modified, expiration: exp)) when is_number(exp),
+    do: modified + exp < now()
 
   def expired?(_entry),
     do: false

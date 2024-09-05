@@ -33,8 +33,11 @@ defmodule Cachex.Actions.Expire do
   def execute(cache() = cache, key, expiration, _options) do
     Locksmith.write(cache, [key], fn ->
       case expiration > -1 do
-        true -> Actions.update(cache, key, entry_mod_now(ttl: expiration))
-        false -> Cachex.del(cache, key, const(:purge_override))
+        true ->
+          Actions.update(cache, key, entry_mod_now(expiration: expiration))
+
+        false ->
+          Cachex.del(cache, key, const(:purge_override))
       end
     end)
   end

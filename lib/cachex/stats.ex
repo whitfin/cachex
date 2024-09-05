@@ -94,7 +94,7 @@ defmodule Cachex.Stats do
   def handle_notify(_action, {:error, _result}, stats),
     do: {:ok, stats}
 
-  # coveralls-ignore-end
+  # coveralls-ignore-stop
 
   @doc false
   # Registers an action against the stats container.

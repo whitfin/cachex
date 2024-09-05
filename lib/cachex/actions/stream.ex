@@ -12,7 +12,7 @@ defmodule Cachex.Actions.Stream do
   import Cachex.Spec
 
   # our test record for testing matches when a user provides a spec
-  @test entry(key: "key", modified: now(), ttl: 1000, value: "value")
+  @test entry(key: "key", modified: now(), expiration: 1000, value: "value")
 
   ##############
   # Public API #

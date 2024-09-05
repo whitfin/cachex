@@ -23,14 +23,17 @@ defmodule Cachex.Actions.TouchTest do
     TestUtils.flush()
 
     # retrieve the raw records
-    entry(modified: modified1, ttl: ttl1) = Cachex.Actions.read(state, 1)
-    entry(modified: modified2, ttl: ttl2) = Cachex.Actions.read(state, 2)
+    entry(modified: modified1, expiration: expiration1) =
+      Cachex.Actions.read(state, 1)
+
+    entry(modified: modified2, expiration: expiration2) =
+      Cachex.Actions.read(state, 2)
 
     # the first TTL should be nil
-    assert(ttl1 == nil)
+    assert(expiration1 == nil)
 
     # the second TTL should be roughly 1000
-    assert_in_delta(ttl2, 995, 6)
+    assert_in_delta(expiration2, 995, 6)
 
     # wait for 50ms
     :timer.sleep(50)
@@ -53,26 +56,29 @@ defmodule Cachex.Actions.TouchTest do
     assert_receive({{:touch, [3, []]}, ^touch3})
 
     # retrieve the raw records again
-    entry(modified: modified3, ttl: ttl3) = Cachex.Actions.read(state, 1)
-    entry(modified: modified4, ttl: ttl4) = Cachex.Actions.read(state, 2)
+    entry(modified: modified3, expiration: expiration3) =
+      Cachex.Actions.read(state, 1)
 
-    # the first ttl should still be nil
-    assert(ttl3 == nil)
+    entry(modified: modified4, expiration: expiration4) =
+      Cachex.Actions.read(state, 2)
+
+    # the first expiration should still be nil
+    assert(expiration3 == nil)
 
     # the first touch time should be roughly 50ms after the first one
     assert_in_delta(modified3, modified1 + 60, 11)
 
-    # the second ttl should be roughly 50ms lower than the first
-    assert_in_delta(ttl4, ttl2 - 60, 11)
+    # the second expiration should be roughly 50ms lower than the first
+    assert_in_delta(expiration4, expiration2 - 60, 11)
 
     # the second touch time should also be 50ms after the first one
     assert_in_delta(modified4, modified2 + 60, 11)
 
-    # for good measure, retrieve the second ttl
-    ttl5 = Cachex.ttl!(cache, 2)
+    # for good measure, retrieve the second expiration
+    expiration5 = Cachex.ttl!(cache, 2)
 
     # it should be roughly 945ms left
-    assert_in_delta(ttl5, 940, 11)
+    assert_in_delta(expiration5, 940, 11)
   end
 
   # This test verifies that this action is correctly distributed across
@@ -87,7 +93,7 @@ defmodule Cachex.Actions.TouchTest do
     {:ok, true} = Cachex.put(cache, 1, 1)
     {:ok, true} = Cachex.put(cache, 2, 2)
 
-    # wait a little
+    # wait a liexpiratione
     :timer.sleep(10)
 
     # pull back the records inserted so far
