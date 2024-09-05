@@ -13,6 +13,16 @@ defmodule Cachex.Query do
   """
   import Cachex.Spec
 
+  # raw query header
+  @header entry()
+          |> entry()
+          |> Enum.with_index(1)
+          |> Enum.map(fn {_, idx} -> :"$#{idx}" end)
+          |> Enum.reverse()
+          |> Enum.concat([:_])
+          |> Enum.reverse()
+          |> List.to_tuple()
+
   ##############
   # Public API #
   ##############
@@ -22,92 +32,92 @@ defmodule Cachex.Query do
   """
   @spec expired(any) :: [{tuple, [tuple], [any]}]
   def expired(output \\ :entry),
-    do: raw(expired_clause(), output)
+    do: raw(expired_map_clauses(), output)
 
   @doc """
   Creates a match condition for expired records.
   """
-  @spec expired_clause :: tuple
-  def expired_clause,
-    do: {:not, unexpired_clause()}
+  @spec expired_map_clauses :: tuple
+  def expired_map_clauses,
+    do: {:not, unexpired_map_clauses()}
 
   @doc """
   Creates a raw query, ignoring expiration.
   """
   @spec raw(any, any) :: [{tuple, [tuple], [any]}]
-  def raw(condition, output \\ :entry),
-    do: [
+  def raw(condition, output \\ :entry) do
+    [
       {
-        {:_, clause(:key), clause(:touched), clause(:ttl), clause(:value)},
-        [clause(condition)],
-        [clean(clause(output))]
+        @header,
+        [map_clauses(condition)],
+        [clean_return(map_clauses(output))]
       }
     ]
+  end
 
   @doc """
   Creates a query to retrieve all unexpired records.
   """
   @spec unexpired(any) :: [{tuple, [tuple], [any]}]
   def unexpired(output \\ :entry),
-    do: raw(unexpired_clause(), output)
+    do: raw(unexpired_map_clauses(), output)
 
   @doc """
   Creates a match condition for unexpired records.
   """
-  @spec unexpired_clause :: tuple
-  def unexpired_clause,
+  @spec unexpired_map_clauses :: tuple
+  def unexpired_map_clauses,
     do:
-      {:orelse, {:==, clause(:ttl), nil},
-       {:>, {:+, clause(:touched), clause(:ttl)}, now()}}
+      {:orelse, {:==, map_clauses(:ttl), nil},
+       {:>, {:+, map_clauses(:touched), map_clauses(:ttl)}, now()}}
 
   @doc """
   Creates an expiration-aware query.
   """
   @spec where(any, any) :: [{tuple, [tuple], [any]}]
   def where(condition, output \\ :entry),
-    do: raw({:andalso, unexpired_clause(), condition}, output)
+    do: raw({:andalso, unexpired_map_clauses(), condition}, output)
 
   ###############
   # Private API #
   ###############
-
-  # Recursively replaces all entry tags in a clause value.
+  # Recursively replaces all entry tags in a map_clauses value.
   #
   # This allows the use of entry fields, such as `:key` as references in
-  # query clauses (even if ETS doesn't). The fields will be mapped to the
-  # index equivalent and returned in a sanitized clause value.
-  defp clause(tpl) when is_tuple(tpl) do
+  # query map_clausess (even if ETS doesn't). The fields will be mapped to the
+  # index equivalent and returned in a sanitized map_clauses value.
+  defp map_clauses(tpl) when is_tuple(tpl) do
     tpl
     |> Tuple.to_list()
-    |> clause
+    |> map_clauses
     |> List.to_tuple()
   end
 
-  defp clause(list) when is_list(list),
-    do: Enum.map(list, &clause/1)
+  defp map_clauses(list) when is_list(list),
+    do: Enum.map(list, &map_clauses/1)
 
   # basic entry field name substitution
   for key <- Keyword.keys(entry(entry())),
       do:
-        defp(clause(unquote(key)),
+        defp(map_clauses(unquote(key)),
           do: :"$#{entry(unquote(key))}"
         )
 
   # whole cache entry
-  defp clause(:entry),
+  defp map_clauses(:entry),
     do: :"$_"
 
   # no-op, already valid
-  defp clause(field),
+  defp map_clauses(field),
     do: field
 
-  # Sanitizes a returning value clause.
+  # Sanitizes a returning value map_clauses.
   #
   # This will just wrap any non-single element Tuples being returned as
   # this is required in order to provide valid return formats.
-  defp clean(tpl) when tuple_size(tpl) > 1,
+  defp clean_return(tpl) when tuple_size(tpl) > 1,
     do: {tpl}
 
-  defp clean(val),
+  defp clean_return(val),
     do: val
 end

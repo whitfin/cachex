@@ -18,8 +18,8 @@ defmodule Cachex.QueryTest do
     [{_, [{:andalso, c2, true}], _}] = query2
 
     # verify the queries of both queries
-    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c1
-    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c2
+    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c1
+    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c2
 
     # verify the returns of both queries
     assert [{_, _, [:"$_"]}] = query1
@@ -42,8 +42,8 @@ defmodule Cachex.QueryTest do
     [{_, [{:not, c2}], _}] = query2
 
     # verify the queries of both queries
-    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c1
-    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c2
+    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c1
+    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c2
 
     # verify the returns of both queries
     assert [{_, _, [:"$_"]}] = query1
@@ -66,8 +66,8 @@ defmodule Cachex.QueryTest do
     [{_, [c2], _}] = query2
 
     # verify the queries of both queries
-    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c1
-    assert {:orelse, {:==, :"$3", nil}, {:>, {:+, :"$2", :"$3"}, _now}} = c2
+    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c1
+    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c2
 
     # verify the returns of both queries
     assert [{_, _, [:"$_"]}] = query1

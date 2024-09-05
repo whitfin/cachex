@@ -58,9 +58,9 @@ defmodule Cachex.Spec do
   @type entry ::
           record(:entry,
             key: any,
+            value: any,
             touched: number,
-            ttl: number,
-            value: any
+            ttl: number
           )
 
   # Helper type for entry types
@@ -174,9 +174,9 @@ defmodule Cachex.Spec do
   """
   defrecord :entry,
     key: nil,
+    value: nil,
     touched: nil,
-    ttl: nil,
-    value: nil
+    ttl: nil
 
   @doc """
   Creates an expiration record from the provided values.
