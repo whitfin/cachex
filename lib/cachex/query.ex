@@ -21,7 +21,7 @@ defmodule Cachex.Query do
   Creates a query to retrieve all expired records.
   """
   @spec expired(any) :: [{tuple, [tuple], [any]}]
-  def expired(output \\ :"$_"),
+  def expired(output \\ :entry),
     do: raw(expired_clause(), output)
 
   @doc """
@@ -35,7 +35,7 @@ defmodule Cachex.Query do
   Creates a raw query, ignoring expiration.
   """
   @spec raw(any, any) :: [{tuple, [tuple], [any]}]
-  def raw(condition, output \\ :"$_"),
+  def raw(condition, output \\ :entry),
     do: [
       {
         {:_, clause(:key), clause(:touched), clause(:ttl), clause(:value)},
@@ -48,7 +48,7 @@ defmodule Cachex.Query do
   Creates a query to retrieve all unexpired records.
   """
   @spec unexpired(any) :: [{tuple, [tuple], [any]}]
-  def unexpired(output \\ :"$_"),
+  def unexpired(output \\ :entry),
     do: raw(unexpired_clause(), output)
 
   @doc """
@@ -64,7 +64,7 @@ defmodule Cachex.Query do
   Creates an expiration-aware query.
   """
   @spec where(any, any) :: [{tuple, [tuple], [any]}]
-  def where(condition, output \\ :"$_"),
+  def where(condition, output \\ :entry),
     do: raw({:andalso, unexpired_clause(), condition}, output)
 
   ###############
@@ -92,6 +92,10 @@ defmodule Cachex.Query do
         defp(clause(unquote(key)),
           do: :"$#{entry(unquote(key))}"
         )
+
+  # whole cache entry
+  defp clause(:entry),
+    do: :"$_"
 
   # no-op, already valid
   defp clause(field),
