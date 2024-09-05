@@ -1,7 +1,7 @@
 # Cachex Documentation
 
 - [Getting Started](../README.md#installation)
-    - [Starting Your Cache](../README.md#usage)
+    - [Starting A Cache](../README.md#usage)
     - [Supported Options](../README.md#options)
 - [Action Blocks](features/action-blocks.md)
     - [Execution Blocks](features/action-blocks.md#execution-blocks)

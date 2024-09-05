@@ -44,7 +44,7 @@ If you wish to start a cache manually (for example, in `iex`), you can use `Cach
 Cachex.start_link(name: :my_cache)
 ```
 
-Once your cache has started, you can call any of the main Cachex API using the name of your cache. In the interest of convenience, all Cachex actions have an automatically generated "unsafe" equivalent (appended with `!`):
+Once your cache has started you can call any of the main Cachex API using the name of your cache. All Cachex actions have an automatically generated "unsafe" equivalent (appended with `!`):
 
 ```elixir
 iex(1)> Cachex.get(:my_cache, "key")
@@ -76,7 +76,7 @@ Caches also support many options provided at startup. These options are defined 
 |      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.
 
 
-For anything further information on these features, please see the [documentation](docs).
+For further information or examples on these features and options, please see the Cachex [documentation](docs).
 
 ## Benchmarks
 
