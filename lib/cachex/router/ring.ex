@@ -59,8 +59,7 @@ defmodule Cachex.Router.Ring do
       `:net_kernel.monitor_nodes/2`.
 
   """
-  @spec init(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
-          Ring.ring()
+  @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: Ring.ring()
   def init(cache(name: name), _options),
     do: name(name, :router)
 
@@ -87,7 +86,7 @@ defmodule Cachex.Router.Ring do
   @doc """
   Create a child specification to back a ring routing state.
   """
-  @spec spec(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
+  @spec spec(cache :: Cachex.t(), options :: Keyword.t()) ::
           Supervisor.child_spec()
   def spec(cache(name: name), options) do
     name = name(name, :router)

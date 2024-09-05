@@ -28,7 +28,7 @@ defmodule Cachex.Services.Steward do
   wait for a response before returning. As provisions are handled in a
   base implementation, we can be sure of safe implementation here.
   """
-  @spec provide(Cachex.Spec.cache(), {atom, any}) :: :ok
+  @spec provide(Cachex.t(), {atom, any}) :: :ok
   def provide(cache() = cache, {key, _} = provision) when key in @provisions do
     cache(hooks: hooks(pre: pre, post: post)) = cache
     cache(warmers: warmers) = cache

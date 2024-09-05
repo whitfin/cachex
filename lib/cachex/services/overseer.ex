@@ -23,8 +23,8 @@ defmodule Cachex.Services.Overseer do
   alias Services.Steward
 
   # constants for manager/table names
-  @manager_name :cachex_overseer_manager
   @table_name :cachex_overseer_table
+  @manager_name :cachex_overseer_manager
 
   ##############
   # Public API #
@@ -54,19 +54,19 @@ defmodule Cachex.Services.Overseer do
   end
 
   @doc """
-  Ensures a cache from a name or record.
+  Retrieves a cache from a name or record.
 
-  Ensuring a cache will map the provided argument to a
+  Retrieving a cache will map the provided argument to a
   cache record if available, otherwise a nil value.
   """
-  @spec ensure(atom | Cachex.Spec.cache()) :: Cachex.Spec.cache() | nil
-  def ensure(cache() = cache),
+  @spec get(atom | Cachex.t()) :: Cachex.t() | nil
+  def get(cache() = cache),
     do: cache
 
-  def ensure(name) when is_atom(name),
+  def get(name) when is_atom(name),
     do: retrieve(name)
 
-  def ensure(_miss),
+  def get(_miss),
     do: nil
 
   @doc """
@@ -79,14 +79,14 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Registers a cache record against a name.
   """
-  @spec register(atom, Cachex.Spec.cache()) :: true
+  @spec register(atom, Cachex.t()) :: true
   def register(name, cache() = cache) when is_atom(name),
     do: :ets.insert(@table_name, {name, cache})
 
   @doc """
   Retrieves a cache record, or `nil` if none exists.
   """
-  @spec retrieve(atom) :: Cachex.Spec.cache() | nil
+  @spec retrieve(atom) :: Cachex.t() | nil
   def retrieve(name) do
     case :ets.lookup(@table_name, name) do
       [{^name, state}] ->
@@ -124,11 +124,7 @@ defmodule Cachex.Services.Overseer do
   This is atomic and happens inside a transaction to ensure that we don't get
   out of sync. Hooks are notified of the change, and the new state is returned.
   """
-  @spec update(
-          atom,
-          Cachex.Spec.cache() | (Cachex.Spec.cache() -> Cachex.Spec.cache())
-        ) ::
-          Cachex.Spec.cache()
+  @spec update(atom, Cachex.t() | (Cachex.t() -> Cachex.t())) :: Cachex.t()
   def update(name, fun) when is_atom(name) and is_function(fun, 1) do
     transaction(name, fn ->
       cstate = retrieve(name)
@@ -145,34 +141,21 @@ defmodule Cachex.Services.Overseer do
   def update(name, cache(name: name) = cache),
     do: update(name, fn _ -> cache end)
 
-  ##########
-  # Macros #
-  ##########
+  @doc """
+  Executes a cache handler with a cache record.
+  """
+  @spec with(cache :: Cachex.t(), (cache :: Cachex.t() -> any)) :: any
+  def with(cache, handler) do
+    case Overseer.get(cache) do
+      nil ->
+        error(:no_cache)
 
-  @doc false
-  # Enforces a cache binding into a cache record.
-  #
-  # This will coerce cache names into a cache record, whilst just
-  # returning the provided instance if it's already a cache. If
-  # the cache cannot be coerced into an instance, a nil value
-  # is returned.
-  #
-  # TODO: this can be optimized further (i.e. at all)
-  defmacro enforce(cache, do: body) do
-    quote do
-      case Overseer.ensure(unquote(cache)) do
-        nil ->
+      cache ->
+        if :erlang.whereis(cache(cache, :name)) != :undefined do
+          handler.(cache)
+        else
           error(:no_cache)
-
-        var!(cache) ->
-          cache = var!(cache)
-
-          if :erlang.whereis(cache(cache, :name)) != :undefined do
-            unquote(body)
-          else
-            error(:no_cache)
-          end
-      end
+        end
     end
   end
 end

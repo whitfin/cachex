@@ -32,14 +32,14 @@ defmodule Cachex.Services.Janitor do
   At this point customization is non-existent, in order to keep the service
   as simple as possible and avoid the space for error and edge cases.
   """
-  @spec start_link(Cachex.Spec.cache()) :: GenServer.on_start()
+  @spec start_link(Cachex.t()) :: GenServer.on_start()
   def start_link(cache(name: name) = cache),
     do: GenServer.start_link(__MODULE__, cache, name: name(name, :janitor))
 
   @doc """
   Pulls an expiration associated with an entry.
   """
-  @spec expiration(Cachex.Spec.cache(), integer | nil) :: integer
+  @spec expiration(Cachex.t(), integer | nil) :: integer
   def expiration(cache(expiration: expiration(default: default)), nil),
     do: default
 
@@ -51,7 +51,7 @@ defmodule Cachex.Services.Janitor do
 
   This will take cache lazy expiration settings into account.
   """
-  @spec expired?(Cachex.Spec.cache(), Cachex.Spec.entry()) :: boolean
+  @spec expired?(Cachex.t(), Cachex.Spec.entry()) :: boolean
   def expired?(cache(expiration: expiration(lazy: lazy)), entry() = entry),
     do: lazy and expired?(entry)
 
@@ -72,7 +72,7 @@ defmodule Cachex.Services.Janitor do
 
   If the service is disabled on the cache, an error is returned.
   """
-  @spec last_run(Cachex.Spec.cache()) :: %{}
+  @spec last_run(Cachex.t()) :: %{}
   def last_run(cache(expiration: expiration(interval: nil))),
     do: error(:janitor_disabled)
 

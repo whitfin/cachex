@@ -20,7 +20,7 @@ defmodule Cachex.Services.Informant do
   the provided cache record. If no hooks are attached in the cache record,
   this will skip creating an unnecessary Supervisor process.
   """
-  @spec start_link(Cachex.Spec.cache()) :: Supervisor.on_start()
+  @spec start_link(Cachex.t()) :: Supervisor.on_start()
   def start_link(cache(hooks: hooks(pre: [], post: []))),
     do: :ignore
 
@@ -36,14 +36,14 @@ defmodule Cachex.Services.Informant do
 
   This will send a nil result, as the result does not yet exist.
   """
-  @spec broadcast(Cachex.Spec.cache(), tuple) :: :ok
+  @spec broadcast(Cachex.t(), tuple) :: :ok
   def broadcast(cache(hooks: hooks(pre: pre)), action),
     do: broadcast_action(pre, action, nil)
 
   @doc """
   Broadcasts an action and result to all post-hooks in a cache.
   """
-  @spec broadcast(Cachex.Spec.cache(), tuple, any) :: :ok
+  @spec broadcast(Cachex.t(), tuple, any) :: :ok
   def broadcast(cache(hooks: hooks(post: post)), action, result),
     do: broadcast_action(post, action, result)
 

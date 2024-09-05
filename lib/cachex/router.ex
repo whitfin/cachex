@@ -27,7 +27,7 @@ defmodule Cachex.Router do
 
   Please see all child implementations for supported options.
   """
-  @callback init(cache :: Cachex.Spec.cache(), options :: Keyword.t()) :: any
+  @callback init(cache :: Cachex.t(), options :: Keyword.t()) :: any
 
   @doc """
   Retrieve the list of nodes from a routing state.
@@ -42,7 +42,7 @@ defmodule Cachex.Router do
   @doc """
   Create a child specification to back a routing state.
   """
-  @callback spec(cache :: Cachex.Spec.cache(), options :: Keyword.t()) ::
+  @callback spec(cache :: Cachex.t(), options :: Keyword.t()) ::
               Supervisor.child_spec()
 
   ##################
@@ -81,7 +81,7 @@ defmodule Cachex.Router do
   @doc """
   Retrieve all routable nodes for a cache.
   """
-  @spec nodes(Cachex.Spec.cache()) :: {:ok, [atom]}
+  @spec nodes(cache :: Cachex.t()) :: {:ok, [atom]}
   def nodes(cache(router: router(module: module, state: state))),
     do: {:ok, module.nodes(state)}
 
@@ -89,7 +89,7 @@ defmodule Cachex.Router do
   Executes a previously dispatched action..
   """
   # The first match short circuits local-only caches
-  @spec route(Cachex.Spec.cache(), atom, {atom, [any]}) :: any
+  @spec route(Cachex.t(), atom, {atom, [any]}) :: any
   def route(cache(router: router(module: Router.Local)) = cache, module, call),
     do: route_local(cache, module, call)
 
@@ -115,13 +115,12 @@ defmodule Cachex.Router do
     # coveralls-ignore-stop
 
     quote do
-      Overseer.enforce unquote(cache) do
+      Overseer.with(unquote(cache), fn cache ->
         call = unquote(call)
-        cache = var!(cache)
         module = unquote(act_join)
 
         Router.route(cache, module, call)
-      end
+      end)
     end
   end
 

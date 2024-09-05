@@ -51,7 +51,7 @@ defmodule Cachex.Services.Locksmith do
   returned boolean will signal if the lock was successful. A lock can fail
   if one of the provided keys is already locked.
   """
-  @spec lock(Cachex.Spec.cache(), [any]) :: boolean
+  @spec lock(Cachex.t(), [any]) :: boolean
   def lock(cache(name: name), keys) do
     t_proc = self()
 
@@ -69,7 +69,7 @@ defmodule Cachex.Services.Locksmith do
   This uses some ETS matching voodoo to pull back the locked keys. They
   won't be returned in any specific order, so don't rely on it.
   """
-  @spec locked(Cachex.Spec.cache()) :: [any]
+  @spec locked(Cachex.t()) :: [any]
   def locked(cache(name: name)),
     do: :ets.select(@table_name, [{{{name, :"$1"}, :_}, [], [:"$1"]}])
 
@@ -79,7 +79,7 @@ defmodule Cachex.Services.Locksmith do
   For a key to be writeable, it must either have no lock or be locked by the
   calling process.
   """
-  @spec locked?(Cachex.Spec.cache(), [any]) :: true | false
+  @spec locked?(Cachex.t(), [any]) :: true | false
   def locked?(cache(name: name), keys) when is_list(keys) do
     Enum.any?(keys, fn key ->
       case :ets.lookup(@table_name, {name, key}) do
@@ -101,7 +101,7 @@ defmodule Cachex.Services.Locksmith do
 
   This is mainly shorthand to avoid having to handle row locking explicitly.
   """
-  @spec transaction(Cachex.Spec.cache(), [any], (-> any)) :: any
+  @spec transaction(Cachex.t(), [any], (-> any)) :: any
   def transaction(cache() = cache, keys, fun) when is_list(keys) do
     case transaction?() do
       true -> fun.()
@@ -138,7 +138,7 @@ defmodule Cachex.Services.Locksmith do
   is a little less desirable, but needs must.
   """
   # TODO: figure out how to remove atomically
-  @spec unlock(Cachex.Spec.cache(), [any]) :: true
+  @spec unlock(Cachex.t(), [any]) :: true
   def unlock(cache(name: name), keys) do
     keys
     |> List.wrap()
@@ -155,7 +155,7 @@ defmodule Cachex.Services.Locksmith do
   transactions executed against it we skip the lock check as any of
   our ETS writes are atomic and so do not require a lock.
   """
-  @spec write(Cachex.Spec.cache(), any, (-> any)) :: any
+  @spec write(Cachex.t(), any, (-> any)) :: any
   def write(cache(transactions: false), _keys, fun),
     do: fun.()
 

@@ -36,21 +36,21 @@ defmodule Cachex.Stats do
   @doc """
   Determines if stats are enabled for a cache.
   """
-  @spec enabled?(Cachex.Spec.cache()) :: boolean
+  @spec enabled?(Cachex.t()) :: boolean
   def enabled?(cache() = cache),
     do: locate(cache) != nil
 
   @doc """
   Locates a stats hook for a cache, if enabled.
   """
-  @spec locate(Cachex.Spec.cache()) :: Cachex.Spec.hook() | nil
+  @spec locate(Cachex.t()) :: Cachex.Spec.hook() | nil
   def locate(cache(hooks: hooks(post: post_hooks))),
     do: Enum.find(post_hooks, &match?(hook(module: Cachex.Stats), &1))
 
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec retrieve(Cachex.Spec.cache()) :: {:ok, map()} | {:error, atom()}
+  @spec retrieve(Cachex.t()) :: {:ok, map()} | {:error, atom()}
   def retrieve(cache(name: name) = cache) do
     case enabled?(cache) do
       false ->
