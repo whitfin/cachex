@@ -18,49 +18,7 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Getting Started](docs/getting-started.md)
-    - [Starting Your Cache](docs/getting-started.md#starting-your-cache)
-    - [Main Interface](docs/getting-started.md#main-interface)
-- [Action Blocks](docs/features/action-blocks.md)
-    - [Execution Blocks](docs/features/action-blocks.md#execution-blocks)
-    - [Transaction Blocks](docs/features/action-blocks.md#transaction-blocks)
-- [Cache Limits](docs/features/cache-limits.md)
-    - [Configuration](docs/features/cache-limits.md#configuration)
-    - [Policies](docs/features/cache-limits.md#policies)
-- [Cache Warming](docs/features/cache-warming)
-    - [Reactive Warming](docs/features/cache-warming/reactive-warming.md)
-        - [Overview](docs/features/cache-warming/reactive-warming.md#overview)
-        - [Courier](docs/features/cache-warming/reactive-warming.md#courier)
-        - [Expirations](docs/features/cache-warming/reactive-warming.md#expirations)
-        - [Use Cases](docs/features/cache-warming/reactive-warming.md#use-cases)
-    - [Proactive Warming](docs/features/cache-warming/proactive-warming.md)
-        - [Overview](docs/features/cache-warming/proactive-warming.md#overview)
-        - [Definition](docs/features/cache-warming/proactive-warming.md#definition)
-        - [Use Cases](docs/features/cache-warming/proactive-warming.md#use-cases)
-- [Custom Commands](docs/features/custom-commands.md)
-    - [Defining Commands](docs/features/custom-commands.md#defining-commands)
-    - [Invoking A Command](docs/features/custom-commands.md#invoking-a-command)
-- [Disk Interaction](docs/features/disk-interaction.md)
-- [Distributed Caches](docs/features/distributed-caches.md)
-    - [Overview](docs/features/distributed-caches.md#overview)
-    - [Local Actions](docs/features/distributed-caches.md#local-actions)
-    - [Disabled Actions](docs/features/distributed-caches.md#disabled-actions)
-- [Execution Hooks](docs/features/execution-hooks.md)
-    - [Creating Hooks](docs/features/execution-hooks.md#creating-hooks)
-    - [Provisions](docs/features/execution-hooks.md#provisions)
-- [Streaming Caches](docs/features/streaming-caches.md)
-    - [Complex Streaming](docs/features/streaming-caches.md#complex-streaming)
-- [TTL Implementation](docs/features/ttl-implementation.md)
-    - [Janitor Processes](docs/features/ttl-implementation.md#janitor-processes)
-    - [Lazy Expiration](docs/features/ttl-implementation.md#lazy-expiration)
-- [Migrations](docs/migrations)
-    - [Migrating To v3.x](docs/migrations/migrating-to-v3.md)
-    - [Migrating To v2.x](docs/migrations/migrating-to-v2.md)
-- [Benchmarks](#benchmarks)
-- [Contributions](#contributions)
+Please visit the [documentation](docs) for further information on all available options and features.
 
 ## Installation
 
@@ -88,7 +46,7 @@ If you wish to start a cache manually (for example, in `iex`), you can just use 
 Cachex.start_link(name: :my_cache)
 ```
 
-For anything else, please see the [documentation](https://github.com/whitfin/cachex/tree/master/docs).
+For anything else, please see the [documentation](docs).
 
 ## Benchmarks
 

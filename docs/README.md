@@ -1,6 +1,52 @@
-# Getting Started
+# Cachex Documentation
 
-## Starting Your Cache
+## Table of Contents
+
+- [Installation](../README.md#installation)
+- [Getting Started](#getting-started)
+    - [Starting Your Cache](#starting-your-cache)
+    - [Main Interface](#main-interface)
+- [Action Blocks](features/action-blocks.md)
+    - [Execution Blocks](features/action-blocks.md#execution-blocks)
+    - [Transaction Blocks](features/action-blocks.md#transaction-blocks)
+- [Cache Limits](features/cache-limits.md)
+    - [Configuration](features/cache-limits.md#configuration)
+    - [Policies](features/cache-limits.md#policies)
+- [Cache Warming](features/cache-warming)
+    - [Reactive Warming](features/cache-warming/reactive-warming.md)
+        - [Overview](features/cache-warming/reactive-warming.md#overview)
+        - [Courier](features/cache-warming/reactive-warming.md#courier)
+        - [Expirations](features/cache-warming/reactive-warming.md#expirations)
+        - [Use Cases](features/cache-warming/reactive-warming.md#use-cases)
+    - [Proactive Warming](features/cache-warming/proactive-warming.md)
+        - [Overview](features/cache-warming/proactive-warming.md#overview)
+        - [Definition](features/cache-warming/proactive-warming.md#definition)
+        - [Use Cases](features/cache-warming/proactive-warming.md#use-cases)
+- [Custom Commands](features/custom-commands.md)
+    - [Defining Commands](features/custom-commands.md#defining-commands)
+    - [Invoking A Command](features/custom-commands.md#invoking-a-command)
+- [Disk Interaction](features/disk-interaction.md)
+- [Distributed Caches](features/distributed-caches.md)
+    - [Overview](features/distributed-caches.md#overview)
+    - [Local Actions](features/distributed-caches.md#local-actions)
+    - [Disabled Actions](features/distributed-caches.md#disabled-actions)
+- [Execution Hooks](features/execution-hooks.md)
+    - [Creating Hooks](features/execution-hooks.md#creating-hooks)
+    - [Provisions](features/execution-hooks.md#provisions)
+- [Streaming Caches](features/streaming-caches.md)
+    - [Complex Streaming](features/streaming-caches.md#complex-streaming)
+- [TTL Implementation](features/ttl-implementation.md)
+    - [Janitor Processes](features/ttl-implementation.md#janitor-processes)
+    - [Lazy Expiration](features/ttl-implementation.md#lazy-expiration)
+- [Migrations](migrations)
+    - [Migrating To v3.x](migrations/migrating-to-v3.md)
+    - [Migrating To v2.x](migrations/migrating-to-v2.md)
+- [Benchmarks](../README.md#benchmarks)
+- [Contributions](../README.md#contributions)
+
+## Getting Started
+
+### Starting Your Cache
 
 To start a cache you can use either `start/2` or `start_link/2`, and in general you should place it into your Supervision trees for fault tolerance. The first argument is the name of the cache and defines how you will communicate with your cache.
 
@@ -24,7 +70,7 @@ The second and third arguments are both optional and represent cache and server 
 |   transactions   |          boolean         |           Whether to turn on transactions at cache start.          |
 |      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.          |
 
-## Main Interface
+### Main Interface
 
 The Cachex interface follows a specific standard to make it easier to predict and more user friendly. All calls should follow the pattern of having the cache argument first, followed by any required arguments and ending with an optional list of options (even if no options are currently used). All calls should result in a value in the format of `{ status, result }` where `status` is usually `:ok` or `:error` (however this differs depending on the call). The `result` can basically be anything, as there are a number of custom controlled return values available inside Cachex.
 
