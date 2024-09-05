@@ -43,7 +43,7 @@ defmodule Cachex.SpecTest do
   test "generating entry index locations" do
     assert entry_idx(:key) == 2
     assert entry_idx(:value) == 3
-    assert entry_idx(:touched) == 4
+    assert entry_idx(:modified) == 4
     assert entry_idx(:ttl) == 5
   end
 
@@ -62,12 +62,12 @@ defmodule Cachex.SpecTest do
   end
 
   test "generating entries based on the current time" do
-    entry(touched: touched1) = entry_now()
-    entry(touched: touched2, key: key) = entry_now(key: "key")
+    entry(modified: modified1) = entry_now()
+    entry(modified: modified2, key: key) = entry_now(key: "key")
 
     assert key == "key"
-    assert_in_delta(touched1, :os.system_time(1000), 5)
-    assert_in_delta(touched2, :os.system_time(1000), 5)
+    assert_in_delta(modified1, :os.system_time(1000), 5)
+    assert_in_delta(modified2, :os.system_time(1000), 5)
   end
 
   test "name generation for components" do

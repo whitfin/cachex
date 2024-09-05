@@ -4,7 +4,7 @@ defmodule Cachex.Policy.LRW do
 
   This module provides general utilities for implementing an eviction policy for
   Cachex which will evict the least-recently written entries from the cache. This
-  is determined by the touched time inside each cache record, which means that we
+  is determined by the modified time inside each cache record, which means that we
   don't have to store any additional tables to keep track of access time.
 
   There are several options recognised by this policy which can be passed inside the
@@ -47,7 +47,7 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Services.Informant
 
   # compile our match to avoid recalculating
-  @ets_match Query.raw(true, {:key, :touched})
+  @ets_match Query.raw(true, {:key, :modified})
 
   ####################
   # Policy Behaviour #

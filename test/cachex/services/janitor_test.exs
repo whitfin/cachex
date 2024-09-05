@@ -8,11 +8,11 @@ defmodule Cachex.Services.JanitorTest do
   # it disabled, it should return false regardless of the date deltas.
   test "checking whether an expiration has passed" do
     # this combination has expired
-    touched1 = 5000
+    modified1 = 5000
     time_tl1 = 5000
 
     # this combination has not
-    touched2 = :os.system_time(:milli_seconds)
+    modified2 = :os.system_time(:milli_seconds)
     time_tl2 = 100_000_000
 
     # define both an enabled and disabled state
@@ -20,18 +20,26 @@ defmodule Cachex.Services.JanitorTest do
     state2 = cache(expiration: expiration(lazy: false))
 
     # expired combination regardless of state
-    result1 = Services.Janitor.expired?(entry(touched: touched1, ttl: time_tl1))
+    result1 =
+      Services.Janitor.expired?(entry(modified: modified1, ttl: time_tl1))
 
     # unexpired combination regardless of state
-    result2 = Services.Janitor.expired?(entry(touched: touched2, ttl: time_tl2))
+    result2 =
+      Services.Janitor.expired?(entry(modified: modified2, ttl: time_tl2))
 
     # expired combination with state enabled
     result3 =
-      Services.Janitor.expired?(state1, entry(touched: touched1, ttl: time_tl1))
+      Services.Janitor.expired?(
+        state1,
+        entry(modified: modified1, ttl: time_tl1)
+      )
 
     # expired combination with state disabled
     result4 =
-      Services.Janitor.expired?(state2, entry(touched: touched1, ttl: time_tl1))
+      Services.Janitor.expired?(
+        state2,
+        entry(modified: modified1, ttl: time_tl1)
+      )
 
     # only the first and third should have expired
     assert(result1)

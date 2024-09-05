@@ -24,8 +24,8 @@ defmodule Cachex.Actions.Ttl do
   """
   def execute(cache() = cache, key, _options) do
     case Actions.read(cache, key) do
-      entry(touched: touched, ttl: ttl) when not is_nil(ttl) ->
-        {:ok, touched + ttl - now()}
+      entry(modified: modified, ttl: ttl) when not is_nil(ttl) ->
+        {:ok, modified + ttl - now()}
 
       _anything_else ->
         {:ok, nil}

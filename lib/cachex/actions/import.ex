@@ -34,8 +34,8 @@ defmodule Cachex.Actions.Import do
   # This occurs in the case there was an existing touch time and TTL, and
   # the expiration time would already have passed (so there's no point in
   # adding the record to the cache just to throw it away in future).
-  defp import(_cache, entry(touched: t1, ttl: t2), time)
-       when t1 + t2 < time,
+  defp import(_cache, entry(modified: m, ttl: t2), time)
+       when m + t2 < time,
        do: nil
 
   # Imports an entry, using the current time to offset the TTL value.
@@ -43,8 +43,8 @@ defmodule Cachex.Actions.Import do
   # This is required to shift the TTLs set in a backup to match the current
   # import time, so that the rest of the lifetime of the key is the same. If
   # we didn't do this, the key would live longer in the cache than intended.
-  defp import(cache, entry(key: k, touched: t1, ttl: t2, value: v), time) do
-    opts = const(:notify_false) ++ [ttl: t1 + t2 - time]
+  defp import(cache, entry(key: k, modified: m, ttl: t2, value: v), time) do
+    opts = const(:notify_false) ++ [ttl: m + t2 - time]
     {:ok, true} = Cachex.put(cache, k, v, opts)
   end
 end
