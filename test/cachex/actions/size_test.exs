@@ -34,7 +34,7 @@ defmodule Cachex.Actions.SizeTest do
     assert_receive({{:size, [[]]}, ^result2})
 
     # add a final entry
-    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1)
 
     # let it expire
     :timer.sleep(2)

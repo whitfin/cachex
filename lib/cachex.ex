@@ -721,10 +721,10 @@ defmodule Cachex do
       ...> end)
       { :commit, "yek_gnissim" }
 
-      iex> Cachex.fetch(:my_cache, "missing_key_ttl", fn(key) ->
-      ...>   { :commit, String.reverse(key), ttl: :timer.seconds(60) }
+      iex> Cachex.fetch(:my_cache, "missing_key_expires", fn(key) ->
+      ...>   { :commit, String.reverse(key), expiration: :timer.seconds(60) }
       ...> end)
-      { :commit, "ltt_yek_gnissim", [ttl: 60000] }
+      { :commit, "seripxe_yek_gnissim", [expiration: 60000] }
 
   """
   @spec fetch(Cachex.t(), any, function | nil, Keyword.t()) ::
@@ -1021,7 +1021,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value", ttl: 1000)
+      iex> Cachex.put(:my_cache, "key", "value", expiration: 1000)
       iex> Cachex.persist(:my_cache, "key")
       { :ok, true }
 
@@ -1059,9 +1059,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:ttl`
+    * `:expiration`
 
-      An expiration time to set for the provided key (time-to-live), overriding
+      An expiration value to set for the provided key (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
 
   ## Examples
@@ -1069,12 +1069,11 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key", "value")
       { :ok, true }
 
-      iex> Cachex.put(:my_cache, "key", "value", ttl: :timer.seconds(5))
+      iex> Cachex.put(:my_cache, "key", "value", expiration: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
       { :ok, 5000 }
 
   """
-  # TODO: maybe rename TTL to be expiration?
   @spec put(Cachex.t(), any, any, Keyword.t()) :: {status, boolean}
   def put(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:put, [key, value, options]})
@@ -1089,9 +1088,9 @@ defmodule Cachex do
 
   ## Options
 
-    * `:ttl`
+    * `:expiration`
 
-      An expiration time to set for the provided keys (time-to-live), overriding
+      An expiration value to set for the provided keys (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
 
   ## Examples
@@ -1099,12 +1098,11 @@ defmodule Cachex do
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
       { :ok, true }
 
-      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], ttl: :timer.seconds(5))
+      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expiration: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
       { :ok, 5000 }
 
   """
-  # TODO: maybe rename TTL to be expiration?
   @spec put_many(Cachex.t(), [{any, any}], Keyword.t()) :: {status, boolean}
   def put_many(cache, pairs, options \\ [])
       when is_list(pairs) and is_list(options),
@@ -1120,7 +1118,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", "my_value", ttl: :timer.seconds(5))
+      iex> Cachex.put(:my_cache, "my_key", "my_value", expiration: :timer.seconds(5))
       iex> Process.sleep(4)
       iex> Cachex.ttl(:my_cache, "my_key")
       { :ok, 1000 }

@@ -26,25 +26,24 @@ defmodule Cachex.Actions.Import do
   #
   # As this is a direct import, we just use `Cachex.put/4` with the provided
   # key and value from the existing entry record - nothing special here.
-  defp import(cache, entry(key: k, expiration: nil, value: v), _time),
+  defp import(cache, entry(key: k, expiration: nil, value: v), _t),
     do: {:ok, true} = Cachex.put(cache, k, v, const(:notify_false))
 
   # Skips over entries which have already expired.
   #
-  # This occurs in the case there was an existing touch time and TTL, and
-  # the expiration time would already have passed (so there's no point in
+  # This occurs in the case there was an existing modification time and expiration
+  # but the expiration time would already have passed (so there's no point in
   # adding the record to the cache just to throw it away in future).
-  defp import(_cache, entry(modified: m, expiration: e), time)
-       when m + e < time,
-       do: nil
+  defp import(_cache, entry(modified: m, expiration: e), t) when m + e < t,
+    do: nil
 
   # Imports an entry, using the current time to offset the TTL value.
   #
   # This is required to shift the TTLs set in a backup to match the current
   # import time, so that the rest of the lifetime of the key is the same. If
   # we didn't do this, the key would live longer in the cache than intended.
-  defp import(cache, entry(key: k, modified: m, expiration: e, value: v), time) do
-    opts = const(:notify_false) ++ [ttl: m + e - time]
+  defp import(cache, entry(key: k, modified: m, expiration: e, value: v), t) do
+    opts = const(:notify_false) ++ [expiration: m + e - t]
     {:ok, true} = Cachex.put(cache, k, v, opts)
   end
 end

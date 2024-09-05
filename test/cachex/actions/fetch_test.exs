@@ -23,7 +23,7 @@ defmodule Cachex.Actions.FetchTest do
 
     # set some keys in the cache
     {:ok, true} = Cachex.put(cache1, "key1", 1)
-    {:ok, true} = Cachex.put(cache1, "key2", 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache1, "key2", 2, expiration: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -143,7 +143,7 @@ defmodule Cachex.Actions.FetchTest do
     cache = TestUtils.create_cache()
 
     # create a fallback with an expiration
-    purged = [ttl: 60000]
+    purged = [expiration: 60000]
     fb_opt = &{:commit, String.reverse(&1), purged}
 
     # fetch our key using our fallback

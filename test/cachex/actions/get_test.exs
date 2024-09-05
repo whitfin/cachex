@@ -14,7 +14,7 @@ defmodule Cachex.Actions.GetTest do
 
     # set some keys in the cache
     {:ok, true} = Cachex.put(cache1, 1, 1)
-    {:ok, true} = Cachex.put(cache1, 2, 2, ttl: 1)
+    {:ok, true} = Cachex.put(cache1, 2, 2, expiration: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)

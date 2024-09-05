@@ -17,7 +17,7 @@ defmodule Cachex.Actions.TouchTest do
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, ttl: 1000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1000)
 
     # clear messages
     TestUtils.flush()

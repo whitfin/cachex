@@ -103,7 +103,7 @@ defmodule Cachex.Services.Janitor do
   #
   # This will drop to the ETS level and use a select to match documents which
   # need to be removed; they are then deleted by ETS at very high speeds.
-  def handle_info(:ttl_check, {cache(name: name), _last}) do
+  def handle_info(:purge, {cache(name: name), _last}) do
     start_time = now()
     new_caches = Overseer.retrieve(name)
 
@@ -133,7 +133,7 @@ defmodule Cachex.Services.Janitor do
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.
   defp schedule_check(cache(expiration: expiration(interval: interval)) = cache) do
-    :erlang.send_after(interval, self(), :ttl_check)
+    :erlang.send_after(interval, self(), :purge)
     cache
   end
 end
