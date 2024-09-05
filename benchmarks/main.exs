@@ -6,7 +6,7 @@ tomorrow = now() + 1000 * 60 * 60 * 24
 Application.ensure_all_started(:cachex)
 
 with_env = fn var, caches ->
-  if System.get_env(var) == "true" do
+  if System.get_env(var) in ["true", "1"] do
     caches
   else
     []
