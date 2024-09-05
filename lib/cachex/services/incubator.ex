@@ -19,7 +19,7 @@ defmodule Cachex.Services.Incubator do
   the provided cache record. If no warmers are attached in the cache record,
   this will skip creation to avoid unnecessary processes running.
   """
-  @spec start_link(Cachex.Spec.cache()) :: Supervisor.on_start()
+  @spec start_link(Cachex.t()) :: Supervisor.on_start()
   def start_link(cache(warmers: [])),
     do: :ignore
 

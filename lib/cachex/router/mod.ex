@@ -26,7 +26,7 @@ defmodule Cachex.Router.Mod do
       by using `Node.self/1` and `Node.list/2`.
 
   """
-  @spec init(cache :: Cachex.Spec.cache(), options :: Keyword.t()) :: [atom]
+  @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom]
   def init(_cache, options) do
     options
     |> Keyword.get_lazy(:nodes, &Router.connected/0)

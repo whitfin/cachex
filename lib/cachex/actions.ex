@@ -64,7 +64,7 @@ defmodule Cachex.Actions do
   This will return an instance of an entry record as defined in the main
   `Cachex.Spec` module, rather than just the raw value.
   """
-  @spec read(Cachex.Spec.cache(), any) :: Cachex.Spec.entry() | nil
+  @spec read(Cachex.t(), any) :: Cachex.Spec.entry() | nil
   def read(cache(name: name) = cache, key) do
     case :ets.lookup(name, key) do
       [] ->
@@ -91,14 +91,14 @@ defmodule Cachex.Actions do
 
   Note that updates are atomic; either all updates will take place, or none will.
   """
-  @spec update(Cachex.Spec.cache(), any, [tuple]) :: {:ok, boolean}
+  @spec update(Cachex.t(), any, [tuple]) :: {:ok, boolean}
   def update(cache(name: name), key, changes),
     do: {:ok, :ets.update_element(name, key, changes)}
 
   @doc """
   Writes a new entry into a cache.
   """
-  @spec write(Cachex.Spec.cache(), Cachex.Spec.entries()) :: {:ok, boolean}
+  @spec write(Cachex.t(), Cachex.Spec.entries()) :: {:ok, boolean}
   def write(cache(name: name), entries),
     do: {:ok, :ets.insert(name, entries)}
 

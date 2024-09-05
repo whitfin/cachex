@@ -48,14 +48,14 @@ defmodule Cachex.OverseerTest do
     Services.Overseer.register(name, state)
 
     # ensure that the state comes back
-    assert(Services.Overseer.ensure(state) === state)
-    assert(Services.Overseer.ensure(name) === state)
+    assert(Services.Overseer.get(state) === state)
+    assert(Services.Overseer.get(name) === state)
 
     # remove our state from the table
     Services.Overseer.unregister(name)
 
     # ensure the state is gone
-    assert(Services.Overseer.ensure(name) == nil)
+    assert(Services.Overseer.get(name) == nil)
   end
 
   # Covers the retrieval of a cache state from inside the table. We just have to

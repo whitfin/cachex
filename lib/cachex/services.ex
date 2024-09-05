@@ -49,7 +49,7 @@ defmodule Cachex.Services do
   Definition order here matters, as there's inter-dependency between each
   of the child processes (such as the Janitor -> Locksmith).
   """
-  @spec cache_spec(Cachex.Spec.cache()) :: [Supervisor.Spec.spec()]
+  @spec cache_spec(Cachex.t()) :: [Supervisor.Spec.spec()]
   def cache_spec(cache() = cache) do
     []
     |> Enum.concat(table_spec(cache))
@@ -68,7 +68,7 @@ defmodule Cachex.Services do
   are not named in a deterministic way. It will look up all hooks using
   the Supervisor children and place them in a modified cache record.
   """
-  @spec link(Cachex.Spec.cache()) :: {:ok, Cachex.Spec.cache()}
+  @spec link(Cachex.t()) :: {:ok, Cachex.t()}
   def link(cache(hooks: hooks(pre: [], post: []), warmers: []) = cache),
     do: {:ok, cache}
 
@@ -94,7 +94,7 @@ defmodule Cachex.Services do
 
   This will return `nil` if the service does not exist, or is not running.
   """
-  @spec locate(Cachex.Spec.cache(), atom) :: pid | nil
+  @spec locate(Cachex.t(), atom) :: pid | nil
   def locate(cache() = cache, service) do
     cache
     |> services
@@ -107,7 +107,7 @@ defmodule Cachex.Services do
   This is used to view the children of the specified cache, whilst filtering
   out any services which may not have been started based on the cache options.
   """
-  @spec services(Cachex.Spec.cache()) :: [Supervisor.Spec.spec()]
+  @spec services(Cachex.t()) :: [Supervisor.Spec.spec()]
   def services(cache(name: cache)) do
     cache
     |> Supervisor.which_children()
