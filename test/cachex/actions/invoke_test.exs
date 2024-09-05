@@ -20,7 +20,7 @@ defmodule Cachex.Actions.InvokeTest do
     {:ok, true} = Cachex.put(cache, "list", [1, 2, 3, 4])
 
     # retrieve the raw record
-    entry(key: "list", modified: modified, ttl: nil) =
+    entry(key: "list", modified: modified) =
       Cachex.inspect!(cache, {:entry, "list"})
 
     # execute some custom commands
@@ -37,7 +37,7 @@ defmodule Cachex.Actions.InvokeTest do
 
     # verify the modified time was unchanged
     assert Cachex.inspect!(cache, {:entry, "list"}) ==
-             entry(key: "list", modified: modified, ttl: nil, value: [])
+             entry(key: "list", modified: modified, value: [])
 
     # pop some extras to test avoiding writes
     lpop3 = Cachex.invoke(cache, :lpop, "list")

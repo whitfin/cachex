@@ -48,8 +48,8 @@ defmodule Cachex.Spec.Validator do
   # This only has to validate the touch time and ttl values inside a record,
   # as the key and value can be of any type (including nil). The touch time
   # and ttl values must be integers if set, and the ttl value can be nil.
-  def valid?(:entry, entry(modified: modified, ttl: ttl)),
-    do: is_positive_integer(modified) and nillable?(ttl, &is_positive_integer/1)
+  def valid?(:entry, entry(modified: modified, expiration: exp)),
+    do: is_positive_integer(modified) and nillable?(exp, &is_positive_integer/1)
 
   # Validates an expiration specification record.
   #

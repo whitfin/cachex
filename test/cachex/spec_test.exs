@@ -44,7 +44,7 @@ defmodule Cachex.SpecTest do
     assert entry_idx(:key) == 2
     assert entry_idx(:value) == 3
     assert entry_idx(:modified) == 4
-    assert entry_idx(:ttl) == 5
+    assert entry_idx(:expiration) == 5
   end
 
   test "generating entry modifications" do

@@ -60,7 +60,7 @@ defmodule Cachex.Spec do
             key: any,
             value: any,
             modified: number,
-            ttl: number
+            expiration: number
           )
 
   # Helper type for entry types
@@ -176,7 +176,7 @@ defmodule Cachex.Spec do
     key: nil,
     value: nil,
     modified: nil,
-    ttl: nil
+    expiration: nil
 
   @doc """
   Creates an expiration record from the provided values.

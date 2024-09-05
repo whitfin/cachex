@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Incr do
     initial = Options.get(options, :initial, &is_integer/1, 0)
     expiry = Janitor.expiration(cache, nil)
 
-    default = entry_now(key: key, ttl: expiry, value: initial)
+    default = entry_now(key: key, expiration: expiry, value: initial)
 
     Locksmith.write(cache, [key], fn ->
       try do

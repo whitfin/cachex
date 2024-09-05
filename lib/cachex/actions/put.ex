@@ -29,7 +29,7 @@ defmodule Cachex.Actions.Put do
     ttlval = Options.get(options, :ttl, &is_integer/1)
     expiry = Janitor.expiration(cache, ttlval)
 
-    record = entry_now(key: key, ttl: expiry, value: value)
+    record = entry_now(key: key, expiration: expiry, value: value)
 
     Locksmith.write(cache, [key], fn ->
       Actions.write(cache, record)

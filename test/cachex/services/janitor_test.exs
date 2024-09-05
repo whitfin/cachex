@@ -9,11 +9,11 @@ defmodule Cachex.Services.JanitorTest do
   test "checking whether an expiration has passed" do
     # this combination has expired
     modified1 = 5000
-    time_tl1 = 5000
+    expiration1 = 5000
 
     # this combination has not
     modified2 = :os.system_time(:milli_seconds)
-    time_tl2 = 100_000_000
+    expiration2 = 100_000_000
 
     # define both an enabled and disabled state
     state1 = cache(expiration: expiration(lazy: true))
@@ -21,24 +21,28 @@ defmodule Cachex.Services.JanitorTest do
 
     # expired combination regardless of state
     result1 =
-      Services.Janitor.expired?(entry(modified: modified1, ttl: time_tl1))
+      Services.Janitor.expired?(
+        entry(modified: modified1, expiration: expiration1)
+      )
 
     # unexpired combination regardless of state
     result2 =
-      Services.Janitor.expired?(entry(modified: modified2, ttl: time_tl2))
+      Services.Janitor.expired?(
+        entry(modified: modified2, expiration: expiration2)
+      )
 
     # expired combination with state enabled
     result3 =
       Services.Janitor.expired?(
         state1,
-        entry(modified: modified1, ttl: time_tl1)
+        entry(modified: modified1, expiration: expiration1)
       )
 
     # expired combination with state disabled
     result4 =
       Services.Janitor.expired?(
         state2,
-        entry(modified: modified1, ttl: time_tl1)
+        entry(modified: modified1, expiration: expiration1)
       )
 
     # only the first and third should have expired
@@ -61,7 +65,7 @@ defmodule Cachex.Services.JanitorTest do
 
     # set our interval values
     ttl_interval = 50
-    ttl_value = div(ttl_interval, 2)
+    expiration = div(ttl_interval, 2)
     ttl_wait = round(ttl_interval * 1.5)
 
     # create a test cache
@@ -74,7 +78,7 @@ defmodule Cachex.Services.JanitorTest do
     cache = Services.Overseer.retrieve(cache)
 
     # add a new cache entry
-    {:ok, true} = Cachex.put(cache, "key", "value", ttl: ttl_value)
+    {:ok, true} = Cachex.put(cache, "key", "value", ttl: expiration)
 
     # check that the key exists
     exists1 = Cachex.exists?(cache, "key")

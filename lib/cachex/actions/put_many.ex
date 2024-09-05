@@ -51,7 +51,7 @@ defmodule Cachex.Actions.PutMany do
   # If an unexpected pair is hit, an error will be returned and no
   # values will be written to the backing table.
   defp map_entries(ttl, [{key, value} | pairs], keys, entries) do
-    entry = entry_now(key: key, ttl: ttl, value: value)
+    entry = entry_now(key: key, expiration: ttl, value: value)
     map_entries(ttl, pairs, [key | keys], [entry | entries])
   end
 
