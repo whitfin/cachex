@@ -45,15 +45,14 @@ defmodule Cachex.Query do
   Creates a raw query, ignoring expiration.
   """
   @spec raw(any, any) :: [{tuple, [tuple], [any]}]
-  def raw(condition, output \\ :entry) do
-    [
+  def raw(condition, output \\ :entry),
+    do: [
       {
         @header,
         [map_clauses(condition)],
         [clean_return(map_clauses(output))]
       }
     ]
-  end
 
   @doc """
   Creates a query to retrieve all unexpired records.
