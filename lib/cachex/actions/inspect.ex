@@ -82,8 +82,12 @@ defmodule Cachex.Actions.Inspect do
   # The number of entries returned represents the number of records which will
   # be removed on the next run of the Janitor service. It does not track the
   # number of expired records which have already been purged or removed.
-  def execute(cache(name: name), {:expired, :count}, _options),
-    do: {:ok, :ets.select_count(name, Query.expired(true))}
+  def execute(cache(name: name), {:expired, :count}, _options) do
+    query = Query.create(expired: true, output: true)
+    count = :ets.select_count(name, query)
+
+    {:ok, count}
+  end
 
   # Returns the keys of expired entries currently inside the cache.
   #
@@ -91,7 +95,7 @@ defmodule Cachex.Actions.Inspect do
   # return the list of entry keys rather than just a count. Naturally this is
   # an expensive call and should really only be used when debugging.
   def execute(cache(name: name), {:expired, :keys}, _options),
-    do: {:ok, :ets.select(name, Query.expired(:key))}
+    do: {:ok, :ets.select(name, Query.create(expired: true, output: :key))}
 
   # Returns information about the last run of the Janitor service.
   #

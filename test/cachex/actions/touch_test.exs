@@ -93,7 +93,7 @@ defmodule Cachex.Actions.TouchTest do
     {:ok, true} = Cachex.put(cache, 1, 1)
     {:ok, true} = Cachex.put(cache, 2, 2)
 
-    # wait a liexpiratione
+    # wait a little
     :timer.sleep(10)
 
     # pull back the records inserted so far

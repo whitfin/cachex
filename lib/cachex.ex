@@ -1249,21 +1249,21 @@ defmodule Cachex do
         {:entry, "c", 1519015805679, nil, 3},
         {:entry, "a", 1519015794445, nil, 1}]
 
-      iex> query = Cachex.Query.where(true, :key)
+      iex> query = Cachex.Query.create(output: :key)
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       ["b", "c", "a"]
 
-      iex> query = Cachex.Query.where(true, :value)
+      iex> query = Cachex.Query.create(output: :value)
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [2, 3, 1]
 
-      iex> query = Cachex.Query.where(true, { :key, :value })
+      iex> query = Cachex.Query.create(output: {:key, :value})
       iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
       [{"b", 2}, {"c", 3}, {"a", 1}]
 
   """
   @spec stream(Cachex.t(), any, Keyword.t()) :: {status, Enumerable.t()}
-  def stream(cache, query \\ Query.where(true), options \\ [])
+  def stream(cache, query \\ Query.create(expired: false), options \\ [])
       when is_list(options),
       do: Router.route(cache, {:stream, [query, options]})
 

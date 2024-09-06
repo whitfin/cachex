@@ -2,24 +2,19 @@ defmodule Cachex.QueryTest do
   use Cachex.Test.Case
 
   # All queries are run through the basic query generation, so this test
-  # will just validate the passing of query clauses through to the query
-  # creation default, which will attach the checks for expirations.
+  # will just validate the passing of query clauses through to the query.
   test "creating basic queries" do
-    # create a query with a true filter
-    query1 = Cachex.Query.where(true)
-    query2 = Cachex.Query.where(true, :key)
+    # create a query with not filter
+    query1 = Cachex.Query.create()
+    query2 = Cachex.Query.create(output: :key)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query2
 
     # unpack clauses of both queries
-    [{_, [{:andalso, c1, true}], _}] = query1
-    [{_, [{:andalso, c2, true}], _}] = query2
-
-    # verify the queries of both queries
-    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c1
-    assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c2
+    [{_, [true], _}] = query1
+    [{_, [true], _}] = query2
 
     # verify the returns of both queries
     assert [{_, _, [:"$_"]}] = query1
@@ -30,8 +25,8 @@ defmodule Cachex.QueryTest do
   # the expiration checks. This test just covers this behaviour.
   test "creating expired queries" do
     # create a couple of expired queries
-    query1 = Cachex.Query.expired()
-    query2 = Cachex.Query.expired(:key)
+    query1 = Cachex.Query.create(expired: true)
+    query2 = Cachex.Query.create(expired: true, output: :key)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
@@ -54,8 +49,8 @@ defmodule Cachex.QueryTest do
   # secondary clause. This test just covers this behaviour.
   test "creating unexpired queries" do
     # create a couple of unexpired queries
-    query1 = Cachex.Query.unexpired()
-    query2 = Cachex.Query.unexpired(:key)
+    query1 = Cachex.Query.create(expired: false)
+    query2 = Cachex.Query.create(expired: false, output: :key)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
@@ -79,8 +74,8 @@ defmodule Cachex.QueryTest do
   # than validate structure, as there are no attached conditions added.
   test "creating raw queries" do
     # create a query with a true filter
-    query1 = Cachex.Query.raw(true)
-    query2 = Cachex.Query.raw(true, :key)
+    query1 = Cachex.Query.create()
+    query2 = Cachex.Query.create(output: :key)
 
     # verify the form of the first query
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
