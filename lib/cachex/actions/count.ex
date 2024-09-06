@@ -20,6 +20,10 @@ defmodule Cachex.Actions.Count do
   means that any items set to be removed in the next purge will not be added
   to the count. Lazy expiration does not apply to this call.
   """
-  def execute(cache(name: name), _options),
-    do: {:ok, :ets.select_count(name, Query.unexpired(true))}
+  def execute(cache(name: name), _options) do
+    query = Query.create(expired: false, output: true)
+    count = :ets.select_count(name, query)
+
+    {:ok, count}
+  end
 end

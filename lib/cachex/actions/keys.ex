@@ -24,5 +24,5 @@ defmodule Cachex.Actions.Keys do
   will not be included.
   """
   def execute(cache(name: name), _options),
-    do: {:ok, :ets.select(name, Query.where(true, :key))}
+    do: {:ok, :ets.select(name, Query.create(expired: false, output: :key))}
 end

@@ -28,58 +28,98 @@ defmodule Cachex.Query do
   ##############
 
   @doc """
-  Creates a query to retrieve all expired records.
+  Create a query specification for a cache.
+
+  This is a convenience binding to ETS select specifications, so please see
+  the appropriate documentation for any additional information on how to (e.g.)
+  format filter clauses and outputs.
+
+  ## Options
+
+    * `:expired`
+
+      Whether to filter expired records or not, with the default being no
+      filtering. Setting this to `true` will only retrieve expired records,
+      while setting to `false` will only retrieve unexpired records.
+
+    * `:output`
+
+      The query output format, which defaults to `:entry` (retrieving the entire
+      cache entry). You can provide any of the entry record fields, with bindings
+      such as tuples (`{:key, :value}`) or lists `[:key, :value]` or as a single
+      value (`:key`).
+
+    * `:where`
+
+      An ETS filter condition used to locate records in the table. This defaults to
+      retrieving all records, and is automatically joined with the value of the
+      `:expired` flag for convenience.
+
   """
-  @spec expired(any) :: [{tuple, [tuple], [any]}]
-  def expired(output \\ :entry),
-    do: raw(expired_clause(), output)
+  @spec create(options :: Keyword.t()) :: [{tuple, [tuple], [any]}]
+  def create(options \\ []) do
+    where =
+      options
+      |> Keyword.get(:where, true)
+      |> map_clauses
+
+    output =
+      options
+      |> Keyword.get(:output, :entry)
+      |> map_clauses
+      |> clean_return
+
+    condition =
+      case Keyword.get(options, :expired) do
+        true ->
+          wrap_condition(where, expired())
+
+        false ->
+          wrap_condition(where, unexpired())
+
+        nil ->
+          where
+      end
+
+    [
+      {
+        @header,
+        [condition],
+        [output]
+      }
+    ]
+  end
 
   @doc """
   Creates a match condition for expired records.
   """
-  @spec expired_clause :: tuple
-  def expired_clause,
-    do: {:not, unexpired_clause()}
-
-  @doc """
-  Creates a raw query, ignoring expiration.
-  """
-  @spec raw(any, any) :: [{tuple, [tuple], [any]}]
-  def raw(condition, output \\ :entry),
-    do: [
-      {
-        @header,
-        [map_clauses(condition)],
-        [clean_return(map_clauses(output))]
-      }
-    ]
-
-  @doc """
-  Creates a query to retrieve all unexpired records.
-  """
-  @spec unexpired(any) :: [{tuple, [tuple], [any]}]
-  def unexpired(output \\ :entry),
-    do: raw(unexpired_clause(), output)
+  @spec expired :: tuple
+  def expired,
+    do: {:not, unexpired()}
 
   @doc """
   Creates a match condition for unexpired records.
   """
-  @spec unexpired_clause :: tuple
-  def unexpired_clause,
+  @spec unexpired :: tuple
+  def unexpired,
     do:
       {:orelse, {:==, map_clauses(:expiration), nil},
        {:>, {:+, map_clauses(:modified), map_clauses(:expiration)}, now()}}
 
-  @doc """
-  Creates an expiration-aware query.
-  """
-  @spec where(any, any) :: [{tuple, [tuple], [any]}]
-  def where(condition, output \\ :entry),
-    do: raw({:andalso, unexpired_clause(), condition}, output)
-
   ###############
   # Private API #
   ###############
+
+  # Sanitizes a returning value clause.
+  #
+  # This will just wrap any non-single element Tuples being returned as
+  # this is required in order to provide valid return formats.
+  defp clean_return(tpl) when tuple_size(tpl) > 1,
+    do: {tpl}
+
+  defp clean_return(val),
+    do: val
+
   # Recursively replaces all entry tags in a clause value.
   #
   # This allows the use of entry fields, such as `:key` as references in
@@ -110,13 +150,11 @@ defmodule Cachex.Query do
   defp map_clauses(field),
     do: field
 
-  # Sanitizes a returning value clause.
-  #
-  # This will just wrap any non-single element Tuples being returned as
-  # this is required in order to provide valid return formats.
-  defp clean_return(tpl) when tuple_size(tpl) > 1,
-    do: {tpl}
+  # Wrap a where clause with a new condition only if the whre clause
+  # isn't simply true; if so, defer to the provided condition.
+  defp wrap_condition(true, condition),
+    do: condition
 
-  defp clean_return(val),
-    do: val
+  defp wrap_condition(where, condition),
+    do: {:andalso, condition, where}
 end
