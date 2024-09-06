@@ -135,8 +135,7 @@ defmodule Cachex.OptionsTest do
     refute comp3
   end
 
-  # This test verifies the parsing of TTL related flags. We have to test various
-  # combinations of :ttl_interval and :default_ttl to verify each state correctly.
+  # This test verifies the parsing of TTL related flags.
   test "parsing :expiration flags" do
     # grab a cache name
     name = TestUtils.create_name()
