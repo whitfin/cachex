@@ -57,54 +57,46 @@ defmodule Cachex.Query do
 
   """
   @spec create(options :: Keyword.t()) :: [{tuple, [tuple], [any]}]
-  def create(options \\ []) do
-    where =
-      options
-      |> Keyword.get(:where, true)
-      |> map_clauses
-
-    output =
-      options
-      |> Keyword.get(:output, :entry)
-      |> map_clauses
-      |> clean_return
-
-    condition =
-      case Keyword.get(options, :expired) do
-        true ->
-          wrap_condition(where, expired())
-
-        false ->
-          wrap_condition(where, unexpired())
-
-        nil ->
-          where
-      end
-
-    [
+  def create(options \\ []),
+    do: [
       {
         @header,
-        [condition],
-        [output]
+        [
+          options
+          |> Keyword.get(:where, true)
+          |> map_clauses
+        ],
+        [
+          options
+          |> Keyword.get(:output, :entry)
+          |> map_clauses
+          |> clean_return
+        ]
       }
     ]
-  end
 
   @doc """
-  Creates a match condition for expired records.
+  Create a filter against expired records in a cache.
+
+  This function accepts a subfilter to join to create more complex filters.
   """
-  @spec expired :: tuple
-  def expired,
-    do: {:not, unexpired()}
+  @spec expired(filter :: boolean() | tuple()) :: tuple
+  def expired(filter \\ nil),
+    do: wrap_condition(filter, {:not, unexpired()})
 
   @doc """
-  Creates a match condition for unexpired records.
+  Create a filter against unexpired records in a cache.
+
+  This function accepts a subfilter to join to create more complex filters.
   """
-  @spec unexpired :: tuple
-  def unexpired,
+  @spec unexpired(filter :: boolean() | tuple()) :: tuple
+  def unexpired(filter \\ nil),
     do:
-      {:orelse, {:==, map_clauses(:expiration), nil},
-       {:>, {:+, map_clauses(:modified), map_clauses(:expiration)}, now()}}
+      wrap_condition(
+        filter,
+        {:orelse, {:==, map_clauses(:expiration), nil},
+         {:>, {:+, map_clauses(:modified), map_clauses(:expiration)}, now()}}
+      )
 
   ###############
   # Private API #
@@ -136,25 +128,24 @@ defmodule Cachex.Query do
     do: Enum.map(list, &map_clauses/1)
 
   # basic entry field name substitution
-  for key <- Keyword.keys(entry(entry())),
-      do:
-        defp(map_clauses(unquote(key)),
-          do: :"$#{entry(unquote(key))}"
-        )
+  for key <- Keyword.keys(entry(entry())) do
+    defp map_clauses(unquote(key)),
+      do: :"$#{entry(unquote(key))}"
+  end
 
   # whole cache entry
   defp map_clauses(:entry),
     do: :"$_"
 
   # no-op, already valid
-  defp map_clauses(field),
-    do: field
+  defp map_clauses(value),
+    do: value
 
   # Wrap a where clause with a new condition only if the whre clause
   # isn't simply true; if so, defer to the provided condition.
-  defp wrap_condition(true, condition),
-    do: condition
+  defp wrap_condition(filter, subfilter) when filter in [nil, true],
+    do: subfilter
 
-  defp wrap_condition(where, condition),
-    do: {:andalso, condition, where}
+  defp wrap_condition(filter, subfilter),
+    do: {:andalso, subfilter, filter}
 end

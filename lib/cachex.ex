@@ -40,7 +40,7 @@ defmodule Cachex do
   alias Cachex.Errors
   alias Cachex.ExecutionError
   alias Cachex.Options
-  alias Cachex.Query
+  alias Cachex.Query, as: Q
   alias Cachex.Router
   alias Cachex.Services
 
@@ -1263,7 +1263,7 @@ defmodule Cachex do
 
   """
   @spec stream(Cachex.t(), any, Keyword.t()) :: {status, Enumerable.t()}
-  def stream(cache, query \\ Query.create(expired: false), options \\ [])
+  def stream(cache, query \\ Q.create(where: Q.unexpired()), options \\ [])
       when is_list(options),
       do: Router.route(cache, {:stream, [query, options]})
 
