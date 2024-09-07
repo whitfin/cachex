@@ -29,10 +29,10 @@ defmodule Cachex.Actions.Purge do
   """
   def execute(cache(name: name) = cache, _options) do
     Locksmith.transaction(cache, [], fn ->
-      query = Query.create(expired: true, output: true)
-      count = :ets.select_delete(name, query)
+      filter = Query.expired()
+      clause = Query.create(where: filter, output: true)
 
-      {:ok, count}
+      {:ok, :ets.select_delete(name, clause)}
     end)
   end
 end

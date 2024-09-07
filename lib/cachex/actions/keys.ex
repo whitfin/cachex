@@ -23,6 +23,10 @@ defmodule Cachex.Actions.Keys do
   that any entries currently inside the cache which are scheduled to be removed
   will not be included.
   """
-  def execute(cache(name: name), _options),
-    do: {:ok, :ets.select(name, Query.create(expired: false, output: :key))}
+  def execute(cache(name: name), _options) do
+    filter = Query.unexpired()
+    clause = Query.create(where: filter, output: :key)
+
+    {:ok, :ets.select(name, clause)}
+  end
 end
