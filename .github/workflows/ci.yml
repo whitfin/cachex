@@ -42,6 +42,7 @@ jobs:
         run: mix test --trace
 
   bench:
+    if: github.ref == 'refs/heads/main'
     name: Benchmark
     runs-on: ubuntu-latest
     container:
