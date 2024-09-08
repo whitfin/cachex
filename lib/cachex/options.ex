@@ -38,9 +38,23 @@ defmodule Cachex.Options do
 
   If the value satisfies the condition provided, it will be returned. Otherwise
   the default value provided is returned instead. Used for basic validations.
+
+  If multiple keys are provided they will be tried in order and the first
+  matching value will be returned (used for backwards compatibility).
   """
   @spec get(Keyword.t(), atom, (any -> boolean), any) :: any
-  def get(options, key, condition, default \\ nil) do
+  def get(options, keys, condition, default \\ nil)
+
+  def get(options, keys, condition, default) when is_list(keys) do
+    Enum.reduce_while(keys, default, fn key, ^default ->
+      case get(options, key, condition, default) do
+        ^default -> {:cont, default}
+        parsed -> {:halt, parsed}
+      end
+    end)
+  end
+
+  def get(options, key, condition, default) do
     transform(options, key, fn val ->
       try do
         (condition.(val) && val) || default
