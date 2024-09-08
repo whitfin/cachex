@@ -34,12 +34,14 @@ defmodule Cachex.OptionsTest do
 
     # parse out using a true condition
     result1 = Cachex.Options.get(options, :positive, condition)
+    result2 = Cachex.Options.get(options, [:positive, :negative], condition)
 
     # parse out using a false condition (should return a default)
-    result2 = Cachex.Options.get(options, :negative, condition)
+    result3 = Cachex.Options.get(options, :negative, condition)
+    result4 = Cachex.Options.get(options, [:negative, :negative], condition)
 
     # parse out using an error condition (should return a custom default)
-    result3 =
+    result5 =
       Cachex.Options.get(
         options,
         :negative,
@@ -51,12 +53,14 @@ defmodule Cachex.OptionsTest do
 
     # condition true means we return the value
     assert(result1 == 10)
+    assert(result2 == 10)
 
     # condition false and no default means we return nil
-    assert(result2 == nil)
+    assert(result3 == nil)
+    assert(result4 == nil)
 
     # condition false with a default returns the default
-    assert(result3 == 0)
+    assert(result5 == 0)
   end
 
   # This test makes sure that we can correctly parse out commands which are to
