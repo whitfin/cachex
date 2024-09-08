@@ -21,9 +21,9 @@ defmodule Cachex.Actions.PutManyTest do
 
     # set some values in the cache
     set1 = Cachex.put_many(cache1, [{1, 1}, {2, 2}])
-    set2 = Cachex.put_many(cache1, [{3, 3}, {4, 4}], expiration: 5000)
+    set2 = Cachex.put_many(cache1, [{3, 3}, {4, 4}], expire: 5000)
     set3 = Cachex.put_many(cache2, [{1, 1}, {2, 2}])
-    set4 = Cachex.put_many(cache2, [{3, 3}, {4, 4}], expiration: 5000)
+    set4 = Cachex.put_many(cache2, [{3, 3}, {4, 4}], expire: 5000)
 
     # ensure all set actions worked
     assert(set1 == {:ok, true})
@@ -34,8 +34,8 @@ defmodule Cachex.Actions.PutManyTest do
     # verify the hooks were updated with the message
     assert_receive({{:put_many, [[{1, 1}, {2, 2}], []]}, ^set1})
     assert_receive({{:put_many, [[{1, 1}, {2, 2}], []]}, ^set3})
-    assert_receive({{:put_many, [[{3, 3}, {4, 4}], [expiration: 5000]]}, ^set2})
-    assert_receive({{:put_many, [[{3, 3}, {4, 4}], [expiration: 5000]]}, ^set4})
+    assert_receive({{:put_many, [[{3, 3}, {4, 4}], [expire: 5000]]}, ^set2})
+    assert_receive({{:put_many, [[{3, 3}, {4, 4}], [expire: 5000]]}, ^set4})
 
     # read back all values from the cache
     value1 = Cachex.get(cache1, 1)

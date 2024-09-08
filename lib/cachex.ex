@@ -722,9 +722,9 @@ defmodule Cachex do
       { :commit, "yek_gnissim" }
 
       iex> Cachex.fetch(:my_cache, "missing_key_expires", fn(key) ->
-      ...>   { :commit, String.reverse(key), expiration: :timer.seconds(60) }
+      ...>   { :commit, String.reverse(key), expire: :timer.seconds(60) }
       ...> end)
-      { :commit, "seripxe_yek_gnissim", [expiration: 60000] }
+      { :commit, "seripxe_yek_gnissim", [expire: 60000] }
 
   """
   @spec fetch(Cachex.t(), any, function | nil, Keyword.t()) ::
@@ -1059,7 +1059,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:expiration`
+    * `:expire`
 
       An expiration value to set for the provided key (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
@@ -1069,7 +1069,7 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key", "value")
       { :ok, true }
 
-      iex> Cachex.put(:my_cache, "key", "value", expiration: :timer.seconds(5))
+      iex> Cachex.put(:my_cache, "key", "value", expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
       { :ok, 5000 }
 
@@ -1088,7 +1088,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:expiration`
+    * `:expire`
 
       An expiration value to set for the provided keys (time-to-live), overriding
       any default expirations set on a cache. This value should be in milliseconds.
@@ -1098,7 +1098,7 @@ defmodule Cachex do
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
       { :ok, true }
 
-      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expiration: :timer.seconds(5))
+      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
       { :ok, 5000 }
 
@@ -1118,7 +1118,7 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", "my_value", expiration: :timer.seconds(5))
+      iex> Cachex.put(:my_cache, "my_key", "my_value", expire: :timer.seconds(5))
       iex> Process.sleep(4)
       iex> Cachex.ttl(:my_cache, "my_key")
       { :ok, 1000 }

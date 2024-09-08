@@ -13,8 +13,8 @@ defmodule Cachex.Actions.GetAndUpdateTest do
 
     # set some keys in the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1)
-    {:ok, true} = Cachex.put(cache, 4, 4, expiration: 1000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
+    {:ok, true} = Cachex.put(cache, 4, 4, expire: 1000)
     {:ok, true} = Cachex.put(cache, 5, 5)
     {:ok, true} = Cachex.put(cache, 6, 6)
 

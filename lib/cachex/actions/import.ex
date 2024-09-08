@@ -43,7 +43,7 @@ defmodule Cachex.Actions.Import do
   # import time, so that the rest of the lifetime of the key is the same. If
   # we didn't do this, the key would live longer in the cache than intended.
   defp import(cache, entry(key: k, modified: m, expiration: e, value: v), t) do
-    opts = const(:notify_false) ++ [expiration: m + e - t]
+    opts = const(:notify_false) ++ [expire: m + e - t]
     {:ok, true} = Cachex.put(cache, k, v, opts)
   end
 end

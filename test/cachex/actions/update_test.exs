@@ -13,7 +13,7 @@ defmodule Cachex.Actions.UpdateTest do
     {:ok, true} = Cachex.put(cache, 1, 1)
 
     # set a value with a TTL in the cache
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 10000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 10000)
 
     # attempt to update both keys
     update1 = Cachex.update(cache, 1, 3)
@@ -66,8 +66,8 @@ defmodule Cachex.Actions.UpdateTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1, expiration: 500)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 500)
+    {:ok, true} = Cachex.put(cache, 1, 1, expire: 500)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 500)
 
     # run updates against both keys
     {:ok, true} = Cachex.update(cache, 1, -1)
