@@ -28,7 +28,7 @@ defmodule Cachex.Actions.PutMany do
   inside a lock aware context to avoid clashing with other processes.
   """
   def execute(cache() = cache, pairs, options) do
-    expiration = Options.get(options, :expiration, &is_integer/1)
+    expiration = Options.get(options, :expire, &is_integer/1)
     expiration = Janitor.expiration(cache, expiration)
 
     with {:ok, keys, entries} <- map_entries(expiration, pairs, [], []) do

@@ -14,7 +14,7 @@ defmodule Cachex.Actions.RefreshTest do
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1000)
 
     # clear messages
     TestUtils.flush()
@@ -69,8 +69,8 @@ defmodule Cachex.Actions.RefreshTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1, expiration: 500)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 500)
+    {:ok, true} = Cachex.put(cache, 1, 1, expire: 500)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 500)
 
     # pause to reduce the TTL a little
     :timer.sleep(250)

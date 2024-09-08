@@ -26,7 +26,7 @@ defmodule Cachex.Actions.Put do
   inside a lock aware context to avoid clashing with other processes.
   """
   def execute(cache() = cache, key, value, options) do
-    expiration = Options.get(options, :expiration, &is_integer/1)
+    expiration = Options.get(options, :expire, &is_integer/1)
     expiration = Janitor.expiration(cache, expiration)
 
     record = entry_now(key: key, expiration: expiration, value: value)

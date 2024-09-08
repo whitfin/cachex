@@ -17,7 +17,7 @@ defmodule Cachex.WarmerTest do
   test "warmers which set values with options" do
     # create a test warmer to pass to the cache
     TestUtils.create_warmer(:options_warmer, 50, fn _ ->
-      {:ok, [{1, 1}], [expiration: 60000]}
+      {:ok, [{1, 1}], [expire: 60000]}
     end)
 
     # create a cache instance with a warmer

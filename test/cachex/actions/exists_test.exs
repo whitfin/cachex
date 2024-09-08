@@ -13,7 +13,7 @@ defmodule Cachex.Actions.ExistsTest do
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
 
     # let TTLs clear
     :timer.sleep(2)

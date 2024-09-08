@@ -135,7 +135,7 @@ defmodule Cachex.Policy.LRW.ScheduledTest do
     # set a more recent 50 keys
     for x <- 51..100 do
       # set the key
-      {:ok, true} = Cachex.put(state, x, x, expiration: 1)
+      {:ok, true} = Cachex.put(state, x, x, expire: 1)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)

@@ -11,8 +11,8 @@ defmodule Cachex.Actions.ImportTest do
 
     # add some cache entries
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1)
-    {:ok, true} = Cachex.put(cache, 3, 3, expiration: 10_000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
+    {:ok, true} = Cachex.put(cache, 3, 3, expire: 10_000)
 
     # export the cache to a list
     result1 = Cachex.export(cache)

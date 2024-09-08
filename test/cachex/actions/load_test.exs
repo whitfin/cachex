@@ -15,8 +15,8 @@ defmodule Cachex.Actions.LoadTest do
 
     # add some cache entries
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expiration: 1)
-    {:ok, true} = Cachex.put(cache, 3, 3, expiration: 10_000)
+    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
+    {:ok, true} = Cachex.put(cache, 3, 3, expire: 10_000)
 
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))

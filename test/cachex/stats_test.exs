@@ -269,7 +269,7 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..4 do
-      {:ok, true} = Cachex.put(cache, i, i, expiration: 1)
+      {:ok, true} = Cachex.put(cache, i, i, expire: 1)
     end
 
     # ensure purge
