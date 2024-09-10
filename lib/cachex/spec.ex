@@ -117,6 +117,7 @@ defmodule Cachex.Spec do
   @type warmer ::
           record(:warmer,
             required: boolean,
+            interval: integer | nil,
             module: atom,
             state: any,
             name: GenServer.server()
@@ -289,6 +290,7 @@ defmodule Cachex.Spec do
   """
   defrecord :warmer,
     required: true,
+    interval: nil,
     module: nil,
     state: nil,
     name: nil

@@ -423,7 +423,7 @@ defmodule Cachex.OptionsTest do
     name = TestUtils.create_name()
 
     # define our warmer to pass through to the cache
-    TestUtils.create_warmer(:options_test_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:options_test_warmer, fn _ ->
       :ignore
     end)
 

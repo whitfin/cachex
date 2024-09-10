@@ -5,7 +5,7 @@ defmodule Cachex.Actions.WarmTest do
   # after manually clearing it but checking again before the schedule.
   test "manually warming a cache" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:manual_warmer1, :timer.hours(1), fn _ ->
+    TestUtils.create_warmer(:manual_warmer1, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
@@ -39,7 +39,7 @@ defmodule Cachex.Actions.WarmTest do
 
   test "manually warming a cache and awaiting results" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:manual_warmer2, :timer.hours(1), fn _ ->
+    TestUtils.create_warmer(:manual_warmer2, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
@@ -71,7 +71,7 @@ defmodule Cachex.Actions.WarmTest do
   # provided list, and therefore no cache warming actually executes.
   test "manually warming a cache using specific warmers" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:manual_warmer3, :timer.hours(1), fn _ ->
+    TestUtils.create_warmer(:manual_warmer3, fn _ ->
       {:ok, [{1, 1}]}
     end)
 

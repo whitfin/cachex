@@ -3,7 +3,7 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which set basic values" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:basic_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:basic_warmer, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
@@ -16,7 +16,7 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which set values with options" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:options_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:options_warmer, fn _ ->
       {:ok, [{1, 1}], [expire: 60000]}
     end)
 
@@ -32,7 +32,7 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which don't set values" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:ignore_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:ignore_warmer, fn _ ->
       :ignore
     end)
 
@@ -45,7 +45,7 @@ defmodule Cachex.WarmerTest do
 
   test "warmers which aren't blocking" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:optional_warmer, 50, fn _ ->
+    TestUtils.create_warmer(:optional_warmer, fn _ ->
       :timer.sleep(3000)
       {:ok, [{1, 1}]}
     end)
@@ -60,7 +60,7 @@ defmodule Cachex.WarmerTest do
 
   test "providing warmers with states" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:state_warmer, 50, fn state ->
+    TestUtils.create_warmer(:state_warmer, fn state ->
       {:ok, [{"state", state}]}
     end)
 
@@ -79,12 +79,12 @@ defmodule Cachex.WarmerTest do
 
   test "triggering cache hooks from within warmers" do
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:hook_warmer_optional, 15000, fn _ ->
+    TestUtils.create_warmer(:hook_warmer_optional, fn _ ->
       {:ok, [{1, 1}]}
     end)
 
     # create a test warmer to pass to the cache
-    TestUtils.create_warmer(:hook_warmer_required, 15000, fn _ ->
+    TestUtils.create_warmer(:hook_warmer_required, fn _ ->
       {:ok, [{2, 2}]}
     end)
 
@@ -95,8 +95,8 @@ defmodule Cachex.WarmerTest do
     TestUtils.create_cache(
       hooks: [hook],
       warmers: [
-        warmer(module: :hook_warmer_optional, required: false),
-        warmer(module: :hook_warmer_required, required: true)
+        warmer(module: :hook_warmer_optional, interval: 15000, required: false),
+        warmer(module: :hook_warmer_required, interval: 15000, required: true)
       ]
     )
 
