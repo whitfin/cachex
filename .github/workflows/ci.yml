@@ -82,6 +82,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    container:
+      image: elixir:1.17
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Environment
+        run: |
+          epmd -daemon
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Build Documentation
+        run: mix docs
+
   lint:
     name: Linting
     runs-on: ubuntu-latest

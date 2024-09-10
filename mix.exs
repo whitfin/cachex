@@ -27,9 +27,9 @@ defmodule Cachex.Mixfile do
       elixir: "~> 1.7",
       deps: deps(),
       docs: [
+        main: "README",
         source_ref: "v#{@version}",
         source_url: @url_github,
-        main: "getting-started",
         extra_section: "guides",
         extras: [
           "docs/features/cache-warming/reactive-warming.md",
@@ -44,7 +44,7 @@ defmodule Cachex.Mixfile do
           "docs/features/ttl-implementation.md",
           "docs/migrations/migrating-to-v3.md",
           "docs/migrations/migrating-to-v2.md",
-          "docs/getting-started.md"
+          "README.md"
         ],
         groups_for_extras: [
           Features: Path.wildcard("docs/features/*.md"),

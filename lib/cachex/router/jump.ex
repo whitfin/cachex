@@ -9,7 +9,7 @@ defmodule Cachex.Router.Jump do
 
   The initialization of this router accepts a `:nodes` option which enables
   the user to define the nodes to route amongst. If this is not provided the
-  router will default to detecting a cluster via `Node.self/0` and `Node.list/2`.
+  router will default to detecting a cluster via `Node.self/0` and `Node.list/1`.
 
   For more information on the algorithm backing this router, please see the
   appropriate [publication](https://arxiv.org/pdf/1406.2294).
@@ -26,7 +26,7 @@ defmodule Cachex.Router.Jump do
 
       The `:nodes` option allows a user to provide a list of nodes to treat
       as a cluster. If this is not provided, the cluster will be inferred
-      by using `Node.self/1` and `Node.list/2`.
+      by using `Node.self/0` and `Node.list/1`.
 
   """
   @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom]

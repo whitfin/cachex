@@ -38,7 +38,7 @@ children = [
 ]
 ```
 
-If you wish to start a cache manually (for example, in `iex`), you can use `Cachex.start_link/2`:
+If you wish to start a cache manually (for example, in `iex`), you can use `Cachex.start_link/1`:
 
 ```elixir
 Cachex.start_link(name: :my_cache)
@@ -76,7 +76,7 @@ Caches also accept several options at startup to toggle various behaviour. These
 |      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.
 
 
-For further information or examples on these features and options, please see the [documentation](docs).
+For further information or examples on these features and options, please see the [documentation](https://hexdocs.pm/cachex).
 
 ## Benchmarks
 

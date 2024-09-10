@@ -9,7 +9,7 @@ defmodule Cachex.Router.Mod do
 
   The initialization of this router accepts a `:nodes` option which enables
   the user to define the nodes to route amongst. If this is not provided the
-  router will default to detecting a cluster via `Node.self/0` and `Node.list/2`.
+  router will default to detecting a cluster via `Node.self/0` and `Node.list/1`.
   """
   use Cachex.Router
   alias Cachex.Router
@@ -23,7 +23,7 @@ defmodule Cachex.Router.Mod do
 
       The `:nodes` option allows a user to provide a list of nodes to treat
       as a cluster. If this is not provided, the cluster will be inferred
-      by using `Node.self/1` and `Node.list/2`.
+      by using `Node.self/0` and `Node.list/1`.
 
   """
   @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom]

@@ -32,7 +32,7 @@ defmodule Cachex.Router.Ring do
 
       The `:nodes` option allows a user to provide a list of nodes to treat
       as a cluster. If this is not provided, the cluster will be inferred
-      by using `Node.self/1` and `Node.list/2`.
+      by using `Node.self/0` and `Node.list/1`.
 
     * `:monitor`
 
