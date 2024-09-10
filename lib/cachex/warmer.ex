@@ -111,14 +111,14 @@ defmodule Cachex.Warmer do
         end
 
         # trigger the warming to happen again after the interval
-        new_timer =
+        timer =
           case interval do
             nil -> nil
             val -> :erlang.send_after(val, self(), :cachex_warmer)
           end
 
         # pass the new state
-        {:noreply, {cache, state, interval, new_timer}}
+        {:noreply, {cache, state, interval, timer}}
       end
 
       @doc false
