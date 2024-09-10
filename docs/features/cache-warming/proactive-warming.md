@@ -2,7 +2,7 @@
 
 Introduced alongside Cachex v3, cache warmers act as an eager fallback. Rather than waiting for a cache miss to retrieve a value, values will be pulled up front to ensure that there is never a miss. This can be viewed as being proactive, whereas `Cachex.fetch/4` can be seen as reactive. As such, this is a better tool for those who know what data will be requested, rather than those dealing with arbitrary data.
 
-Warmers are deliberately easy to create, as anything complicated belongs outside of Cachex itself. A warmer is simply a module which implements the `Cachex.Warmer` behaviour, consisting of just a single callback at the time of writing (please see the `Cachex.Warmer` documentation to verify). A warmer should expose `Cachex.Warmer.execute/1` which actually implements the cache warming. The easiest way to explain a warmer is to implement one, so let's implement a warmer which reads from a database via the module `DatabaseWarmer`.
+Warmers are deliberately easy to create, as anything complicated belongs outside of Cachex itself. A warmer is simply a module which implements the `Cachex.Warmer` behaviour, consisting of just a single callback at the time of writing (please see the `Cachex.Warmer` documentation to verify). A warmer should expose `execute/1` which actually implements the cache warming. The easiest way to explain a warmer is to implement one, so let's implement a warmer which reads from a database via the module `DatabaseWarmer`.
 
 ## Defining a Warmer
 
@@ -59,7 +59,7 @@ defmodule MyProject.DatabaseWarmer do
 end
 ```
 
-There are a couple of things going on here. When the `Cachex.Warmer.execute/1` callback is fired, we use the stored connection to query the database and map all rows back into the cache table. In case of an error, we use the `:ignore` value to signal that the warmer won't be writing anything to the table.
+There are a couple of things going on here. When the `execute/1` callback is fired, we use the stored connection to query the database and map all rows back into the cache table. In case of an error, we use the `:ignore` value to signal that the warmer won't be writing anything to the table.
 
 When formatting results to place into the cache table, you must provide your results in the form of either `{ :ok, pairs }` or `{ :ok, pairs, options }`. These pairs and options should match the same formats that you'd use when calling `Cachex.put_many/3`, so check out the documentation if you need to. In our example above these pairs are simply storing `row.id -> row` in our cache. Not particularly useful, but it'll do for now!
 
