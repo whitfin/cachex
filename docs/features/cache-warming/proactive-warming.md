@@ -1,14 +1,12 @@
 # Proactive Warming
 
-## Overview
+Introduced alongside Cachex v3, cache warmers act as an eager fallback. Rather than waiting for a cache miss to retrieve a value, values will be pulled up front to ensure that there is never a miss. This can be viewed as being proactive, whereas `Cachex.fetch/4` can be seen as reactive. As such, this is a better tool for those who know what data will be requested, rather than those dealing with arbitrary data.
 
-Introduced alongside Cachex v3, cache warmers act as an eager fallback. Rather than waiting for a cache miss to retrieve a value, values will be pulled up front to ensure that there is never a miss. This can be viewed as being proactive, whereas `Cachex.fetch/4` is reactive. As such, this is a better use case for those who know what data will be requested, rather than those dealing with arbitrary data.
+Warmers are deliberately easy to create, as anything complicated belongs outside of Cachex itself. A warmer is simply a module which implements the `Cachex.Warmer` behaviour, consisting of just a single callback at the time of writing (please see the `Cachex.Warmer` documentation to verify). A warmer should expose `Cachex.Warmer.execute/1` which actually implements the cache warming. The easiest way to explain a warmer is to implement one, so let's implement a warmer which reads from a database via the module `DatabaseWarmer`.
 
-Warmers are deliberately easy to create, as anything complicated belongs outside of Cachex itself. A warmer is simply a module which implements the `Cachex.Warmer` behaviour, which consists of just a single callbacks at the time of writing (please see the `Cachex.Warmer` documentation to verify). A warmer should expose `execute/1` which actually implements the cache warming. The easiest way to explain a warmer is to implement one, so let's do so; we'll implement a warmer which reads from a database via the module `DatabaseWarmer`.
+## Defining a Warmer
 
-## Definition
-
-First of all, let's define our warmer on a cache at startup:
+First of all, let's define our warmer on a cache at startup. This is done by passing a list of `warmer()` records inside the `:warmers` option of `Cachex.start_link/1`:
 
 ```elixir
 # for warmer()
@@ -20,22 +18,22 @@ Cachex.start_link(:my_cache, [
     warmer(
       interval: :timer.seconds(30),
       module: MyProject.DatabaseWarmer,
-      state: connection
+      state: connection,
     )
   ]
 ])
 ```
 
-The fields above are generally the only three fields you'll have to set in a `warmer()` record. The `:module` tag defines the module implementing the `Cachex.Warmer` behaviour, the `:state` field defines the state to be provided to the warmer (used later), and the `:interval` controls the frequency with which the warmer executes (in milliseconds). In previous versions of Cachex the `:interval` option was part of the module behaviour, but this was changed to be more flexible.
+The fields above are generally the only three fields you'll have to set in a `warmer()` record. The `:module` tag defines the module implementing the `Cachex.Warmer` behaviour, the `:state` field defines the state to be provided to the warmer (used later), and the `:interval` controls the frequency with which the warmer executes (in milliseconds). In previous versions of Cachex the `:interval` option was part of the module behaviour, but this was changed to be more flexible as of Cachex v4.x.
 
-In terms of some of the other options, you may pass a `:name` to use as the warmer's process name (which defaults to the PID being used by the process). You can also use the `:required` flag to signal whether it is necessary for a warmer to fully execute before your cache is deemed "available". This defaults to `true` but can easily be set to `false` if you're happy for your data to load asynchronously. The `:required` flag in Cachex v4.x is the same as `async: false` in Cachex v3.x.
+In terms of some of the other options, you may pass a `:name` to use as the warmer's process name (which defaults to the warmer's PID). You can also use the `:required` flag to signal whether it is necessary for a warmer to fully execute before your cache is deemed "available". This defaults to `true` but can easily be set to `false` if you're happy for your data to load asynchronously. The `:required` flag in Cachex v4.x is the same as `async: false` in Cachex v3.x.
 
-With our cache created all that remains is to create our `DatabaseWarmer` module, which implements our warmer behaviour:
+With our cache created all that remains is to create the `MyProject.DatabaseWarmer` module, which will implement our warmer behaviour:
 
 ```elixir
 defmodule MyProject.DatabaseWarmer do
   @moduledoc """
-  Dummy warmer which caches database rows every 30s.
+  Dummy warmer which caches database rows.
   """
   use Cachex.Warmer
 
@@ -61,18 +59,13 @@ defmodule MyProject.DatabaseWarmer do
 end
 ```
 
-There are a couple of things going on here;
+There are a couple of things going on here. When the `Cachex.Warmer.execute/1` callback is fired, we use the stored connection to query the database and map all rows back into the cache table. In case of an error, we use the `:ignore` value to signal that the warmer won't be writing anything to the table.
 
-* When our `execute/1` callback is fired, we query the database and map all rows into the warmer response format.
-  * In case of error (or any situation you don't want to write the results), we return `:ignore` to signal the warmer should be a no-op
-  * In case of success, we need to map the results to one of two forms: `{ :ok, pairs }` or `{ :ok, pairs, options }`
-* The returned tuples from the warmer are placed into the cache table
-
-When formatting results to place into the cache table, both the pairs and options should be provided in the same format that you'd use when calling `Cachex.put_many/3`, so check out the documentation if you need to. In our example above these pairs are simply storing `row.id -> row` in our cache. Not particularly useful, but it'll do for now!
+When formatting results to place into the cache table, you must provide your results in the form of either `{ :ok, pairs }` or `{ :ok, pairs, options }`. These pairs and options should match the same formats that you'd use when calling `Cachex.put_many/3`, so check out the documentation if you need to. In our example above these pairs are simply storing `row.id -> row` in our cache. Not particularly useful, but it'll do for now!
 
 Although simple, this example demonstrates that a single warmer can populate many records in a single pass. This is particularly useful when fetching remote data, instead of using a warmer for every row in a database. This would be sufficiently complicated that you'd likely just roll your own warming instead, and so Cachex tries to negate this aspect by the addition of `put_many/3` in v3.x.
 
-## Use Cases
+## Example Use Cases
 
 To demonstrate this, we'll use the same examples from the [Reactive Warming](reactive-warming.md) documentation, which is acting as a cache of an API call to `/api/v1/packages` which returns a list of packages. In case of a cache miss, reactive warming will call the API and put it in the cache for future calls. With a warmer we can actually go a lot further for this use case:
 
@@ -123,11 +116,11 @@ Using the same amount of database calls, on the same frequency, we have not only
 
 Somewhat obviously these warmers can only be used if you know what types of data you're expecting to be cached. If you're dealing with seeded data (i.e. from a user) you probably can't use warmers, and should be looking at reactive warming instead. You must also consider how relevant the data is that you're caching; if you only care about it for a short period of time, you likely don't want a warmer as they run for the lifetime of the cache.
 
-# Infrequent Warming
+## Triggered Warming
 
-In some cases you may not wish to use automated interval warming, such as if your data is static and changes rarely or doesn't change at all. For this case Cachex v4.x allows the `:interval` to be `nil`, which will only run your warmer a single time on cache startup. It also introduces `Cachex.warm/2` to allow the developer to manually warm a cache and implement their own warming schedules.
+In some cases you may not wish to use automated interval warming, such as if your data is static and changes rarely or maybe doesn't change at all. For this case Cachex v4.x allows the `:interval` to be set to `nil`, which will only run your warmer a single time on cache startup. It also introduces `Cachex.warm/2` to allow the developer to manually warm a cache and implement their own warming schedules.
 
-When using manual warming, your cache definition is much the same as before:
+When using manual warming your cache definition is much the same as before, with the only change being dropping the `:interval` option from the `warmer()` record:
 
 ```elixir
 # need our records
@@ -144,7 +137,7 @@ Cachex.start_link(:my_cache, [
 ])
 ```
 
-Cachex will run this warmer a single time on cache startup, and then never again (due to the developer not providing the `:interval` options). In this case the developer will have to manually fire the warmer via `Cachex.warm/2`:
+Cachex will run this warmer a single time on cache startup, and will then never run this warmer again without it being explicitly requested. In this case the developer will have to manually trigger the warmer via `Cachex.warm/2`:
 
 ```elixir
 # warm the cache manually
@@ -157,6 +150,6 @@ Cachex.warm(:my_cache, wait: true)
 Cachex.warm(:my_cache, only: [MyProject.PackageWarmer])
 ```
 
-To extend the previous example to benefit from this type of warming, imagine that there is a separate API to create a new package. In this case you could manually warm your cache after a package is created, rather than re-warm every 5 minutes if nothing has changed in the meantime.
+To extend the previous example to benefit from this type of warming, imagine that our previous package listing is part of a CRUD API which also includes package creation and deletion. In this scenario you could manually warm your cache after a package is either created or removed, rather than run it every 5 minutes (even if nothing has changed in the meantime!).
 
-It's also worth noting that manual warming is still available even if you *have* specified the `:interval` option, so if you have a high cache interval of something like `:timer.hours(24)` and you want to trigger an earlier warming, you can always `iex` into your node and run a cache warming manually.
+It should also be noted that `Cachex.warm/2` is still available even if you _have_ specified the `:interval` option. If you have a high cache interval of something like `:timer.hours(24)` and you want to trigger an earlier warming, you can always `iex` into your node and run a cache warming manually.
