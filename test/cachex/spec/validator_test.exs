@@ -232,7 +232,7 @@ defmodule Cachex.Spec.ValidatorTest do
 
   test "validation of warmer records" do
     # create a warmer for validation
-    TestUtils.create_warmer(:validator_warmer, 1000, fn _ ->
+    TestUtils.create_warmer(:validator_warmer, fn _ ->
       :ignore
     end)
 
@@ -242,14 +242,18 @@ defmodule Cachex.Spec.ValidatorTest do
     warmer3 = warmer(module: :missing)
     warmer4 = warmer(module: __MODULE__, required: nil)
     warmer5 = warmer(module: __MODULE__, name: 1)
+    warmer6 = warmer(module: :validator_warmer, interval: 10)
+    warmer7 = warmer(module: :validator_warmer, interval: -1)
 
     # ensure the first is valid
     assert Validator.valid?(:warmer, warmer1)
+    assert Validator.valid?(:warmer, warmer6)
 
     # the others are all invalid
     refute Validator.valid?(:warmer, warmer2)
     refute Validator.valid?(:warmer, warmer3)
     refute Validator.valid?(:warmer, warmer4)
     refute Validator.valid?(:warmer, warmer5)
+    refute Validator.valid?(:warmer, warmer7)
   end
 end

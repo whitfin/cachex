@@ -3,7 +3,7 @@ defmodule Cachex.Warmer do
   Module controlling cache warmer behaviour definitions.
 
   This module defines the cache warming implementation for Cachex, allowing the
-  user to register warmers against a cache to populate the tables on an interval.
+  user to register warmers against a cache to populate the tables periodically.
   Doing this allows for easy pulling against expensive values (such as those from
   a backing database or remote server), without risking heavy usage.
 
@@ -13,8 +13,7 @@ defmodule Cachex.Warmer do
   desired data in the cache.
 
   Warmers are fired on a schedule, and are exposed via a very simple behaviour of
-  just an interval and a block to execute on the interval. It should be noted that
-  this is a moving interval, and it resets after execution has completed.
+  just a block to execute periodically.
   """
 
   #############
@@ -22,16 +21,7 @@ defmodule Cachex.Warmer do
   #############
 
   @doc """
-  Returns the interval this warmer will execute on.
-
-  This must be an integer representing a count of milliseconds to wait before
-  the next execution of the warmer. Anything else will cause either invalidation
-  errors on cache startup, or crashes at runtime.
-  """
-  @callback interval :: integer
-
-  @doc """
-  Executes actions to warm a cache instance on interval.
+  Executes actions to warm a cache instance.
 
   This can either return values to set in the cache, or the atom `:ignore` to
   signal that there's nothing to be set at this point in time. Values to be set
@@ -79,8 +69,8 @@ defmodule Cachex.Warmer do
       #
       # Initialization will trigger an initial cache warming, and store
       # the provided state for later to provide during further warming.
-      def init({cache() = cache, warmer(state: state)}) do
-        {:ok, {cache, state, nil}}
+      def init({cache() = cache, warmer(interval: interval, state: state)}) do
+        {:ok, {cache, state, interval, nil}}
       end
 
       @doc false
@@ -101,7 +91,7 @@ defmodule Cachex.Warmer do
       # cache via `Cachex.put_many/3` if returns in a Tuple tagged with the
       # `:ok` atom. If `:ignore` is returned, nothing happens aside from
       # scheduling the next execution of the warming to occur on interval.
-      def handle_info(:cachex_warmer, {cache, state, timer}) do
+      def handle_info(:cachex_warmer, {cache, state, interval, timer}) do
         # clean our any existing timers
         if timer, do: Process.cancel_timer(timer)
 
@@ -121,11 +111,14 @@ defmodule Cachex.Warmer do
         end
 
         # trigger the warming to happen again after the interval
-        new_timer = :erlang.send_after(interval(), self(), :cachex_warmer)
-        new_state = {cache, state, new_timer}
+        new_timer =
+          case interval do
+            nil -> nil
+            val -> :erlang.send_after(val, self(), :cachex_warmer)
+          end
 
         # pass the new state
-        {:noreply, new_state}
+        {:noreply, {cache, state, interval, new_timer}}
       end
 
       @doc false
@@ -133,8 +126,8 @@ defmodule Cachex.Warmer do
       #
       # The provided cache is then stored in the state and used for cache calls going
       # forwards, in order to skip the lookups inside the cache overseer for performance.
-      def handle_provision({:cache, cache}, {_cache, state, timer}),
-        do: {:ok, {cache, state, timer}}
+      def handle_provision({:cache, cache}, {_cache, state, interval, timer}),
+        do: {:ok, {cache, state, interval, timer}}
     end
   end
 end

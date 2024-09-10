@@ -83,17 +83,13 @@ defmodule Cachex.Test.Utils do
   @doc false
   # Creates a warmer module.
   #
-  # This will name the module after the provided name, and create it with
-  # the provided interval definition and execution. This is a shorthand to
+  # This will name the module after the provided name. This is a shorthand to
   # avoid having to define modules all over the codebase, but does not change
   # the outcomes in any way (still a new module being defined).
-  defmacro create_warmer(name, interval, execution) do
+  defmacro create_warmer(name, execution) do
     quote do
       defmodule unquote(name) do
         use Cachex.Warmer
-
-        def interval,
-          do: unquote(interval)
 
         def execute(state),
           do: apply(unquote(execution), [state])
