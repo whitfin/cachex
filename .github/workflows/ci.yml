@@ -99,7 +99,7 @@ jobs:
 
       - name: Build Documentation
         run: |
-          mix docs | tee output.txt
+          mix docs 2>&1 | tee output.txt
           ! grep warning output.txt
 
   lint:
