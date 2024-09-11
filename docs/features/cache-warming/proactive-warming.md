@@ -1,6 +1,6 @@
 # Proactive Warming
 
-Introduced alongside Cachex v3, cache warmers act as an eager fallback. Rather than waiting for a cache miss to retrieve a value, values will be pulled up front to ensure that there is never a miss. This can be viewed as being proactive, whereas `Cachex.fetch/4` can be seen as reactive. As such, this is a better tool for those who know what data will be requested, rather than those dealing with arbitrary data.
+Introduced alongside Cachex v3, cache warmers act as an eager way to populate a cache. Rather than waiting for a cache miss to retrieve a value, values will be pulled up front to ensure that there is never a miss. This can be viewed as being proactive, whereas `Cachex.fetch/4` can be seen as reactive. As such, this is a better tool for those who know what data will be requested, rather than those dealing with arbitrary data.
 
 Warmers are deliberately easy to create, as anything complicated belongs outside of Cachex itself. A warmer is simply a module which implements the `Cachex.Warmer` behaviour, consisting of just a single callback at the time of writing (please see the `Cachex.Warmer` documentation to verify). A warmer should expose `execute/1` which actually implements the cache warming. The easiest way to explain a warmer is to implement one, so let's implement a warmer which reads from a database via the module `DatabaseWarmer`.
 
@@ -18,7 +18,7 @@ Cachex.start_link(:my_cache, [
     warmer(
       interval: :timer.seconds(30),
       module: MyProject.DatabaseWarmer,
-      state: connection,
+      state: connection
     )
   ]
 ])
