@@ -1,4 +1,4 @@
-# Cache Policies
+# Limiting Caches
 
 Cache limits are restrictions on a cache to ensure that it stays within given bounds. Currently these limits are based around the number of entries inside a cache, but there are plans to add new policies in future (for example basing the limits on memory spaces).
 
