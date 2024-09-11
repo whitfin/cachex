@@ -98,7 +98,9 @@ jobs:
           mix deps.get
 
       - name: Build Documentation
-        run: mix docs
+        run: |
+          mix docs | tee output.txt
+          ! grep warning output.txt
 
   lint:
     name: Linting
