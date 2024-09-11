@@ -1,4 +1,4 @@
-# TTL Implementation
+# Expiring Records
 
 Cachex implements several different ways of working with key expirations, each operating in different ways with different behaviour. The two main techniques being currently used are the background TTL loop (i.e. the `Janitor`) and lazy key expiration. Alone these two techniques aren't sufficient to provide an efficient system with a consistent result, but together they ensure the reliability of your cache as well as ensuring correctness. Having said this it should be noted that there are cases where you may wish to use only one, as each technique is sufficient alone in specific scenarios. By default Cachex opts for a combination of both in order to ensure consistency to reduce surprises for the user.
 
