@@ -27,11 +27,12 @@ defmodule Cachex.Mixfile do
       elixir: "~> 1.7",
       deps: deps(),
       docs: [
-        main: "README",
+        main: "readme",
         source_ref: "v#{@version}",
         source_url: @url_github,
         extra_section: "guides",
         extras: [
+          "docs/features/cache-querying/streaming-caches.md",
           "docs/features/cache-warming/reactive-warming.md",
           "docs/features/cache-warming/proactive-warming.md",
           "docs/features/action-blocks.md",
@@ -40,7 +41,6 @@ defmodule Cachex.Mixfile do
           "docs/features/disk-interaction.md",
           "docs/features/distributed-caches.md",
           "docs/features/execution-hooks.md",
-          "docs/features/streaming-caches.md",
           "docs/features/ttl-implementation.md",
           "docs/migrations/migrating-to-v3.md",
           "docs/migrations/migrating-to-v2.md",
@@ -49,6 +49,7 @@ defmodule Cachex.Mixfile do
         groups_for_extras: [
           Features: Path.wildcard("docs/features/*.md"),
           "Cache Warming": Path.wildcard("docs/features/cache-warming/*.md"),
+          "Cache Querying": Path.wildcard("docs/features/cache-querying/*.md"),
           Migration: Path.wildcard("docs/migrations/*.md")
         ]
       ],
