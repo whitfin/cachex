@@ -34,9 +34,9 @@ defmodule Cachex.Mixfile do
         extras: [
           "docs/extensions/custom-commands.md",
           "docs/extensions/execution-lifecycle.md",
-          "docs/general/action-blocks.md",
-          "docs/general/disk-interaction.md",
-          "docs/general/streaming-caches.md",
+          "docs/general/batching-actions.md",
+          "docs/general/local-persistence.md",
+          "docs/general/streaming-records.md",
           "docs/management/limiting-caches.md",
           "docs/management/expiring-records.md",
           "docs/migrations/migrating-to-v3.md",
