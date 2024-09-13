@@ -1,6 +1,6 @@
 # Local Persistence
 
-Cachex ships with basic support for dumping a cache to a local file using the [Erlang Term Format](https://www.erlang.org/doc/apps/erts/erl_ext_dist). These files can then be used to seed data into a new instance of a cache to persist values between cache instances.
+Cachex ships with basic support for dumping a cache to a local file using the [External Term Format](https://www.erlang.org/doc/apps/erts/erl_ext_dist). These files can then be used to seed data into a new instance of a cache to persist values between cache instances.
 
 As it stands all persistence must be handled manually via the Cachex API, although additional features may be added in future to add convenience around this. Note that the use of the term "dump" over "backup" is intentional, as these files are just extracted datasets from a cache, rather than a serialization of the cache itself.
 
