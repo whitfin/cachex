@@ -92,7 +92,7 @@ defmodule Cachex.Router.Ring do
     name = name(name, :router)
 
     monitor = Options.get(options, :monitor, &is_boolean/1, false)
-    monitor_type = Options.get(options, :monitor_type, &is_valid_node/1, :all)
+    monitor_type = Options.get(options, :monitor_type, &valid_node?/1, :all)
     monitor_includes = Options.get(options, :monitor_includes, &is_list/1, [])
 
     monitor_excludes =
@@ -204,6 +204,6 @@ defmodule Cachex.Router.Ring do
   end
 
   # Verify provided node type is recognised.
-  defp is_valid_node(node),
+  defp valid_node?(node),
     do: node in [:visible, :hidden, :all]
 end
