@@ -57,7 +57,9 @@ defmodule Cachex.Options do
   def get(options, key, condition, default) do
     transform(options, key, fn val ->
       try do
-        (condition.(val) && val) || default
+        if condition.(val),
+          do: val,
+          else: default
       rescue
         _ -> default
       end

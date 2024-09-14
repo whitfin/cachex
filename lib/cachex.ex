@@ -66,7 +66,6 @@ defmodule Cachex do
     count: [1, 2],
     decr: [2, 3, 4],
     del: [2, 3],
-    dump: [2, 3],
     empty?: [1, 2],
     execute: [2, 3],
     exists?: [2, 3],
@@ -81,13 +80,14 @@ defmodule Cachex do
     inspect: [2, 3],
     invoke: [3, 4],
     keys: [1, 2],
-    load: [2, 3],
     persist: [2, 3],
     purge: [1, 2],
     put: [3, 4],
     put_many: [2, 3],
     refresh: [2, 3],
     reset: [1, 2],
+    restore: [2, 3],
+    save: [2, 3],
     size: [1, 2],
     stats: [1, 2],
     stream: [1, 2, 3],
@@ -490,40 +490,6 @@ defmodule Cachex do
     do: Router.route(cache, {:del, [key, options]})
 
   @doc """
-  Serializes a cache to a location on a filesystem.
-
-  This operation will write the current state of a cache to a provided
-  location on a filesystem. The written state can be used alongside the
-  `load/3` command to import back in the future.
-
-  It is the responsibility of the user to ensure that the location is
-  able to be written to, not the responsibility of Cachex.
-
-  ## Options
-
-    * `:compression`
-
-      Specifies the level of compression to apply when serializing (0-9). This
-      will default to level 1 compression, which is appropriate for most dumps.
-
-      Using a compression level of 0 will disable compression completely. This
-      will result in a faster serialization but at the cost of higher space.
-
-  ## Examples
-
-      iex> Cachex.dump(:my_cache, "/tmp/my_default_backup")
-      { :ok, true }
-
-      iex> Cachex.dump(:my_cache, "/tmp/my_custom_backup", [ compressed: 0 ])
-      { :ok, true }
-
-  """
-  @spec dump(Cachex.t(), binary, Keyword.t()) :: {status, any}
-  def dump(cache, path, options \\ [])
-      when is_binary(path) and is_list(options),
-      do: Router.route(cache, {:dump, [path, options]})
-
-  @doc """
   Determines whether a cache contains any entries.
 
   This does not take the expiration time of keys into account. As such,
@@ -655,7 +621,7 @@ defmodule Cachex do
 
   This function is very heavy, so it should typically only be used
   when debugging and/or exporting of tables (although the latter case
-  should really use `dump/3`).
+  should really use `Cachex.save/3`).
 
    ## Examples
 
@@ -821,14 +787,13 @@ defmodule Cachex do
    ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.import(:my_cache, [ { :entry, "key", 1538714590095, nil, "value" } ])
+      iex> Cachex.import(:my_cache, [ { :entry, "key", "value", 1538714590095, nil } ])
       { :ok, true }
 
   """
-  @spec import(Cachex.t(), [Cachex.Spec.entry()], Keyword.t()) :: {status, any}
-  def import(cache, entries, options \\ [])
-      when is_list(entries) and is_list(options),
-      do: Router.route(cache, {:import, [entries, options]})
+  @spec import(Cachex.t(), Enumerable.t(), Keyword.t()) :: {status, any}
+  def import(cache, entries, options \\ []) when is_list(options),
+    do: Router.route(cache, {:import, [entries, options]})
 
   @doc """
   Increments an entry in the cache.
@@ -972,49 +937,6 @@ defmodule Cachex do
   @spec invoke(Cachex.t(), atom, any, Keyword.t()) :: any
   def invoke(cache, cmd, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:invoke, [cmd, key, options]})
-
-  @doc """
-  Deserializes a cache from a location on a filesystem.
-
-  This operation will read the current state of a cache from a provided
-  location on a filesystem. This function will only understand files
-  which have previously been created using `dump/3`.
-
-  It is the responsibility of the user to ensure that the location is
-  able to be read from, not the responsibility of Cachex.
-
-  ## Options
-
-    * `:trusted`
-
-      Allow for loading from trusted or untrusted sources; trusted
-      sources can load atoms into the table, whereas untrusted sources
-      cannot. Defaults to `true`.
-
-  ## Examples
-
-      iex> Cachex.put(:my_cache, "my_key", 10)
-      iex> Cachex.dump(:my_cache, "/tmp/my_backup")
-      { :ok, true }
-
-      iex> Cachex.size(:my_cache)
-      { :ok, 1 }
-
-      iex> Cachex.clear(:my_cache)
-      iex> Cachex.size(:my_cache)
-      { :ok, 0 }
-
-      iex> Cachex.load(:my_cache, "/tmp/my_backup")
-      { :ok, true }
-
-      iex> Cachex.size(:my_cache)
-      { :ok, 1 }
-
-  """
-  @spec load(Cachex.t(), binary, Keyword.t()) :: {status, any}
-  def load(cache, path, options \\ [])
-      when is_binary(path) and is_list(options),
-      do: Router.route(cache, {:load, [path, options]})
 
   @doc """
   Removes an expiration time from an entry in a cache.
@@ -1173,6 +1095,77 @@ defmodule Cachex do
   @spec reset(Cachex.t(), Keyword.t()) :: {status, true}
   def reset(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:reset, [options]})
+
+  @doc """
+  Deserializes a cache from a location on a filesystem.
+
+  This operation will read the current state of a cache from a provided
+  location on a filesystem. This function will only understand files
+  which have previously been created using `Cachex.save/3`.
+
+  It is the responsibility of the user to ensure that the location is
+  able to be read from, not the responsibility of Cachex.
+
+  ## Options
+
+    * `:trust`
+
+      Allow for loading from trusted or untrusted sources; trusted
+      sources can load atoms into the table, whereas untrusted sources
+      cannot. Defaults to `true`.
+
+  ## Examples
+
+      iex> Cachex.put(:my_cache, "my_key", 10)
+      iex> Cachex.save(:my_cache, "/tmp/my_backup")
+      { :ok, true }
+
+      iex> Cachex.size(:my_cache)
+      { :ok, 1 }
+
+      iex> Cachex.clear(:my_cache)
+      iex> Cachex.size(:my_cache)
+      { :ok, 0 }
+
+      iex> Cachex.restore(:my_cache, "/tmp/my_backup")
+      { :ok, true }
+
+      iex> Cachex.size(:my_cache)
+      { :ok, 1 }
+
+  """
+  @spec restore(Cachex.t(), binary, Keyword.t()) :: {status, any}
+  def restore(cache, path, options \\ [])
+      when is_binary(path) and is_list(options),
+      do: Router.route(cache, {:restore, [path, options]})
+
+  @doc """
+  Serializes a cache to a location on a filesystem.
+
+  This operation will write the current state of a cache to a provided
+  location on a filesystem. The written state can be used alongside the
+  `Cachex.restore/3` command to import back in the future.
+
+  It is the responsibility of the user to ensure that the location is
+  able to be written to, not the responsibility of Cachex.
+
+  ## Options
+
+    * `:batch_size`
+
+      Allows customization of the internal batching when paginating the cursor
+      coming back from ETS. It's unlikely this will ever need changing.
+
+  ## Examples
+
+      iex> Cachex.save(:my_cache, "/tmp/my_default_backup")
+      { :ok, true }
+
+  """
+  @spec save(Cachex.t(), binary, Keyword.t()) :: {status, any}
+  def save(cache, path, options \\ [])
+      when is_binary(path) and is_list(options),
+      do: Router.route(cache, {:save, [path, options]})
 
   @doc """
   Retrieves the total size of a cache.

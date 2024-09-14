@@ -5,7 +5,7 @@ defmodule Cachex.Actions.Import do
   # This command should be considered expensive and should be use sparingly. Due
   # to the requirement of being compatible with distributed caches, this cannot
   # use a simple `put_many/4` call; rather it needs to walk the full list. It's
-  # provided because it's the backing implementation of the `load/3` command.
+  # provided as it's the backing implementation of the `Cachex.restore/3` command.
   import Cachex.Spec
 
   ##############

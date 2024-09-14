@@ -1,11 +1,11 @@
-defmodule Cachex.Actions.DumpTest do
+defmodule Cachex.Actions.SaveTest do
   use Cachex.Test.Case
 
   # This test covers the backing up of a cache to a local disk location. We only
   # cover the happy path as there are separate tests covering issues with the
-  # path provided to the dump. We set a value, dump to disk, then clear the cache.
+  # path provided to the save. We set a value, save to disk, then clear the cache.
   # We then load the backup file to verify that the values come back.
-  test "backing up a cache to a local disk" do
+  test "saving a cache to a local disk" do
     # locate the temporary directory
     tmp = System.tmp_dir!()
 
@@ -18,8 +18,8 @@ defmodule Cachex.Actions.DumpTest do
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
-    # dump the cache to a local file
-    result1 = Cachex.dump(cache, path)
+    # save the cache to a local file
+    result1 = Cachex.save(cache, path)
     result2 = Cachex.clear(cache)
     result3 = Cachex.size(cache)
 
@@ -29,7 +29,7 @@ defmodule Cachex.Actions.DumpTest do
     assert(result3 == {:ok, 0})
 
     # load the cache from the disk
-    result4 = Cachex.load(cache, path)
+    result4 = Cachex.restore(cache, path)
     result5 = Cachex.size(cache)
 
     # verify that the load was ok
@@ -56,19 +56,19 @@ defmodule Cachex.Actions.DumpTest do
     path1 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
     path2 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
-    # dump the cache to a local file for local/remote
-    dump1 = Cachex.dump(cache, path1, local: true)
-    dump2 = Cachex.dump(cache, path2, local: false)
+    # save the cache to a local file for local/remote
+    save1 = Cachex.save(cache, path1, local: true)
+    save2 = Cachex.save(cache, path2, local: false)
 
-    # verify the dump results
-    assert(dump1 == {:ok, true})
-    assert(dump2 == {:ok, true})
+    # verify the save results
+    assert(save1 == {:ok, true})
+    assert(save2 == {:ok, true})
 
     # clear the cache to remove all
     {:ok, 2} = Cachex.clear(cache)
 
     # load the local cache from the disk
-    load1 = Cachex.load(cache, path1)
+    load1 = Cachex.restore(cache, path1)
     size1 = Cachex.size(cache)
 
     # verify that the load was ok
@@ -79,7 +79,7 @@ defmodule Cachex.Actions.DumpTest do
     {:ok, 1} = Cachex.clear(cache)
 
     # load the full cache from the disk
-    load2 = Cachex.load(cache, path2)
+    load2 = Cachex.restore(cache, path2)
     size2 = Cachex.size(cache)
 
     # verify that the load was ok

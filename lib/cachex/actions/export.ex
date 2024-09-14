@@ -4,7 +4,7 @@ defmodule Cachex.Actions.Export do
   #
   # This command is extremely expensive as it turns the entire cache table into
   # a list, and so should be used sparingly. It's provided purely because it's
-  # the backing implementation of the `dump/3` command.
+  # the backing implementation of the `Cachex.save/3` command.
   alias Cachex.Actions.Stream, as: CachexStream
   alias Cachex.Query
 
@@ -18,17 +18,11 @@ defmodule Cachex.Actions.Export do
   @doc """
   Retrieves all cache entries as a list.
 
-  The returned list is a collection of cache entry records, which is a little
-  more optimized than doing the same via `stream/3`.
-
   This action should only be used in the case of exports and/or debugging, due
   to the memory overhead involved, as well as the large concatenations.
   """
-  def execute(cache() = cache, options) do
-    query = Query.create()
-    batch = Keyword.take(options, [:batch_size])
-
-    with {:ok, stream} <- CachexStream.execute(cache, query, batch) do
+  def execute(cache() = cache, _options) do
+    with {:ok, stream} <- CachexStream.execute(cache, Query.create(), []) do
       {:ok, Enum.to_list(stream)}
     end
   end

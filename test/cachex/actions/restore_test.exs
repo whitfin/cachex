@@ -1,11 +1,11 @@
-defmodule Cachex.Actions.LoadTest do
+defmodule Cachex.Actions.RestoreTest do
   use Cachex.Test.Case
 
   # This test covers the backing up of a cache to a local disk location. We set
-  # a value, dump to disk, then clear the cache. We then load the backup file to
+  # a value, save to disk, then clear the cache. We then load the backup file to
   # verify that the values come back. We also verify that bad reads correctly pass
   # their errors straight back through to the calling function.
-  test "loading a cache backup from a local disk" do
+  test "restoring a cache backup from a local disk" do
     # locate the temporary directory
     tmp = System.tmp_dir!()
 
@@ -21,8 +21,8 @@ defmodule Cachex.Actions.LoadTest do
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
-    # dump the cache to a local file
-    result1 = Cachex.dump(cache, path)
+    # save the cache to a local file
+    result1 = Cachex.save(cache, path)
     result2 = Cachex.clear(cache)
     result3 = Cachex.size(cache)
 
@@ -35,7 +35,7 @@ defmodule Cachex.Actions.LoadTest do
     :timer.sleep(50)
 
     # load the cache from the disk
-    result4 = Cachex.load(cache, path)
+    result4 = Cachex.restore(cache, path)
     result5 = Cachex.size(cache)
     result6 = Cachex.ttl!(cache, 3)
 
@@ -47,7 +47,7 @@ defmodule Cachex.Actions.LoadTest do
     assert_in_delta(result6, 10_000 - (now() - start), 5)
 
     # reload a bad file from disk (should not be trusted)
-    result7 = Cachex.load(cache, tmp, trusted: false)
+    result7 = Cachex.restore(cache, tmp, trust: false)
 
     # verify the result failed
     assert(result7 == {:error, :unreachable_file})
