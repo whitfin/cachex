@@ -40,7 +40,7 @@ defmodule Cachex.Actions.RestoreTest do
     result6 = Cachex.ttl!(cache, 3)
 
     # verify that the load was ok
-    assert(result4 == {:ok, true})
+    assert(result4 == {:ok, 2})
     assert(result5 == {:ok, 2})
 
     # verify TTL offsetting happens

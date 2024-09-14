@@ -33,7 +33,7 @@ defmodule Cachex.Actions.SaveTest do
     result5 = Cachex.size(cache)
 
     # verify that the load was ok
-    assert(result4 == {:ok, true})
+    assert(result4 == {:ok, 1})
     assert(result5 == {:ok, 1})
   end
 
@@ -72,7 +72,7 @@ defmodule Cachex.Actions.SaveTest do
     size1 = Cachex.size(cache)
 
     # verify that the load was ok
-    assert(load1 == {:ok, true})
+    assert(load1 == {:ok, 1})
     assert(size1 == {:ok, 1})
 
     # clear the cache again
@@ -83,7 +83,7 @@ defmodule Cachex.Actions.SaveTest do
     size2 = Cachex.size(cache)
 
     # verify that the load was ok
-    assert(load2 == {:ok, true})
+    assert(load2 == {:ok, 2})
     assert(size2 == {:ok, 2})
   end
 
