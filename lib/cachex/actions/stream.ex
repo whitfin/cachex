@@ -61,7 +61,13 @@ defmodule Cachex.Actions.Stream do
 
         # we're starting!
         :"$start_of_table" ->
-          :ets.select(name, spec, batch)
+          case :ets.select(name, spec, batch) do
+            :"$end_of_table" ->
+              {:halt, nil}
+
+            continuation ->
+              continuation
+          end
 
         # we're continuing!
         continuation ->
