@@ -44,7 +44,7 @@ defmodule Cachex.Actions.Restore do
 
     Import.execute(cache, stream, [])
   rescue
-    _error -> error(:unreachable_file)
+    File.Error -> error(:unreachable_file)
   end
 
   # Read the next term from a file handle cbased on the TLV flags. Each

@@ -20,30 +20,32 @@ defmodule Cachex.Actions.Import do
   a large import set.
   """
   def execute(cache() = cache, entries, _options),
-    do: {Enum.each(entries, &import(cache, &1, now())), true}
+    do: {:ok, Enum.reduce(entries, 0, &import(cache, &1, &2, now()))}
 
   # Imports an entry directly when no TTL is included.
   #
   # As this is a direct import, we just use `Cachex.put/4` with the provided
   # key and value from the existing entry record - nothing special here.
-  defp import(cache, entry(key: k, expiration: nil, value: v), _t),
-    do: {:ok, true} = Cachex.put(cache, k, v, const(:notify_false))
+  defp import(cache, entry(key: k, expiration: nil, value: v), c, _t) do
+    Cachex.put!(cache, k, v, const(:notify_false))
+    c + 1
+  end
 
   # Skips over entries which have already expired.
   #
   # This occurs in the case there was an existing modification time and expiration
   # but the expiration time would already have passed (so there's no point in
   # adding the record to the cache just to throw it away in future).
-  defp import(_cache, entry(modified: m, expiration: e), t) when m + e < t,
-    do: nil
+  defp import(_cache, entry(modified: m, expiration: e), c, t) when m + e < t,
+    do: c
 
   # Imports an entry, using the current time to offset the TTL value.
   #
   # This is required to shift the TTLs set in a backup to match the current
   # import time, so that the rest of the lifetime of the key is the same. If
   # we didn't do this, the key would live longer in the cache than intended.
-  defp import(cache, entry(key: k, modified: m, expiration: e, value: v), t) do
-    opts = const(:notify_false) ++ [expire: m + e - t]
-    {:ok, true} = Cachex.put(cache, k, v, opts)
+  defp import(cache, entry(key: k, modified: m, expiration: e, value: v), c, t) do
+    Cachex.put!(cache, k, v, const(:notify_false) ++ [expire: m + e - t])
+    c + 1
   end
 end

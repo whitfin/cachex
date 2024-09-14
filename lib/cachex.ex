@@ -788,7 +788,7 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.import(:my_cache, [ { :entry, "key", "value", 1538714590095, nil } ])
-      { :ok, true }
+      { :ok, 1 }
 
   """
   @spec import(Cachex.t(), Enumerable.t(), Keyword.t()) :: {status, any}
@@ -1128,7 +1128,7 @@ defmodule Cachex do
       { :ok, 0 }
 
       iex> Cachex.restore(:my_cache, "/tmp/my_backup")
-      { :ok, true }
+      { :ok, 1 }
 
       iex> Cachex.size(:my_cache)
       { :ok, 1 }

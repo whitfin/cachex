@@ -29,26 +29,23 @@ defmodule Cachex.Actions.Save do
   """
   def execute(cache(router: router(module: router)) = cache, path, options) do
     batch = Options.get(options, :batch_size, &is_positive_integer/1, 25)
+    file = File.open!(path, [:write, :compressed])
 
-    case File.open(path, [:write, :compressed]) do
-      {:ok, file} ->
-        {:ok, stream} =
-          options
-          |> Keyword.get(:local)
-          |> init_stream(router, cache, batch)
+    {:ok, stream} =
+      options
+      |> Keyword.get(:local)
+      |> init_stream(router, cache, batch)
 
-        stream
-        |> Stream.chunk_every(batch)
-        |> Stream.map(&handle_batch/1)
-        |> Enum.each(&IO.binwrite(file, &1))
+    stream
+    |> Stream.chunk_every(batch)
+    |> Stream.map(&handle_batch/1)
+    |> Enum.each(&IO.binwrite(file, &1))
 
-        with :ok <- File.close(file) do
-          {:ok, true}
-        end
-
-      _error ->
-        error(:unreachable_file)
+    with :ok <- File.close(file) do
+      {:ok, true}
     end
+  rescue
+    File.Error -> error(:unreachable_file)
   end
 
   # Use a local stream to lazily walk through records on a local cache.
