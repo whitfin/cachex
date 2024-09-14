@@ -56,8 +56,8 @@ defmodule Cachex.Query do
       `:expired` flag for convenience.
 
   """
-  @spec create(options :: Keyword.t()) :: [{tuple, [tuple], [any]}]
-  def create(options \\ []),
+  @spec build(options :: Keyword.t()) :: [{tuple, [tuple], [any]}]
+  def build(options \\ []),
     do: [
       {
         @header,

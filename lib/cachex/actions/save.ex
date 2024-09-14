@@ -50,7 +50,7 @@ defmodule Cachex.Actions.Save do
 
   # Use a local stream to lazily walk through records on a local cache.
   defp init_stream(local, router, cache, batch) when local or router == Local,
-    do: CachexStream.execute(cache, Query.create(), batch_size: batch)
+    do: CachexStream.execute(cache, Query.build(), batch_size: batch)
 
   # Generate an export of all nodes in a distributed cluster via `Cachex.export/2`
   defp init_stream(_local, _router, cache, _batch),

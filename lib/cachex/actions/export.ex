@@ -22,7 +22,7 @@ defmodule Cachex.Actions.Export do
   to the memory overhead involved, as well as the large concatenations.
   """
   def execute(cache() = cache, _options) do
-    with {:ok, stream} <- CachexStream.execute(cache, Query.create(), []) do
+    with {:ok, stream} <- CachexStream.execute(cache, Query.build(), []) do
       {:ok, Enum.to_list(stream)}
     end
   end

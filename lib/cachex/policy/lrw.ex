@@ -47,7 +47,7 @@ defmodule Cachex.Policy.LRW do
   alias Cachex.Services.Informant
 
   # compile our match to avoid recalculating
-  @ets_match Query.create(output: {:key, :modified})
+  @ets_match Query.build(output: {:key, :modified})
 
   ####################
   # Policy Behaviour #

@@ -3,8 +3,8 @@ defmodule Cachex.QueryTest do
 
   test "creating basic queries" do
     # create a query with not filter
-    query1 = Cachex.Query.create()
-    query2 = Cachex.Query.create(output: :key)
+    query1 = Cachex.Query.build()
+    query2 = Cachex.Query.build(output: :key)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = query1
@@ -25,9 +25,9 @@ defmodule Cachex.QueryTest do
     filter2 = Cachex.Query.expired(false)
 
     # create a couple of expired queries
-    clause1 = Cachex.Query.create(where: filter1)
-    clause2 = Cachex.Query.create(where: filter1, output: :key)
-    clause3 = Cachex.Query.create(where: filter2)
+    clause1 = Cachex.Query.build(where: filter1)
+    clause2 = Cachex.Query.build(where: filter1, output: :key)
+    clause3 = Cachex.Query.build(where: filter2)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = clause1
@@ -56,9 +56,9 @@ defmodule Cachex.QueryTest do
     filter2 = Cachex.Query.unexpired(false)
 
     # create a couple of unexpired queries
-    clause1 = Cachex.Query.create(where: filter1)
-    clause2 = Cachex.Query.create(where: filter1, output: :key)
-    clause3 = Cachex.Query.create(where: filter2)
+    clause1 = Cachex.Query.build(where: filter1)
+    clause2 = Cachex.Query.build(where: filter1, output: :key)
+    clause3 = Cachex.Query.build(where: filter2)
 
     # verify the mapping of both queries
     assert [{{:_, :"$1", :"$2", :"$3", :"$4"}, _, _}] = clause1

@@ -44,8 +44,8 @@ defmodule Cachex.Actions.StreamTest do
     filter = Cachex.Query.unexpired()
 
     # create two test queries
-    query1 = Cachex.Query.create(where: filter, output: {:key, :value})
-    query2 = Cachex.Query.create(where: filter, output: :key)
+    query1 = Cachex.Query.build(where: filter, output: {:key, :value})
+    query2 = Cachex.Query.build(where: filter, output: :key)
 
     # create cache streams
     {:ok, stream1} = Cachex.stream(cache, query1)

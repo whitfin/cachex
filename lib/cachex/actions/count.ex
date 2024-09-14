@@ -22,7 +22,7 @@ defmodule Cachex.Actions.Count do
   """
   def execute(cache(name: name), _options) do
     filter = Query.unexpired()
-    clause = Query.create(where: filter, output: true)
+    clause = Query.build(where: filter, output: true)
 
     {:ok, :ets.select_count(name, clause)}
   end

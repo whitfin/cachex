@@ -30,7 +30,7 @@ defmodule Cachex.Actions.Purge do
   def execute(cache(name: name) = cache, _options) do
     Locksmith.transaction(cache, [], fn ->
       filter = Query.expired()
-      clause = Query.create(where: filter, output: true)
+      clause = Query.build(where: filter, output: true)
 
       {:ok, :ets.select_delete(name, clause)}
     end)

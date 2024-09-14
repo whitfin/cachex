@@ -84,7 +84,7 @@ defmodule Cachex.Actions.Inspect do
   # number of expired records which have already been purged or removed.
   def execute(cache(name: name), {:expired, :count}, _options) do
     filter = Query.expired()
-    clause = Query.create(where: filter, output: true)
+    clause = Query.build(where: filter, output: true)
 
     {:ok, :ets.select_count(name, clause)}
   end
@@ -96,7 +96,7 @@ defmodule Cachex.Actions.Inspect do
   # an expensive call and should really only be used when debugging.
   def execute(cache(name: name), {:expired, :keys}, _options) do
     filter = Query.expired()
-    clause = Query.create(where: filter, output: :key)
+    clause = Query.build(where: filter, output: :key)
 
     {:ok, :ets.select(name, clause)}
   end

@@ -25,7 +25,7 @@ defmodule Cachex.Actions.Keys do
   """
   def execute(cache(name: name), _options) do
     filter = Query.unexpired()
-    clause = Query.create(where: filter, output: :key)
+    clause = Query.build(where: filter, output: :key)
 
     {:ok, :ets.select(name, clause)}
   end
