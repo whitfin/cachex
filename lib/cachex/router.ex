@@ -293,7 +293,7 @@ defmodule Cachex.Router do
   end
 
   # actions which always run locally
-  @local_actions [:dump, :inspect, :load, :warm]
+  @local_actions [:inspect, :restore, :save, :warm]
 
   # Provides handling of `:inspect` operations.
   #

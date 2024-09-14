@@ -2,8 +2,6 @@ defmodule Cachex.Actions.ExportTest do
   use Cachex.Test.Case
 
   # This test verifies that it's possible to export the entries from a cache.
-  # As it stands, this is a barebones test to ensure the length of the export
-  # as it's covered more heavily by the test cases based on `dump/3`.
   test "exporting records from a cache" do
     # create a test cache
     cache = TestUtils.create_cache()
