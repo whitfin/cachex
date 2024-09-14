@@ -86,4 +86,12 @@ defmodule Cachex.Actions.SaveTest do
     assert(load2 == {:ok, true})
     assert(size2 == {:ok, 2})
   end
+
+  test "returning an error on invalid output path" do
+    # create a test cache
+    cache = TestUtils.create_cache()
+
+    # verify that saving to the invalid path gives an error
+    assert Cachex.save(cache, "") == {:error, :unreachable_file}
+  end
 end
