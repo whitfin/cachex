@@ -44,7 +44,7 @@ Cachex.put(:my_cache, "three", 3)
 filter = {:==, {:rem, :value, 2}, 1}
 
 # generate the query using the filter, only return `:value
-query = Cachex.Query.create(where: filter, output: :value)
+query = Cachex.Query.build(where: filter, output: :value)
 
 # == 4
 :my_cache
@@ -73,7 +73,7 @@ filter = {:==, {:rem, :value, 2}, 1}
 filter = Cachex.Query.expired(filter)
 
 # generate the query using the filter, only return `:value
-query = Cachex.Query.create(where: filter, output: :value)
+query = Cachex.Query.build(where: filter, output: :value)
 
 # == 4
 :my_cache
@@ -81,4 +81,4 @@ query = Cachex.Query.create(where: filter, output: :value)
 |> Enum.sum()
 ```
 
-This function accepts a query guard and wraps it with clauses to filter out expired records. The returned guard can then be passed to `Cachex.Query.create/1` to return only the expired records which match your query. This is all fairly simple, but it's definitely something to keep in mind when working with `Cachex.Query`!
+This function accepts a query guard and wraps it with clauses to filter out expired records. The returned guard can then be passed to `Cachex.Query.build/1` to return only the expired records which match your query. This is all fairly simple, but it's definitely something to keep in mind when working with `Cachex.Query`!
