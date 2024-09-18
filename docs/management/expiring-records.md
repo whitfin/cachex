@@ -48,7 +48,7 @@ Naturally this technique cannot stand alone as it only evicts on key retrieval; 
 
 There are a number of ways to provide expirations for entries inside a cache:
 
-* Setting a default expiration for a cahe via `Cachex.start_link/1`
+* Setting a default expiration for a cahe via `Cachex.start_link/2`
 * Setting an expiration manually via `Cachex.expire/4` or `Cachex.expire_at/4`
 * Setting the `:expire` option within calls to `Cachex.put/4` or `Cachex.put_many/3`
 * Setting the `:expire` option within return tuples in `Cachex.fetch/4` or `Cachex.get_and_update/4`

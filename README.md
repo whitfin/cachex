@@ -38,7 +38,7 @@ children = [
 ]
 ```
 
-If you wish to start a cache manually (for example, in `iex`), you can use `Cachex.start_link/1`:
+If you wish to start a cache manually (for example, in `iex`), you can use `Cachex.start_link/2`:
 
 ```elixir
 Cachex.start_link(name: :my_cache)

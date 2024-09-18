@@ -6,7 +6,7 @@ Warmers are deliberately easy to create, as anything complicated belongs outside
 
 ## Defining a Warmer
 
-First of all, let's define our warmer on a cache at startup. This is done by passing a list of `warmer()` records inside the `:warmers` option of `Cachex.start_link/1`:
+First of all, let's define our warmer on a cache at startup. This is done by passing a list of `warmer()` records inside the `:warmers` option of `Cachex.start_link/2`:
 
 ```elixir
 # for warmer()

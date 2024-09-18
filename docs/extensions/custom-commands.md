@@ -6,7 +6,7 @@ Commands operate in such a way that they're marginally quicker than hand-writing
 
 ## Defining a Command
 
-Commands are defined on a per-cache basis via the `:commands` flag inside the `Cachex.start_link/1` options.
+Commands are defined on a per-cache basis via the `:commands` flag inside the `Cachex.start_link/2` options.
 
 There are two types of command, either `:read` or `:write`. As you might guess the former will return a modified value from within a cache, while the latter will modify the value inside the cache before returning it.
 
