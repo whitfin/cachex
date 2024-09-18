@@ -92,17 +92,6 @@ defmodule CachexTest do
     assert(reason == :not_started)
   end
 
-  # This test does a simple check that a cache must be started with a valid atom
-  # cache name, otherwise an error is raised (an ArgumentError). The error should
-  # be a shorthand atom which can be used to debug what the issue was.
-  test "cache start with invalid cache name" do
-    # try to start the cache with an invalid name
-    {:error, reason} = Cachex.start_link("fake_name")
-
-    # we should've received an atom warning
-    assert(reason == :invalid_name)
-  end
-
   # This test ensures that we handle option parsing errors gracefully. If anything
   # goes wrong when parsing options, we exit early before starting the cache to
   # avoid bloating the Supervision tree.

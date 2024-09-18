@@ -32,7 +32,7 @@ defmodule MyProject.MyHook do
 end
 ```
 
-Once you have your `Cachex.Hook` definition, you can attach it to a cache a startup using the `:hooks` option on the `Cachex.start_link/1` interface. This option accepts a list of `Cachex.Spec.hook` records and attaches them to the cache on launch:
+Once you have your `Cachex.Hook` definition, you can attach it to a cache a startup using the `:hooks` option on the `Cachex.start_link/2` interface. This option accepts a list of `Cachex.Spec.hook` records and attaches them to the cache on launch:
 
 ```elixir
 # need the records

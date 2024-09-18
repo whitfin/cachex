@@ -12,7 +12,6 @@ defmodule Cachex.ErrorsTest do
       invalid_hook: "Invalid hook definition provided",
       invalid_limit: "Invalid limit fields provided",
       invalid_match: "Invalid match specification provided",
-      invalid_name: "Invalid cache name provided",
       invalid_option: "Invalid option syntax provided",
       invalid_pairs: "Invalid insertion pairs provided",
       invalid_router: "Invalid router definition provided",

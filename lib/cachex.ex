@@ -303,10 +303,9 @@ defmodule Cachex do
       Please see the `Cachex.Spec.warmer/1` documentation for further customization options.
 
   """
-  @spec start_link(atom | Keyword.t()) :: {atom, pid}
-  def start_link(options) when is_list(options) do
-    with {:ok, name} <- Keyword.fetch(options, :name),
-         {:ok, true} <- ensure_started(),
+  @spec start_link(atom, Keyword.t()) :: {atom, pid}
+  def start_link(name, options \\ []) when is_atom(name) and is_list(options) do
+    with {:ok, true} <- ensure_started(),
          {:ok, true} <- ensure_unused(name),
          {:ok, cache} <- Options.parse(name, options),
          {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
@@ -317,17 +316,6 @@ defmodule Cachex do
       {:ok, pid}
     end
   end
-
-  def start_link(name) when not is_atom(name),
-    do: error(:invalid_name)
-
-  def start_link(name),
-    do: start_link(name: name)
-
-  @doc false
-  @spec start_link(atom, Keyword.t()) :: {atom, pid}
-  def start_link(name, options),
-    do: start_link([name: name] ++ options)
 
   @doc """
   Creates a new Cachex cache service tree.
