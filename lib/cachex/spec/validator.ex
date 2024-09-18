@@ -15,7 +15,6 @@ defmodule Cachex.Spec.Validator do
           Cachex.Spec.command()
           | Cachex.Spec.entry()
           | Cachex.Spec.expiration()
-          | Cachex.Spec.fallback()
           | Cachex.Spec.hook()
           | Cachex.Spec.hooks()
           | Cachex.Spec.limit()
