@@ -47,6 +47,10 @@ defmodule Cachex.Actions.Restore do
     File.Error -> error(:unreachable_file)
   end
 
+  ###############
+  # Private API #
+  ###############
+
   # Read the next term from a file handle cbased on the TLV flags. Each
   # term should be emitted back to the parent stream for processing.
   defp read_next_term(file, options) do

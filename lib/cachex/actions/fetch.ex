@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Fetch do
   """
   def execute(cache() = cache, key, fallback, _options) do
     with {:ok, nil} <- Get.execute(cache, key, []) do
-      Courier.dispatch(cache, key, generate_task(cache, fallback, key))
+      Courier.dispatch(cache, key, generate_task(fallback, key))
     end
   end
 
@@ -40,15 +40,10 @@ defmodule Cachex.Actions.Fetch do
   ###############
 
   # Generates a courier task based on the arity of the fallback function.
-  #
-  # If only a single argument is expected, the key alone is passed through. For
-  # any other arity, we pass through the key and the default state (which can
-  # be nil). This will therefore crash if the provided arity is invalid.
-  defp generate_task(cache(fallback: fallback(state: state)), fallback, key) do
+  defp generate_task(fallback, key) do
     case :erlang.fun_info(fallback)[:arity] do
       0 -> fn -> fallback.() end
       1 -> fn -> fallback.(key) end
-      _ -> fn -> fallback.(key, state) end
     end
   end
 end

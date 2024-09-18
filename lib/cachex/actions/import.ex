@@ -22,6 +22,10 @@ defmodule Cachex.Actions.Import do
   def execute(cache() = cache, entries, _options),
     do: {:ok, Enum.reduce(entries, 0, &import(cache, &1, &2, now()))}
 
+  ###############
+  # Private API #
+  ###############
+
   # Imports an entry directly when no TTL is included.
   #
   # As this is a direct import, we just use `Cachex.put/4` with the provided

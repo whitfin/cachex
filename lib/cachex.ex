@@ -72,7 +72,7 @@ defmodule Cachex do
     expire: [3, 4],
     expire_at: [3, 4],
     export: [1, 2],
-    fetch: [2, 3, 4],
+    fetch: [3, 4],
     get: [2, 3],
     get_and_update: [3, 4],
     import: [2, 3],
@@ -182,34 +182,6 @@ defmodule Cachex do
 
       Please see the `Cachex.Spec.expiration/1` documentation for further customization
       options.
-
-    * `:fallback`
-
-      The fallback option allows global settings related to the `fetch/4` command
-      on a cache. The value provided here can either be a valid `:fallback` record
-      provided by `Cachex.Spec`, or a single function (which is turned into a record
-      internally).
-
-          iex> import Cachex.Spec
-          ...>
-          ...> Cachex.start_link(:my_cache, [
-          ...>   fallback: fallback(
-          ...>     # default func to use with fetch/4
-          ...>     default: &String.reverse/1,
-          ...>
-          ...>     # anything to pass to fallbacks
-          ...>     state: { }
-          ...>   )
-          ...> ])
-          { :ok, _pid }
-
-      The `:default` function provided will be used if `fetch/2` is called, rather
-      than explicitly passing one at call time. The `:provide` function contains
-      state which can be passed to a fallback function if the arity is 2 rather than
-      1.
-
-      Please see the documentation for `fetch/4`, and the `Cachex.Spec.fallback/1`
-      documentation for further information.
 
     * `:hooks`
 
@@ -362,7 +334,7 @@ defmodule Cachex do
 
   This will not link the cache to the current process, so if your process dies
   the cache will continue to live. If you don't want this behaviour, please use
-  the provided `start_link/2`.
+  the provided `Cachex.start_link/2`.
 
   This function is otherwise identical to `start_link/2` so please see that
   documentation for further information and configuration.
@@ -415,9 +387,9 @@ defmodule Cachex do
   @doc """
   Retrieves the number of unexpired records in a cache.
 
-  Unlike `size/2`, this ignores keys which should have expired. Due
+  Unlike `Cachex.size/2`, this ignores keys which should have expired. Due
   to this taking potentially expired keys into account, it is far more
-  expensive than simply calling `size/2` and should only be used when
+  expensive than simply calling `Cachex.size/2` and should only be used when
   the distinction is completely necessary.
 
   ## Examples
@@ -693,19 +665,11 @@ defmodule Cachex do
       { :commit, "seripxe_yek_gnissim", [expire: 60000] }
 
   """
-  @spec fetch(Cachex.t(), any, function | nil, Keyword.t()) ::
+  @spec fetch(Cachex.t(), any, function(), Keyword.t()) ::
           {status | :commit | :ignore, any} | {:commit, any, any}
-  def fetch(cache, key, fallback \\ nil, options \\ []) when is_list(options) do
-    Overseer.with(cache, fn cache ->
-      case fallback || fallback(cache(cache, :fallback), :default) do
-        val when is_function(val) ->
-          Router.route(cache, {:fetch, [key, val, options]})
-
-        _na ->
-          error(:invalid_fallback)
-      end
-    end)
-  end
+  def fetch(cache, key, fallback, options \\ [])
+      when is_function(fallback) and is_list(options),
+      do: Router.route(cache, {:fetch, [key, fallback, options]})
 
   @doc """
   Retrieves an entry from a cache.
@@ -753,7 +717,7 @@ defmodule Cachex do
   @spec get_and_update(Cachex.t(), any, function, Keyword.t()) ::
           {:commit | :ignore, any}
   def get_and_update(cache, key, updater, options \\ [])
-      when is_function(updater) and is_list(options),
+      when is_function(updater, 1) and is_list(options),
       do: Router.route(cache, {:get_and_update, [key, updater, options]})
 
   @doc """
@@ -1317,8 +1281,7 @@ defmodule Cachex do
   """
   @spec transaction(Cachex.t(), [any], function, Keyword.t()) :: {status, any}
   def transaction(cache, keys, operation, options \\ [])
-      when (is_function(operation) or is_function(operation, 1)) and
-             is_list(keys) and is_list(options) do
+      when is_function(operation) and is_list(keys) and is_list(options) do
     Overseer.with(cache, fn cache ->
       trans_cache =
         case cache(cache, :transactions) do

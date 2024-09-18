@@ -15,7 +15,6 @@ defmodule Cachex.Errors do
     :cross_slot,
     :invalid_command,
     :invalid_expiration,
-    :invalid_fallback,
     :invalid_hook,
     :invalid_limit,
     :invalid_match,
@@ -74,9 +73,6 @@ defmodule Cachex.Errors do
 
   def long_form(:invalid_expiration),
     do: "Invalid expiration definition provided"
-
-  def long_form(:invalid_fallback),
-    do: "Invalid fallback function provided"
 
   def long_form(:invalid_hook),
     do: "Invalid hook definition provided"

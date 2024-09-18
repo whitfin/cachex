@@ -68,7 +68,6 @@ Caches also accept several options at startup to toggle various behaviour. These
 |:----------------:|:------------------------:|:------------------------------------------------------------------:|
 |     commands     |      map or keyword      |       A collection of custom commands to attach to the cache.      |
 |    expiration    |      `expiration()`      |      An expiration options record imported from `Cachex.Spec`.     |
-|     fallback     | function or `fallback()` |            A fallback record imported from `Cachex.Spec`.          |
 |       hooks      |     list of `hook()`     |        A list of execution hooks to listen on cache actions.       |
 |       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
 |       stats      |          boolean         |         Whether to track statistics for this cache or not.         |

@@ -48,6 +48,10 @@ defmodule Cachex.Actions.Save do
     File.Error -> error(:unreachable_file)
   end
 
+  ###############
+  # Private API #
+  ###############
+
   # Use a local stream to lazily walk through records on a local cache.
   defp init_stream(local, router, cache, batch) when local or router == Local,
     do: CachexStream.execute(cache, Query.build(), batch_size: batch)

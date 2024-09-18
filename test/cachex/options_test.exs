@@ -199,56 +199,6 @@ defmodule Cachex.OptionsTest do
     assert msg == :invalid_expiration
   end
 
-  # Every cache can have a default fallback implementation which is used in case
-  # of no fallback provided against cache reads. The only constraint here is that
-  # the provided value is a valid function (of any arity).
-  test "parsing :fallback flags" do
-    # grab a cache name
-    name = TestUtils.create_name()
-
-    # define our falbacks
-    fallback1 = fallback()
-    fallback2 = fallback(default: &String.reverse/1)
-    fallback3 = fallback(default: &String.reverse/1, state: {})
-    fallback4 = fallback(state: {})
-    fallback5 = &String.reverse/1
-    fallback6 = {}
-
-    # parse all the valid fallbacks into caches
-    {:ok, cache(fallback: fallback1)} =
-      Cachex.Options.parse(name, fallback: fallback1)
-
-    {:ok, cache(fallback: fallback2)} =
-      Cachex.Options.parse(name, fallback: fallback2)
-
-    {:ok, cache(fallback: fallback3)} =
-      Cachex.Options.parse(name, fallback: fallback3)
-
-    {:ok, cache(fallback: fallback4)} =
-      Cachex.Options.parse(name, fallback: fallback4)
-
-    {:ok, cache(fallback: fallback5)} =
-      Cachex.Options.parse(name, fallback: fallback5)
-
-    {:error, msg} = Cachex.Options.parse(name, fallback: fallback6)
-
-    # the first should use defaults
-    assert(fallback1 == fallback())
-
-    # the second and fifth should have an action but no state
-    assert(fallback2 == fallback(default: &String.reverse/1))
-    assert(fallback5 == fallback(default: &String.reverse/1))
-
-    # the third should have both an action and state
-    assert(fallback3 == fallback(default: &String.reverse/1, state: {}))
-
-    # the fourth should have a state but no action
-    assert(fallback4 == fallback(state: {}))
-
-    # an invalid fallback should actually fail
-    assert(msg == :invalid_fallback)
-  end
-
   # This test will ensure that we can parse Hook values successfully. Hooks can
   # be provided as either a List or a single Hook. We also need to check that
   # Hooks are grouped into the correct pre/post groups inside the state.

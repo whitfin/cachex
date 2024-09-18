@@ -6,40 +6,18 @@ Reactive warmers are very memory efficient as they lazily load data on demand, i
 
 ## Defining a Fallback
 
-Fallback functions can be defined on a cache at startup or on a call at runtime, and will only be executed if the key you're trying to retrieve doesn't exist locally. If you set a function at cache startup and then also pass one at call time, the call time definition takes precedence and will be executed instead. Each function receives a single argument by default; the key which resulted in a cache miss:
+The entry point to reactive caching is `Cachex.fetch/4`. You can pass a function to `Cachex.fetch/4`, and this function will only be executed if the key you're trying to access doesn't exist in the table. This function receives the name of the key being accessed, so you can define a common handler rather than inlining for every call.
 
 ```elixir
-# need our records
-import Cachex.Spec
-
-# initializing a fallback on a cache at startup to be used on all cache misses
-Cachex.start_link(:my_cache, [ fallback: fallback(default: &do_something/1) ])
-
-# initializing a fallback at call time to retrieve on specific cache misses
-Cachex.fetch(:my_cache, "key", &do_something/1)
+{ :ok, cache } = Cachex.start(:my_cache)
+{ :commit, 3 } = Cachex.fetch(:my_cache, "key", &String.length/1)
 ```
 
-There are also some cases in which you'll need a state to operate fallbacks, for example if you're caching responses from a database. In this case you might wish to have a database connection passed to your fallback to allow you to query it, and so Cachex allows you to pass a state at cache start to be provided as a second argument to all fallback executions.
+When formatting results to place into the cache table, you must provide your results in the form of either `{ status, value }` or `{ status, value, options }`. These options should match the same what you'd use when calling `Cachex.put/3`, so check out the documentation if you need to.
 
-```elixir
-# need our records
-import Cachex.Spec
+In order to provide some degree of control over error handling, Cachex allows for either `:commit` or `:ignore` as a status. Values tagged with `:ignore` will just be returned without being stored in the cache, and those tagged with `:commit` will be returned after being stored in the cache. If you don't use a tagged Tuple return value, it will be assumed you're committing the value to help interoperability (as in the example above).
 
-# initializing a fallback on a cache at startup with a fallback state
-Cachex.start_link(:my_cache, [ fallback: fallback(action: &do_something/2, state: db_conn) ])
-
-# fallbacks are always provided with the state, even at call time
-Cachex.fetch(:my_cache, "key", fn(key, db_conn) ->
-  case Database.load_package(db_conn) do
-    { :ok, packages } -> { :commit, packages }
-    { :error, _reason } = error -> { :ignore, error }
-  end
-end)
-```
-
-When formatting results to place into the cache table, you must provide your results in the form of either `{ status, pairs }` or `{ status, pairs, options }`. These pairs and options should match the same formats that you'd use when calling `Cachex.put_many/3`, so check out the documentation if you need to.
-
-In order to provide some degree of control over error handling, Cachex allows for either `:commit` or `:ignore` as a status. Values tagged with `:ignore` will just be returned without being stored in the cache, and those tagged with `:commit` will be returned after being stored in the cache. If you don't use a tagged Tuple return value, it will be assumed you're committing the value (for backwards compatibility).
+In previous versions of Cachex it was possible to store fallback `:state` within a cache (accessible as a second parameter to a fallback function). This has been removed as of v4.x to simplify `Cachex.fetch/4` handling and as it was a lesser used feature. It's possible this feature will be re-added in future if there is enough demand for it.
 
 ## Example Use Cases
 
@@ -51,15 +29,14 @@ The snippet below demonstrates an application using a cache to read from a remot
 # need our records
 import Cachex.Spec
 
-# initialize our cache with a database connection
+# initialize our cache with expiration set
 Cachex.start_link(:my_cache, [
   expiration: expiration(default: :timer.minutes(5))
-  fallback:   fallback(state: db_conn)
 ])
 
 # retrieve a list of packages to serve via our API
-Cachex.fetch(:my_cache, "/api/v1/packages", fn(_key, db_conn) ->
-  Database.load_packages(db_conn)
+Cachex.fetch(:my_cache, "/api/v1/packages", fn ->
+  { :commit, Repo.all(from p in Package) }
 end)
 ```
 

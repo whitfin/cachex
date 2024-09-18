@@ -38,7 +38,6 @@ defmodule Cachex.Spec do
             commands: map,
             compressed: boolean,
             expiration: expiration,
-            fallback: fallback,
             hooks: hooks,
             limit: limit,
             ordered: boolean,
@@ -72,13 +71,6 @@ defmodule Cachex.Spec do
             default: non_neg_integer,
             interval: non_neg_integer | nil,
             lazy: boolean
-          )
-
-  # Record specification for a cache fallback
-  @type fallback ::
-          record(:fallback,
-            default: (any -> any) | (any, any -> any),
-            state: any
           )
 
   # Record specification for a cache hook
@@ -139,7 +131,6 @@ defmodule Cachex.Spec do
     commands: %{},
     compressed: false,
     expiration: nil,
-    fallback: nil,
     hooks: nil,
     limit: nil,
     ordered: false,
@@ -200,17 +191,6 @@ defmodule Cachex.Spec do
     default: nil,
     interval: 3000,
     lazy: true
-
-  @doc """
-  Creates a fallback record from the provided values.
-
-  A fallback can consist of a nillable state to provide to a fallback definition when
-  requested (via a fallback with an arity of 2). If a default action is provided, it
-  should be a function of arity 1 or 2, depending on if it requires the state or not.
-  """
-  defrecord :fallback,
-    default: nil,
-    state: nil
 
   @doc """
   Creates a hook record from the provided values.
@@ -322,12 +302,6 @@ defmodule Cachex.Spec do
   """
   @spec expiration(expiration, Keyword.t()) :: expiration
   defmacro expiration(record, args)
-
-  @doc """
-  Updates a fallback record from the provided values.
-  """
-  @spec fallback(fallback, Keyword.t()) :: fallback
-  defmacro fallback(record, args)
 
   @doc """
   Updates a hook record from the provided values.
