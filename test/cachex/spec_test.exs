@@ -7,9 +7,6 @@ defmodule Cachex.SpecTest do
   test "default entry record values",
     do: assert(entry() == {:entry, nil, nil, nil, nil})
 
-  test "default fallback record values",
-    do: assert(fallback() == {:fallback, nil, nil})
-
   test "default expiration record values",
     do: assert(expiration() == {:expiration, nil, 3000, true})
 

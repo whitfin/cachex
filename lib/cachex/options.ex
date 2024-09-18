@@ -22,7 +22,6 @@ defmodule Cachex.Options do
     :router,
     :ordered,
     :commands,
-    :fallback,
     :compressed,
     :expiration,
     :transactions,
@@ -190,38 +189,6 @@ defmodule Cachex.Options do
     case Validator.valid?(:expiration, expiration) do
       false -> error(:invalid_expiration)
       true -> cache(cache, expiration: expiration)
-    end
-  end
-
-  # Sets up any cache-wide fallback behaviour.
-  #
-  # This will allow the shorthanding of a function to act as a default
-  # fallback implementation; otherwise the provided value must be a
-  # fallback record which is run through the specification validation.
-  defp parse_type(:fallback, cache, options) do
-    fallback =
-      transform(options, :fallback, fn
-        # provided fallback is great!
-        fallback() = fallback ->
-          fallback
-
-        # allow shorthand of a function
-        fun when is_function(fun) ->
-          fallback(default: fun)
-
-        # unset so default
-        nil ->
-          fallback()
-
-        # anything else, no thanks!
-        _invalid ->
-          nil
-      end)
-
-    # validate using the spec validator
-    case Validator.valid?(:fallback, fallback) do
-      false -> error(:invalid_fallback)
-      true -> cache(cache, fallback: fallback)
     end
   end
 

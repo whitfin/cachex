@@ -62,13 +62,6 @@ defmodule Cachex.Spec.Validator do
     check3
   end
 
-  # Validates a fallback specification record.
-  #
-  # At this point it just needs to verify that the default value is a valid
-  # function. We can only support functions with arity 1 or 2.
-  def valid?(:fallback, fallback(default: default)),
-    do: nillable?(default, &(is_function(&1, 1) or is_function(&1, 2)))
-
   # Validates a hook specification record.
   #
   # This validation will ensure the following:

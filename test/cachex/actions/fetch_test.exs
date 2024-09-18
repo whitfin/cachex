@@ -9,21 +9,12 @@ defmodule Cachex.Actions.FetchTest do
     # create a forwarding hook
     hook = ForwardHook.create()
 
-    # create a default fetch action
-    concat = &(&1 <> "_" <> &2)
-
     # create a test cache
-    cache1 = TestUtils.create_cache(hooks: [hook])
-
-    cache2 =
-      TestUtils.create_cache(
-        hooks: [hook],
-        fallback: fallback(state: "val", default: concat)
-      )
+    cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    {:ok, true} = Cachex.put(cache1, "key1", 1)
-    {:ok, true} = Cachex.put(cache1, "key2", 2, expire: 1)
+    {:ok, true} = Cachex.put(cache, "key1", 1)
+    {:ok, true} = Cachex.put(cache, "key2", 2, expire: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -38,8 +29,8 @@ defmodule Cachex.Actions.FetchTest do
     fb_opt4 = fn -> "6yek" end
 
     # fetch the first and second keys
-    result1 = Cachex.fetch(cache1, "key1", fb_opt1)
-    result2 = Cachex.fetch(cache1, "key2", fb_opt1)
+    result1 = Cachex.fetch(cache, "key1", fb_opt1)
+    result2 = Cachex.fetch(cache, "key2", fb_opt1)
 
     # verify fetching an existing key
     assert(result1 == {:ok, 1})
@@ -48,22 +39,16 @@ defmodule Cachex.Actions.FetchTest do
     assert(result2 == {:commit, "2yek"})
 
     # fetch keys with a provided fallback
-    result3 = Cachex.fetch(cache1, "key3", fb_opt1)
-    result4 = Cachex.fetch(cache1, "key4", fb_opt2)
-    result5 = Cachex.fetch(cache1, "key5", fb_opt3)
-    result6 = Cachex.fetch(cache1, "key6", fb_opt4)
+    result3 = Cachex.fetch(cache, "key3", fb_opt1)
+    result4 = Cachex.fetch(cache, "key4", fb_opt2)
+    result5 = Cachex.fetch(cache, "key5", fb_opt3)
+    result6 = Cachex.fetch(cache, "key6", fb_opt4)
 
     # verify the fallback fetches
     assert(result3 == {:commit, "3yek"})
     assert(result4 == {:commit, "4yek"})
     assert(result5 == {:ignore, "5yek"})
     assert(result6 == {:commit, "6yek"})
-
-    # test using a default fallback state
-    result7 = Cachex.fetch(cache2, "key7")
-
-    # verify that it executes and ignores state
-    assert(result7 == {:commit, "key7_val"})
 
     # assert we receive valid notifications
     assert_receive({{:fetch, ["key1", ^fb_opt1, []]}, ^result1})
@@ -72,15 +57,14 @@ defmodule Cachex.Actions.FetchTest do
     assert_receive({{:fetch, ["key4", ^fb_opt2, []]}, ^result4})
     assert_receive({{:fetch, ["key5", ^fb_opt3, []]}, ^result5})
     assert_receive({{:fetch, ["key6", ^fb_opt4, []]}, ^result6})
-    assert_receive({{:fetch, ["key7", ^concat, []]}, ^result7})
 
     # check we received valid purge actions for the TTL
     assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # retrieve the loaded keys
-    value1 = Cachex.get(cache1, "key3")
-    value2 = Cachex.get(cache1, "key4")
-    value3 = Cachex.get(cache1, "key5")
+    value1 = Cachex.get(cache, "key3")
+    value2 = Cachex.get(cache, "key4")
+    value3 = Cachex.get(cache, "key5")
 
     # committed keys should now exist
     assert(value1 == {:ok, "3yek"})
@@ -88,14 +72,6 @@ defmodule Cachex.Actions.FetchTest do
 
     # ignored keys should not exist
     assert(value3 == {:ok, nil})
-
-    # check using a missing fallback
-    result8 = Cachex.fetch(cache1, "key7")
-    result9 = Cachex.fetch(cache1, "key8", "val")
-
-    # both should be an error for invalid function
-    assert(result8 == {:error, :invalid_fallback})
-    assert(result9 == {:error, :invalid_fallback})
   end
 
   # This test ensures that the fallback is executed just once when a

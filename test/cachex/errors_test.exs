@@ -9,7 +9,6 @@ defmodule Cachex.ErrorsTest do
       cross_slot: "Target keys do not live on the same node",
       invalid_command: "Invalid command definition provided",
       invalid_expiration: "Invalid expiration definition provided",
-      invalid_fallback: "Invalid fallback function provided",
       invalid_hook: "Invalid hook definition provided",
       invalid_limit: "Invalid limit fields provided",
       invalid_match: "Invalid match specification provided",
