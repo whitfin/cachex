@@ -4,7 +4,7 @@ Cache limits are restrictions on a cache to ensure that it stays within given bo
 
 ## Manual Pruning
 
-The main entrypoint to cache limitation included in Cachex is `Cachex.prune/3`, which provides a Least Recently Written (LRW) implementation of pruning a cache. This means that we calculate the first `N` oldest entries, where `N` is roughly equal to `limit * reclaim`, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" in this context means "those written or updated longest ago".
+The main entrypoint to cache limitation included in Cachex is `Cachex.prune/3`, which provides a Least Recently Written (LRW) implementation of pruning a cache. This means that we calculate the oldest entries, and remove them from the cache in order to make room for new entries. It should be noted that "oldest" in this context means "those written or updated longest ago".
 
 You can trigger a pruning manually via `Cachex.prune/3`, passing the maximum size of a cache to shrink to:
 
