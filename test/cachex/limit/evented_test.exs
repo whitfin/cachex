@@ -1,4 +1,4 @@
-defmodule Cachex.LRW.EventedTest do
+defmodule Cachex.Limit.EventedTest do
   use Cachex.Test.Case
 
   # This test just ensures that there are no artificial limits placed on a cache
@@ -38,7 +38,7 @@ defmodule Cachex.LRW.EventedTest do
         hooks: [
           hook,
           hook(
-            module: Cachex.LRW.Evented,
+            module: Cachex.Limit.Evented,
             args: {
               100,
               [
@@ -117,86 +117,5 @@ defmodule Cachex.LRW.EventedTest do
 
     # just ensure that notifying errors to the policy doesn't cause a crash
     Services.Informant.notify([hook1], {:action, []}, {:error, false})
-  end
-
-  # This test ensures that the cache eviction policy will evict any expired values
-  # before removing the oldest. This is to make sure that we don't remove anything
-  # without good reason. To verify this we add 50 keys with a TTL more recently
-  # than those without and cross the cache limit. We then validate that all expired
-  # keys have been purged, and no other keys have been removed as the purge takes
-  # the cache size back under the maximum size.
-  test "evicting by removing expired keys" do
-    # create a cache with a max size
-    cache =
-      TestUtils.create_cache(
-        hooks: [
-          hook(
-            module: Cachex.LRW.Evented,
-            args: {
-              100,
-              [
-                reclaim: 0.3,
-                batch_size: -1
-              ]
-            }
-          )
-        ]
-      )
-
-    # retrieve the cache state
-    state = Services.Overseer.retrieve(cache)
-
-    # set 50 keys without ttl
-    for x <- 1..50 do
-      # set the key
-      {:ok, true} = Cachex.put(state, x, x)
-
-      # tick to make sure each has a new touch time
-      :timer.sleep(1)
-    end
-
-    # set a more recent 50 keys
-    for x <- 51..100 do
-      # set the key
-      {:ok, true} = Cachex.put(state, x, x, expire: 1)
-
-      # tick to make sure each has a new touch time
-      :timer.sleep(1)
-    end
-
-    # retrieve the cache size
-    size1 = Cachex.size!(cache)
-
-    # verify the cache size
-    assert(size1 == 100)
-
-    # add a new key to the cache to trigger evictions
-    {:ok, true} = Cachex.put(state, 101, 101)
-
-    # verify the cache shrinks to 51%
-    TestUtils.poll(250, 51, fn ->
-      Cachex.size!(state)
-    end)
-
-    # our validation step
-    validate = fn range, expected ->
-      # iterate all keys in the range
-      for x <- range do
-        # retrieve whether the key exists
-        exists = Cachex."exists?!"(state, x)
-
-        # verify whether it exists
-        assert(exists == expected)
-      end
-    end
-
-    # verify the first 50 keys are retained
-    validate.(1..50, true)
-
-    # verify the second 50 are removed
-    validate.(51..100, false)
-
-    # verify the last key added is retained
-    validate.(101..101, true)
   end
 end

@@ -1,4 +1,4 @@
-defmodule Cachex.LRW.AccessTest do
+defmodule Cachex.Limit.AccessedTest do
   use Cachex.Test.Case
 
   # Basic coverage of the access hook to ensure that modification
@@ -6,7 +6,7 @@ defmodule Cachex.LRW.AccessTest do
   # tests will be added as new test cases and issues arise.
   test "updating modification times on read access" do
     # create a test cache using the LRW access hook to refresh modification
-    cache = TestUtils.create_cache(hooks: [hook(module: Cachex.LRW.Access)])
+    cache = TestUtils.create_cache(hooks: [hook(module: Cachex.Limit.Accessed)])
 
     # create a new key to check against
     {:ok, true} = Cachex.put(cache, "key", 1)

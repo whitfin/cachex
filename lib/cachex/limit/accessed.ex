@@ -1,4 +1,4 @@
-defmodule Cachex.LRW.Access do
+defmodule Cachex.Limit.Accessed do
   @moduledoc """
   Least recently used eviction policies for Cachex.
 

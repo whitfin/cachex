@@ -81,6 +81,7 @@ defmodule Cachex do
     invoke: [3, 4],
     keys: [1, 2],
     persist: [2, 3],
+    prune: [2, 3],
     purge: [1, 2],
     put: [3, 4],
     put_many: [2, 3],
@@ -881,6 +882,52 @@ defmodule Cachex do
   @spec persist(Cachex.t(), any, Keyword.t()) :: {status, boolean}
   def persist(cache, key, options \\ []) when is_list(options),
     do: expire(cache, key, nil, via({:persist, [key, options]}, options))
+
+  @doc """
+  Prunes to a maximum size of records in a cache.
+
+  Pruning is done via a Least Recently Written (LRW) approach, determined by the
+  modification time inside each cache record to avoid storing additional state.
+
+  For full details on this feature, please see the section of the documentation
+  related to limitation of caches.
+
+  ## Options
+
+    * `:batch_size`
+
+      Allows customization of the internal batching when paginating the cursor
+      coming back from ETS. It's unlikely this will ever need changing.
+
+    * `:reclaim`
+
+      Provides control over thrashing by evicting an additonal number of cache
+      entries beyond the maximum size. This option accepts a percentage (as a
+      decimal) of extra keys to evict, to provide buffer between pruning passes.
+      Defaults to `0.1` (i.e. 10%).
+
+  ## Examples
+
+      iex> Cachex.put(:my_cache, "key1", "value1")
+      { :ok, true }
+
+      iex> :timer.sleep(1)
+      :ok
+
+      iex> Cachex.put(:my_cache, "key2", "value2")
+      { :ok, true }
+
+      iex> Cachex.prune(:my_cache, 1, reclaim: 0)
+      { :ok, true }
+
+      iex> Cachex.keys(:my_cache)
+      { :ok, [ "key2"] }
+
+  """
+  @spec prune(Cachex.t(), integer, Keyword.t()) :: {status, boolean}
+  def prune(cache, size, options \\ [])
+      when is_positive_integer(size) and is_list(options),
+      do: Router.route(cache, {:prune, [size, options]})
 
   @doc """
   Triggers a cleanup of all expired entries in a cache.
