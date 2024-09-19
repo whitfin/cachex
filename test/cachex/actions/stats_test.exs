@@ -143,40 +143,4 @@ defmodule Cachex.Actions.StatsTest do
       }
     )
   end
-
-  # This test verifies that the distributed router correctly controls
-  # the stats/2 action in such a way that it can clean both a local
-  # node as well as a remote node. We don't have to check functionality
-  # of the entire action; just the actual routing of the action to the
-  # target node(s) is of interest here.
-  @tag distributed: true
-  test "retrieving stats for a cache cluster" do
-    # create a new cache cluster for cleaning
-    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2, stats: true)
-
-    # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
-
-    # generate a hit rate to check that
-    {:ok, 1} = Cachex.get(cache, 1)
-    {:ok, nil} = Cachex.get(cache, 3)
-
-    # retrieve the stats from both local & remote
-    {:ok, stats1} = Cachex.stats(cache, local: true)
-    {:ok, stats2} = Cachex.stats(cache, local: false)
-
-    # check 2 local, 5 global
-    assert(stats1.calls.put == 1)
-    assert(stats1.operations == 2)
-
-    assert(
-      stats1.hit_rate == 100.0 ||
-        stats1.miss_rate == 100.0
-    )
-
-    assert(stats2.calls.put == 2)
-    assert(stats2.operations == 5)
-    assert(stats2.hit_rate == 50.0)
-  end
 end

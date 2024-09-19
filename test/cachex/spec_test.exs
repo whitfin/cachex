@@ -27,7 +27,7 @@ defmodule Cachex.SpecTest do
 
     assert const(:purge_override) == [
              via: const(:purge_override_call),
-             hook_result: const(:purge_override_result)
+             result: const(:purge_override_result)
            ]
 
     assert const(:table_options) == [
