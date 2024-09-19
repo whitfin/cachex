@@ -86,8 +86,8 @@ defmodule Cachex.Actions.Reset do
   #
   # This is just sugar around set membership whilst unpacking a hook record,
   # used in Enum iterations to avoid inlining functions for readability.
-  defp should_reset?(hook(module: module), hook_set),
-    do: module in hook_set
+  defp should_reset?(hook(module: module), hooks),
+    do: module in hooks
 
   # Notifies a hook of a reset.
   #
@@ -95,6 +95,6 @@ defmodule Cachex.Actions.Reset do
   # message to signal that the hook needs to reinitialize. Hooks have a
   # listener built into the server implementatnion in order to handle this
   # automatically, so there's nothing more we need to do.
-  defp notify_reset(hook(state: state, name: name)),
-    do: send(name, {:cachex_reset, state})
+  defp notify_reset(hook(args: args, name: name)),
+    do: send(name, {:cachex_reset, args})
 end

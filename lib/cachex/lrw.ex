@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRW do
+defmodule Cachex.LRW do
   @moduledoc """
   Least recently written eviction policies for Cachex.
 
@@ -37,62 +37,43 @@ defmodule Cachex.Policy.LRW do
   the way it operates internally may change. As such, the internals of this module
   should not be relied upon and should not be considered part of the public API.
   """
-  use Cachex.Policy
-
-  # import macros
   import Cachex.Spec
 
   # add internal aliases
+  alias Cachex.Services.Overseer
   alias Cachex.Query
   alias Cachex.Services.Informant
 
   # compile our match to avoid recalculating
   @ets_match Query.build(output: {:key, :modified})
 
-  ####################
-  # Policy Behaviour #
-  ####################
+  ##############
+  # Public API #
+  ##############
 
   @doc """
-  Configures hooks required to back this policy.
+  Enforces cache bounds based on the provided limit.
+
+  This function will enforce cache bounds using a least recently written (LRW)
+  eviction policy. It will trigger a Janitor purge to clear expired records
+  before attempting to trim older cache entries.
+
+  Please see module documentation for options available inside the limits.
   """
-  def hooks(limit(options: options) = limit),
-    do: [
-      hook(
-        state: limit,
-        module:
-          case Keyword.get(options, :immediate) do
-            true -> __MODULE__.Evented
-            _not -> __MODULE__.Scheduled
-          end
-      )
-    ]
+  @spec prune(Cachex.t(), integer(), Keyword.t()) :: :ok
+  def prune(cache, max_size, options \\ [])
 
-  #############
-  # Algorithm #
-  #############
-
-  @doc false
-  # Enforces cache bounds based on the provided limit.
-  #
-  # This function will enforce cache bounds using a least recently written (LRW)
-  # eviction policy. It will trigger a Janitor purge to clear expired records
-  # before attempting to trim older cache entries.
-  #
-  # Please see module documentation for options available inside the limits.
-  @spec apply_limit(Cachex.t(), Cachex.Spec.limit()) :: :ok
-  def apply_limit(cache() = cache, limit() = limit) do
-    limit(size: max_size, reclaim: reclaim, options: options) = limit
-
+  def prune(cache() = cache, max_size, options) when is_integer(max_size) do
     batch_size =
       case Keyword.get(options, :batch_size, 100) do
         val when val < 0 -> 100
         val -> val
       end
 
+    reclaim = Keyword.get(options, :reclaim, 0.1)
     reclaim_bound = round(max_size * reclaim)
 
-    case Cachex.size!(cache, const(:notify_false)) do
+    case Cachex.size!(cache) do
       cache_size when cache_size <= max_size ->
         notify_worker(0, cache)
 
@@ -104,6 +85,13 @@ defmodule Cachex.Policy.LRW do
         |> notify_worker(cache)
     end
   end
+
+  def prune(cache, max_size, options) when is_atom(cache),
+    do: Overseer.with(cache, &prune(&1, max_size, options))
+
+  ###############
+  # Private API #
+  ###############
 
   # Calculates the space to reclaim inside a cache.
   #
@@ -138,7 +126,7 @@ defmodule Cachex.Policy.LRW do
   defp erase_lower_bound(offset, cache(name: name) = cache, batch)
        when offset > 0 do
     cache
-    |> Cachex.stream!(@ets_match, const(:notify_false) ++ [batch_size: batch])
+    |> Cachex.stream!(@ets_match, batch_size: batch)
     |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
     |> Enum.take(offset)
     |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)

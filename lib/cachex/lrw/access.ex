@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRU do
+defmodule Cachex.LRW.Access do
   @moduledoc """
   Least recently used eviction policies for Cachex.
 
@@ -16,10 +16,6 @@ defmodule Cachex.Policy.LRU do
   performance reasons. Again, this may change in future if necessary.
   """
   use Cachex.Hook
-  use Cachex.Policy
-
-  # import macros
-  import Cachex.Spec
 
   # touched actions
   @actions [
@@ -32,25 +28,6 @@ defmodule Cachex.Policy.LRU do
     :ttl,
     :update
   ]
-
-  # actions which didn't trigger
-  @ignored [:error, :ignore]
-
-  ####################
-  # Policy Behaviour #
-  ####################
-
-  @doc """
-  Configures hooks required to back this policy.
-  """
-  def hooks(limit() = limit),
-    do: [
-      hook(
-        state: nil,
-        module: __MODULE__
-      )
-      | Cachex.Policy.LRW.hooks(limit)
-    ]
 
   ##################
   # Hook Behaviour #
@@ -79,14 +56,10 @@ defmodule Cachex.Policy.LRU do
   #
   # This will update the modification time of a key if tracked in a successful cache
   # action. In combination with LRW caching, this provides a simple LRU policy.
-  def handle_notify({_action, [key | _]}, {status, _value}, cache)
-      when status not in @ignored do
-    {:ok, true} = Cachex.touch(cache, key, const(:notify_false))
+  def handle_notify({_action, [key | _]}, _result, cache) do
+    {:ok, true} = Cachex.touch(cache, key)
     {:ok, cache}
   end
-
-  def handle_notify(_event, _result, cache),
-    do: {:ok, cache}
 
   @doc false
   # Receives a provisioned cache instance.

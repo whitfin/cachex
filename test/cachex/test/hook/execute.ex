@@ -17,8 +17,8 @@ defmodule Cachex.Test.Hook.Execute do
   @doc """
   Returns a hook definition for a custom execute hook.
   """
-  def create(module) when is_atom(module),
-    do: hook(module: module, state: self())
+  def create(module, name \\ nil) when is_atom(module),
+    do: hook(module: module, args: self(), name: name)
 
   @doc """
   Binds a module for a given name and provided overrides.
@@ -40,7 +40,6 @@ defmodule Cachex.Test.Hook.Execute do
         defmodule unquote(name) do
           use Cachex.Hook
 
-          # apply configuration overrides
           def async?,
             do: unquote(async)
 

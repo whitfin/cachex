@@ -17,7 +17,6 @@ defmodule Cachex.Spec.Validator do
           | Cachex.Spec.expiration()
           | Cachex.Spec.hook()
           | Cachex.Spec.hooks()
-          | Cachex.Spec.limit()
           | Cachex.Spec.warmer()
 
   ##############
@@ -105,24 +104,6 @@ defmodule Cachex.Spec.Validator do
     check3
   end
 
-  # Validates a limit specification record.
-  #
-  # This has to validate all fields in the record, with the size being a nillable integer,
-  # the policy being a valid module, the reclaim space being a valid float between 0 and 1,
-  # and a valid keyword list as the options.
-  def valid?(:limit, limit() = limit) do
-    limit(size: size, policy: policy, reclaim: reclaim, options: options) =
-      limit
-
-    check1 = module?(policy)
-    check2 = check1 and nillable?(size, &is_positive_integer/1)
-    check3 = check2 and is_number(reclaim)
-    check4 = check3 and reclaim > 0
-    check5 = check4 and reclaim <= 1
-    check6 = check5 and Keyword.keyword?(options)
-    check6
-  end
-
   # Validates a router specification record.
   #
   # This will validate the correctly implemented `Cachex.Router` behaviour
@@ -174,14 +155,6 @@ defmodule Cachex.Spec.Validator do
   # Determines if the provided value is an enum.
   defp enum?(enum, condition),
     do: unsafe?(fn -> Enum.all?(enum, condition) end)
-
-  @doc false
-  # Determines if the provided value is a valid module.
-  #
-  # This is done by attempting to retrieve the module info using
-  # the __info__/1 macro only available to valid Elixir modules.
-  defp module?(module),
-    do: unsafe?(fn -> !!module.__info__(:module) end)
 
   @doc false
   # Determines if a condition is truthy.

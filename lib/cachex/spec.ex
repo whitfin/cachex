@@ -39,7 +39,6 @@ defmodule Cachex.Spec do
             compressed: boolean,
             expiration: expiration,
             hooks: hooks,
-            limit: limit,
             ordered: boolean,
             router: router,
             transactions: boolean,
@@ -77,7 +76,7 @@ defmodule Cachex.Spec do
   @type hook ::
           record(:hook,
             module: atom,
-            state: any,
+            args: Keyword.t(),
             name: GenServer.server()
           )
 
@@ -86,15 +85,6 @@ defmodule Cachex.Spec do
           record(:hooks,
             pre: [hook],
             post: [hook]
-          )
-
-  # Record specification for a cache limit
-  @type limit ::
-          record(:limit,
-            size: integer,
-            policy: atom,
-            reclaim: number,
-            options: Keyword.t()
           )
 
   # Record specification for a router instance
@@ -212,7 +202,7 @@ defmodule Cachex.Spec do
   """
   defrecord :hook,
     module: nil,
-    state: nil,
+    args: nil,
     name: nil
 
   @doc """
@@ -224,25 +214,6 @@ defmodule Cachex.Spec do
   defrecord :hooks,
     pre: [],
     post: []
-
-  @doc """
-  Creates a limit record from the provided values.
-
-  A limit record represents size bounds on a cache, and the way size should be reclaimed.
-
-  A limit should have a valid integer as the maximum cache size, which is used to determine
-  when to cull records. By default, an LRW style policy will be applied to remove old records
-  but this can also be customized using the policy value. The amount of space to reclaim at
-  once can be provided using the reclaim option.
-
-  You can also specify options to pass through to the policy server, in order to customize
-  policy behaviour.
-  """
-  defrecord :limit,
-    size: nil,
-    policy: Cachex.Policy.LRW,
-    reclaim: 0.1,
-    options: []
 
   @doc """
   Creates a router record from the provided values.
@@ -314,12 +285,6 @@ defmodule Cachex.Spec do
   """
   @spec hooks(hooks, Keyword.t()) :: hooks
   defmacro hooks(record, args)
-
-  @doc """
-  Updates a limit record from the provided values.
-  """
-  @spec limit(limit, Keyword.t()) :: limit
-  defmacro limit(record, args)
 
   @doc """
   Updates a router record from the provided values.

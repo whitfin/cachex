@@ -57,23 +57,28 @@ defmodule Cachex.Actions.Stream do
       fn
         # we're finished!
         :"$end_of_table" ->
-          {:halt, nil}
+          handle_continue(:"$end_of_table")
 
         # we're starting!
         :"$start_of_table" ->
-          case :ets.select(name, spec, batch) do
-            :"$end_of_table" ->
-              {:halt, nil}
-
-            continuation ->
-              continuation
-          end
+          name
+          |> :ets.select(spec, batch)
+          |> handle_continue()
 
         # we're continuing!
         continuation ->
-          :ets.select(continuation)
+          continuation
+          |> :ets.select()
+          |> handle_continue()
       end,
       & &1
     )
   end
+
+  # Handles a continuation from ETS to terminate a stream.
+  defp handle_continue(:"$end_of_table"),
+    do: {:halt, nil}
+
+  defp handle_continue(continuation),
+    do: continuation
 end

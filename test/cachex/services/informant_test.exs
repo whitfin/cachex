@@ -78,31 +78,42 @@ defmodule Cachex.Services.InformantTest do
     # create a synchronous hook
     hook4 = ExecuteHook.create(:informant_execute_hook_sync_timeout)
 
+    # create a named hook
+    hook5 =
+      ForwardHook.create(
+        :informant_forward_hook_pre,
+        :informant_forward_hook_pre_named
+      )
+
     # create a hook without initializing
-    hook5 = ForwardHook.create()
+    hook6 = ForwardHook.create()
 
     # initialize caches to initialize the hooks
     cache1 = TestUtils.create_cache(hooks: hook1)
     cache2 = TestUtils.create_cache(hooks: hook2)
     cache3 = TestUtils.create_cache(hooks: hook3)
     cache4 = TestUtils.create_cache(hooks: hook4)
+    cache5 = TestUtils.create_cache(hooks: hook5)
 
     # update our hooks from the caches
     cache(hooks: hooks(pre: [hook1])) = Services.Overseer.retrieve(cache1)
     cache(hooks: hooks(post: [hook2])) = Services.Overseer.retrieve(cache2)
     cache(hooks: hooks(post: [hook3])) = Services.Overseer.retrieve(cache3)
     cache(hooks: hooks(post: [hook4])) = Services.Overseer.retrieve(cache4)
+    cache(hooks: hooks(pre: [hook5])) = Services.Overseer.retrieve(cache5)
 
     # uninitialized hooks shouldn't emit
-    Services.Informant.notify([hook5], {:action, []}, :result)
+    Services.Informant.notify([hook6], {:action, []}, :result)
 
     # ensure nothing is received
     refute_receive({{:action, []}, :result})
 
     # pre hooks only ever get the action
     Services.Informant.notify([hook1], {:pre_hooks, []}, :result)
+    Services.Informant.notify([hook5], {:pre_hooks, []}, :result)
 
     # ensure only the action is received
+    assert_receive({{:pre_hooks, []}, :result})
     assert_receive({{:pre_hooks, []}, :result})
 
     # post hooks can receive results if requested

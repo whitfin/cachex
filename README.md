@@ -58,24 +58,7 @@ iex(4)> Cachex.get!(:missing_cache, "key")
     (cachex) lib/cachex.ex:249: Cachex.get!/3
 ```
 
-Generally you should use the non-`!` versions to be more explicit in your code, but the `!` version exists for convenience and to make assertions easier in unit testing.
-
-## Options
-
-Caches also accept several options at startup to toggle various behaviour. These options are defined on a per-cache basis and can be used to control the features available to the cache:
-
-|      Options     |          Values          |                             Description                            |
-|:----------------:|:------------------------:|:------------------------------------------------------------------:|
-|     commands     |      map or keyword      |       A collection of custom commands to attach to the cache.      |
-|    expiration    |      `expiration()`      |      An expiration options record imported from `Cachex.Spec`.     |
-|       hooks      |     list of `hook()`     |        A list of execution hooks to listen on cache actions.       |
-|       limit      |    a `limit()` record    |    An integer or Limit struct to define the bounds of this cache.  |
-|       stats      |          boolean         |         Whether to track statistics for this cache or not.         |
-|   transactions   |          boolean         |           Whether to turn on transactions at cache start.          |
-|      warmers     |    list of `warmer()`    |           A list of cache warmers to enable on the cache.
-
-
-For further information or examples on these features and options, please see the [documentation](https://hexdocs.pm/cachex).
+Generally you should use the non-`!` versions to be more explicit in your code, but the `!` version exists for convenience and to make assertions easier in unit testing. For further information or examples on supported features and options, please see the [documentation](https://hexdocs.pm/cachex).
 
 ## Benchmarks
 

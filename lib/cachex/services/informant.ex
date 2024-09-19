@@ -94,11 +94,11 @@ defmodule Cachex.Services.Informant do
   end
 
   # Generates a Supervisor specification for a hook.
-  defp spec(hook(module: module, name: name, state: state)) do
+  defp spec(hook(module: module, name: name, args: args)) do
     options =
       case name do
-        nil -> [module, state]
-        val -> [module, state, [name: val]]
+        nil -> [module, args]
+        val -> [module, args, [name: val]]
       end
 
     %{id: module, start: {GenServer, :start_link, options}}

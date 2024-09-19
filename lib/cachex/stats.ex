@@ -11,6 +11,7 @@ defmodule Cachex.Stats do
   can also be mocked easily using raw server calls to `handle_notify/3`.
   """
   use Cachex.Hook
+  alias Cachex.Hook
 
   # need our macros
   import Cachex.Spec
@@ -29,37 +30,17 @@ defmodule Cachex.Stats do
     :update
   ]
 
-  ##############
-  # Public API #
-  ##############
-
-  @doc """
-  Determines if stats are enabled for a cache.
-  """
-  @spec enabled?(Cachex.t()) :: boolean
-  def enabled?(cache() = cache),
-    do: locate(cache) != nil
-
-  @doc """
-  Locates a stats hook for a cache, if enabled.
-  """
-  @spec locate(Cachex.t()) :: Cachex.Spec.hook() | nil
-  def locate(cache(hooks: hooks(post: post_hooks))),
-    do: Enum.find(post_hooks, &match?(hook(module: Cachex.Stats), &1))
-
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec retrieve(Cachex.t()) :: {:ok, map()} | {:error, atom()}
-  def retrieve(cache(name: name) = cache) do
-    case enabled?(cache) do
-      false ->
+  @spec for_cache(Cachex.t()) :: {:ok, map()} | {:error, atom()}
+  def for_cache(cache() = cache) do
+    case Hook.locate(cache, __MODULE__) do
+      nil ->
         error(:stats_disabled)
 
-      true ->
-        name
-        |> name(:stats)
-        |> GenServer.call(:retrieve)
+      hook(name: name) ->
+        GenServer.call(name, :retrieve)
     end
   end
 

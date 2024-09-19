@@ -59,7 +59,7 @@ defmodule Cachex.Services.Overseer do
   Retrieving a cache will map the provided argument to a
   cache record if available, otherwise a nil value.
   """
-  @spec get(atom | Cachex.t()) :: Cachex.t() | nil
+  @spec get(Cachex.t()) :: Cachex.t() | nil
   def get(cache() = cache),
     do: cache
 

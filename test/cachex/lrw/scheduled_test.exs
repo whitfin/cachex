@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRW.ScheduledTest do
+defmodule Cachex.LRW.ScheduledTest do
   use Cachex.Test.Case
 
   # This test just ensures that there are no artificial limits placed on a cache
@@ -32,17 +32,26 @@ defmodule Cachex.Policy.LRW.ScheduledTest do
     # create a forwarding hook
     hook = ForwardHook.create()
 
-    # define our cache limit
-    limit =
-      limit(
-        size: 100,
-        policy: Cachex.Policy.LRW,
-        reclaim: 0.75,
-        options: [batch_size: 25, frequency: 100]
-      )
-
     # create a cache with a max size
-    cache = TestUtils.create_cache(hooks: [hook], limit: limit)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook,
+          hook(
+            module: Cachex.LRW.Scheduled,
+            args: {
+              100,
+              [
+                reclaim: 0.75,
+                batch_size: 25
+              ],
+              [
+                frequency: 100
+              ]
+            }
+          )
+        ]
+      )
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -108,17 +117,25 @@ defmodule Cachex.Policy.LRW.ScheduledTest do
   # keys have been purged, and no other keys have been removed as the purge takes
   # the cache size back under the maximum size.
   test "evicting by removing expired keys" do
-    # define our cache limit
-    limit =
-      limit(
-        size: 100,
-        policy: Cachex.Policy.LRW,
-        reclaim: 0.3,
-        options: [batch_size: -1, frequency: 100]
-      )
-
     # create a cache with a max size
-    cache = TestUtils.create_cache(limit: limit)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook(
+            module: Cachex.LRW.Scheduled,
+            args: {
+              100,
+              [
+                reclaim: 0.3,
+                batch_size: -1
+              ],
+              [
+                frequency: 100
+              ]
+            }
+          )
+        ]
+      )
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)

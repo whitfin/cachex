@@ -8,6 +8,7 @@ defmodule Cachex.Hook do
   to execute either before or after the Cachex command, and can be blocking as
   needed.
   """
+  import Cachex.Spec
 
   #############
   # Behaviour #
@@ -151,4 +152,36 @@ defmodule Cachex.Hook do
       end
     end
   end
+
+  ##############
+  # Public API #
+  ##############
+
+  @doc """
+  Locates a hook for a cache.
+  """
+  @spec locate(Cachex.t(), module :: atom(), type :: :all | :pre | :post) ::
+          Cachex.Spec.hook() | nil
+  def locate(cache, module, type \\ :all)
+
+  def locate(cache, module, :all) do
+    case locate(cache, module, :post) do
+      nil -> locate(cache, module, :pre)
+      val -> val
+    end
+  end
+
+  def locate(cache(hooks: hooks(pre: hooks)), module, :pre),
+    do: locate_hook(hooks, module)
+
+  def locate(cache(hooks: hooks(post: hooks)), module, :post),
+    do: locate_hook(hooks, module)
+
+  ###############
+  # Private API #
+  ###############
+
+  # Find a hook based on module name.
+  defp locate_hook(hooks, module),
+    do: Enum.find(hooks, &match?(hook(module: ^module), &1))
 end

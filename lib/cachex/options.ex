@@ -17,7 +17,6 @@ defmodule Cachex.Options do
   # option parser order
   @option_parsers [
     :name,
-    :limit,
     :hooks,
     :router,
     :ordered,
@@ -196,37 +195,11 @@ defmodule Cachex.Options do
   #
   # In addition to the hooks already provided, this will also deal with the
   # notion of statistics hooks and limits, as they can both define hooks.
-  defp parse_type(:hooks, cache(name: name, limit: limit) = cache, options) do
+  defp parse_type(:hooks, cache() = cache, options) do
     hooks =
-      Enum.concat([
-        # stats hook generation
-        case !!options[:stats] do
-          false ->
-            []
-
-          true ->
-            [
-              hook(
-                module: Cachex.Stats,
-                name: name(name, :stats)
-              )
-            ]
-        end,
-
-        # limit hook generation
-        case limit do
-          limit(size: nil) ->
-            []
-
-          limit(policy: policy) ->
-            apply(policy, :hooks, [limit])
-        end,
-
-        # provided hooks lists
-        options
-        |> Keyword.get(:hooks, [])
-        |> List.wrap()
-      ])
+      options
+      |> Keyword.get(:hooks, [])
+      |> List.wrap()
 
     # validation and division into a hooks record
     case validated?(hooks, :hook) do
@@ -240,24 +213,6 @@ defmodule Cachex.Options do
         post = Map.get(type, :post, [])
 
         cache(cache, hooks: hooks(pre: pre, post: post))
-    end
-  end
-
-  # Sets up any provided limit structures.
-  #
-  # This will allow shorthanding of a numeric value to act as a size
-  # to bound the cache to. This will provide defaults for all other
-  # fields in the limit structure.
-  defp parse_type(:limit, cache, options) do
-    limit =
-      case Keyword.get(options, :limit) do
-        limit() = limit -> limit
-        size -> limit(size: size)
-      end
-
-    case Validator.valid?(:limit, limit) do
-      false -> error(:invalid_limit)
-      true -> cache(cache, limit: limit)
     end
   end
 
