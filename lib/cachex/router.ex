@@ -189,7 +189,7 @@ defmodule Cachex.Router do
       Informant.broadcast(
         cache,
         message,
-        Keyword.get(option, :hook_result, result)
+        Keyword.get(option, :result, result)
       )
     end
 
@@ -236,8 +236,7 @@ defmodule Cachex.Router do
     :keys,
     :purge,
     :reset,
-    :size,
-    :stats
+    :size
   ]
 
   # Provides handling of cross-node actions distributed over remote nodes.
@@ -292,8 +291,8 @@ defmodule Cachex.Router do
     {:ok, merge_result}
   end
 
-  # actions which always run locally
-  @local_actions [:inspect, :restore, :save, :warm]
+  # actions which always run locally on the current node
+  @local_actions [:inspect, :restore, :save, :stats, :warm]
 
   # Provides handling of `:inspect` operations.
   #
@@ -311,12 +310,11 @@ defmodule Cachex.Router do
   # Provides handling of `:transaction` operations.
   #
   # These operations can only execute if their keys slot to the same remote nodes.
-  defp route_cluster(cache, module, {:transaction, [keys | _]} = call) do
-    case keys do
-      [] -> route_local(cache, module, call)
-      _ -> route_batch(cache, module, call, & &1)
-    end
-  end
+  defp route_cluster(cache, module, {:transaction, [[] | _]} = call),
+    do: route_local(cache, module, call)
+
+  defp route_cluster(cache, module, {:transaction, [_keys | _]} = call),
+    do: route_batch(cache, module, call, & &1)
 
   # Any other actions are explicitly disabled in distributed environments.
   defp route_cluster(_cache, _module, _call),

@@ -371,7 +371,7 @@ defmodule Cachex.Spec do
       quote(
         do: [
           via: const(:purge_override_call),
-          hook_result: const(:purge_override_result)
+          result: const(:purge_override_result)
         ]
       )
 
