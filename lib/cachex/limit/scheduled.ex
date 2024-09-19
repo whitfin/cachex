@@ -1,4 +1,4 @@
-defmodule Cachex.LRW.Scheduled do
+defmodule Cachex.Limit.Scheduled do
   @moduledoc """
   Scheduled least recently written eviction policy for Cachex.
 
@@ -9,9 +9,6 @@ defmodule Cachex.LRW.Scheduled do
   using hook messages.
   """
   use Cachex.Hook
-
-  # add internal aliases
-  alias Cachex.LRW
 
   ######################
   # Hook Configuration #
@@ -37,16 +34,15 @@ defmodule Cachex.LRW.Scheduled do
 
   @doc false
   # Initializes this policy using the limit being enforced.
-  def init({size, pruning, scheduling} = args)
-      when is_integer(size) and is_list(pruning) and is_list(scheduling),
-      do: {schedule(scheduling), {nil, args}}
+  def init({_size, _options, scheduling} = args),
+    do: {schedule(scheduling), {nil, args}}
 
   @doc false
   # Handles notification of a cache action.
   #
   # This will execute a bounds check on a cache and schedule a new check.
-  def handle_info(:policy_check, {cache, {size, pruning, scheduling}} = args) do
-    LRW.prune(cache, size, pruning)
+  def handle_info(:policy_check, {cache, {size, options, scheduling}} = args) do
+    {:ok, true} = Cachex.prune(cache, size, options)
     schedule(scheduling) && {:noreply, args}
   end
 

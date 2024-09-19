@@ -287,8 +287,15 @@ defmodule Cachex.Router do
     {:ok, merge_result}
   end
 
-  # actions which always run locally on the current node
-  @local_actions [:inspect, :restore, :save, :stats, :warm]
+  # actions which always run locally
+  @local_actions [
+    :inspect,
+    :prune,
+    :restore,
+    :save,
+    :stats,
+    :warm
+  ]
 
   # Provides handling of `:inspect` operations.
   #

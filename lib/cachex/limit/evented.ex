@@ -1,4 +1,4 @@
-defmodule Cachex.LRW.Evented do
+defmodule Cachex.Limit.Evented do
   @moduledoc """
   Evented least recently written eviction policy for Cachex.
 
@@ -9,9 +9,6 @@ defmodule Cachex.LRW.Evented do
   passing between hooks).
   """
   use Cachex.Hook
-
-  # add internal aliases
-  alias Cachex.LRW
 
   # actions which didn't trigger
   @ignored [:error, :ignore]
@@ -61,7 +58,7 @@ defmodule Cachex.LRW.Evented do
   # able to cause a net gain in cache size (so removals are also ignored).
   def handle_notify(_message, {status, _value}, {cache, {size, options}} = opts)
       when status not in @ignored do
-    LRW.prune(cache, size, options)
+    {:ok, true} = Cachex.prune(cache, size, options)
     {:ok, opts}
   end
 

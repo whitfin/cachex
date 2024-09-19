@@ -1,69 +1,34 @@
-defmodule Cachex.LRW do
-  @moduledoc """
-  Least recently written eviction policies for Cachex.
-
-  This module provides general utilities for implementing an eviction policy for
-  Cachex which will evict the least-recently written entries from the cache. This
-  is determined by the modified time inside each cache record, which means that we
-  don't have to store any additional tables to keep track of access time.
-
-  There are several options recognised by this policy which can be passed inside the
-  limit structure when configuring your cache at startup:
-
-    * `:batch_size`
-
-      The batch size to use when paginating the cache to evict records. This defaults
-      to 100, which is typically going to be fine for most cases, but this option is
-      exposed in case there is need to customize it.
-
-    * `:frequency`
-
-      When this policy operates in scheduled mode, this option controls the frequency
-      with which bounds will be checked. This is specified in milliseconds, and will
-      default to once per second (1000). Feel free to tune this based on how strictly
-      you wish to enforce your cache limits.
-
-    * `:immediate`
-
-      Sets this policy to enforce bounds reactively. If this option is set to `true`,
-      bounds will be checked immediately when a write is made to the cache rather than
-      on a timed schedule. This has the result of being much more accurate with the
-      size of a cache, but has higher overhead due to listening on cache writes.
-
-      Setting this to `true` will disable the scheduled checks and thus the `:frequency`
-      option is ignored in this case.
-
-  While the overall behaviour of this policy should always result in the same outcome,
-  the way it operates internally may change. As such, the internals of this module
-  should not be relied upon and should not be considered part of the public API.
-  """
-  import Cachex.Spec
-
-  # add internal aliases
-  alias Cachex.Services.Overseer
+defmodule Cachex.Actions.Prune do
+  @moduledoc false
+  # Command module to allow pruning a cache to a maximum size.
+  #
+  # This command will trigger an LRW-style pruning of a cache based on
+  # the provided maximum value. Various controls are provided on how to
+  # exactly prune the table.
+  #
+  # This command is used by the various limit hooks provided by Cachex.
+  alias Cachex.Actions.Stream, as: CachexStream
   alias Cachex.Query
   alias Cachex.Services.Informant
 
+  # add required imports
+  import Cachex.Spec
+
   # compile our match to avoid recalculating
-  @ets_match Query.build(output: {:key, :modified})
+  @query Query.build(output: {:key, :modified})
 
   ##############
   # Public API #
   ##############
 
   @doc """
-  Enforces cache bounds based on the provided limit.
+  Prunes cache keyspsace to the provided amount.
 
   This function will enforce cache bounds using a least recently written (LRW)
   eviction policy. It will trigger a Janitor purge to clear expired records
   before attempting to trim older cache entries.
-
-  Please see module documentation for options available inside the limits.
   """
-  @spec prune(Cachex.t(), integer(), Keyword.t()) :: :ok
-  def prune(cache, max_size, options \\ [])
-
-  def prune(cache() = cache, max_size, options) when is_integer(max_size) do
+  def execute(cache() = cache, size, options) do
     batch_size =
       case Keyword.get(options, :batch_size, 100) do
         val when val < 0 -> 100
@@ -71,23 +36,22 @@ defmodule Cachex.LRW do
       end
 
     reclaim = Keyword.get(options, :reclaim, 0.1)
-    reclaim_bound = round(max_size * reclaim)
+    reclaim_bound = round(size * reclaim)
 
-    case Cachex.size!(cache) do
-      cache_size when cache_size <= max_size ->
+    case Cachex.size!(cache, const(:notify_false)) do
+      cache_size when cache_size <= size ->
         notify_worker(0, cache)
 
       cache_size ->
         cache_size
-        |> calculate_reclaim(max_size, reclaim_bound)
+        |> calculate_reclaim(size, reclaim_bound)
         |> calculate_poffset(cache)
         |> erase_lower_bound(cache, batch_size)
         |> notify_worker(cache)
     end
-  end
 
-  def prune(cache, max_size, options) when is_atom(cache),
-    do: Overseer.with(cache, &prune(&1, max_size, options))
+    {:ok, true}
+  end
 
   ###############
   # Private API #
@@ -99,8 +63,8 @@ defmodule Cachex.LRW do
   # current size of the cache. A positive result from this function means that
   # we need to carry out evictions, whereas a negative results means that the
   # cache is currently underpopulated.
-  defp calculate_reclaim(current_size, max_size, reclaim_bound),
-    do: (max_size - reclaim_bound - current_size) * -1
+  defp calculate_reclaim(current_size, size, reclaim_bound),
+    do: (size - reclaim_bound - current_size) * -1
 
   # Calculates the purge offset of a cache.
   #
@@ -123,15 +87,17 @@ defmodule Cachex.LRW do
   # which only selects the key and touch time as a minor optimization. The key is
   # naturally required when it comes to removing the document, and the touch time is
   # used to determine the sort order required for LRW.
-  defp erase_lower_bound(offset, cache(name: name) = cache, batch)
-       when offset > 0 do
-    cache
-    |> Cachex.stream!(@ets_match, batch_size: batch)
-    |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
-    |> Enum.take(offset)
-    |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
+  defp erase_lower_bound(offset, cache, batch) when offset > 0 do
+    with {:ok, stream} <- CachexStream.execute(cache, @query, batch_size: batch) do
+      cache(name: name) = cache
 
-    offset
+      stream
+      |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
+      |> Enum.take(offset)
+      |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
+
+      offset
+    end
   end
 
   defp erase_lower_bound(offset, _state, _batch),
