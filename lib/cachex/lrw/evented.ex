@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRW.Evented do
+defmodule Cachex.LRW.Evented do
   @moduledoc """
   Evented least recently written eviction policy for Cachex.
 
@@ -10,11 +10,8 @@ defmodule Cachex.Policy.LRW.Evented do
   """
   use Cachex.Hook
 
-  # import macros
-  import Cachex.Spec
-
   # add internal aliases
-  alias Cachex.Policy.LRW
+  alias Cachex.LRW
 
   # actions which didn't trigger
   @ignored [:error, :ignore]
@@ -51,8 +48,8 @@ defmodule Cachex.Policy.LRW.Evented do
 
   @doc false
   # Initializes this policy using the limit being enforced.
-  def init(limit() = limit),
-    do: {:ok, {nil, limit}}
+  def init(args),
+    do: {:ok, {nil, args}}
 
   @doc false
   # Handles notification of a cache action.
@@ -62,9 +59,9 @@ defmodule Cachex.Policy.LRW.Evented do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, {status, _value}, {cache, limit} = opts)
+  def handle_notify(_message, {status, _value}, {cache, {size, options}} = opts)
       when status not in @ignored do
-    LRW.apply_limit(cache, limit)
+    LRW.prune(cache, size, options)
     {:ok, opts}
   end
 
@@ -76,6 +73,6 @@ defmodule Cachex.Policy.LRW.Evented do
   #
   # The provided cache is then stored in the cache and used for cache calls going
   # forwards, in order to skip the lookups inside the cache overseer for performance.
-  def handle_provision({:cache, cache}, {_cache, limit}),
-    do: {:ok, {cache, limit}}
+  def handle_provision({:cache, cache}, {_cache, options}),
+    do: {:ok, {cache, options}}
 end

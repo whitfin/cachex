@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRW.Scheduled do
+defmodule Cachex.LRW.Scheduled do
   @moduledoc """
   Scheduled least recently written eviction policy for Cachex.
 
@@ -10,11 +10,8 @@ defmodule Cachex.Policy.LRW.Scheduled do
   """
   use Cachex.Hook
 
-  # import macros
-  import Cachex.Spec
-
   # add internal aliases
-  alias Cachex.Policy.LRW
+  alias Cachex.LRW
 
   ######################
   # Hook Configuration #
@@ -40,19 +37,17 @@ defmodule Cachex.Policy.LRW.Scheduled do
 
   @doc false
   # Initializes this policy using the limit being enforced.
-  def init(limit() = limit),
-    do: {schedule(limit), {nil, limit}}
+  def init({size, pruning, scheduling} = args)
+      when is_integer(size) and is_list(pruning) and is_list(scheduling),
+      do: {schedule(scheduling), {nil, args}}
 
   @doc false
   # Handles notification of a cache action.
   #
   # This will execute a bounds check on a cache and schedule a new check.
-  def handle_info(:policy_check, {cache, limit} = opts) do
-    unless is_nil(cache) do
-      LRW.apply_limit(cache, limit)
-    end
-
-    schedule(limit) && {:noreply, opts}
+  def handle_info(:policy_check, {cache, {size, pruning, scheduling}} = args) do
+    LRW.prune(cache, size, pruning)
+    schedule(scheduling) && {:noreply, args}
   end
 
   @doc false
@@ -60,15 +55,15 @@ defmodule Cachex.Policy.LRW.Scheduled do
   #
   # The provided cache is then stored in the state and used for cache calls going
   # forwards, in order to skip the lookups inside the cache overseer for performance.
-  def handle_provision({:cache, cache}, {_cache, limit}),
-    do: {:ok, {cache, limit}}
+  def handle_provision({:cache, cache}, {_cache, args}),
+    do: {:ok, {cache, args}}
 
   ###############
   # Private API #
   ###############
 
   # Schedules a check to occur after the designated interval.
-  defp schedule(limit(options: options)) do
+  defp schedule(options) do
     options
     |> Keyword.get(:frequency, 1000)
     |> :erlang.send_after(self(), :policy_check)

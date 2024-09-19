@@ -11,7 +11,12 @@ defmodule Cachex.Actions.ResetTest do
   # coverage tools, as the entire point is that it doesn't do anything.
   test "resetting a cache" do
     # create a test cache
-    cache1 = TestUtils.create_cache(stats: true)
+    cache1 =
+      TestUtils.create_cache(
+        hooks: [
+          hook(module: Cachex.Stats)
+        ]
+      )
 
     # create a cache with no hooks
     cache2 = TestUtils.create_cache()
@@ -64,7 +69,12 @@ defmodule Cachex.Actions.ResetTest do
   # to verify that the cache is empty after the reset.
   test "resetting only a cache" do
     # create a test cache
-    cache = TestUtils.create_cache(stats: true)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook(module: Cachex.Stats)
+        ]
+      )
 
     # get current time
     ctime1 = now()
@@ -105,7 +115,12 @@ defmodule Cachex.Actions.ResetTest do
   # that the creation_date of the stats hook is reset properly.
   test "resetting only a cache's hooks" do
     # create a test cache
-    cache = TestUtils.create_cache(stats: true)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook(module: Cachex.Stats)
+        ]
+      )
 
     # get current time
     ctime1 = now()

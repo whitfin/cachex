@@ -236,47 +236,6 @@ defmodule Cachex.OptionsTest do
     assert(msg == :invalid_hook)
   end
 
-  # This test ensures that the max size options can be correctly parsed. Parsing
-  # this flag will set the Limit field inside the returned state, so it needs to
-  # be checked. It will also add any Limit hooks to the hooks list, so this needs
-  # to also be verified within this test.
-  test "parsing :limit flags" do
-    # grab a cache name
-    name = TestUtils.create_name()
-
-    # create a default limit
-    default = limit()
-
-    # our cache limit
-    max_size = 500
-    c_limits = limit(size: max_size)
-
-    # parse options with a valid max_size
-    {:ok, cache(hooks: hooks1, limit: limit1)} =
-      Cachex.Options.parse(name, limit: max_size)
-
-    {:ok, cache(hooks: hooks2, limit: limit2)} =
-      Cachex.Options.parse(name, limit: c_limits)
-
-    {:ok, cache(hooks: hooks3, limit: limit3)} = Cachex.Options.parse(name, [])
-
-    # parse options with invalid max_size
-    {:error, msg} = Cachex.Options.parse(name, limit: "max_size")
-
-    # check the first and second states have limits
-    assert(limit1 == c_limits)
-    assert(limit2 == c_limits)
-    assert(hooks1 == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
-    assert(hooks2 == hooks(pre: [], post: Cachex.Policy.LRW.hooks(c_limits)))
-
-    # check the third has no limits attached
-    assert(limit3 == default)
-    assert(hooks3 == hooks(pre: [], post: []))
-
-    # check the fourth causes an error
-    assert(msg == :invalid_limit)
-  end
-
   # This test will verify the parsing of compression flags to determine whether
   # a cache has them enabled or disabled. This is simply checking whether the flag
   # is set to true or false, and the default.
@@ -322,27 +281,6 @@ defmodule Cachex.OptionsTest do
 
     # check the invalid router message
     assert(msg == :invalid_router)
-  end
-
-  # This test will verify the ability to record stats in a state. This option
-  # will just add the Cachex Stats hook to the list of hooks inside the cache.
-  # We just need to verify that the hook is added after being parsed.
-  test "parsing :stats flags" do
-    # grab a cache name
-    name = TestUtils.create_name()
-
-    # create a stats hook
-    hook =
-      hook(
-        module: Cachex.Stats,
-        name: name(name, :stats)
-      )
-
-    # parse the stats recording flags
-    {:ok, cache(hooks: hooks)} = Cachex.Options.parse(name, stats: true)
-
-    # ensure the stats hook has been added
-    assert(hooks == hooks(pre: [], post: [hook]))
   end
 
   # This test will verify the parsing of transactions flags to determine whether

@@ -39,6 +39,7 @@ defmodule Cachex.Mixfile do
           "docs/general/streaming-records.md",
           "docs/management/limiting-caches.md",
           "docs/management/expiring-records.md",
+          "docs/management/stats-gathering.md",
           "docs/migrations/migrating-to-v3.md",
           "docs/migrations/migrating-to-v2.md",
           "docs/routing/distributed-caches.md",

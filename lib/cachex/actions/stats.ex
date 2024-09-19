@@ -23,7 +23,7 @@ defmodule Cachex.Actions.Stats do
   @spec execute(Cachex.t(), Keyword.t()) ::
           {:ok, %{}} | {:error, :stats_disabled}
   def execute(cache() = cache, _options) do
-    with {:ok, stats} <- Stats.retrieve(cache) do
+    with {:ok, stats} <- Stats.for_cache(cache) do
       hits_count = Map.get(stats, :hits, 0)
       miss_count = Map.get(stats, :misses, 0)
 

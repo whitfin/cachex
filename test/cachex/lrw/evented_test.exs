@@ -1,4 +1,4 @@
-defmodule Cachex.Policy.LRW.EventedTest do
+defmodule Cachex.LRW.EventedTest do
   use Cachex.Test.Case
 
   # This test just ensures that there are no artificial limits placed on a cache
@@ -32,17 +32,23 @@ defmodule Cachex.Policy.LRW.EventedTest do
     # create a forwarding hook
     hook = ForwardHook.create()
 
-    # define our cache limit
-    limit =
-      limit(
-        size: 100,
-        policy: Cachex.Policy.LRW,
-        reclaim: 0.75,
-        options: [batch_size: 25, immediate: true]
-      )
-
     # create a cache with a max size
-    cache = TestUtils.create_cache(hooks: [hook], limit: limit)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook,
+          hook(
+            module: Cachex.LRW.Evented,
+            args: {
+              100,
+              [
+                reclaim: 0.75,
+                batch_size: 25
+              ]
+            }
+          )
+        ]
+      )
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)
@@ -120,17 +126,22 @@ defmodule Cachex.Policy.LRW.EventedTest do
   # keys have been purged, and no other keys have been removed as the purge takes
   # the cache size back under the maximum size.
   test "evicting by removing expired keys" do
-    # define our cache limit
-    limit =
-      limit(
-        size: 100,
-        policy: Cachex.Policy.LRW,
-        reclaim: 0.3,
-        options: [batch_size: -1, immediate: true]
-      )
-
     # create a cache with a max size
-    cache = TestUtils.create_cache(limit: limit)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook(
+            module: Cachex.LRW.Evented,
+            args: {
+              100,
+              [
+                reclaim: 0.3,
+                batch_size: -1
+              ]
+            }
+          )
+        ]
+      )
 
     # retrieve the cache state
     state = Services.Overseer.retrieve(cache)

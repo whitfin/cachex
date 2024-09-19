@@ -148,18 +148,14 @@ defmodule Cachex.Router do
   defp result_merge(left, right) when is_boolean(left),
     do: left && right
 
+  # coveralls-ignore-start
   defp result_merge(left, right) when is_map(left) do
-    Map.merge(left, right, fn
-      :creation_date, _left, right ->
-        right
-
-      key, left, right when key in [:hit_rate, :miss_rate] ->
-        (left + right) / 2
-
-      _key, left, right ->
-        result_merge(left, right)
+    Map.merge(left, right, fn _, left, right ->
+      result_merge(left, right)
     end)
   end
+
+  # coveralls-ignore-stop
 
   # Provides handling for local actions on this node.
   #

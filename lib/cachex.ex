@@ -201,31 +201,6 @@ defmodule Cachex do
 
       Please see the `Cachex.Spec.hook/1` documentation for further customization options.
 
-    * `:limit`
-
-      A cache limit provides a maximum size to cap the cache keyspace at. This should
-      be either a positive integer, or a valid `:limit` record provided by `Cachex.Spec`.
-      Internally a provided integer will just be coerced to a `:limit` record with some
-      default values set.
-
-          iex> import Cachex.Spec
-          ...>
-          ...> Cachex.start_link(:my_cache, [
-          ...>   # simple limit
-          ...>   limit: 500,
-          ...>
-          ...>   # complex limit
-          ...>   limit: limit(
-          ...>     size: 500,
-          ...>     policy: Cachex.Policy.LRW,
-          ...>     reclaim: 0.5,
-          ...>     options: []
-          ...>   )
-          ...> ])
-          { :ok, _pid }
-
-      Please see the `Cachex.Spec.limit/1` documentation for further customization options.
-
     * `:ordered`
 
       This option will specify whether this cache should enable ETS ordering, which can
@@ -1145,12 +1120,6 @@ defmodule Cachex do
 
   This will only provide statistics if the `:stats` option was
   provided on cache startup in `start_link/2`.
-
-  ## Options
-
-    * `:for`
-
-      Allows customization of exactly which statistics to retrieve.
 
   ## Examples
 

@@ -16,9 +16,6 @@ defmodule Cachex.SpecTest do
   test "default hooks record values",
     do: assert(hooks() == {:hooks, [], []})
 
-  test "default limit record values",
-    do: assert(limit() == {:limit, nil, Cachex.Policy.LRW, 0.1, []})
-
   test "generating constants via macros" do
     assert const(:local) == [local: true]
     assert const(:notify_false) == [notify: false]

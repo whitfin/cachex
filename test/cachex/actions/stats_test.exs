@@ -6,7 +6,12 @@ defmodule Cachex.Actions.StatsTest do
   # filtered by the provided flags in order to customize output correctly.
   test "retrieving stats for a cache" do
     # create a test cache
-    cache = TestUtils.create_cache(stats: true)
+    cache =
+      TestUtils.create_cache(
+        hooks: [
+          hook(module: Cachex.Stats)
+        ]
+      )
 
     # retrieve current time
     ctime = now()
@@ -48,11 +53,14 @@ defmodule Cachex.Actions.StatsTest do
   # values, to avoid arithmetic errors. We very 100% hit/miss rates, as well as
   # 50% either way.
   test "retrieving different rate combinations" do
+    # create a stats hook
+    hook = hook(module: Cachex.Stats)
+
     # create test caches
-    cache1 = TestUtils.create_cache(stats: true)
-    cache2 = TestUtils.create_cache(stats: true)
-    cache3 = TestUtils.create_cache(stats: true)
-    cache4 = TestUtils.create_cache(stats: true)
+    cache1 = TestUtils.create_cache(hooks: [hook])
+    cache2 = TestUtils.create_cache(hooks: [hook])
+    cache3 = TestUtils.create_cache(hooks: [hook])
+    cache4 = TestUtils.create_cache(hooks: [hook])
 
     # set cache1 to 100% misses
     {:ok, nil} = Cachex.get(cache1, 1)
