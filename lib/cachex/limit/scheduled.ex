@@ -7,6 +7,23 @@ defmodule Cachex.Limit.Scheduled do
   accuracy as `Cachex.Policy.LRW.Evented`, but has potential for some delay. The
   main advantage of this implementation is a far lower memory cost due to not
   using hook messages.
+
+  ## Initialization
+
+      hook(module: Cachex.Limit.Scheduled, args: {
+        500,  # setting cache max size
+        [],   # options for `Cachex.prune/3`
+        []    # options for `Cachex.Limit.Scheduled`
+      })
+
+  ## Options
+
+    * `:frequency`
+
+      The polling frequency for this hook to use when scheduling cache pruning.
+      This should be an non-negative number of milliseconds. Defaults to `1000`,
+      which is once per second.
+
   """
   use Cachex.Hook
 

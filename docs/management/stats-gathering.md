@@ -54,5 +54,3 @@ The statistics map returned by `Cachex.stats/2` should look something like the e
 As you can see, we see the breakdown of calls to the cache, the hit/miss rate, the total writes to a cache, etc. This is useful when gauging how much time your cache is actually saving and allows you to determine that everything is working as intended.
 
 It should be noted that the output format of `Cachex.stats/2` is *not* considered part of the Public API for backwards compatibility; the shape of this may change as and when it's necessary to do so.
-
-

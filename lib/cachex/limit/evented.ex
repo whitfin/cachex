@@ -7,6 +7,14 @@ defmodule Cachex.Limit.Evented do
   way. This policy enforces cache bounds and limits far more accurately than other
   scheduled implementations, but comes at a higher memory cost (due to the message
   passing between hooks).
+
+  ## Initialization
+
+      hook(module: Cachex.Limit.Evented, args: {
+        500,  # setting cache max size
+        []    # options for `Cachex.prune/3`
+      })
+
   """
   use Cachex.Hook
 
