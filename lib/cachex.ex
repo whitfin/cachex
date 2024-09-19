@@ -229,17 +229,6 @@ defmodule Cachex do
 
       Please see the `Cachex.Spec.router/1` documentation for further customization options.
 
-    * `:stats`
-
-      This option can be used to toggle statistics gathering for a cache. This is a
-      shorthand option to avoid attaching the `Cachex.Stats` hook manually. Statistics
-      gathering has very minor overhead due to being implemented as a hook,
-
-      Stats can be retrieve from a running cache by using `Cachex.stats/2`.
-
-          iex> Cachex.start_link(:my_cache, [ stats: true ])
-          { :ok, _pid }
-
     * `:transactions`
 
       This option will specify whether this cache should have transactions and row
