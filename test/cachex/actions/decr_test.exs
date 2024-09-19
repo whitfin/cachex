@@ -12,7 +12,7 @@ defmodule Cachex.Actions.DecrTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # define write options
-    opts1 = [initial: 10]
+    opts1 = [default: 10]
 
     # decrement some items
     decr1 = Cachex.decr(cache, "key1")

@@ -400,7 +400,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:initial`
+    * `:default`
 
       An initial value to set the key to if it does not exist. This will
       take place *before* the decrement call. Defaults to 0.
@@ -415,7 +415,7 @@ defmodule Cachex do
       iex> Cachex.decr(:my_cache, "my_new_key", 5)
       { :ok, 5 }
 
-      iex> Cachex.decr(:my_cache, "missing_key", 5, initial: 2)
+      iex> Cachex.decr(:my_cache, "missing_key", 5, default: 2)
       { :ok, -3 }
 
   """
@@ -754,7 +754,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:initial`
+    * `:default`
 
       An initial value to set the key to if it does not exist. This will
       take place *before* the increment call. Defaults to 0.
@@ -769,7 +769,7 @@ defmodule Cachex do
       iex> Cachex.incr(:my_cache, "my_new_key", 5)
       { :ok, 15 }
 
-      iex> Cachex.incr(:my_cache, "missing_key", 5, initial: 2)
+      iex> Cachex.incr(:my_cache, "missing_key", 5, default: 2)
       { :ok, 7 }
 
   """
