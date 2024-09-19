@@ -275,7 +275,7 @@ defmodule Cachex.Stats do
 
     matcher = value + amount * offset
 
-    case Options.get(options, :initial, &is_integer/1, 0) do
+    case Options.get(options, :default, &is_integer/1, 0) do
       ^matcher ->
         increment(stats, [:writes], 1)
 

@@ -12,7 +12,7 @@ defmodule Cachex.Actions.IncrTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # define write options
-    opts1 = [initial: 10]
+    opts1 = [default: 10]
 
     # increment some items
     incr1 = Cachex.incr(cache, "key1")

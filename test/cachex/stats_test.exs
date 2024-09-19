@@ -180,11 +180,11 @@ defmodule Cachex.StatsTest do
     cache = TestUtils.create_cache(stats: true)
 
     # incr values in the cache
-    {:ok, 5} = Cachex.incr(cache, 1, 3, initial: 2)
+    {:ok, 5} = Cachex.incr(cache, 1, 3, default: 2)
     {:ok, 6} = Cachex.incr(cache, 1)
 
     # decr values in the cache
-    {:ok, -5} = Cachex.decr(cache, 2, 3, initial: -2)
+    {:ok, -5} = Cachex.decr(cache, 2, 3, default: -2)
     {:ok, -6} = Cachex.decr(cache, 2)
 
     # retrieve the statistics

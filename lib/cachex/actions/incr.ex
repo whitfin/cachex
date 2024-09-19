@@ -28,16 +28,18 @@ defmodule Cachex.Actions.Incr do
   This command will return an error if called on a non-numeric value.
   """
   def execute(cache(name: name) = cache, key, amount, options) do
-    initial = Options.get(options, :initial, &is_integer/1, 0)
-    expiry = Janitor.expiration(cache, nil)
+    modify = entry_mod({:value, amount})
 
-    default = entry_now(key: key, expiration: expiry, value: initial)
+    default =
+      entry_now(
+        key: key,
+        value: Options.get(options, :default, &is_integer/1, 0),
+        expiration: Janitor.expiration(cache, nil)
+      )
 
     Locksmith.write(cache, [key], fn ->
       try do
-        name
-        |> :ets.update_counter(key, entry_mod({:value, amount}), default)
-        |> wrap(:ok)
+        {:ok, :ets.update_counter(name, key, modify, default)}
       rescue
         _ -> error(:non_numeric_value)
       end
