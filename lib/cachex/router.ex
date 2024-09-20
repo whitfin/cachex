@@ -331,9 +331,12 @@ defmodule Cachex.Router do
     end
   end
 
+  # coveralls-ignore-start
   # Catch-all just in case we missed something...
   defp route_cluster(_cache, _module, _call),
     do: error(:non_distributed)
+
+  # coveralls-ignore-stop
 
   # Calls a slot for the provided cache action if all keys slot to the same node.
   #
