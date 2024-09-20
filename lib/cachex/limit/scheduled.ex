@@ -32,13 +32,6 @@ defmodule Cachex.Limit.Scheduled do
   ######################
 
   @doc """
-  Returns the actions this policy should listen on.
-  """
-  @spec actions :: [atom]
-  def actions,
-    do: []
-
-  @doc """
   Returns the provisions this policy requires.
   """
   @spec provisions :: [atom]

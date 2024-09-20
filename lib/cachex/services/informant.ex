@@ -7,6 +7,7 @@ defmodule Cachex.Services.Informant do
   all hooks as children, as well as provide utility functions for new
   notifications being sent to child hooks for a cache.
   """
+  alias Cachex.Hook
   import Cachex.Spec
 
   ##############
@@ -21,14 +22,16 @@ defmodule Cachex.Services.Informant do
   this will skip creating an unnecessary Supervisor process.
   """
   @spec start_link(Cachex.t()) :: Supervisor.on_start()
-  def start_link(cache(hooks: hooks(pre: [], post: []))),
-    do: :ignore
+  def start_link(cache(hooks: hooks)) do
+    case Hook.concat(hooks) do
+      [] ->
+        :ignore
 
-  def start_link(cache(hooks: hooks(pre: pre, post: post))) do
-    pre
-    |> Enum.concat(post)
-    |> Enum.map(&spec/1)
-    |> Supervisor.start_link(strategy: :one_for_one)
+      li ->
+        li
+        |> Enum.map(&spec/1)
+        |> Supervisor.start_link(strategy: :one_for_one)
+    end
   end
 
   @doc """
@@ -62,13 +65,16 @@ defmodule Cachex.Services.Informant do
 
       # handling of running hooks
       hook(name: name, module: module) ->
-        # define the base payload, regardless of type
-        payload = {:cachex_notify, {action, result}}
+        # skip notifying service hooks
+        if module.type() != :service do
+          # define the base payload, regardless of type
+          payload = {:cachex_notify, {action, result}}
 
-        # handle async vs. sync
-        case module.async?() do
-          true -> send(name, payload)
-          false -> GenServer.call(name, payload, :infinity)
+          # handle async vs. sync
+          case module.async?() do
+            true -> send(name, payload)
+            false -> GenServer.call(name, payload, :infinity)
+          end
         end
     end)
   end

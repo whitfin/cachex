@@ -84,7 +84,8 @@ defmodule Cachex.Spec do
   @type hooks ::
           record(:hooks,
             pre: [hook],
-            post: [hook]
+            post: [hook],
+            service: [hook]
           )
 
   # Record specification for a router instance
@@ -213,7 +214,8 @@ defmodule Cachex.Spec do
   """
   defrecord :hooks,
     pre: [],
-    post: []
+    post: [],
+    service: []
 
   @doc """
   Creates a router record from the provided values.
