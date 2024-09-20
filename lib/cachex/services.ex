@@ -90,6 +90,19 @@ defmodule Cachex.Services do
   end
 
   @doc """
+  Returns a list of all running cache services.
+
+  This is used to view the children of the specified cache, whilst filtering
+  out any services which may not have been started based on the cache options.
+  """
+  @spec list(Cachex.t()) :: [Supervisor.Spec.spec()]
+  def list(cache(name: cache)) do
+    cache
+    |> Supervisor.which_children()
+    |> Enum.filter(&service?/1)
+  end
+
+  @doc """
   Retrieves the process identifier of the provided service.
 
   This will return `nil` if the service does not exist, or is not running.
@@ -97,21 +110,8 @@ defmodule Cachex.Services do
   @spec locate(Cachex.t(), atom) :: pid | nil
   def locate(cache() = cache, service) do
     cache
-    |> services
+    |> list
     |> find_pid(service)
-  end
-
-  @doc """
-  Returns a list of all running cache services.
-
-  This is used to view the children of the specified cache, whilst filtering
-  out any services which may not have been started based on the cache options.
-  """
-  @spec services(Cachex.t()) :: [Supervisor.Spec.spec()]
-  def services(cache(name: cache)) do
-    cache
-    |> Supervisor.which_children()
-    |> Enum.filter(&service?/1)
   end
 
   ###############

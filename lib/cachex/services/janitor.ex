@@ -111,6 +111,7 @@ defmodule Cachex.Services.Janitor do
   # need to be removed; they are then deleted by ETS at very high speeds.
   def handle_info(:purge, {cache, false, _last}) do
     started = now()
+    options = const(:local) ++ const(:notify_false)
 
     {duration, active} =
       :timer.tc(fn ->
@@ -122,7 +123,7 @@ defmodule Cachex.Services.Janitor do
           )
 
         cache
-        |> Cachex.stream!(query, const(:local) ++ const(:notify_false))
+        |> Cachex.stream!(query, options)
         |> Enum.empty?()
       end)
 

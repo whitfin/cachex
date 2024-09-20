@@ -38,7 +38,7 @@ defmodule Cachex.Services.Steward do
 
     services =
       cache
-      |> Services.services()
+      |> Services.list()
       |> Enum.filter(&filter_services/1)
 
     provisioned =
