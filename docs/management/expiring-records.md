@@ -12,9 +12,7 @@ In the current version of Cachex, the Janitor is pretty well optimized as most o
 import Cachex.Spec
 
 Cachex.start(:my_cache, [
-    expiration: expiration(
-        interval: :timer.seconds(3)
-    )
+    expiration: expiration(interval: :timer.seconds(3))
 ])
 ```
 
@@ -34,9 +32,7 @@ There is a very minimal overhead to this lazy checking, and there are cases wher
 import Cachex.Spec
 
 Cachex.start(:my_cache, [
-    expiration: expiration(
-        lazy: false
-    )
+    expiration: expiration(lazy: false)
 ])
 ```
 
@@ -61,9 +57,7 @@ import Cachex.Spec
 
 # default for all entries
 Cachex.start(:my_cache, [
-    expiration: expiration(
-        default: :timer.seconds(60)
-    )
+    expiration: expiration(default: :timer.seconds(60))
 ])
 
 # setting an expiration manually
@@ -73,7 +67,7 @@ Cachex.expire(:my_cache, "key", :timer.seconds(60))
 # using the `Cachex.put/4` shorthand rather than setting manually
 Cachex.put(:my_cache, "key", "value", expire: :timer.seconds(60))
 
-# setting expiration via lazily computed values
+# setting expiration on lazily computed values
 Cachex.fetch(:my_cache, "key", fn ->
     { :commit, "value", expire: :timer.seconds(60) }
 end)
