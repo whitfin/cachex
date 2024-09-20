@@ -89,6 +89,22 @@ defmodule Cachex.Actions.StreamTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we shouldn't be able to stream a cache on multiple nodes
-    assert(Cachex.stream(cache) == {:error, :non_distributed})
+    assert Cachex.stream(cache) == {:error, :non_distributed}
+  end
+
+  # We can force local: true to get a stream against the local node
+  @tag distributed: true
+  test "streaming is enabled in a cache cluster with local: true" do
+    # create a new cache cluster for cleaning
+    {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
+
+    # build a generic query to use later
+    query = Cachex.Query.build()
+
+    # create a cache stream with the local flag
+    stream = Cachex.stream(cache, query, local: true)
+
+    # we should be able to stream the local node
+    assert stream != {:error, :non_distributed}
   end
 end

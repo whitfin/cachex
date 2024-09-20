@@ -7,7 +7,6 @@ defmodule Cachex.Actions.Save do
   #
   # Backups can be imported again using the `Cachex.restore/3` command, and
   # should be ble to be transferred between processes and physical nodes.
-  alias Cachex.Actions.Stream, as: CachexStream
   alias Cachex.Options
   alias Cachex.Query
   alias Cachex.Router.Local
@@ -53,8 +52,15 @@ defmodule Cachex.Actions.Save do
   ###############
 
   # Use a local stream to lazily walk through records on a local cache.
-  defp init_stream(local, router, cache, batch) when local or router == Local,
-    do: CachexStream.execute(cache, Query.build(), batch_size: batch)
+  defp init_stream(local, router, cache, batch) when local or router == Local do
+    options =
+      :local
+      |> const()
+      |> Enum.concat(const(:notify_false))
+      |> Enum.concat(batch_size: batch)
+
+    Cachex.stream(cache, Query.build(), options)
+  end
 
   # Generate an export of all nodes in a distributed cluster via `Cachex.export/2`
   defp init_stream(_local, _router, cache, _batch),
