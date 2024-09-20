@@ -319,7 +319,19 @@ defmodule Cachex.Router do
   defp route_cluster(cache, module, {:transaction, [_keys | _]} = call),
     do: route_batch(cache, module, call, & &1)
 
-  # Any other actions are explicitly disabled in distributed environments.
+  # Any other actions are only available with local: true in the call
+  defp route_cluster(cache, module, {_action, arguments} = call) do
+    # all calls have options we can use
+    options = List.last(arguments)
+
+    # can force local node setting local: true
+    case Keyword.get(options, :local) do
+      true -> route_local(cache, module, call)
+      _any -> error(:non_distributed)
+    end
+  end
+
+  # Catch-all just in case we missed something...
   defp route_cluster(_cache, _module, _call),
     do: error(:non_distributed)
 

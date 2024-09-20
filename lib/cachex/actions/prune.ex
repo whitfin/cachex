@@ -7,7 +7,6 @@ defmodule Cachex.Actions.Prune do
   # exactly prune the table.
   #
   # This command is used by the various limit hooks provided by Cachex.
-  alias Cachex.Actions.Stream, as: CachexStream
   alias Cachex.Query
   alias Cachex.Services.Informant
 
@@ -88,7 +87,13 @@ defmodule Cachex.Actions.Prune do
   # naturally required when it comes to removing the document, and the touch time is
   # used to determine the sort order required for LRW.
   defp erase_lower_bound(offset, cache, batch) when offset > 0 do
-    with {:ok, stream} <- CachexStream.execute(cache, @query, batch_size: batch) do
+    options =
+      :local
+      |> const()
+      |> Enum.concat(const(:notify_false))
+      |> Enum.concat(batch_size: batch)
+
+    with {:ok, stream} <- Cachex.stream(cache, @query, options) do
       cache(name: name) = cache
 
       stream
