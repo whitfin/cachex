@@ -11,6 +11,7 @@ defmodule Cachex.Services.Steward do
   attached to a cache, without the caller having to think about it.
   """
   import Cachex.Spec
+  alias Cachex.Services
 
   # recognised
   @provisions [
@@ -33,10 +34,16 @@ defmodule Cachex.Services.Steward do
     cache(hooks: hooks(pre: pre, post: post)) = cache
     cache(warmers: warmers) = cache
 
+    services =
+      cache
+      |> Services.services()
+      |> Enum.filter(&filter_services/1)
+
     provisioned =
-      warmers
+      services
       |> Enum.concat(pre)
       |> Enum.concat(post)
+      |> Enum.concat(warmers)
       |> Enum.map(&map_names/1)
 
     for {name, mod} <- provisioned, key in mod.provisions() do
@@ -55,4 +62,16 @@ defmodule Cachex.Services.Steward do
   # Map a warmer into the name and module tuple
   defp map_names(warmer(name: name, module: module)),
     do: {name, module}
+
+  # Map a service into the name and module tuple
+  defp map_names({module, name, _tag, _id}),
+    do: {name, module}
+
+  # Filter out service modules if they don't have provisions
+  defp filter_services({module, _name, _tag, _id}) do
+    :attributes
+    |> module.__info__()
+    |> Keyword.get_values(:behaviour)
+    |> Enum.member?([Cachex.Provision])
+  end
 end
