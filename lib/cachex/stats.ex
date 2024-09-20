@@ -49,6 +49,10 @@ defmodule Cachex.Stats do
   ####################
 
   @doc false
+  def actions,
+    do: :all
+
+  @doc false
   # Initializes this hook with a new stats container.
   #
   # The `:creationDate` field is set inside the `:meta` field to contain the date

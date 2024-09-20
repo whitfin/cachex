@@ -87,7 +87,7 @@ defmodule Cachex.Spec.Validator do
     check5 = check4 and (enum?(action, &is_atom/1) or action == :all)
 
     check6 = check5 and enum?(module.provisions(), &is_atom/1)
-    check7 = check6 and module.type() in [:post, :pre]
+    check7 = check6 and module.type() in Cachex.Hook.types()
 
     check7
   end

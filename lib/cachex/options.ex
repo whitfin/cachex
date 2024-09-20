@@ -209,10 +209,14 @@ defmodule Cachex.Options do
       true ->
         type = Enum.group_by(hooks, &hook(&1, :module).type())
 
-        pre = Map.get(type, :pre, [])
-        post = Map.get(type, :post, [])
+        hooks =
+          hooks(
+            pre: Map.get(type, :pre, []),
+            post: Map.get(type, :post, []),
+            service: Map.get(type, :service, [])
+          )
 
-        cache(cache, hooks: hooks(pre: pre, post: post))
+        cache(cache, hooks: hooks)
     end
   end
 

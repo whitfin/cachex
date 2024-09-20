@@ -14,7 +14,7 @@ defmodule Cachex.SpecTest do
     do: assert(hook() == {:hook, nil, nil, nil})
 
   test "default hooks record values",
-    do: assert(hooks() == {:hooks, [], []})
+    do: assert(hooks() == {:hooks, [], [], []})
 
   test "generating constants via macros" do
     assert const(:local) == [local: true]

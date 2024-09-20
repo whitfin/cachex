@@ -10,6 +10,9 @@ defmodule Cachex.Hook do
   """
   import Cachex.Spec
 
+  # types of accepted hooks
+  @hook_types [:service, :post, :pre]
+
   #############
   # Behaviour #
   #############
@@ -17,9 +20,9 @@ defmodule Cachex.Hook do
   @doc """
   Returns the actions this hook is expected to listen on.
 
-  This will default to the atom `:all`, which signals that all actions should
-  be reported to the hook. If not this atom, an enumerable of atoms should be
-  returned.
+  This will default to an empty list, to force the developer to opt into the
+  actions they receive notifications for. If all actions should be received,
+  you can use the `:all` atom to receive everything.
   """
   @callback actions :: :all | [atom]
 
@@ -40,9 +43,10 @@ defmodule Cachex.Hook do
   Returns the type of this hook.
 
   This should return `:post` to fire after a cache action has occurred, and
-  return `:pre` if it should fire before the action occurs.
+  return `:pre` if it should fire before the action occurs. The `:quiet` type
+  is for hooks which don't listen to any broadcasts.
   """
-  @callback type :: :pre | :post
+  @callback type :: :pre | :post | :service
 
   @doc """
   Handles a cache notification.
@@ -84,7 +88,7 @@ defmodule Cachex.Hook do
 
       @doc false
       def actions,
-        do: :all
+        do: []
 
       @doc false
       def async?,
@@ -95,8 +99,12 @@ defmodule Cachex.Hook do
         do: nil
 
       @doc false
-      def type,
-        do: :post
+      def type do
+        case actions() do
+          [] -> :service
+          _ -> :post
+        end
+      end
 
       # config overrides
       defoverridable actions: 0,
@@ -158,30 +166,57 @@ defmodule Cachex.Hook do
   ##############
 
   @doc """
-  Locates a hook for a cache.
+  Concatenates all hooks in a cache.
   """
-  @spec locate(Cachex.t(), module :: atom(), type :: :all | :pre | :post) ::
-          Cachex.Spec.hook() | nil
-  def locate(cache, module, type \\ :all)
-
-  def locate(cache, module, :all) do
-    case locate(cache, module, :post) do
-      nil -> locate(cache, module, :pre)
-      val -> val
-    end
+  @spec concat(Cachex.t() | Cachex.Spec.hooks()) :: [Cachex.Spec.hook()]
+  def concat(hooks() = hooks) do
+    @hook_types
+    |> Enum.map(&for_type(hooks, &1))
+    |> Enum.concat()
   end
 
-  def locate(cache(hooks: hooks(pre: hooks)), module, :pre),
-    do: locate_hook(hooks, module)
+  def concat(cache(hooks: hooks)),
+    do: concat(hooks)
 
-  def locate(cache(hooks: hooks(post: hooks)), module, :post),
-    do: locate_hook(hooks, module)
+  @doc """
+  Locates a hook module for a cache.
+  """
+  @spec locate(Cachex.t() | Cachex.Spec.hooks(), atom(), atom()) ::
+          Cachex.Spec.hook() | nil
+  def locate(hooks, module, type \\ :all)
+
+  def locate(hooks() = hooks, module, type) do
+    hooks
+    |> concat()
+    |> Enum.find(&match_hook(&1, module, type))
+  end
+
+  def locate(cache(hooks: hooks), module, type),
+    do: locate(hooks, module, type)
+
+  @doc """
+  Retrieve all known types of hook.
+  """
+  def types(),
+    do: @hook_types
 
   ###############
   # Private API #
   ###############
 
-  # Find a hook based on module name.
-  defp locate_hook(hooks, module),
-    do: Enum.find(hooks, &match?(hook(module: ^module), &1))
+  # Hook lookup at runtime, instead of `hooks/2`.
+  for type <- @hook_types do
+    defp for_type(hooks() = hooks, unquote(type)),
+      do: hooks(hooks, unquote(type))
+  end
+
+  # Find a hook based on module name and module type.
+  defp match_hook(hook(module: module), module, :all),
+    do: true
+
+  defp match_hook(hook(module: module), module, type),
+    do: module.type() == type
+
+  defp match_hook(_hook, _module, _type),
+    do: false
 end

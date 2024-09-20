@@ -69,10 +69,9 @@ defmodule Cachex.Services do
   the Supervisor children and place them in a modified cache record.
   """
   @spec link(Cachex.t()) :: {:ok, Cachex.t()}
-  def link(cache(hooks: hooks(pre: [], post: []), warmers: []) = cache),
-    do: {:ok, cache}
+  def link(cache(hooks: hooks, warmers: warmers) = cache) do
+    hooks(pre: pre, post: post, service: service) = hooks
 
-  def link(cache(hooks: hooks(pre: pre, post: post), warmers: warmers) = cache) do
     hook_children = find_children(cache, Services.Informant)
     warmer_children = find_children(cache, Services.Incubator)
 
@@ -81,7 +80,8 @@ defmodule Cachex.Services do
         hooks:
           hooks(
             pre: attach_child(pre, hook_children),
-            post: attach_child(post, hook_children)
+            post: attach_child(post, hook_children),
+            service: attach_child(service, hook_children)
           ),
         warmers: attach_child(warmers, warmer_children)
       )
