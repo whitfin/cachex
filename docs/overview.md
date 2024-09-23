@@ -1,5 +1,4 @@
-# Cachex
-[![Build Status](https://img.shields.io/github/actions/workflow/status/whitfin/cachex/ci.yml?branch=main)](https://github.com/whitfin/cachex/actions) [![Coverage Status](https://img.shields.io/coveralls/whitfin/cachex.svg)](https://coveralls.io/github/whitfin/cachex) [![Hex.pm Version](https://img.shields.io/hexpm/v/cachex.svg)](https://hex.pm/packages/cachex) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/cachex/)
+# Getting Started
 
 Cachex is an extremely fast in-memory key/value store with support for many useful features:
 
@@ -142,33 +141,3 @@ These are just some of the conveniences made available by Cachex's API; there's 
 For further information or examples on supported features and options, please see the Cachex [documentation](https://hexdocs.pm/cachex) where there are several guides on specific features and workflows.
 
 All of the hosted documentation is also available in raw form in the [repository](https://github.com/whitfin/cachex/tree/main/docs).
-
-## Benchmarks
-
-There are some very trivial benchmarks available using [Benchee](https://github.com/PragTob/benchee) in the `benchmarks/` directory. You can run the benchmarks using the following command:
-
-```bash
-# default benchmarks
-$ mix bench
-
-# enable benchmarks for compressed tests
-$ CACHEX_BENCH_COMPRESS=true mix bench
-
-# enable benchmarks for transactional tests
-$ CACHEX_BENCH_TRANSACTIONS=true mix bench
-```
-
-Any combination of these environment variables is also possible, to allow you to test and benchmark your specific workflows.
-
-## Contributions
-
-If you feel something can be improved, or have any questions about certain behaviours or pieces of implementation, please feel free to file an issue. Proposed changes should be taken to issues before any PRs to avoid wasting time on code which might not be merged upstream.
-
-If you *do* make changes to the codebase, please make sure you test your changes thoroughly, and include any unit tests alongside new or changed behaviours. Cachex currently uses the excellent [excoveralls](https://github.com/parroty/excoveralls) to track code coverage.
-
-```bash
-$ mix test # --exclude=distributed to skip slower tests
-$ mix credo
-$ mix coveralls
-$ mix coveralls.html && open cover/excoveralls.html
-```

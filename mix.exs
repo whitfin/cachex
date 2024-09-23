@@ -27,7 +27,7 @@ defmodule Cachex.Mixfile do
       elixir: "~> 1.7",
       deps: deps(),
       docs: [
-        main: "readme",
+        main: "overview",
         source_ref: "v#{@version}",
         source_url: @url_github,
         extra_section: "guides",
@@ -46,7 +46,7 @@ defmodule Cachex.Mixfile do
           "docs/routing/distributed-caches.md",
           "docs/warming/reactive-warming.md",
           "docs/warming/proactive-warming.md",
-          "README.md"
+          "docs/overview.md"
         ],
         groups_for_extras: [
           General: Path.wildcard("docs/general/*.md"),

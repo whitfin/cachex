@@ -101,6 +101,8 @@ jobs:
         run: |
           mix docs 2>&1 | tee output.txt
           ! grep warning output.txt
+          mix run scripts/overview.exs
+          git diff --exit-code docs
 
   lint:
     name: Linting
