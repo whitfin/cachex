@@ -28,7 +28,7 @@ defmodule Cachex.Services.CourierTest do
 
     # define our task function
     task = fn ->
-      :timer.sleep(250)
+      :timer.sleep(500)
       {:commit, "my_value", expire: :timer.seconds(60)}
     end
 

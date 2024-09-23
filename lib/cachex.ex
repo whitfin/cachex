@@ -169,11 +169,11 @@ defmodule Cachex do
           ...>
           ...> Cachex.start_link(:my_cache, [
           ...>   expiration: expiration(
-          ...>     # default record expiration
-          ...>     default: :timer.seconds(60),
-          ...>
           ...>     # how often cleanup should occur
           ...>     interval: :timer.seconds(30),
+          ...>
+          ...>     # default record expiration
+          ...>     default: :timer.seconds(60),
           ...>
           ...>     # whether to enable lazy checking
           ...>     lazy: true
@@ -195,7 +195,7 @@ defmodule Cachex do
           ...>
           ...> Cachex.start_link(:my_cache, [
           ...>   hooks: [
-          ...>     hook(module: MyHook, name: :my_hook, state: { })
+          ...>     hook(module: MyHook, name: :my_hook, args: { })
           ...>   ]
           ...> ])
           { :ok, _pid }
