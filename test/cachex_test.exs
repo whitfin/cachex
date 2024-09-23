@@ -1,6 +1,5 @@
 defmodule CachexTest do
   use Cachex.Test.Case
-  import Integer
 
   # Ensures that we're able to start a cache and link it to the current process.
   # We verify the link by spawning a cache from inside another thread and making
@@ -163,7 +162,7 @@ defmodule CachexTest do
       |> Keyword.drop([:child_spec, :init, :start, :start_link])
 
     # it has to always be even (one signature creates ! versions)
-    assert(is_even(length(definitions)))
+    assert(rem(length(definitions), 2) == 0)
 
     # verify the size to cause errors on addition/removal
     assert(length(definitions) == 146)

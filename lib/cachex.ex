@@ -1129,9 +1129,12 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key1", "value1")
       iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.put(:my_cache, "key3", "value3")
+      iex> Cachex.put(:my_cache, "key3", "value3", expire: 1)
       iex> Cachex.size(:my_cache)
       { :ok, 3 }
+
+      iex> Cachex.size(:my_cache, expired: false)
+      { :ok, 2 }
 
   """
   @spec size(Cachex.t(), Keyword.t()) :: {status, number}
