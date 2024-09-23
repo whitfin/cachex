@@ -10,6 +10,9 @@ defmodule Cachex.Actions.Size do
   # advantage here is that this is O(1) at the cost of accuracy.
   import Cachex.Spec
 
+  alias Cachex.Options
+  alias Cachex.Query
+
   ##############
   # Public API #
   ##############
@@ -22,6 +25,19 @@ defmodule Cachex.Actions.Size do
   more expensive O(N) used by `count()`. Which you use depends on exactly
   what you want the returned number to represent.
   """
-  def execute(cache(name: name), _options),
+  def execute(cache(name: name), options) do
+    options
+    |> Options.get(:expired, &is_boolean/1, true)
+    |> retrieve_count(name)
+  end
+
+  defp retrieve_count(true, name),
     do: {:ok, :ets.info(name, :size)}
+
+  defp retrieve_count(false, name) do
+    filter = Query.unexpired()
+    clause = Query.build(where: filter, output: true)
+
+    {:ok, :ets.select_count(name, clause)}
+  end
 end
