@@ -25,8 +25,8 @@ defmodule Cachex do
 
   All features are optional to allow you to tune based on the throughput needed.
 
-  See `Cachex.start_link/2` for further details about how to configure these
-  options and example usage.
+  Please see `Cachex.start_link/2` inside the Cachex [documentation](https://hexdocs.pm/cachex)
+  for further details about how to configure these  options and example usage.
   """
   use Supervisor
 
