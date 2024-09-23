@@ -65,7 +65,6 @@ defmodule Cachex do
   # generate unsafe definitions
   @unsafe [
     clear: [1, 2],
-    count: [1, 2],
     decr: [2, 3, 4],
     del: [2, 3],
     empty?: [1, 2],
@@ -338,27 +337,6 @@ defmodule Cachex do
   @spec clear(Cachex.t(), Keyword.t()) :: {status, integer}
   def clear(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:clear, [options]})
-
-  @doc """
-  Retrieves the number of unexpired records in a cache.
-
-  Unlike `Cachex.size/2`, this ignores keys which should have expired. Due
-  to this taking potentially expired keys into account, it is far more
-  expensive than simply calling `Cachex.size/2` and should only be used when
-  the distinction is completely necessary.
-
-  ## Examples
-
-      iex> Cachex.put(:my_cache, "key1", "value1")
-      iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.put(:my_cache, "key3", "value3")
-      iex> Cachex.count(:my_cache)
-      { :ok, 3 }
-
-  """
-  @spec count(Cachex.t(), Keyword.t()) :: {status, number}
-  def count(cache, options \\ []) when is_list(options),
-    do: Router.route(cache, {:count, [options]})
 
   @doc """
   Decrements an entry in the cache.
@@ -1135,10 +1113,17 @@ defmodule Cachex do
   @doc """
   Retrieves the total size of a cache.
 
-  This does not take into account the expiration time of any entries
-  inside the cache. Due to this, this call is O(1) rather than the more
-  expensive O(n) algorithm used by `count/3`. Which you use depends on
-  exactly what you want the returned number to represent.
+  By default this does not take expiration time of entries inside the
+  cache into account, making it an `O(1)` call. This behaviour can be
+  modified by passing `expired: false` to account for expirations, but
+  please note that this is a much more involved calculation.
+
+  ## Options
+
+    * `:expired`
+
+      Whether or not to include expired records in the returned total. This
+      is a boolean value which defaults to `true`.
 
   ## Examples
 

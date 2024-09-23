@@ -1,16 +1,11 @@
 defmodule Cachex.Actions.SizeTest do
   use Cachex.Test.Case
 
-  # This test verifies the size of a cache. It should be noted that size is the
-  # total size of the cache, regardless of any evictions (unlike count). We make
-  # sure that evictions aren't taken into account, and that size increments as
-  # new keys are added to the cache.
+  # This test verifies the size of a cache, by checking both with
+  # and without expired records. This is controlled by `:expired`.
   test "checking the total size of a cache" do
-    # create a forwarding hook
-    hook = ForwardHook.create()
-
     # create a test cache
-    cache = TestUtils.create_cache(hooks: [hook])
+    cache = TestUtils.create_cache()
 
     # retrieve the cache size
     result1 = Cachex.size(cache)
@@ -18,35 +13,20 @@ defmodule Cachex.Actions.SizeTest do
     # it should be empty
     assert(result1 == {:ok, 0})
 
-    # verify the hooks were updated with the message
-    assert_receive({{:size, [[]]}, ^result1})
-
     # add some cache entries
     {:ok, true} = Cachex.put(cache, 1, 1)
-
-    # retrieve the cache size
-    result2 = Cachex.size(cache)
-
-    # it should show the new key
-    assert(result2 == {:ok, 1})
-
-    # verify the hooks were updated with the message
-    assert_receive({{:size, [[]]}, ^result2})
-
-    # add a final entry
     {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
 
-    # let it expire
+    # wait 2 ms to expire
     :timer.sleep(2)
 
     # retrieve the cache size
-    result3 = Cachex.size(cache)
+    result2 = Cachex.size(cache)
+    result3 = Cachex.size(cache, expired: false)
 
-    # it shouldn't care about TTL
-    assert(result3 == {:ok, 2})
-
-    # verify the hooks were updated with the message
-    assert_receive({{:size, [[]]}, ^result3})
+    # it should show the new key
+    assert(result2 == {:ok, 2})
+    assert(result3 == {:ok, 1})
   end
 
   # This test verifies that the distributed router correctly controls
