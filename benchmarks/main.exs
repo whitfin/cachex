@@ -56,7 +56,7 @@ inputs =
 Benchee.run(
   %{
     "count" => fn cache ->
-      Cachex.count(cache)
+      Cachex.size(cache, expired: false)
     end,
     "decr" => fn cache ->
       Cachex.decr(cache, "decr_test")
