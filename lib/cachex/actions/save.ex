@@ -27,16 +27,16 @@ defmodule Cachex.Actions.Save do
   interfaces.
   """
   def execute(cache(router: router(module: router)) = cache, path, options) do
-    batch = Options.get(options, :batch_size, &is_positive_integer/1, 25)
     file = File.open!(path, [:write, :compressed])
+    buffer = Options.get(options, :buffer, &is_positive_integer/1, 25)
 
     {:ok, stream} =
       options
       |> Keyword.get(:local)
-      |> init_stream(router, cache, batch)
+      |> init_stream(router, cache, buffer)
 
     stream
-    |> Stream.chunk_every(batch)
+    |> Stream.chunk_every(buffer)
     |> Stream.map(&handle_batch/1)
     |> Enum.each(&IO.binwrite(file, &1))
 
@@ -52,23 +52,24 @@ defmodule Cachex.Actions.Save do
   ###############
 
   # Use a local stream to lazily walk through records on a local cache.
-  defp init_stream(local, router, cache, batch) when local or router == Local do
+  defp init_stream(local, router, cache, buffer)
+       when local or router == Local do
     options =
       :local
       |> const()
       |> Enum.concat(const(:notify_false))
-      |> Enum.concat(batch_size: batch)
+      |> Enum.concat(buffer: buffer)
 
     Cachex.stream(cache, Query.build(), options)
   end
 
   # Generate an export of all nodes in a distributed cluster via `Cachex.export/2`
-  defp init_stream(_local, _router, cache, _batch),
+  defp init_stream(_local, _router, cache, _buffer),
     do: Cachex.export(cache, const(:notify_false))
 
   # Handle a batch of records and generate a binary of each.
-  defp handle_batch(batch) do
-    Enum.reduce(batch, <<>>, fn tuple, acc ->
+  defp handle_batch(buffer) do
+    Enum.reduce(buffer, <<>>, fn tuple, acc ->
       binary = :erlang.term_to_binary(tuple)
       size = byte_size(binary)
       acc <> <<size::24-unsigned>> <> binary

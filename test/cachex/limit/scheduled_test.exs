@@ -42,8 +42,8 @@ defmodule Cachex.Limit.ScheduledTest do
             args: {
               100,
               [
-                reclaim: 0.75,
-                batch_size: 25
+                buffer: 25,
+                reclaim: 0.75
               ],
               [
                 frequency: 100

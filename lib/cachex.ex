@@ -883,7 +883,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:batch_size`
+    * `:buffer`
 
       Allows customization of the internal batching when paginating the cursor
       coming back from ETS. It's unlikely this will ever need changing.
@@ -1114,7 +1114,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:batch_size`
+    * `:buffer`
 
       Allows customization of the internal batching when paginating the cursor
       coming back from ETS. It's unlikely this will ever need changing.
@@ -1182,7 +1182,7 @@ defmodule Cachex do
 
   ## Options
 
-    * `:batch_size`
+    * `:buffer`
 
       Allows customization of the internal batching when paginating the cursor
       coming back from ETS. It's unlikely this will ever need changing.

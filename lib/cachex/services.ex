@@ -194,7 +194,7 @@ defmodule Cachex.Services do
   # distributed cluster. A router can either be sync or async, so this
   # may not start any managed services if none are required.
   defp router_spec(cache(router: router(module: mod, options: opts)) = cache),
-    do: mod.spec(cache, opts)
+    do: mod.children(cache, opts)
 
   # Creates the required specifications for a backing cache table.
   #

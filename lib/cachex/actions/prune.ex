@@ -28,8 +28,8 @@ defmodule Cachex.Actions.Prune do
   before attempting to trim older cache entries.
   """
   def execute(cache() = cache, size, options) do
-    batch_size =
-      case Keyword.get(options, :batch_size, 100) do
+    buffer =
+      case Keyword.get(options, :buffer, 100) do
         val when val < 0 -> 100
         val -> val
       end
@@ -45,7 +45,7 @@ defmodule Cachex.Actions.Prune do
         cache_size
         |> calculate_reclaim(size, reclaim_bound)
         |> calculate_poffset(cache)
-        |> erase_lower_bound(cache, batch_size)
+        |> erase_lower_bound(cache, buffer)
         |> notify_worker(cache)
     end
 
@@ -86,12 +86,12 @@ defmodule Cachex.Actions.Prune do
   # which only selects the key and touch time as a minor optimization. The key is
   # naturally required when it comes to removing the document, and the touch time is
   # used to determine the sort order required for LRW.
-  defp erase_lower_bound(offset, cache, batch) when offset > 0 do
+  defp erase_lower_bound(offset, cache, buffer) when offset > 0 do
     options =
       :local
       |> const()
       |> Enum.concat(const(:notify_false))
-      |> Enum.concat(batch_size: batch)
+      |> Enum.concat(buffer: buffer)
 
     with {:ok, stream} <- Cachex.stream(cache, @query, options) do
       cache(name: name) = cache
@@ -105,7 +105,7 @@ defmodule Cachex.Actions.Prune do
     end
   end
 
-  defp erase_lower_bound(offset, _state, _batch),
+  defp erase_lower_bound(offset, _state, _buffer),
     do: offset
 
   # Broadcasts the number of removed entries to the cache hooks.

@@ -80,7 +80,7 @@ defmodule Cachex.Actions.PruneTest do
     {:ok, true} = Cachex.put(state, 101, 101)
 
     # trigger the cache pruning down to 100 records
-    {:ok, true} = Cachex.prune(cache, 100, reclaim: 0.3, batch_size: -1)
+    {:ok, true} = Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1)
 
     # verify the cache shrinks to 51%
     assert Cachex.size(state) == {:ok, 51}

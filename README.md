@@ -18,7 +18,7 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
 
-## Installation
+## Usage
 
 As of v0.8, Cachex is available on [Hex](https://hex.pm/). You can install the package via:
 
@@ -27,8 +27,6 @@ def deps do
   [{:cachex, "~> 3.6"}]
 end
 ```
-
-## Usage
 
 In general use of Cachex, you'll likely only need to add your cache as a child of your application. If you created your project via `Mix`, this is usually handled in `lib/my_app/application.ex`:
 

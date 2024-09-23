@@ -42,7 +42,7 @@ defmodule Cachex.Router do
   @doc """
   Create a child specification to back a routing state.
   """
-  @callback spec(cache :: Cachex.t(), options :: Keyword.t()) ::
+  @callback children(cache :: Cachex.t(), options :: Keyword.t()) ::
               Supervisor.child_spec()
 
   ##################
@@ -59,11 +59,11 @@ defmodule Cachex.Router do
         do: nil
 
       @doc false
-      def spec(cache, options),
+      def children(cache, options),
         do: []
 
       # state modifiers are overridable
-      defoverridable init: 2, spec: 2
+      defoverridable init: 2, children: 2
     end
   end
 

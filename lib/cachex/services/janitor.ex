@@ -119,7 +119,7 @@ defmodule Cachex.Services.Janitor do
           Query.build(
             where: {:not, {:==, :expiration, nil}},
             output: true,
-            batch_size: 1
+            buffer: 1
           )
 
         cache

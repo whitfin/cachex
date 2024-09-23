@@ -34,7 +34,7 @@ defmodule Cachex.Actions.Stream do
     case :ets.test_ms(@test, spec) do
       {:ok, _result} ->
         options
-        |> Options.get(:batch_size, &is_positive_integer/1, 25)
+        |> Options.get(:buffer, &is_positive_integer/1, 25)
         |> init_stream(name, spec)
         |> wrap(:ok)
 
@@ -51,7 +51,7 @@ defmodule Cachex.Actions.Stream do
   #
   # Each time more items are requested we pull another batch of entries until
   # the cursor is spent, in which case we halt the stream and kill the cursor.
-  defp init_stream(batch, name, spec) do
+  defp init_stream(buffer, name, spec) do
     Stream.resource(
       fn -> :"$start_of_table" end,
       fn
@@ -62,7 +62,7 @@ defmodule Cachex.Actions.Stream do
         # we're starting!
         :"$start_of_table" ->
           name
-          |> :ets.select(spec, batch)
+          |> :ets.select(spec, buffer)
           |> handle_continue()
 
         # we're continuing!
