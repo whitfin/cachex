@@ -5,11 +5,12 @@ defmodule Cachex.Actions.Size do
   # This command uses the built in ETS utilities to retrieve the number of
   # entries currently in the backing cache table.
   #
-  # Retrieving the size of the cache won't take expiration times into account;
-  # if this is desired the `count()` command should be used instead. The main
-  # advantage here is that this is O(1) at the cost of accuracy.
+  # A cache's size does not take expiration times into account by default,
+  # as the true size can hold records which haven't been purged yet. This
+  # can be controlled via options to this action.
   import Cachex.Spec
 
+  # add some aliases
   alias Cachex.Options
   alias Cachex.Query
 
@@ -20,10 +21,9 @@ defmodule Cachex.Actions.Size do
   @doc """
   Retrieves the size of the cache.
 
-  The size represents the total size of the internal keyspace, ignoring any
-  expirations set on entries. As such, this call is O(1) rather than the
-  more expensive O(N) used by `count()`. Which you use depends on exactly
-  what you want the returned number to represent.
+  You can use the `:expired` option to determine whether record expirations
+  should be taken into account. The default value of this is `:true` as it's
+  a much cheaper operation.
   """
   def execute(cache(name: name), options) do
     options
@@ -31,9 +31,15 @@ defmodule Cachex.Actions.Size do
     |> retrieve_count(name)
   end
 
+  ###############
+  # Private API #
+  ###############
+
+  # Retrieve the full table count.
   defp retrieve_count(true, name),
     do: {:ok, :ets.info(name, :size)}
 
+  # Retrieve only the unexpired table count.
   defp retrieve_count(false, name) do
     filter = Query.unexpired()
     clause = Query.build(where: filter, output: true)
