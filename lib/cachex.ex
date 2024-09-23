@@ -13,19 +13,21 @@ defmodule Cachex do
   - Time-based key expirations
   - Maximum size protection
   - Pre/post execution hooks
-  - Statistics gathering
-  - Multi-layered caching/key fallbacks
+  - Proactive/reactive cache warming
   - Transactions and row locking
   - Asynchronous write operations
+  - Distribution across app nodes
   - Syncing to a local filesystem
+  - Idiomatic cache streaming
+  - Batched write operations
   - User command invocation
+  - Statistics gathering
 
   All features are optional to allow you to tune based on the throughput needed.
-  See `start_link/2` for further details about how to configure these options and
-  example usage.
-  """
 
-  # main supervisor
+  See `Cachex.start_link/2` for further details about how to configure these
+  options and example usage.
+  """
   use Supervisor
 
   # add all imports
