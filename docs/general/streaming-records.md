@@ -16,10 +16,11 @@ Cachex.put(:my_cache, "one", 1)
 Cachex.put(:my_cache, "two", 2)
 Cachex.put(:my_cache, "three", 3)
 
-# == 6
-:my_cache
-|> Cachex.stream!()
-|> Enum.reduce(0, fn entry(value: value), total ->
+# create our cache stream of all records
+{ :ok, stream } = Cachex.stream(:my_cache)
+
+# sum up all the cache record values, which == 6
+Enum.reduce(stream, 0, fn entry(value: value), total ->
   total + value
 end)
 ```
@@ -54,7 +55,7 @@ query = Cachex.Query.build(where: filter, output: :value)
 
 Rather than retrieve and handle the whole cache entry, here we're using `:output` to choose only the `:value` column from each entry. This lets us skip out on `Enum.reduce/3` and go directly to `Enum.sum/1`, much easier!
 
-It's important  to note here is that cache queries do *not* distinguish between expired records in a cache; they match across all records within a cache. This is a change in Cachex v4.x to provide more flexibility in other areas of the Cachex library. If you want to filter out expired records, you can use the `Cachex.Query.expired/1` convenience function:
+It's important to note here is that cache queries do *not* distinguish between expired records in a cache; they match across all records within a cache. This is a change in Cachex v4.x to provide more flexibility in other areas of the Cachex library. If you want to filter out expired records, you can use the `Cachex.Query.expired/1` convenience function:
 
 ```elixir
 # for matching

@@ -1,31 +1,83 @@
 # Distributed Caches
 
-First introduced in the `v3.1.0` release, Cachex provides the ability to spread your caches across the nodes of an Erlang cluster. Doing this provides an easy way to share data across a cluster; for example if a cache entry is written on Node A, it's possible to retrieve it on Node B. This is accomplished via a simple table sharding algorithm which splits your cache data across nodes in the cluster based on the provided key.
+A distributed cache is a cache spanning multiple nodes which allows each individual node to store less data in memory, while maintaining the ability to access data stored on other nodes. This is all pretty transparent; in general you shouldn't have to think too much about it.
 
-## Overview
+To demonstrate how this works, let's walk through a simple scenario:
 
-Cachex intends to provide a very straightforward interface for dealing with a distributed setup; it's intended to be almost invisible to the caller as to whether their keys are coming from the local node or a remote node. When creating your cache, you simple provide a `:nodes` option which contains a list of all nodes that will run the cache. Each node provided much also be configured to run a `Cachex` instance (with the same options). If any of the nodes are unreachable, your cache will not be started and an error will be returned. To aid in the case of development, Cachex will attempt a basic `Node.connect/1` call to try to communicate with each node. In the interest of fault tolerance, you should likely use other methods of node management to handle things like partitions and reconnection as needed.
+* Let's say you have a cluster of 3 nodes
+* You write 100 keys to a cache in your application
+* You can expect e.g. ~30 keys stored on each node
+* Writing a key on Node A may actually store the value on Node B
+* Searching for that key on Node C will know to fetch it from Node B
 
-There are few rules in place for the communication with remote nodes. Any key based actions are routed to the appropriate node (whether local or remote), and any cache based actions are aggregated using the results from each individual node. As an example of this, consider that Node A may have 3 keys and Node B may have 2 keys. In this scenario, a `size/2` call will return a count of `5` automatically. If you desire to only retrieve the result from the local node, these cache based actions all support a `:local` option which, when set to `true`, will return only the result from the local node.
+The idea is that your cache is readily warm on each node in your cluster, even if the call to populate the key didn't occur on that node. If someone does an action when connected to Node A, it's placed in a hot layer accessible by both Node B and Node C even though no action was taken on either of those nodes.
 
-In the case you're using an action based on multiple keys (such as `put_many/3` or `transaction/3`), all targeted keys must live on the same target node. This is similar to the likes of [Redis](https://redis.io) where this is also the case. If you try to use either of these functions with keys which slot to different nodes, you will receive a `:cross_slot` error. As it's typically difficult to guarantee that your keys will slot to the same node, it's generally recommended to only call these functions with a single key when used in a distributed cache (and so `put_many/3` is then redundant).
+It is important to be aware that the data is **not** replicated to every node; Cachex is a caching library, not a database. A cache provides an ephemeral data layer for an application; if you need data persistence across a cluster, you should another tool.
 
-## Local Actions
+For further information on why Cachex should not be treated as a database, please see the additional context provided in [the related issue](https://github.com/whitfin/cachex/issues/246#issuecomment-2045591509).
 
-There are a few actions which will always execute locally, due to either the semantics of their execution, or restrictions on their implementation. One such example is the `inspect/3` function, which will always run on the local node. This is due to it being mainly used for debugging purposes, as it provides what is currently one of the only ways to interact with the local table when it would otherwise be routed to another node. As the inspector is more useful for development, this isn't really much of a limitation.
+## Cluster Routers
 
-Also running locally are the functions `dump/3` and `load/3`, however this might be slightly confusing at first. Running locally for these functions essentially means that all filesystem interaction happens on the local node only. However these functions still provided backup/restore functionality for a distributed cache due to how they function internally through the use of delegates. In order to serialize a cache to disk, the `dump/3` action makes use of the `export/2` action (introduced in `v3.1.0` for this reason), which *is* available across multiple nodes. Likewise, the `load/3` function uses `put/4` internally to re-import a serialized cache, which is also available across nodes. It should also be noted that because `dump/3` is a cache based action, it does also support the `:local` option.
+Distributed caches are controleld by the `Cachex.Router` implementation being used by a cache. The default router will only use the local node for key storage/retrieval, so we have to select a more appropriate router.
 
-As it stands, this is a full list of local-only functions. If more are added in future, they will be listed in this documentation.
+Cachex v4.x includes a new router based on Discord's [ex_hash_ring](https://github.com/discord/ex_hash_ring) library; this is a good router to get started with when using a distributed cache. It supports addition and removal of nodes based on OTP events, allowing for common use cases like Docker and Kubernetes.
 
-## Disabled Actions
+To use this router at startup, provide the `:router` option when you call `Cachex.start_link/2`:
 
-Due to complications with their implementation, there are a small number of actions which are currently unavailable when used in a distributed environment. They're defined below, along with reasonings as to why. It should be noted that just because certain actions are disabled currently, does not mean that they will always be disabled (although there is no guaranteed they will ever be enabled).
+```elixir
+# for records
+import Cachex.Spec
 
-One action that is likely to never be made compatible is the `stream/3` action. This is for a couple of reasons; the first being that streaming a cache across nodes doesn't really make too much sense. It would be very complex to keep track of multiple cursors on each node in order to "stream" the cache on a single node. What's more, because a `Stream` in Elixir is essentially an anonymous function, it's not trivial to even implement a stream - each call to the stream would have to RPC (one by one) to each remote node to fetch the next value. This is of course rather expensive, and so it's recommended to simply construct a list to avoid the need to stream.
+# create a cache with a ring router
+Cachex.start(:my_cache, [
+  router: router(module: Cachex.Router.Ring)
+])
+```
 
-As it stands, this is a full list of disabled functions. If more are added in future, they will be listed in this documentation.
+If you wish to customize the behaviour of the router, you can see the supported options at `Cachex.Router.Ring.init/2`. These options can be provided in the same `router` record under the `:options` key.
 
-## Passing Functions
+For example to create a ring router which listens for addition/removal of nodes, we can set the `:monitor` option:
 
-There are a few actions in Cachex which require a function as an argument. In these scenarios you should ensure to provide a reference to a function guaranteed to exist on each node. As an example, providing an inline `fn(x) -> x * 2 end` is insufficient. You should instead name the function and provide it via `&MyModule.my_fun/1`. This is due to the naming conventions of anonymous functions and they can't be guaranteed to be the same on different nodes. Named function references are fine, because even though the anonymous binding is different, it's only passing through to a named function we can guarantee is the same.
+```elixir
+# for records
+import Cachex.Spec
+
+# create a cache with a ring router
+Cachex.start(:my_cache, [
+  router: router(module: Cachex.Router.Ring, options: [
+    monitor: true
+  ])
+])
+```
+
+This option will listen to `:nodeup` and `:nodedown` events and redistribute keys around your cluster automatically; you will generally always want this enabled if you're planning to dynamically add and remove nodes from your cluster.
+
+## Distribution Rules
+
+There are a number of behavioural changes when a cache is in distributed state, and it's important to be aware of them. I realise this is a lot of information, but it's good to have it all documented.
+
+Calling other nodes is very simple when it's just retrieving a key, but there are other actions which require more handling. As an example of this, Node A may have 3 keys while Node B may have 2 keys. In this instance, a `Cachex.size/2` call will return a count of `5` automatically by merging the results from both nodes. This is transparent for convenience, and applies to all cache actions. There are cases where you may with to run something like `Cachex.size/2` on a specific node, instead of the whole cluster. For this case, all cache actions also support the `:local` option which, when set to `true`, will return only the result from the local node.
+
+In the case you're using an action which is based on multiple keys (such as `Cachex.put_many/3` or `Cachex.transaction/3`), all keys within a single call **must** live on the same destination node. This should not be surprising, and is similar to the likes of [Redis](https://redis.io) where this is also the case (at the time of writing). If you attempt to use these types of calls with keys which slot to different nodes, you will receive a `:cross_slot` error. As it's typically difficult to guarantee that your keys will slot to the same node, it's generally recommended to only call these functions with a single key when used in a distributed cache (and so `put_many/3` is then redundant).
+
+There are a small number of actions which are simply unavailable when called in a distributed environment. An example of this is `Cachex.stream/3`, where there really is no logical approach to a sane implementation. These functions can not be run inside a distributed cache, although you can still opt into running them locally via `:local`.
+
+## Referencing Functions
+
+There are several actions within Cachex which accept a function as an argument. In these cases it's necessary to provide a reference to a function which is guaranteed to exist on all nodes in a cluster.
+
+To expand on this, providing an inline function such as `fn x -> x * 2 end` will not work as expected, because it exists only on the local node. If this action is then delegated to a different node, the function no longer exists. Fortunately this is simple to work around, by instead naming the function within a module and providing it via `&MyModule.my_fun/1`.
+
+This is mainly due ot the naming conventions of anonymous functions, meaning that they cannot be guaranteed to be exactly the same on different OTP nodes. In the case of a named function, even though the anonymous binding is different, it's only passing through to a known function we can guarantee is consistent.
+
+If this doesn't make sense, just remember to use module functions rather than inlined functions!
+
+## Locally Available Actions
+
+There are a few cache actions which will always execute locally, regardless of the state of the cache. This is due to either the semantics of their execution, or simply restrictions in their implementation. A good example of this is `Cachex.inspect/3`, which is used to debug the local cache. This wouldn't make sense in a distributed cache, so it doesn't even try.
+
+Another pair of actions with this limitation are `Cachex.save/3` and `Cachex.restore/3`. Locally running these functions means that all filesystem interaction happens on the local node only, however these functions still provide save/restore functionality in a distributed cache due to how they're written internally.
+
+When saving a cache to disk, `Cachex.save/3` makes use of `Cachex.export/2` which *is* available as a distributed action. When restoring a cache from disk, the `Cachex.restore/3` function uses `Cachex.put/4` internally, which is *also* available across nodes. This may be confusing at first, but after much consideration it was determined that this was the most sane design (even if it's quite odd).
+
+It should also be noted that `Cachex.save/3` supports the `:local` option, and will pass it through to `Cachex.export/2`, making it possible to save only the data on the local node.

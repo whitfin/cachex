@@ -42,6 +42,7 @@ defmodule Cachex.Mixfile do
           "docs/management/stats-gathering.md",
           "docs/migrations/migrating-to-v3.md",
           "docs/migrations/migrating-to-v2.md",
+          "docs/routing/cache-routers.md",
           "docs/routing/distributed-caches.md",
           "docs/warming/reactive-warming.md",
           "docs/warming/proactive-warming.md",
