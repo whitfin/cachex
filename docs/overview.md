@@ -17,26 +17,26 @@ Cachex is an extremely fast in-memory key/value store with support for many usef
 
 All of these features are optional and are off by default so you can pick and choose those you wish to enable.
 
-Please see `Cachex.start_link/2` for further details about how to configure these options and example usage.
-
 ## Setting Up
 
 To get started, please add Cachex to your `mix.exs` list of dependencies and then pull it using `mix deps.get`:
 
 ```elixir
 def deps do
-  [{:cachex, "~> 4.0"}]
+  [{:cachex, "~> 3.6"}]
 end
 ```
 
-There are a couple of ways to create a cache, depending on what you're triyng to do. If you're trying out Cachex inside `iex`, you can call `Cachex.start_link/2` directly:
+Depending on what you're trying to do, there are a couple of different ways you might want to go about starting a cache.
+
+If you're testing out Cachex inside `iex`, you can call `Cachex.start_link/2` manually:
 
 ```elixir
 Cachex.start_link(:my_cache)     # with default options
 Cachex.start_link(:my_cache, []) # with custom options
 ```
 
-In other cases, you might want to start a cache within an existing supervision tree - if you created your project via `mix` with the `--sup` flag, this should be available to you inside `lib/my_app/application.ex`:
+In other cases, you might want to start a cache within an existing supervision tree. If you created your project via `mix` with the `--sup` flag, this should be available to you inside `lib/my_app/application.ex`:
 
 ```elixir
 children = [
@@ -45,11 +45,11 @@ children = [
 ]
 ```
 
-Both of these approaches work the same way; your options are parsed and your cache is started as a child under the appropriate parent process.
+Both of these approaches work the same way; your options are parsed and your cache is started as a child under the appropriate parent process. The latter is recommended for production applications, as it will ensure your cache is managed correctly inside your application.
 
 ## Basic Operations
 
-Working with a cache is very straightforward; you can do so using the cache name you provided at startup.
+Working with a cache is pretty straightforward, and basically everything is provided by the core `Cachex` module. You can make calls to a cache using the name you registered it under at startup time.
 
 Let's take a quick look at some basic calls you can make to a cache in a quick `iex` session:
 
@@ -76,7 +76,7 @@ Let's take a quick look at some basic calls you can make to a cache in a quick `
 {:ok, nil} = Cachex.get(:my_cache, "my_key")
 ```
 
-It's worth noting here that the actions supported by the Cachex API have an automatically generated "unsafe" equivalent (i.e. appended with `!`). These options will unpack the returned tuple, and return values directly.
+It's worth noting here that the actions supported by the Cachex API have an automatically generated "unsafe" equivalent (i.e. appended with `!`). These options will unpack the returned tuple, and return values directly:
 
 ```elixir
 # calling by default will return a tuple
@@ -94,13 +94,13 @@ Cachex.get!(:missing_cache, "key")
     (cachex) lib/cachex.ex:249: Cachex.get!/3
 ```
 
-The `!` version of functions exists for convenience, in particular to make chaining and assertions easier in unit testing. In general it's likely better to explicitly handle the tuples as returned by the non-`!` versions, and these functions are called by their unsafe equivalents under the hook so they're minimally faster, too.
+The `!` version of functions exists for convenience, in particular to make chaining and assertions easier in unit testing. For production use cases it's recommended to avoid `!` wrappers, and instead explicitly handle the different response types.
 
 ## Advanced Operations
 
-Beyond the typical get/set semantics of a cache, Cachex offers many additional features.
+Beyond the typical get/set semantics of a cache, Cachex offers many additional features to help with typical use cases and access patterns a developer may meeting during their day-to-day.
 
-While the list is too long to cover everything in detail here, let's take a look at some of the most common cache actions:
+While the list is too long to properly cover everything in detail here, let's take a look at some of the most common cache actions:
 
 ```elixir
 # create a default cache in our shell session
@@ -113,7 +113,7 @@ While the list is too long to cover everything in detail here, let's take a look
     {"key3", 3}
 ])
 
-# now let's do an atomic update operation against they key in the cache
+# now let's do an atomic update operation against the key in the cache
 {:commit, 2} = Cachex.get_and_update(:my_cache, "key1", fn value ->
     value + 1
 end)
@@ -136,7 +136,7 @@ end)
 {:ok, nil} = Cachex.get(:my_cache, "secret_mission")
 ```
 
-These are just some of the conveniences made available by Cachex's API; there's a bunch of other fun stuff over in the `Cachex` API, covering a broad range of patterns and use cases.
+These are just some of the conveniences made available by Cachex's API, but there's a still a bunch of other fun stuff in the `Cachex` API, covering a broad range of patterns and use cases.
 
 For further information or examples on supported features and options, please see the Cachex [documentation](https://hexdocs.pm/cachex) where there are several guides on specific features and workflows.
 
