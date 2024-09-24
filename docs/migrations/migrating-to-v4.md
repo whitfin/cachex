@@ -113,3 +113,5 @@ There are a few other small changes which don't really need much explanation, bu
 The minimum supported Elixir version has been raised from Elixir 1.5 to Elixir 1.7. In reality there are probably very few people out there still using Elixir 1.7 and it could be raised further, but there's also nothing really compelling enough to make this happen at this time.
 
 A lot of the record types in Cachex v4 had their orders changed, so if anyone was matching directly (instead of using record syntax) they should adapt to using `entry(entry, :field)` instead.
+
+The former `ExecutionError` has been replaced with `Cachex.Error`, which is a combination of several smaller modules. This is just a naming difference to hopefully make it easier to type and rememeber!
