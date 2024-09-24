@@ -1,12 +1,9 @@
 defmodule Cachex.Actions do
-  @moduledoc """
-  Parent actions module for cache interactions.
-
-  This module contains foundation actions required to implement cache actions,
-  such as typical CRUD style operations on cache entries. It also provides the
-  `defaction/2` macro which enables command definition which injects notifications
-  for cache hooks.
-  """
+  @moduledoc false
+  # Parent actions module for cache interactions.
+  #
+  # This module contains foundation actions required to implement cache actions,
+  # such as typical CRUD style operations on cache entries.
   import Cachex.Spec
 
   # add some aliases

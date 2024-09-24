@@ -48,7 +48,7 @@ defmodule Cachex.Error do
   The provided error key must be contained in the list of known
   identifiers returned be `known/0`, otherwise this call will fail.
   """
-  @spec error(atom) :: {:error, atom}
+  @spec error(shortname :: atom) :: {:error, shortname :: atom}
   defmacro error(key) when key in @known_errors,
     do: quote(do: {:error, unquote(key)})
 
@@ -59,7 +59,7 @@ defmodule Cachex.Error do
   @doc """
   Returns the list of known error keys.
   """
-  @spec known :: [atom]
+  @spec known :: [shortname :: atom]
   def known,
     do: @known_errors
 
@@ -70,7 +70,7 @@ defmodule Cachex.Error do
   list of errors returned by `known/0`. The return type from this
   function will always be a binary.
   """
-  @spec long_form(atom) :: binary
+  @spec long_form(shortname :: atom) :: description :: binary
   def long_form(:cross_slot),
     do: "Target keys do not live on the same node"
 

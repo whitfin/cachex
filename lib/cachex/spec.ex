@@ -304,16 +304,14 @@ defmodule Cachex.Spec do
   # Constants #
   #############
 
-  @doc """
-  Inserts constant values by a provided key.
-
-  Constants are meant to only be used internally as they may change without
-  warning, but they are exposed as part of the spec interface all the same.
-
-  Constant blocks can use other constants in their definitions (as it's all
-  just macros under the hood, and happens at compile time).
-  """
-  @spec const(atom) :: any
+  @doc false
+  # Inserts constant values by a provided key.
+  #
+  # Constants are meant to only be used internally as they may change without
+  # warning, but they are exposed as part of the spec interface all the same.
+  #
+  # Constant blocks can use other constants in their definitions (as it's all
+  # just macros under the hood, and happens at compile time).
   defmacro const(key)
 
   # Constant to only run locally.
@@ -357,19 +355,17 @@ defmodule Cachex.Spec do
   # Entry Generation #
   ####################
 
-  @doc """
-  Retrieves the ETS index for an entry field.
-  """
+  @doc false
+  # Retrieves the ETS index for an entry field.
   @spec entry_idx(atom) :: integer
   defmacro entry_idx(key),
     do: quote(do: entry(unquote(key)) + 1)
 
-  @doc """
-  Generates an ETS modification Tuple for entry field/value pairs.
-
-  This will convert the entry field name to the ETS index under the
-  hood, and return it inside a Tuple with the provided value.
-  """
+  @doc false
+  # Generates an ETS modification Tuple for entry field/value pairs.
+  #
+  # This will convert the entry field name to the ETS index under the
+  # hood, and return it inside a Tuple with the provided value.
   @spec entry_mod({atom, any}) :: {integer, any}
   defmacro entry_mod({key, val}),
     do: quote(do: {entry_idx(unquote(key)), unquote(val)})
@@ -381,23 +377,21 @@ defmodule Cachex.Spec do
         do: quote(do: entry_mod(unquote(pair)))
       )
 
-  @doc """
-  Generates a list of ETS modification Tuples with an updated touch time.
-
-  This will pass the arguments through and behave exactly as `entry_mod/1`
-  except that it will automatically update the `:modified` field in the entry
-  to the current time.
-  """
+  @doc false
+  # Generates a list of ETS modification Tuples with an updated touch time.
+  #
+  # This will pass the arguments through and behave exactly as `entry_mod/1`
+  # except that it will automatically update the `:modified` field in the entry
+  # to the current time.
   @spec entry_mod_now([{atom, any}]) :: [{integer, any}]
   defmacro entry_mod_now(pairs \\ []),
     do: quote(do: entry_mod(unquote([modified: quote(do: now())] ++ pairs)))
 
-  @doc """
-  Creates an entry record with an updated touch time.
-
-  This delegates through to `entry/1`, but ensures that the `:modified` field is
-  set to the current time as a millisecond timestamp.
-  """
+  @doc false
+  # Creates an entry record with an updated touch time.
+  #
+  # This delegates through to `entry/1`, but ensures that the `:modified` field is
+  # set to the current time as a millisecond timestamp.
   @spec entry_now([{atom, any}]) :: [{integer, any}]
   defmacro entry_now(pairs \\ []),
     do: quote(do: entry(unquote([modified: quote(do: now())] ++ pairs)))
@@ -406,13 +400,12 @@ defmodule Cachex.Spec do
   # Services #
   ############
 
-  @doc """
-  Generates a service call for a cache.
-
-  This will generate the service name for the provided cache and call
-  the service with the provided message. The timeout for these service
-  calls is `:infinity` as they're all able to block the caller.
-  """
+  @doc false
+  # Generates a service call for a cache.
+  #
+  # This will generate the service name for the provided cache and call
+  # the service with the provided message. The timeout for these service
+  # calls is `:infinity` as they're all able to block the caller.
   @spec service_call(cache, atom, any) :: any
   defmacro service_call(cache, service, message) when service in @services do
     quote do
@@ -428,40 +421,35 @@ defmodule Cachex.Spec do
   # Utilities #
   #############
 
-  @doc """
-  Determines if a value is a negative integer.
-  """
+  @doc false
+  # Determines if a value is a negative integer.
   @spec is_negative_integer(integer) :: boolean
   defmacro is_negative_integer(integer),
     do: quote(do: is_integer(unquote(integer)) and unquote(integer) < 0)
 
-  @doc """
-  Determines if a value is a positive integer.
-  """
+  @doc false
+  # Determines if a value is a positive integer.
   @spec is_positive_integer(integer) :: boolean
   defmacro is_positive_integer(integer),
     do: quote(do: is_integer(unquote(integer)) and unquote(integer) > 0)
 
-  @doc """
-  Generates a named atom for a cache, using the provided service.
-
-  The list of services is narrowly defined to avoid bloating the atom table as
-  it's not garbage collected. This macro is only used when naming services.
-  """
+  @doc false
+  # Generates a named atom for a cache, using the provided service.
+  #
+  # The list of services is narrowly defined to avoid bloating the atom table as
+  # it's not garbage collected. This macro is only used when naming services.
   @spec name(atom | binary, atom) :: atom
   defmacro name(name, service) when service in @services,
     do: quote(do: :"#{unquote(name)}_#{unquote(service)}")
 
-  @doc """
-  Retrieves the current system time in milliseconds.
-  """
+  @doc false
+  # Retrieves the current system time in milliseconds.
   @spec now :: integer
   defmacro now,
     do: quote(do: :os.system_time(1000))
 
-  @doc """
-  Checks if a nillable value satisfies a provided condition.
-  """
+  @doc false
+  # Checks if a nillable value satisfies a provided condition.
   @spec nillable?(any, (any -> boolean)) :: boolean
   defmacro nillable?(nillable, condition),
     do:
@@ -471,16 +459,14 @@ defmodule Cachex.Spec do
             apply(unquote(condition), [unquote(nillable)])
       )
 
-  @doc """
-  Adds a :via delegation to a Keyword List.
-  """
+  @doc false
+  # Adds a :via delegation to a Keyword List.
   @spec via(atom, Keyword.t()) :: Keyword.t()
   defmacro via(action, options),
     do: quote(do: [{:via, unquote(action)} | unquote(options)])
 
-  @doc """
-  Wraps a value inside a tagged Tuple using the provided tag.
-  """
+  @doc false
+  # Wraps a value inside a tagged Tuple using the provided tag.
   @spec wrap(any, atom) :: {atom, any}
   defmacro wrap(value, tag) when is_atom(tag),
     do: quote(do: {unquote(tag), unquote(value)})

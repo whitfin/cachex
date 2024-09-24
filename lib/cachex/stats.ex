@@ -33,7 +33,7 @@ defmodule Cachex.Stats do
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec for_cache(Cachex.t()) :: {:ok, map()} | {:error, atom()}
+  @spec for_cache(cache :: Cachex.t()) :: {:ok, map()} | {:error, atom()}
   def for_cache(cache() = cache) do
     case Hook.locate(cache, __MODULE__) do
       nil ->

@@ -22,7 +22,7 @@ defmodule Cachex.Provision do
   This should always return an enumerable of atoms; in the case of no required
   provisions an empty enumerable should be returned.
   """
-  @callback provisions :: [atom]
+  @callback provisions :: [type :: atom]
 
   @doc """
   Handles a provisioning call.
@@ -31,7 +31,10 @@ defmodule Cachex.Provision do
   provisioned along with the value itself. This can be used to listen on
   states required for hook executions (such as cache records).
   """
-  @callback handle_provision({atom, any}, any) :: {:ok, any}
+  @callback handle_provision(
+              provison :: {type :: atom, value :: any},
+              state :: any
+            ) :: {:ok, state :: any}
 
   ##################
   # Implementation #

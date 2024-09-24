@@ -55,7 +55,12 @@ defmodule Cachex.Hook do
   second argument being the results of the action (this can be nil for hooks)
   which fire before the action is executed.
   """
-  @callback handle_notify(tuple, tuple, any) :: {:ok, any}
+  @callback handle_notify(
+              action :: {action :: atom, args :: list},
+              result :: {status :: atom, value :: any},
+              state :: any
+            ) ::
+              {:ok, any}
 
   ##################
   # Implementation #
