@@ -1,16 +1,15 @@
 defmodule Cachex.Services.Courier do
-  @moduledoc """
-  Dispatch service to retrieve values from remote calls.
-
-  The Courier provides the main implementation for fallbacks triggered
-  by calls to the `fetch()` command. It acts as a synchronized execution
-  for tasks to avoid duplicating calls when loading.
-
-  The Courier uses a very simple algorithm to determine when to execute
-  a fallback, so there's very little overhead to synchronizing calls
-  through it. As tasks are dispatched via spawned processes, there's
-  very little action actually happening in the service process itself.
-  """
+  @moduledoc false
+  # Dispatch service to retrieve values from remote calls.
+  #
+  # The Courier provides the main implementation for fallbacks triggered
+  # by calls to the `fetch()` command. It acts as a synchronized execution
+  # for tasks to avoid duplicating calls when loading.
+  #
+  # The Courier uses a very simple algorithm to determine when to execute
+  # a fallback, so there's very little overhead to synchronizing calls
+  # through it. As tasks are dispatched via spawned processes, there's
+  # very little action actually happening in the service process itself.
   use GenServer
 
   # import spec macros
@@ -20,7 +19,6 @@ defmodule Cachex.Services.Courier do
   alias Cachex.Actions
   alias Cachex.Actions.Get
   alias Cachex.Actions.Put
-  alias Cachex.ExecutionError
 
   ##############
   # Public API #
@@ -85,7 +83,7 @@ defmodule Cachex.Services.Courier do
                     e ->
                       {
                         :error,
-                        %ExecutionError{
+                        %Cachex.Error{
                           message: Exception.message(e),
                           stack: __STACKTRACE__ ++ stack
                         }

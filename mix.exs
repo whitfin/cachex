@@ -40,6 +40,7 @@ defmodule Cachex.Mixfile do
           "docs/management/limiting-caches.md",
           "docs/management/expiring-records.md",
           "docs/management/stats-gathering.md",
+          "docs/migrations/migrating-to-v4.md",
           "docs/migrations/migrating-to-v3.md",
           "docs/migrations/migrating-to-v2.md",
           "docs/routing/cache-routers.md",

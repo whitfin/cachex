@@ -1,4 +1,4 @@
-defmodule Cachex.ErrorsTest do
+defmodule Cachex.ErrorTest do
   use Cachex.Test.Case
 
   # This test ensures the integrity of all Error functions and forms. We iterate
@@ -30,19 +30,32 @@ defmodule Cachex.ErrorsTest do
     # validate all error pairs
     for {err, msg} <- errors do
       # retrieve the long form
-      long_form = Cachex.Errors.long_form(err)
+      long_form = Cachex.Error.long_form(err)
 
       # verify the message returned
       assert(long_form == msg)
     end
 
     # make sure we're not missing any error definitions
-    assert(length(Cachex.Errors.known()) == length(errors))
+    assert(length(Cachex.Error.known()) == length(errors))
   end
 
   # This just ensures that unrecognised errors are simply
   # echoed back without change, in case of unknown errors.
   test "unknown error echoing" do
-    assert(Cachex.Errors.long_form(:nodedown) == :nodedown)
+    assert(Cachex.Error.long_form(:nodedown) == :nodedown)
+  end
+
+  # This test just validates the default error message against an Error.
+  # There is nothing more to validate beyond the returned message.
+  test "raising a default error" do
+    raise Cachex.Error
+  rescue
+    e ->
+      # capture the error message
+      msg = Exception.message(e)
+
+      # ensure the message is valid
+      assert(msg == "Error during cache action")
   end
 end

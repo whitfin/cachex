@@ -1,12 +1,11 @@
 defmodule Cachex.Services do
-  @moduledoc """
-  Service specification provider for Cachex caches.
-
-  Services can either exist for the global Cachex application or on
-  a cache level. This module provides access to both in an attempt
-  to group all logic into one place to make it easier to see exactly
-  what exists against a cache and what doesn't.
-  """
+  @moduledoc false
+  # Service specification provider for Cachex caches.
+  #
+  # Services can either exist for the global Cachex application or on
+  # a cache level. This module provides access to both in an attempt
+  # to group all logic into one place to make it easier to see exactly
+  # what exists against a cache and what doesn't.
   import Cachex.Spec
 
   # add some aliases

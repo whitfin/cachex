@@ -12,7 +12,7 @@ defmodule Cachex.Actions.Save do
   alias Cachex.Router.Local
 
   # import our macros
-  import Cachex.Errors
+  import Cachex.Error
   import Cachex.Spec
 
   ##############

@@ -10,8 +10,8 @@ defmodule Cachex.Actions.Incr do
   alias Cachex.Services.Locksmith
 
   # we need some imports
-  import Cachex.Errors
   import Cachex.Spec
+  import Cachex.Error
 
   ##############
   # Public API #

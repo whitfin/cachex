@@ -1,12 +1,11 @@
 defmodule Cachex.Services.Informant do
-  @moduledoc """
-  Parent module for all child hook definitions for a cache.
-
-  This module will control the supervision tree for all hooks that are
-  associated with a cache. The links inside will create a tree to hold
-  all hooks as children, as well as provide utility functions for new
-  notifications being sent to child hooks for a cache.
-  """
+  @moduledoc false
+  # Parent module for all child hook definitions for a cache.
+  #
+  # This module will control the supervision tree for all hooks that are
+  # associated with a cache. The links inside will create a tree to hold
+  # all hooks as children, as well as provide utility functions for new
+  # notifications being sent to child hooks for a cache.
   alias Cachex.Hook
   import Cachex.Spec
 

@@ -14,8 +14,8 @@ defmodule Cachex.Stats do
   alias Cachex.Hook
 
   # need our macros
+  import Cachex.Error
   import Cachex.Spec
-  import Cachex.Errors
 
   # add our aliases
   alias Cachex.Options

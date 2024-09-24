@@ -27,9 +27,7 @@ def deps do
 end
 ```
 
-Depending on what you're trying to do, there are a couple of different ways you might want to go about starting a cache.
-
-If you're testing out Cachex inside `iex`, you can call `Cachex.start_link/2` manually:
+Depending on what you're trying to do, there are a couple of different ways you might want to go about starting a cache. If you're testing out Cachex inside `iex`, you can call `Cachex.start_link/2` manually:
 
 ```elixir
 Cachex.start_link(:my_cache)     # with default options

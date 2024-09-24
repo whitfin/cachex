@@ -11,8 +11,8 @@ defmodule Cachex.Actions.Invoke do
   alias Cachex.Services.Locksmith
 
   # add our imports
-  import Cachex.Errors
   import Cachex.Spec
+  import Cachex.Error
 
   ##############
   # Public API #

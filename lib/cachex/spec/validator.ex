@@ -1,13 +1,12 @@
 defmodule Cachex.Spec.Validator do
-  @moduledoc """
-  Validation module for records defined in the specification.
-
-  This module just exposes runtime validation functions for records defined
-  in the spec; records themselves only determine keys and structure but cannot
-  enforce type (that I know of) without additional runtime validations.
-
-  This shouldn't be used outside of the library, but it can be if required.
-  """
+  @moduledoc false
+  # Validation module for records defined in the specification.
+  #
+  # This module just exposes runtime validation functions for records defined
+  # in the spec; records themselves only determine keys and structure but cannot
+  # enforce type (that I know of) without additional runtime validations.
+  #
+  # This shouldn't be used outside of the library, but it can be if required.
   import Cachex.Spec
 
   # internal spec to refer to each record type

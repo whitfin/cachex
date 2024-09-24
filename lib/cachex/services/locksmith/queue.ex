@@ -1,15 +1,14 @@
 defmodule Cachex.Services.Locksmith.Queue do
-  @moduledoc """
-  Transaction queue backing a cache instance.
-
-  This has to live outside of the `Cachex.Services.Locksmith` global process
-  as otherwise caches would then compete with each other for resources which
-  is far from optimal.
-
-  Each cache will therefore have their own queue process, represented in this
-  module, and will operate using the utilities provided in the main Locksmith
-  service module (rather than using this module directly).
-  """
+  @moduledoc false
+  # Transaction queue backing a cache instance.
+  #
+  # This has to live outside of the `Cachex.Services.Locksmith` global process
+  # as otherwise caches would then compete with each other for resources which
+  # is far from optimal.
+  #
+  # Each cache will therefore have their own queue process, represented in this
+  # module, and will operate using the utilities provided in the main Locksmith
+  # service module (rather than using this module directly).
   import Cachex.Spec
   import Cachex.Services.Locksmith
 

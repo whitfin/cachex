@@ -4,7 +4,7 @@ Cachex implements several different ways to work with key expiration, with each 
 
 ## Janitor Services
 
-The Cachex Janitor (`Cachex.Services.Janitor`) is a background process used to purge the internal cache tables periodically. The Janitor operates using a full table sweep of records to ensure consistency and correctness. As such, a Janitor sweep will run somewhat less frequently - by default only once every few seconds. This frequency can be controlled by the developer, and can be controlled on a per-cache basis.
+The Cachex Janitor is a background process used to purge the internal cache tables periodically. The Janitor operates using a full table sweep of records to ensure consistency and correctness. As such, a Janitor sweep will run somewhat less frequently - by default only once every few seconds. This frequency can be controlled by the developer, and can be controlled on a per-cache basis.
 
 In the current version of Cachex, the Janitor is pretty well optimized as most of the work happens in the ETS layer. As a rough benchmark, it can check and purge 500,000 expired records in around a second (where the removal is a majority of the work). Keep in mind that the frequency of the Janitor execution has an impact on the memory being held by the expired keyset in your cache. For most use cases the default frequency should be just fine. If you need to, you can customize the frequency on which the Janitor runs:
 

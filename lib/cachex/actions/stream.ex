@@ -8,7 +8,7 @@ defmodule Cachex.Actions.Stream do
   alias Cachex.Options
 
   # need our imports
-  import Cachex.Errors
+  import Cachex.Error
   import Cachex.Spec
 
   # our test record for testing matches when a user provides a spec

@@ -188,19 +188,19 @@ defmodule CachexTest do
     cache = TestUtils.create_cache()
 
     # validate an unsafe call to test handling
-    assert_raise(Cachex.ExecutionError, fn ->
+    assert_raise(Cachex.Error, fn ->
       Cachex.get!(:missing_cache, "key")
     end)
 
     # validate an unsafe call to test handling
-    assert_raise(Cachex.ExecutionError, fn ->
+    assert_raise(Cachex.Error, fn ->
       Cachex.transaction!(cache, ["key"], fn _key ->
         raise RuntimeError, message: "Ding dong! The witch is dead!"
       end)
     end)
 
     # validate an unsafe call to fetch handling
-    assert_raise(Cachex.ExecutionError, fn ->
+    assert_raise(Cachex.Error, fn ->
       Cachex.fetch!(cache, "key", fn _key ->
         raise RuntimeError, message: "Which old witch? The wicked witch!"
       end)

@@ -4,11 +4,10 @@ defmodule Cachex.Actions.Restore do
   #
   # Loading a cache from disk requires that it was previously saved using the
   # `Cachex.save/3` command (it does not support loading from DETS).
-  alias Cachex.Actions.Import
   alias Cachex.Options
 
   # we need our imports
-  import Cachex.Errors
+  import Cachex.Error
   import Cachex.Spec
 
   ##############
@@ -42,7 +41,7 @@ defmodule Cachex.Actions.Restore do
         &File.close/1
       )
 
-    Import.execute(cache, stream, [])
+    Cachex.import(cache, stream, const(:local) ++ const(:notify_false))
   rescue
     File.Error -> error(:unreachable_file)
   end

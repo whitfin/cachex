@@ -52,6 +52,8 @@ Cachex.start(:my_cache, [
 
 This option will listen to `:nodeup` and `:nodedown` events and redistribute keys around your cluster automatically; you will generally always want this enabled if you're planning to dynamically add and remove nodes from your cluster.
 
+You can also visit the [Cache Routers](./cache-routers.md) documentation for further information on this topic.
+
 ## Distribution Rules
 
 There are a number of behavioural changes when a cache is in distributed state, and it's important to be aware of them. I realise this is a lot of information, but it's good to have it all documented.

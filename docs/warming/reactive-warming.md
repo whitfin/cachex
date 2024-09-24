@@ -44,7 +44,7 @@ This allows you to easily lower the pressure on backing systems with very little
 
 ## Fallback Contention
 
-As of Cachex v3.x fallbacks have changed quite significantly to provide the guarantee that only a single fallback will fire for a given key, even if more processes ask for the same key before the fallback is complete. The internal `Cachex.Services.Courier` service will queue these requests up, and then resolve them all with the results retrieved by the first. This ensures that you don't have stray processes calling for the same thing (which is especially bad if they're talking to a database, etc.). You can think of this as a per-key queue at a high level, with a short circuit involved to avoid executing too often.
+As of Cachex v3.x fallbacks have changed quite significantly to provide the guarantee that only a single fallback will fire for a given key, even if more processes ask for the same key before the fallback is complete. The internal Cachex Courier service will queue these requests up, and then resolve them all with the results retrieved by the first. This ensures that you don't have stray processes calling for the same thing (which is especially bad if they're talking to a database, etc.). You can think of this as a per-key queue at a high level, with a short circuit involved to avoid executing too often.
 
 To fully understand this with an example, consider this code (even if it is a little contrived):
 

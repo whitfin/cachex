@@ -28,9 +28,7 @@ def deps do
 end
 ```
 
-Depending on what you're trying to do, there are a couple of different ways you might want to go about starting a cache.
-
-If you're testing out Cachex inside `iex`, you can call `Cachex.start_link/2` manually:
+Depending on what you're trying to do, there are a couple of different ways you might want to go about starting a cache. If you're testing out Cachex inside `iex`, you can call `Cachex.start_link/2` manually:
 
 ```elixir
 Cachex.start_link(:my_cache)     # with default options
@@ -48,7 +46,7 @@ children = [
 
 Both of these approaches work the same way; your options are parsed and your cache is started as a child under the appropriate parent process. The latter is recommended for production applications, as it will ensure your cache is managed correctly inside your application.
 
-## Basic Operations
+## Basic Examples
 
 Working with a cache is pretty straightforward, and basically everything is provided by the core `Cachex` module. You can make calls to a cache using the name you registered it under at startup time.
 
@@ -91,13 +89,13 @@ nil = Cachex.get!(:my_cache, "key")
 
 # but calling with `!` raises the error
 Cachex.get!(:missing_cache, "key")
-** (Cachex.ExecutionError) Specified cache not running
+** (Cachex.Error) Specified cache not running
     (cachex) lib/cachex.ex:249: Cachex.get!/3
 ```
 
 The `!` version of functions exists for convenience, in particular to make chaining and assertions easier in unit testing. For production use cases it's recommended to avoid `!` wrappers, and instead explicitly handle the different response types.
 
-## Advanced Operations
+## Advanced Examples
 
 Beyond the typical get/set semantics of a cache, Cachex offers many additional features to help with typical use cases and access patterns a developer may meeting during their day-to-day.
 

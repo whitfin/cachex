@@ -13,7 +13,7 @@ defmodule Cachex.Actions.Inspect do
   alias Services.Overseer
 
   # we need macros
-  import Cachex.Errors
+  import Cachex.Error
   import Cachex.Spec
 
   # define our accepted options for the inspection calls

@@ -31,7 +31,7 @@ defmodule Cachex do
   use Supervisor
 
   # add all imports
-  import Cachex.Errors
+  import Cachex.Error
   import Cachex.Spec
 
   # allow unsafe generation
@@ -39,8 +39,6 @@ defmodule Cachex do
     handler: :unwrap_unsafe
 
   # add some aliases
-  alias Cachex.Errors
-  alias Cachex.ExecutionError
   alias Cachex.Options
   alias Cachex.Query, as: Q
   alias Cachex.Router
@@ -1433,12 +1431,12 @@ defmodule Cachex do
   # remove the binding Tuples in order to allow for easy piping of
   # results from cache calls.
   defp unwrap_unsafe({:error, value}) when is_atom(value),
-    do: raise(ExecutionError, message: Errors.long_form(value))
+    do: raise(Cachex.Error, message: Cachex.Error.long_form(value))
 
   defp unwrap_unsafe({:error, value}) when is_binary(value),
-    do: raise(ExecutionError, message: value)
+    do: raise(Cachex.Error, message: value)
 
-  defp unwrap_unsafe({:error, %ExecutionError{stack: stack} = e}),
+  defp unwrap_unsafe({:error, %Cachex.Error{stack: stack} = e}),
     do: reraise(e, stack)
 
   defp unwrap_unsafe({_state, value}),

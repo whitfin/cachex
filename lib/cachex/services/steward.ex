@@ -1,15 +1,14 @@
 defmodule Cachex.Services.Steward do
-  @moduledoc """
-  Service module overseeing cache provisions.
-
-  This module controls state provision to Cachex components, such as hooks
-  and warmers. In previous versions of Cachex provisions were handled under
-  the `Cachex.Hook` behaviour, but the introduction of warmers meant that it
-  should be handled in a separate location.
-
-  This service module will handle the provision of state to relevant components
-  attached to a cache, without the caller having to think about it.
-  """
+  @moduledoc false
+  # Service module overseeing cache provisions.
+  #
+  # This module controls state provision to Cachex components, such as hooks
+  # and warmers. In previous versions of Cachex provisions were handled under
+  # the `Cachex.Hook` behaviour, but the introduction of warmers meant that it
+  # should be handled in a separate location.
+  #
+  # This service module will handle the provision of state to relevant components
+  # attached to a cache, without the caller having to think about it.
   import Cachex.Spec
 
   # convenience alias

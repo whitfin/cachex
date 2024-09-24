@@ -14,8 +14,8 @@ defmodule Cachex.Actions.PutMany do
   alias Cachex.Services.Locksmith
 
   # add our macros
-  import Cachex.Errors
   import Cachex.Spec
+  import Cachex.Error
 
   ##############
   # Public API #

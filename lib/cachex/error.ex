@@ -1,16 +1,23 @@
-defmodule Cachex.Errors do
+defmodule Cachex.Error do
   @moduledoc """
   Module containing all error definitions used in the codebase.
+
+  This module allows users to catch Cachex errors in a separate block
+  to other errors/exceptions rather than using stdlib errors:
+
+      iex> try do
+      ...>   Cachex.put!(:cache, "key", "value")
+      ...> rescue
+      ...>   e in Cachex.Error -> e
+      ...> end
 
   All error messages (both shorthand and long form) can be found in this module,
   including the ability to convert from the short form to the long form using the
   `long_form/1` function.
-
-  This module is provided to allow functions to return short errors, using the
-  easy syntax of `error(:short_name)` to generate a tuple of `{ :error, :short_name }`
-  but also to allow them to be converted to a readable form as needed, rather
-  than bloating blocks with potentially large error messages.
   """
+  defexception message: "Error during cache action", stack: nil
+
+  # all shorthands
   @known_errors [
     :cross_slot,
     :invalid_command,

@@ -68,4 +68,3 @@ Let's look at some examples of calling the new `:last` and `:lpop` commands we d
 We can see how both commands are doing their job and we're left with an empty list at the end of this snippet. At the time of writing there are no options recognised by `Cachex.invoke/4` even though there _is_ an optional fourth parameter for options, it's simply future proofing.
 
 This example does highlight one shortcoming that custom commands do have currently; it's not possible to remove an entry from the table inside a custom command yet. This may be supported in future but there's currently no real demand, and adding it would complicate the interface so it's on pause for now.
-

@@ -1,10 +1,9 @@
 defmodule Cachex.Application do
-  @moduledoc """
-  Application callback to start any global services.
-
-  This will start all needed services for Cachex using the `Cachex.Services`
-  module, rather than hardcoding any logic into this binding module.
-  """
+  @moduledoc false
+  # Application callback to start any global services.
+  #
+  # This will start all needed services for Cachex using the `Cachex.Services`
+  # module, rather than hardcoding any logic into this binding module.
   use Application
 
   @doc """

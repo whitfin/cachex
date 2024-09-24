@@ -1,11 +1,10 @@
 defmodule Cachex.Services.Incubator do
-  @moduledoc """
-  Parent module for all warmer definitions for a cache.
-
-  The Incubator will control the supervision tree for all warmers that
-  are associated with a cache. This is very minimal supervision, with
-  no linking back except via the `Supervisor` access functions.
-  """
+  @moduledoc false
+  # Parent module for all warmer definitions for a cache.
+  #
+  # The Incubator will control the supervision tree for all warmers that
+  # are associated with a cache. This is very minimal supervision, with
+  # no linking back except via the `Supervisor` access functions.
   import Cachex.Spec
 
   ##############

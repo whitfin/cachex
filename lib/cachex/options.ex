@@ -1,14 +1,13 @@
 defmodule Cachex.Options do
-  @moduledoc """
-  Binding module to parse options into a cache record.
-
-  This interim module is required to normalize the options passed to a
-  cache at startup into a well formed record instance, allowing the rest
-  of the codebase to make assumptions about what types of data are being
-  dealt with.
-  """
+  @moduledoc false
+  # Binding module to parse options into a cache record.
+  #
+  # This interim module is required to normalize the options passed to a
+  # cache at startup into a well formed record instance, allowing the rest
+  # of the codebase to make assumptions about what types of data are being
+  # dealt with.
   import Cachex.Spec
-  import Cachex.Errors
+  import Cachex.Error
 
   # add some aliases
   alias Cachex.Spec

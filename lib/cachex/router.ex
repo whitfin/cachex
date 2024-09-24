@@ -15,7 +15,7 @@ defmodule Cachex.Router do
   alias Services.Overseer
 
   # import macro stuff
-  import Cachex.Errors
+  import Cachex.Error
   import Cachex.Spec
 
   #############
