@@ -127,18 +127,16 @@ defmodule Cachex.Services.Courier do
       |> Enum.reverse()
 
     with [owner | children] <- callers do
+      result =
+        with {:commit, value, _} <- result do
+          {:commit, value}
+        end
+
       GenServer.reply(owner, result)
 
       result =
-        case result do
-          {:commit, value, _} ->
-            {:ok, value}
-
-          {:commit, value} ->
-            {:ok, value}
-
-          value ->
-            value
+        with {:commit, value} <- result do
+          {:ok, value}
         end
 
       for caller <- children do
