@@ -1441,4 +1441,7 @@ defmodule Cachex do
 
   defp unwrap_unsafe({_state, value}),
     do: value
+
+  defp unwrap_unsafe({_state, value, _opts}),
+    do: value
 end
