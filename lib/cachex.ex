@@ -281,7 +281,11 @@ defmodule Cachex do
     end
   end
 
-  # Cachex.start_link/1 exists for child specifications
+  @doc false
+  # Grace handlers for `Supervisor.child_spec/1`.
+  #
+  # Without this, Cachex is not compatible per Elixir's documentation.
+  @spec start_link(atom | Keyword.t()) :: {atom, pid} | {:error, :invalid_name}
   def start_link(options) when is_list(options) do
     case Keyword.fetch(options, :name) do
       {:ok, name} ->
