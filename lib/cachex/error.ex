@@ -25,6 +25,7 @@ defmodule Cachex.Error do
     :invalid_hook,
     :invalid_limit,
     :invalid_match,
+    :invalid_name,
     :invalid_option,
     :invalid_pairs,
     :invalid_router,
@@ -88,6 +89,9 @@ defmodule Cachex.Error do
 
   def long_form(:invalid_match),
     do: "Invalid match specification provided"
+
+  def long_form(:invalid_name),
+    do: "Invalid cache name provided"
 
   def long_form(:invalid_option),
     do: "Invalid option syntax provided"

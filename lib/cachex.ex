@@ -268,7 +268,7 @@ defmodule Cachex do
 
   """
   @spec start_link(atom, Keyword.t()) :: {atom, pid}
-  def start_link(name, options \\ []) when is_atom(name) and is_list(options) do
+  def start_link(name, options) when is_atom(name) and is_list(options) do
     with {:ok, true} <- ensure_started(),
          {:ok, true} <- ensure_unused(name),
          {:ok, cache} <- Options.parse(name, options),
@@ -280,6 +280,20 @@ defmodule Cachex do
       {:ok, pid}
     end
   end
+
+  # Cachex.start_link/1 exists for child specifications
+  def start_link(options) when is_list(options) do
+    case Keyword.fetch(options, :name) do
+      {:ok, name} ->
+        start_link(name, options)
+
+      _invalid ->
+        error(:invalid_name)
+    end
+  end
+
+  def start_link(name) when is_atom(name),
+    do: start_link(name: name)
 
   @doc """
   Creates a new Cachex cache service tree.
@@ -1440,8 +1454,5 @@ defmodule Cachex do
     do: reraise(e, stack)
 
   defp unwrap_unsafe({_state, value}),
-    do: value
-
-  defp unwrap_unsafe({_state, value, _opts}),
     do: value
 end

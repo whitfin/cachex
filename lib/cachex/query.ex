@@ -80,7 +80,7 @@ defmodule Cachex.Query do
 
   This function accepts a subfilter to join to create more complex filters.
   """
-  @spec expired(filter :: boolean() | tuple()) :: tuple
+  @spec expired(filter :: boolean | tuple | nil) :: tuple
   def expired(filter \\ nil),
     do: wrap_condition(filter, {:not, unexpired()})
 
@@ -89,7 +89,7 @@ defmodule Cachex.Query do
 
   This function accepts a subfilter to join to create more complex filters.
   """
-  @spec unexpired(filter :: boolean() | tuple()) :: tuple
+  @spec unexpired(filter :: boolean | tuple | nil) :: tuple
   def unexpired(filter \\ nil),
     do:
       wrap_condition(
