@@ -126,7 +126,7 @@ defmodule Cachex.Actions.FetchTest do
     result = Cachex.fetch(cache, "key", fb_opt)
 
     # verify fetching an existing key
-    assert(result == {:commit, "yek", purged})
+    assert(result == {:commit, "yek"})
 
     # fetch back the expiration of the key
     expiration = Cachex.ttl!(cache, "key")

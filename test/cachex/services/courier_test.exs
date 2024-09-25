@@ -46,7 +46,7 @@ defmodule Cachex.Services.CourierTest do
     result = Services.Courier.dispatch(cache, "my_key", task)
 
     # check the returned value with the options set
-    assert result == {:commit, "my_value", [expire: 60000]}
+    assert result == {:commit, "my_value"}
 
     # check the forwarded task completed (no options)
     assert_receive({:ok, "my_value"})
