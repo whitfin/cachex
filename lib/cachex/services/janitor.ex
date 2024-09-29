@@ -19,8 +19,6 @@ defmodule Cachex.Services.Janitor do
 
   # add some aliases
   alias Cachex.Query
-  alias Cachex.Services
-  alias Services.Informant
 
   ##############
   # Public API #
@@ -89,7 +87,7 @@ defmodule Cachex.Services.Janitor do
   # This will create the structure used to store metadata about
   # the run cycles of the Janitor, and schedule the first run.
   def init(_),
-    do: {:ok, {nil, false, nil}}
+    do: {:ok, {nil, nil}}
 
   @doc false
   # Defines provisions required by this service.
@@ -100,7 +98,7 @@ defmodule Cachex.Services.Janitor do
   # Returns metadata about the last run of this Janitor.
   #
   # The returned information should be treated as non-guaranteed.
-  def handle_call(:last, _ctx, {_cache, _active, last} = state),
+  def handle_call(:last, _ctx, {_cache, last} = state),
     do: {:reply, {:ok, last}, state}
 
   @doc false
@@ -108,11 +106,11 @@ defmodule Cachex.Services.Janitor do
   #
   # This will drop to the ETS level and use a select to match documents which
   # need to be removed; they are then deleted by ETS at very high speeds.
-  def handle_info(:purge, {cache, false, _last}) do
+  def handle_info(:purge, {cache, _last}) do
     started = now()
     options = const(:local) ++ const(:notify_false)
 
-    {duration, active} =
+    {duration, {:ok, count}} =
       :timer.tc(fn ->
         query =
           Query.build(
@@ -124,34 +122,8 @@ defmodule Cachex.Services.Janitor do
         cache
         |> Cachex.stream!(query, options)
         |> Enum.empty?()
+        |> handle_skip_check(cache)
       end)
-
-    last = %{
-      count: 0,
-      started: started,
-      duration: duration
-    }
-
-    handle_activation(active, {cache, false, last})
-  end
-
-  @doc false
-  # Executes an expiration cleanup against a cache table.
-  #
-  # This will drop to the ETS level and use a select to match documents which
-  # need to be removed; they are then deleted by ETS at very high speeds.
-  def handle_info(:purge, {cache, true, _last}) do
-    started = now()
-
-    {duration, {:ok, count} = result} =
-      :timer.tc(fn ->
-        Cachex.purge(cache, const(:local))
-      end)
-
-    case count do
-      0 -> nil
-      _ -> Informant.broadcast(cache, const(:purge_override_call), result)
-    end
 
     last = %{
       count: count,
@@ -159,7 +131,7 @@ defmodule Cachex.Services.Janitor do
       duration: duration
     }
 
-    {:noreply, {schedule(cache), true, last}}
+    {:noreply, {schedule(cache), last}}
   end
 
   @doc false
@@ -167,27 +139,22 @@ defmodule Cachex.Services.Janitor do
   #
   # The provided cache is then stored in the state and used for cache calls going
   # forwards, in order to skip the lookups inside the cache overseer for performance.
-  def handle_provision({:cache, cache}, {nil, active, last}),
-    do: {:ok, {schedule(cache), active, last}}
+  def handle_provision({:cache, cache}, {nil, last}),
+    do: {:ok, {schedule(cache), last}}
 
-  def handle_provision({:cache, cache}, {_cache, active, last}),
-    do: {:ok, {cache, active, last}}
+  def handle_provision({:cache, cache}, {_cache, last}),
+    do: {:ok, {cache, last}}
 
   ###############
   # Private API #
   ###############
 
-  @doc false
-  # Handles lazy Janitor activation paradigms.
-  #
-  # If the first argument is true, it reflects that there are no records with
-  # an expiration defined so we re-schedule and skip.  In the case there are
-  # records with expiration defined, we continue to the main purge cycle.
-  defp handle_activation(true, {cache, _active, last}),
-    do: {:noreply, {schedule(cache), false, last}}
+  # Handle check for purge skipping, if no skip run purge.
+  defp handle_skip_check(false, cache),
+    do: Cachex.purge(cache, const(:local))
 
-  defp handle_activation(false, {cache, _active, last}),
-    do: handle_info(:purge, {cache, true, last})
+  defp handle_skip_check(true, _cache),
+    do: {:ok, 0}
 
   # Schedules a check to occur after the designated interval. Once scheduled,
   # returns the state - this is just sugar for pipelining with a state.

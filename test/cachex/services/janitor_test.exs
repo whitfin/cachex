@@ -113,6 +113,6 @@ defmodule Cachex.Services.JanitorTest do
     assert(metadata1[:started] <= :os.system_time(:milli_seconds))
 
     # ensure we receive(d) the hook notification
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
+    assert_receive({{:purge, [[{:local, true}]]}, {:ok, 1}})
   end
 end
