@@ -24,7 +24,7 @@ To get started, please add Cachex to your `mix.exs` list of dependencies and the
 
 ```elixir
 def deps do
-  [{:cachex, "~> 3.6"}]
+  [{:cachex, "~> 4.0"}]
 end
 ```
 
