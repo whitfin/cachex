@@ -71,7 +71,7 @@ defmodule Cachex.Limit.Scheduled do
   # Schedules a check to occur after the designated interval.
   defp schedule(options) do
     options
-    |> Keyword.get(:frequency, 1000)
+    |> Keyword.get(:frequency, :timer.seconds(3))
     |> :erlang.send_after(self(), :policy_check)
 
     :ok
