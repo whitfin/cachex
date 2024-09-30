@@ -4,7 +4,7 @@ There are many breaking changes bundled up in v3, and so this guide serves as a 
 
 ## Startup Options
 
-In order to reduce a lot of the option parsing involved in Cachex, the options given to `Cachex.start_link/1` and `Cachex.start/1` have changed pretty drastically. The easiest way to see the differences is to look again at the documentation for these functions, but here's a very high level summary of changes (if these are things you use, please do check the docs):
+In order to reduce a lot of the option parsing involved in Cachex, the options given to `start_link/1` and `start/1` have changed pretty drastically. The easiest way to see the differences is to look again at the documentation for these functions, but here's a very high level summary of changes (if these are things you use, please do check the docs):
 
 - The `:commands` option now expects a list of `command` records.
 - The `:default_ttl`, `:disable_ode` and `:ttl_interval` are now passed as an `expiration` record in the `:expiration` option (and have had their names changed).
