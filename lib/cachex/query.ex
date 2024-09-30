@@ -36,12 +36,6 @@ defmodule Cachex.Query do
 
   ## Options
 
-    * `:expired`
-
-      Whether to filter expired records or not, with the default being no
-      filtering. Setting this to `true` will only retrieve expired records,
-      while setting to `false` will only retrieve unexpired records.
-
     * `:output`
 
       The query output format, which defaults to `:entry` (retrieving the entire
