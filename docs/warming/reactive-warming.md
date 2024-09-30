@@ -1,62 +1,133 @@
 # Reactive Warming
 
-The concept of reactive caching is the idea that a local cache is backed by another layer (for example something remote), meaning that on a cache miss you have another layer to look into to retrieve the data you want. As this lazily loads data into a cache, it's an effective tool for data which remains active for only a short period of time.
+Warming a cache reactively is essentially lazily loading a missing key on access. Put another way, Cachex will "react" to a missing key by attempting to load it from elsewhere (and then place it in the cache). This is a fairly common need, and lends itself well to a couple of different situations:
 
-Reactive warmers are very memory efficient as they lazily load data on demand, instead of eagerly in anticipation of data access. This means that only actively required data is loaded into a cache. Pairing this with Cachex's expiration controls is a very common and effective way of modeling your caches.
+* Sporadic calls may result in a saving of resources:
+  * As data is warmed "on demand", we only use cache memory when necessary.
+  * There is no wasted cache operation time warming data needlessly.
+* Parameterized calls may result in a short lived window of hot data, such as:
+  * A user session focuses on specific resources often for a brief period of time.
+  * A window of data which is relevant for a brief period of time (i.e. last 60 minutes).
 
-## Defining a Fallback
+As data is loaded lazily, this is a very effective approach for data which remains active for only a short period of time. This also means that reactive warmers are very memory efficieny by default, because they load data as it's needed instead of eagerly in anticipation of it being needed.
 
-The entry point to reactive caching is `Cachex.fetch/4`. You can pass a function to `Cachex.fetch/4`, and this function will only be executed if the key you're trying to access doesn't exist in the table. This function receives the name of the key being accessed, so you can define a common handler rather than inlining for every call.
+## Defining a Warmer
+
+To provide this type of warming, Cachex provides the interface function `Cachex.fetch/4`. When calling this action, the developer provides a function containing the code to run in case of a cache miss. The result of this function is used to populate the key in the cache.
+
+There are several formats you can use to return values from a warming function. The snippet below demonstrates the various recognised return types from a warming function inside `Cachex.fetch/4`.
 
 ```elixir
-{ :ok, cache } = Cachex.start(:my_cache)
-{ :commit, 3 } = Cachex.fetch(:my_cache, "key", &String.length/1)
+# start an empty cache
+Cachex.start(:cache)
+
+# defining a function alias using shorthand syntax
+{ :commit, 4 } = Cachex.fetch(:cache, "key1", &String.length/1)
+{     :ok, 4 } = Cachex.fetch(:cache, "key1", &String.length/1)
+
+# defining an inline function using `:commit` syntax
+{ :commit, 4 } = Cachex.fetch(:cache, "key2", fn key ->
+  { :commit, String.length(key) }
+end)
+
+# defining an inline function using `:commit` syntax, with options
+{ :commit, 4 } = Cachex.fetch(:cache, "key3", fn key ->
+  { :commit, String.length(key), expire: :timer.seconds(60) }
+end)
+
+# define a function which doesn't save the result (i.e. in case of error)
+{ :ignore, 4 } = Cachex.fetch(:cache, "key4", fn key ->
+  { :ignore, String.length(key) }
+end)
 ```
 
-When formatting results to place into the cache table, you must provide your results in the form of either `{ status, value }` or `{ status, value, options }`. These options should match the same what you'd use when calling `Cachex.put/3`, so check out the documentation if you need to.
+There are a few things to point out here explicitly. Firstly, the return value of a call to `Cachex.fetch/4` will contain `:commit` only if the value was loaded by that specific call. If the value already exists in the table, the `:ok` value will be returned instead. As we can see above, we loaded `key1` twice and so the second call received `:ok` as it was already populated.
 
-In order to provide some degree of control over error handling, Cachex allows for either `:commit` or `:ignore` as a status. Values tagged with `:ignore` will just be returned without being stored in the cache, and those tagged with `:commit` will be returned after being stored in the cache. If you don't use a tagged Tuple return value, it will be assumed you're committing the value to help interoperability (as in the example above).
+In the case of `key3` we're providing options alongside our commit tuple. This is a recent feature which allows us to pass options directly through to `Cachex.put/4` (which `Cachex.fetch/4` uses internally). This means that you're now able to define things like expiration as a function of a lazily loaded value, which is a very flexible model.
+
+Finally the use of `:ignore` in the return tuple allows the developer to opt out of placing the value in the cache. This is useful when handling errors, or cases where data isn't ready for consumption yet. You can still pass a value back to the outer code flow here, it just won't be placed inside the cache.
 
 In previous versions of Cachex it was possible to store fallback `:state` within a cache (accessible as a second parameter to a fallback function). This has been removed as of v4.x to simplify `Cachex.fetch/4` handling and as it was a lesser used feature. It's possible this feature will be re-added in future if there is enough demand for it.
 
 ## Example Use Cases
 
-Fallbacks allow you to build very simple bindings using a cache in order to reduce overhead on your backing systems. A very common use case is to use a `Cachex` instance with fallbacks to a remote system to lower the jumps across network. With effective use of expirations and fallbacks, you can ensure that your application doesn't receive stale data and yet minimizes network overhead and the number of remote operations.
+The use of these warmers allows you to build very simple bindings to reduce overhead on your backing systems. A very common use case is using a `Cachex` instance with reactive warming from a remote system, in order to lower the number of network jumps. With effective use of other cache features such as expiration, you can ensure that your application finds a good balance between avoiding stale data and minimization of network overhead.
 
-The snippet below demonstrates an application using a cache to read from a remote database **at most** every 5 minutes, and retrieves the cached value from local memory in the meantime:
+As an example, let's look an application containing an API to retrieve a list of packages in a database. As creation of a package is infrequent, we can avoid calling our remote database every time and instead retrieve a cached value from memory:
 
 ```elixir
 # need our records
 import Cachex.Spec
 
 # initialize our cache with expiration set
-Cachex.start_link(:my_cache, [
+Cachex.start_link(:cache, [
   expiration: expiration(default: :timer.minutes(5))
 ])
 
 # retrieve a list of packages to serve via our API
-Cachex.fetch(:my_cache, "/api/v1/packages", fn ->
+Cachex.fetch(:cache, "/api/v1/packages", fn ->
   { :commit, Repo.all(from p in Package) }
 end)
 ```
 
-This allows you to easily lower the pressure on backing systems with very little code; a few lines can improve your API performance dramatically. The nice part about fallbacks is that they can easily be used with arbitrary data; something you can't predict in advance. Use cases based around input from a user (for example), are very well suited to using reactive caching (particularly because the data is only relevant when the user is currently active).
+The combination of options here (even in this small snippet) means that we'll only call our database **at most** once every 5 minutes. This allows you to easily lower the pressure on backing systems with very little code; a few lines can improve your API performance dramatically!
 
-## Fallback Contention
+## Warmer Contention
 
-As of Cachex v3.x fallbacks have changed quite significantly to provide the guarantee that only a single fallback will fire for a given key, even if more processes ask for the same key before the fallback is complete. The internal Cachex Courier service will queue these requests up, and then resolve them all with the results retrieved by the first. This ensures that you don't have stray processes calling for the same thing (which is especially bad if they're talking to a database, etc.). You can think of this as a per-key queue at a high level, with a short circuit involved to avoid executing too often.
-
-To fully understand this with an example, consider this code (even if it is a little contrived):
+One of the most common missteps with warming reactive like this is how an application behaves when a missing key is read concurrently from two places. Cachex makes sure to take these cases into account to guarantee consistency in your application. For a moment, let's forget that `Cachex.fetch/4` exists and instead write a manual example which demonstrates a couple of issues:
 
 ```elixir
-for i <- 0..2 do
-  Cachex.fetch(:my_cache, "key", fn _ ->
-    :timer.sleep(5000 + i)
-    i
+# start a new cache
+Cachex.start(:cache)
+
+# lazily load a missing value
+case Cachex.get(:cache, "key") do
+  {:ok, nil} ->
+    value = call_database_with_network_delay("key")
+    Cachex.put(:cache, "key", value)
+    value
+
+  value ->
+    value
+end
+```
+
+At a glance this might look fine, but there's one big problem with this approach. As `call_database_with_network_delay/1` takes a long time to run, there's still a period of time in which our key is missing from a cache. This has the nasty side effect that any calls made to this same code between the initial call and the time when `call_database_with_network_delay/1` first returns will spawn additional calls to the database!
+
+Fortunately Cachex's design will ensure that only the _first_ warmer executed will fire for a given key, even if more processes ask for the same key before the code completes. The internal Cachex `Courier` service will queue these requests up, and then resolve them all with the result produced by the first. This ensures that you don't have stray processes calling for the same thing (which is especially bad if they're talking to a database, etc.).
+
+You can think of this as a per-key queue at a high level, with a short circuit involved to avoid executing too often. To see this in action, let's attempt to fetch a key ten times using both our manual approach, as well as using `Cachex.fetch/4`:
+
+```elixir
+# start a new cache
+Cachex.start(:cache)
+
+# run manually
+for _ <- 1..10 do
+  spawn(fn ->
+    case Cachex.get(:cache, "key1") do
+      {:ok, nil} ->
+        IO.puts("Running warmer after get/2")
+        value = :timer.sleep(1000)
+        Cachex.put(:cache, "key1", value)
+        value
+
+      value ->
+        value
+    end
+  end)
+end
+
+# run via fetch/4
+for _ <- 1..10 do
+  spawn(fn ->
+    Cachex.fetch(:cache, "key2", fn key ->
+      IO.puts("Running warmer in fetch/4")
+      value = :timer.sleep(1000)
+      value
+    end)
   end)
 end
 ```
 
-As each fallback function will take 5 seconds to execute, there will be 3 cache misses and therefore 3 processes each waiting 5 seconds (as the second and third calls are fired before the first call has resolved). This isn't ideal; in cases where you call a remote API or database you'd open 3 connections, asking for the same thing 3 times. The result of the code above would be that `"key"` has a value of `1`, then `2`, then `3` as each fallback returns and clobbers what was there previously.
-
-The `Cachex.Service.Courier` will instead queue the second and third calls to fire _after_ the first one, rather than executing them all at once. Even better; the moment the first call resolves, the second and third will immediately resolve with the same results. This ensures that your function will only fire a single time, regardless of the number of processes awaiting the result. This helps with consistency in your application, while also reducing the overhead behind reactive caching.
+If you run this code, you'll see the log of the first loop emit 10 times as each call overlaps and you end up with `:timer.sleep/1` called 10 times. In the second loop you'll only see the log emit a single time, as Cachex knows to queue the subsequent calls to resolve with the result of the first.
