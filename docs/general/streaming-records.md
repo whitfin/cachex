@@ -7,9 +7,6 @@ Cachex provides the ability to create an Elixir `Stream` seeded by the contents 
 By default, `Cachex.stream/3` will return a `Stream` over all entries in a cache which are yet to expire (at the time of stream creation). These cache entries will be streamed as `Cachex.Spec.entry` records, so you can use pattern matching to pull any of the entry fields assuming you have `Cachex.Spec` imported:
 
 ```elixir
-# for matching
-import Cachex.Spec
-
 # store some values in the cache
 Cachex.start(:my_cache)
 Cachex.put(:my_cache, "one", 1)
@@ -58,9 +55,6 @@ Rather than retrieve and handle the whole cache entry, here we're using `:output
 It's important to note here is that cache queries do *not* distinguish between expired records in a cache; they match across all records within a cache. This is a change in Cachex v4.x to provide more flexibility in other areas of the Cachex library. If you want to filter out expired records, you can use the `Cachex.Query.expired/1` convenience function:
 
 ```elixir
-# for matching
-import Cachex.Spec
-
 # store some values in the cache
 Cachex.start(:my_cache)
 Cachex.put(:my_cache, "one", 1)
