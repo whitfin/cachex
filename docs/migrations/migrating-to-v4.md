@@ -39,6 +39,8 @@ Cachex.start_link(:my_cache, [
 
 Both of these features have had additional documentation written, so you can double check the relevant documentation in [Gathering Stats](../management/stats-gathering.md) and [Limiting Caches](../management/limiting-caches.md) as necessary. Limits in particular have had quite a shakeup in Cachex v4, so it's definitely worth a visit to the documentation if you're using those!
 
+In addition, the `:state` option when registering a hook has been renamed `:args` as per the example above.
+
 The `:nodes` option has also been removed, in favour of the new approach to routing in a distributed cache. It's possible to keep the same semantics as Cachex v3 using the `Cachex.Router.Jump` module implementation:
 
 ```elixir
@@ -114,4 +116,4 @@ The minimum supported Elixir version has been raised from Elixir 1.5 to Elixir 1
 
 A lot of the record types in Cachex v4 had their orders changed, so if anyone was matching directly (instead of using record syntax) they should adapt to using `entry(entry, :field)` instead.
 
-The former `ExecutionError` has been replaced with `Cachex.Error`, which is a combination of several smaller modules. This is just a naming difference to hopefully make it easier to type and rememeber!
+The former `ExecutionError` has been replaced with `Cachex.Error`, which is a combination of several smaller modules. This is just a naming difference to hopefully make it easier to type and remember!
