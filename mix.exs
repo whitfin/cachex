@@ -1,7 +1,7 @@
 defmodule Cachex.Mixfile do
   use Mix.Project
 
-  @version "4.0.0"
+  @version "4.0.1"
   @url_docs "http://hexdocs.pm/cachex"
   @url_github "https://github.com/whitfin/cachex"
 
