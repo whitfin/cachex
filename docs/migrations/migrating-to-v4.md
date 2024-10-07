@@ -37,7 +37,9 @@ Cachex.start_link(:my_cache, [
 ])
 ```
 
-Both of these features have had additional documentation written, so you can double check the relevant documentation in [Gathering Stats](../management/stats-gathering.md) and [Limiting Caches](../management/limiting-caches.md) as necessary. Limits in particular have had quite a shakeup in Cachex v4, so it's definitely worth a visit to the documentation if you're using those! Please also note that the `:state` option inside hooks has been renamed to `:args` as shown above.
+Both of these features have had additional documentation written, so you can double check the relevant documentation in [Gathering Stats](../management/stats-gathering.md) and [Limiting Caches](../management/limiting-caches.md) as necessary. Limits in particular have had quite a shakeup in Cachex v4, so it's definitely worth a visit to the documentation if you're using those!
+
+In the example above, you can also see that the `:state` option of a hook definition has been replaced with `:args` in Cachex v4.x. As a hook controls the state during execution, this is to separate it from warmers where `:state` is static.
 
 The `:nodes` option has also been removed, in favour of the new approach to routing in a distributed cache. It's possible to keep the same semantics as Cachex v3 using the `Cachex.Router.Jump` module implementation:
 
