@@ -286,6 +286,9 @@ defmodule Cachex do
   #
   # Without this, Cachex is not compatible per Elixir's documentation.
   @spec start_link(atom | Keyword.t()) :: {atom, pid} | {:error, :invalid_name}
+  def start_link([name | options]) when is_atom(name) and is_list(options),
+    do: start_link(name, options)
+
   def start_link(options) when is_list(options) do
     case Keyword.fetch(options, :name) do
       {:ok, name} ->

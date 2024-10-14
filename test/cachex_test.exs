@@ -228,9 +228,11 @@ defmodule CachexTest do
     # create two caches using `Cachex.start_link/1`
     {:ok, _pid} = Cachex.start_link(:child_spec1)
     {:ok, _pid} = Cachex.start_link(name: :child_spec2)
+    {:ok, _pid} = Cachex.start_link([:child_spec3])
 
     # verify that both are at least alive in some way
     {:ok, _cache1} = Cachex.inspect(:child_spec1, :cache)
     {:ok, _cache2} = Cachex.inspect(:child_spec2, :cache)
+    {:ok, _cache2} = Cachex.inspect(:child_spec3, :cache)
   end
 end
