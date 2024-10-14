@@ -170,3 +170,5 @@ $ mix credo
 $ mix coveralls
 $ mix coveralls.html && open cover/excoveralls.html
 ```
+
+Thank you to [everyone](https://github.com/whitfin/cachex/graphs/contributors) who has contributed to the codebase, and to everyone who has taken the time to an issue or PR to help improve the project!
