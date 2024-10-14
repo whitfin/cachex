@@ -286,7 +286,10 @@ defmodule Cachex do
   #
   # Without this, Cachex is not compatible per Elixir's documentation.
   @spec start_link(atom | Keyword.t()) :: {atom, pid} | {:error, :invalid_name}
-  def start_link([name | options]) when is_atom(name) and is_list(options),
+  def start_link([name]) when is_atom(name),
+    do: start_link(name)
+
+  def start_link([name, options]) when is_atom(name) and is_list(options),
     do: start_link(name, options)
 
   def start_link(options) when is_list(options) do
@@ -300,7 +303,7 @@ defmodule Cachex do
   end
 
   def start_link(name) when is_atom(name),
-    do: start_link(name: name)
+    do: start_link(name, [])
 
   @doc """
   Creates a new Cachex cache service tree.
