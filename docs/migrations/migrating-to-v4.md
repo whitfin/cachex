@@ -104,7 +104,7 @@ Cachex.size(:my_cache, expired: false)
 
 This should hopefully feel more intuitive, while allowing us to trim a bunch of the Cachex internals. The underlying implementations are identical, so it should be easy to migrate if you need to.
 
-Both functions `dump/3` and `load/3` have been renamed in Cachex v4. These names were terrible to begin with, so it's about time they're changed! Instead we now have `Cachex.save/3` and `Cachex.restore/3`, which behave in exactly the same way (aside from being a bit cleaner in implementation!).
+Both functions `dump/3` and `load/3` have been renamed in Cachex v4. These names were terrible to begin with, so it's about time they're changed! Instead we now have `Cachex.save/3` and `Cachex.restore/3`, which behave in exactly the same way (aside from being a bit cleaner in implementation!). The only major difference here is that `Cachex.restore/3` will return a count of restored documents, rather than simply `true`.
 
 Finally the two deprecated functions `set/4` and `set_many/3` have finally been removed. If you were using these, please use `Cachex.put/4` and `Cachex.put_many/3` instead from now on.
 
