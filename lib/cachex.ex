@@ -136,13 +136,14 @@ defmodule Cachex do
 
           iex> import Cachex.Spec
           ...>
-          ...> Cachex.start_link(:my_cache, [
+          ...> {:ok, pid} = Cachex.start_link(:my_cache, [
           ...>   commands: [
           ...>     last: command(type:  :read, execute:   &List.last/1),
           ...>     trim: command(type: :write, execute: &String.trim/1)
           ...>   ]
           ...> ])
-          { :ok, _pid }
+          ...> is_pid(pid)
+          true
 
       Either a `Keyword` or a `Map` can be provided against the `:commands` option as
       we only use `Enum` to verify them before attaching them internally. Please see
@@ -155,8 +156,7 @@ defmodule Cachex do
       for this option to slow your cache due to compression overhead, so benchmark as
       appropriate when using this option. This option defaults to `false`.
 
-          iex> Cachex.start_link(:my_cache, [ compressed: true ])
-          { :ok, _pid }
+          iex> {:ok, _pid} = Cachex.start_link(:my_cache, [ compressed: true ])
 
     * `:expiration`
 
@@ -166,7 +166,7 @@ defmodule Cachex do
 
           iex> import Cachex.Spec
           ...>
-          ...> Cachex.start_link(:my_cache, [
+          ...> {:ok, _pid} = Cachex.start_link(:my_cache, [
           ...>   expiration: expiration(
           ...>     # how often cleanup should occur
           ...>     interval: :timer.seconds(30),
@@ -178,7 +178,6 @@ defmodule Cachex do
           ...>     lazy: true
           ...>   )
           ...> ])
-          { :ok, _pid }
 
       Please see the `Cachex.Spec.expiration/1` documentation for further customization
       options.
@@ -190,14 +189,15 @@ defmodule Cachex do
       hooks should be valid `:hook` records provided by `Cachex.Spec`. Example hook
       implementations can be found in `Cachex.Stats` and `Cachex.Policy.LRW`.
 
-          iex> import Cachex.Spec
-          ...>
-          ...> Cachex.start_link(:my_cache, [
-          ...>   hooks: [
-          ...>     hook(module: MyHook, name: :my_hook, args: { })
-          ...>   ]
-          ...> ])
-          { :ok, _pid }
+          ```
+          import Cachex.Spec
+
+          {:ok, pid} = Cachex.start_link(:my_cache, [
+            hooks: [
+              hook(module: MyHook, name: :my_hook, args: { })
+            ]
+          ])
+          ```
 
       Please see the `Cachex.Spec.hook/1` documentation for further customization options.
 
@@ -208,23 +208,24 @@ defmodule Cachex do
       to `true` will result in both insert and lookup times being proportional to the
       logarithm of the number of objects in the table. This option defaults to `false`.
 
-          iex> Cachex.start_link(:my_cache, [ ordered: true ])
-          { :ok, _pid }
+        ```
+        {ok, _pid} = Cachex.start_link(:my_cache, [ ordered: true ])
+        ```
 
     * `:router`
 
       This option determines which module is used for cache routing inside distributed
       caches. You can provide either a full `record` structure or simply a module name.
+        ```
+        import Cachex.Spec
 
-          iex> import Cachex.Spec
-          ...>
-          ...> Cachex.start_link(:my_cache, [
-          ...>   router: router(
-          ...>     module: Cachex.Router.Jump,
-          ...>     options: []
-          ...>   )
-          ...> ])
-          { :ok, _pid }
+        {:ok, _pid} = Cachex.start_link(:my_cache, [
+          router: router(
+            module: Cachex.Router.Jump,
+            options: []
+          )
+        ])
+        ```
 
       Please see the `Cachex.Spec.router/1` documentation for further customization options.
 
@@ -236,8 +237,9 @@ defmodule Cachex do
       leave this as default as it will handle most use cases in the most performant
       way possible.
 
-          iex> Cachex.start_link(:my_cache, [ transactions: true ])
-          { :ok, _pid }
+        ```
+        {:ok, _pid} = Cachex.start_link(:my_cache, [ transactions: true ])
+        ```
 
     * `:warmers`
 
@@ -250,19 +252,20 @@ defmodule Cachex do
       `:required` is used to control whether the warmer must finish execution before
       the cache supervision tree can be considered fully started.
 
-          iex> import Cachex.Spec
-          ...>
-          ...> Cachex.start_link(:my_cache, [
-          ...>   warmers: [
-          ...>     warmer(
-          ...>       required: true,
-          ...>       module: MyProject.DatabaseWarmer,
-          ...>       state: connection,
-          ...>       name: MyProject.DatabaseWarmer
-          ...>     )
-          ...>   ]
-          ...> ])
-          { :ok, _pid }
+      ```
+        import Cachex.Spec
+
+        {:ok, pid} = Cachex.start_link(:my_cache, [
+          warmers: [
+            warmer(
+              required: true,
+              module: MyProject.DatabaseWarmer,
+              state: connection,
+              name: MyProject.DatabaseWarmer
+            )
+          ]
+        ])
+      ```
 
       Please see the `Cachex.Spec.warmer/1` documentation for further customization options.
 
@@ -343,16 +346,16 @@ defmodule Cachex do
   the internal clear operation.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
-      iex> Cachex.size(:my_cache)
+      iex> cache_name = :cachex_clear_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.get(cache_name, "key")
+      { :ok, "value" }
+      iex> Cachex.size(cache_name)
       { :ok, 1 }
-
-      iex> Cachex.clear(:my_cache)
+      iex> Cachex.clear(cache_name)
       { :ok, 1 }
-
-      iex> Cachex.size(:my_cache)
+      iex> Cachex.size(cache_name)
       { :ok, 0 }
 
   """
@@ -373,16 +376,15 @@ defmodule Cachex do
       take place *before* the decrement call. Defaults to 0.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "my_key", 10)
-      iex> Cachex.decr(:my_cache, "my_key")
+      iex> cache_name = :cachex_decr_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "my_key", 10)
+      iex> Cachex.decr(cache_name, "my_key")
       { :ok, 9 }
-
-      iex> Cachex.put(:my_cache, "my_new_key", 10)
-      iex> Cachex.decr(:my_cache, "my_new_key", 5)
+      iex> Cachex.put(cache_name, "my_new_key", 10)
+      iex> Cachex.decr(cache_name, "my_new_key", 5)
       { :ok, 5 }
-
-      iex> Cachex.decr(:my_cache, "missing_key", 5, default: 2)
+      iex> Cachex.decr(cache_name, "missing_key", 5, default: 2)
       { :ok, -3 }
 
   """
@@ -400,17 +402,15 @@ defmodule Cachex do
   or not. The `true` value can be thought of as "is key no longer present?".
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
+      iex> cache_name = :cachex_del_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.get(cache_name, "key")
       { :ok, "value" }
-
-      iex> Cachex.del(:my_cache, "key")
+      iex> Cachex.del(cache_name, "key")
       { :ok, true }
-
-      iex> Cachex.get(:my_cache, "key")
+      iex> Cachex.get(cache_name, "key")
       { :ok, nil }
-
   """
   @spec del(Cachex.t(), any, Keyword.t()) :: {status, boolean}
   def del(cache, key, options \\ []) when is_list(options),
@@ -424,13 +424,13 @@ defmodule Cachex do
   will be included in the returned determination.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key1", "value1")
-      iex> Cachex.empty?(:my_cache)
+      iex> cache_name = :cachex_empty_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
+      iex> Cachex.empty?(cache_name)
       { :ok, false }
-
-      iex> Cachex.clear(:my_cache)
-      iex> Cachex.empty?(:my_cache)
+      iex> Cachex.clear(cache_name)
+      iex> Cachex.empty?(cache_name)
       { :ok, true }
 
   """
@@ -453,10 +453,11 @@ defmodule Cachex do
   you will see zero benefits from using `execute/3`.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key1", "value1")
-      iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.execute(:my_cache, fn(worker) ->
+      iex> cache_name = :cachex_execute_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
+      iex> Cachex.put(cache_name, "key2", "value2")
+      iex> Cachex.execute(cache_name, fn(worker) ->
       ...>   val1 = Cachex.get!(worker, "key1")
       ...>   val2 = Cachex.get!(worker, "key2")
       ...>   [val1, val2]
@@ -479,12 +480,12 @@ defmodule Cachex do
   expired entries will not be considered to exist.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.exists?(:my_cache, "key")
+      iex> cache_name = :cachex_exists_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.exists?(cache_name, "key")
       { :ok, true }
-
-      iex> Cachex.exists?(:my_cache, "missing_key")
+      iex> Cachex.exists?(cache_name, "missing_key")
       { :ok, false }
 
   """
@@ -503,11 +504,12 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.expire(:my_cache, "key", :timer.seconds(5))
+      iex> cache_name = :cachex_expire_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.expire(cache_name, "key", :timer.seconds(5))
       { :ok, true }
-
-      iex> Cachex.expire(:my_cache, "missing_key", :timer.seconds(5))
+      iex> Cachex.expire(cache_name, "missing_key", :timer.seconds(5))
       { :ok, false }
 
   """
@@ -525,11 +527,12 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.expire_at(:my_cache, "key", 1455728085502)
+      iex> cache_name = :cachex_expire_at_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.expire_at(cache_name, "key", :os.system_time(1000))
       { :ok, true }
-
-      iex> Cachex.expire_at(:my_cache, "missing_key", 1455728085502)
+      iex> Cachex.expire_at(cache_name, "missing_key", :os.system_time(1000))
       { :ok, false }
 
   """
@@ -552,9 +555,10 @@ defmodule Cachex do
 
    ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.export(:my_cache)
-      { :ok, [ { :entry, "key", 1538714590095, nil, "value" } ] }
+      iex> cache_name = :cachex_export_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> {:ok, [{:entry, "key", "value", _modified, nil}]} = Cachex.export(cache_name)
 
   """
   @spec export(Cachex.t(), Keyword.t()) :: {status, [Cachex.Spec.entry()]}
@@ -598,26 +602,25 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.fetch(:my_cache, "key", fn(key) ->
+      iex> cache_name = :cachex_fetch_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.fetch(cache_name, "key", fn(key) ->
       ...>   { :commit, String.reverse(key) }
       ...> end)
       { :ok, "value" }
-
-      iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
+      iex> Cachex.fetch(cache_name, "missing_key", fn(key) ->
       ...>   { :ignore, String.reverse(key) }
       ...> end)
       { :ignore, "yek_gnissim" }
-
-      iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
+      iex> Cachex.fetch(cache_name, "missing_key", fn(key) ->
       ...>   { :commit, String.reverse(key) }
       ...> end)
       { :commit, "yek_gnissim" }
-
-      iex> Cachex.fetch(:my_cache, "missing_key_expires", fn(key) ->
+      iex> Cachex.fetch(cache_name, "missing_key_expires", fn(key) ->
       ...>   { :commit, String.reverse(key), expire: :timer.seconds(60) }
       ...> end)
-      { :commit, "seripxe_yek_gnissim", [expire: 60000] }
+      { :commit, "seripxe_yek_gnissim"}
 
   """
   @spec fetch(Cachex.t(), any, function(), Keyword.t()) ::
@@ -630,12 +633,12 @@ defmodule Cachex do
   Retrieves an entry from a cache.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
+      iex> cache_name = :cachex_get_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.get(cache_name, "key")
       { :ok, "value" }
-
-      iex> Cachex.get(:my_cache, "missing_key")
+      iex> Cachex.get(cache_name, "missing_key")
       { :ok, nil }
 
   """
@@ -658,11 +661,12 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", [2])
-      iex> Cachex.get_and_update(:my_cache, "key", &([1|&1]))
+      iex> cache_name = :cachex_get_and_update_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", [2])
+      iex> Cachex.get_and_update(cache_name, "key", &([1|&1]))
       { :commit, [1, 2] }
-
-      iex> Cachex.get_and_update(:my_cache, "missing_key", fn
+      iex> Cachex.get_and_update(cache_name, "missing_key", fn
       ...>   (nil) -> { :ignore, nil }
       ...>   (val) -> { :commit, [ "value" | val ] }
       ...> end)
@@ -682,15 +686,17 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key1", "value1")
-      iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.put(:my_cache, "key3", "value3")
-      iex> Cachex.keys(:my_cache)
-      { :ok, [ "key2", "key1", "key3" ] }
-
-      iex> Cachex.clear(:my_cache)
-      iex> Cachex.keys(:my_cache)
-      { :ok, [] }
+      iex> cache_name = :cachex_keys_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
+      iex> Cachex.put(cache_name, "key2", "value2")
+      iex> Cachex.put(cache_name, "key3", "value3")
+      iex> {:ok, keys} = Cachex.keys(cache_name)
+      iex> Enum.sort(keys)
+      [ "key1", "key2", "key3" ]
+      iex> Cachex.clear(cache_name)
+      iex> Cachex.keys(cache_name)
+      { :ok, []}
 
   """
   @spec keys(Cachex.t(), Keyword.t()) :: {status, [any]}
@@ -705,8 +711,10 @@ defmodule Cachex do
 
    ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.import(:my_cache, [ { :entry, "key", "value", 1538714590095, nil } ])
+      iex> cache_name = :cachex_import_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.import(cache_name, [ { :entry, "key", "value", 1538714590095, nil } ])
       { :ok, 1 }
 
   """
@@ -728,15 +736,15 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", 10)
-      iex> Cachex.incr(:my_cache, "my_key")
+      iex> cache_name = :cachex_incr_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "my_key", 10)
+      iex> Cachex.incr(cache_name, "my_key")
       { :ok, 11 }
-
-      iex> Cachex.put(:my_cache, "my_new_key", 10)
-      iex> Cachex.incr(:my_cache, "my_new_key", 5)
+      iex> Cachex.put(cache_name, "my_new_key", 10)
+      iex> Cachex.incr(cache_name, "my_new_key", 5)
       { :ok, 15 }
-
-      iex> Cachex.incr(:my_cache, "missing_key", 5, default: 2)
+      iex> Cachex.incr(cache_name, "missing_key", 5, default: 2)
       { :ok, 7 }
 
   """
@@ -800,32 +808,19 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.inspect(:my_cache, :cache)
-      {:ok,
-        {:cache, :my_cache, %{}, {:expiration, nil, 3000, true}, {:fallback, nil, nil},
-          {:hooks, [], []}, {:limit, nil, Cachex.Policy.LRW, 0.1, []}, false, []}}
-
-      iex> Cachex.inspect(:my_cache, { :entry, "my_key" } )
-      { :ok, { :entry, "my_key", 1475476615662, 1, "my_value" } }
-
-      iex> Cachex.inspect(:my_cache, { :expired, :count })
+      iex> cache_name = :cachex_inspect_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.inspect(cache_name, :cache)
+      {:ok, {:cache, :cachex_inspect_example, %{}, false, {:expiration, nil, 3000, true}, {:hooks, [], [], []}, nil, false, {:router, [], Cachex.Router.Local, nil}, false, []}}
+      iex> Cachex.put(cache_name, "my_key", "my_value")
+      iex> {:ok, {:entry, "my_key", "my_value", _modified, nil}} = Cachex.inspect(cache_name, { :entry, "my_key" } )
+      iex> Cachex.inspect(cache_name, { :expired, :count })
       { :ok, 0 }
-
-      iex> Cachex.inspect(:my_cache, { :expired, :keys })
-      { :ok, [ ] }
-
-      iex> Cachex.inspect(:my_cache, { :janitor, :last })
-      { :ok, %{ count: 0, duration: 57, started: 1475476530925 } }
-
-      iex> Cachex.inspect(:my_cache, { :memory, :binary })
-      { :ok, "10.38 KiB" }
-
-      iex> Cachex.inspect(:my_cache, { :memory, :bytes })
-      { :ok, 10624 }
-
-      iex> Cachex.inspect(:my_cache, { :memory, :words })
-      { :ok, 1328 }
-
+      iex> Cachex.inspect(cache_name, { :expired, :keys })
+      { :ok, []}
+      iex> {:ok, _cache_size_kib } = Cachex.inspect(cache_name, { :memory, :binary })
+      iex> {:ok, _cache_size_bytes} = Cachex.inspect(cache_name, { :memory, :bytes })
+      iex> {:ok, _cache_size_words} = Cachex.inspect(cache_name, { :memory, :words })
   """
   @spec inspect(Cachex.t(), atom | tuple, Keyword.t()) :: {status, any}
   def inspect(cache, option, options \\ []) when is_list(options),
@@ -837,19 +832,18 @@ defmodule Cachex do
   The provided command name must be a valid command which was
   previously attached to the cache in calls to `start_link/2`.
 
+      TODO iex> import Cachex.Spec
   ## Examples
 
-      iex> import Cachex.Spec
-      iex>
-      iex> Cachex.start_link(:my_cache, [
+      iex> cache_name = :cachex_invoke_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name, [
       ...>    commands: [
       ...>      last: command(type: :read, execute: &List.last/1)
       ...>    ]
       ...> ])
-      { :ok, _pid }
-
-      iex> Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
-      iex> Cachex.invoke(:my_cache, :last, "my_list")
+      ...>
+      iex> Cachex.put(cache_name, "my_list", [ 1, 2, 3 ])
+      iex> Cachex.invoke(cache_name, :last, "my_list")
       { :ok, 3 }
 
   """
@@ -862,10 +856,10 @@ defmodule Cachex do
 
   ## Examples
 
+      iex> {:ok, _pid} = Cachex.start_link([:my_cache])
       iex> Cachex.put(:my_cache, "key", "value", expiration: 1000)
       iex> Cachex.persist(:my_cache, "key")
       { :ok, true }
-
       iex> Cachex.persist(:my_cache, "missing_key")
       { :ok, false }
 
@@ -899,19 +893,17 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key1", "value1")
+      iex> cache_name = :cachex_prune_with_size_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
       { :ok, true }
-
       iex> :timer.sleep(1)
       :ok
-
-      iex> Cachex.put(:my_cache, "key2", "value2")
+      iex> Cachex.put(cache_name, "key2", "value2")
       { :ok, true }
-
-      iex> Cachex.prune(:my_cache, 1, reclaim: 0)
+      iex> Cachex.prune(cache_name, 1, reclaim: 0)
       { :ok, true }
-
-      iex> Cachex.keys(:my_cache)
+      iex> Cachex.keys(cache_name)
       { :ok, [ "key2"] }
 
   """
@@ -930,8 +922,12 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.purge(:my_cache)
-      { :ok, 15 }
+      iex> cache_name = :cachex_purge_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
+      iex> {:ok, count} = Cachex.purge(cache_name)
+      iex> is_integer(count)
+      true
 
   """
   @spec purge(Cachex.t(), Keyword.t()) :: {status, number}
@@ -953,12 +949,14 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
+      iex> cache_name = :cachex_put_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
       { :ok, true }
-
-      iex> Cachex.put(:my_cache, "key", "value", expire: :timer.seconds(5))
-      iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
+      iex> Cachex.put(cache_name, "key", "value", expire: :timer.seconds(5))
+      iex> {:ok, ttl} = Cachex.ttl(cache_name, "key")
+      iex> ttl > 4900 and ttl <= 5000
+      true
 
   """
   @spec put(Cachex.t(), any, any, Keyword.t()) :: {status, boolean}
@@ -982,11 +980,12 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
+      iex> cache_name = :cachex_put_many_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put_many(cache_name, [ { "key", "value" } ])
       { :ok, true }
-
-      iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expire: :timer.seconds(5))
-      iex> Cachex.ttl(:my_cache, "key")
+      iex> Cachex.put_many(cache_name, [ { "key", "value" } ], expire: :timer.seconds(5))
+      iex> Cachex.ttl(cache_name, "key")
       { :ok, 5000 }
 
   """
@@ -1005,16 +1004,17 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", "my_value", expire: :timer.seconds(5))
-      iex> Process.sleep(4)
-      iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 1000 }
-
-      iex> Cachex.refresh(:my_cache, "my_key")
-      iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 5000 }
-
-      iex> Cachex.refresh(:my_cache, "missing_key")
+      iex> cache_name = :cachex_refresh_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "my_key", "my_value", expire: :timer.seconds(5))
+      iex> Process.sleep(4000)
+      iex> {:ok, ttl} = Cachex.ttl(cache_name, "my_key")
+      iex> ttl <= 1000
+      true
+      iex> Cachex.refresh(cache_name, "my_key")
+      iex> {:ok, ttl} = Cachex.ttl(cache_name, "my_key")
+      iex> ttl > 4000
+      iex> Cachex.refresh(cache_name, "missing_key")
       { :ok, false }
 
   """
@@ -1042,19 +1042,22 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", "my_value")
-      iex> Cachex.reset(:my_cache)
-      iex> Cachex.size(:my_cache)
+      iex> cache_name = :cachex_reset_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "my_key", "my_value")
+      iex> Cachex.reset(cache_name)
+      iex> Cachex.size(cache_name)
       { :ok, 0 }
-
-      iex> Cachex.reset(:my_cache, [ only: :hooks ])
+      iex> Cachex.reset(cache_name, [ only: :hooks ])
+      { :ok, true }
+      iex> Cachex.reset(cache_name, [ only: :cache ])
       { :ok, true }
 
-      iex> Cachex.reset(:my_cache, [ only: :hooks, hooks: [ MyHook ] ])
+    You could also reset a cache with a specific hook:
+    ```
+      Cachex.reset(cache_name, [ only: :hooks, hooks: [ MyHook ] ])
       { :ok, true }
-
-      iex> Cachex.reset(:my_cache, [ only: :cache ])
-      { :ok, true }
+    ```
 
   """
   @spec reset(Cachex.t(), Keyword.t()) :: {status, true}
@@ -1081,21 +1084,19 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "my_key", 10)
-      iex> Cachex.save(:my_cache, "/tmp/my_backup")
+      iex> cache_name = :cachex_restore_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "my_key", 10)
+      iex> Cachex.save(cache_name, "/tmp/my_backup")
       { :ok, true }
-
-      iex> Cachex.size(:my_cache)
+      iex> Cachex.size(cache_name)
       { :ok, 1 }
-
-      iex> Cachex.clear(:my_cache)
-      iex> Cachex.size(:my_cache)
+      iex> Cachex.clear(cache_name)
+      iex> Cachex.size(cache_name)
       { :ok, 0 }
-
-      iex> Cachex.restore(:my_cache, "/tmp/my_backup")
+      iex> Cachex.restore(cache_name, "/tmp/my_backup")
       { :ok, 1 }
-
-      iex> Cachex.size(:my_cache)
+      iex> Cachex.size(cache_name)
       { :ok, 1 }
 
   """
@@ -1123,7 +1124,9 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.save(:my_cache, "/tmp/my_default_backup")
+      iex> cache_name = :cachex_save_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.save(cache_name, "/tmp/my_default_backup")
       { :ok, true }
 
   """
@@ -1148,14 +1151,15 @@ defmodule Cachex do
       is a boolean value which defaults to `true`.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "key1", "value1")
-      iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.put(:my_cache, "key3", "value3", expire: 1)
-      iex> Cachex.size(:my_cache)
+      iex> cache_name = :cachex_size_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
+      iex> Cachex.put(cache_name, "key2", "value2")
+      iex> Cachex.put(cache_name, "key3", "value3", expire: 1)
+      iex> Process.sleep(100)
+      iex> Cachex.size(cache_name)
       { :ok, 3 }
-
-      iex> Cachex.size(:my_cache, expired: false)
+      iex> Cachex.size(cache_name, expired: false)
       { :ok, 2 }
 
   """
@@ -1171,11 +1175,11 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.stats(:my_cache)
-      {:ok, %{meta: %{creation_date: 1518984857331}}}
-
+      iex> cache_name = :cachex_stats_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name, hooks: [ hook(module: Cachex.Stats)])
+      iex> {:ok, %{meta: %{creation_date: _unix_timestamp_with_millseconds}}} = Cachex.stats(cache_name)
       iex> Cachex.stats(:cache_with_no_stats)
-      { :error, :stats_disabled }
+      { :error, :no_cache}
 
   """
   @spec stats(Cachex.t(), Keyword.t()) :: {status, map()}
@@ -1200,27 +1204,22 @@ defmodule Cachex do
       coming back from ETS. It's unlikely this will ever need changing.
 
   ## Examples
-
-      iex> Cachex.put(:my_cache, "a", 1)
-      iex> Cachex.put(:my_cache, "b", 2)
-      iex> Cachex.put(:my_cache, "c", 3)
-      {:ok, true}
-
-      iex> :my_cache |> Cachex.stream! |> Enum.to_list
-      [{:entry, "b", 1519015801794, nil, 2},
-        {:entry, "c", 1519015805679, nil, 3},
-        {:entry, "a", 1519015794445, nil, 1}]
-
+      iex> cache_name = :cachex_stream_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "a", 1)
+      iex> Cachex.put(cache_name, "b", 2)
+      iex> Cachex.put(cache_name, "c", 3)
+      iex> entrys = cache_name |> Cachex.stream! |> Enum.to_list()
+      iex> Enum.map(entrys, fn {:entry, key, value, _modified, _expiration} -> {key, value} end)
+      [{"b", 2}, {"c", 3}, {"a", 1}]
       iex> query = Cachex.Query.build(output: :key)
-      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      iex> cache_name |> Cachex.stream!(query) |> Enum.to_list()
       ["b", "c", "a"]
-
       iex> query = Cachex.Query.build(output: :value)
-      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      iex> cache_name |> Cachex.stream!(query) |> Enum.to_list()
       [2, 3, 1]
-
       iex> query = Cachex.Query.build(output: {:key, :value})
-      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      iex> cache_name |> Cachex.stream!(query) |> Enum.to_list()
       [{"b", 2}, {"c", 3}, {"a", 1}]
 
   """
@@ -1237,14 +1236,14 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.take(:my_cache, "key")
+      iex> cache_name = :cachex_take_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.take(cache_name, "key")
       { :ok, "value" }
-
-      iex> Cachex.get(:my_cache, "key")
+      iex> Cachex.get(cache_name, "key")
       { :ok, nil }
-
-      iex> Cachex.take(:my_cache, "missing_key")
+      iex> Cachex.take(cache_name, "missing_key")
       { :ok, nil }
 
   """
@@ -1274,14 +1273,16 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key1", "value1")
-      iex> Cachex.put(:my_cache, "key2", "value2")
-      iex> Cachex.transaction(:my_cache, [ "key1", "key2" ], fn(worker) ->
+      iex> cache_name = :cachex_transaction_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key1", "value1")
+      iex> Cachex.put(cache_name, "key2", "value2")
+      iex> Cachex.transaction(cache_name, [ "key1", "key2" ], fn(worker) ->
       ...>   val1 = Cachex.get(worker, "key1")
       ...>   val2 = Cachex.get(worker, "key2")
       ...>   [val1, val2]
       ...> end)
-      { :ok, [ "value1", "value2" ] }
+      { :ok, [{:ok, "value1"}, {:ok, "value2"}]}
 
   """
   @spec transaction(Cachex.t(), [any], function, Keyword.t()) :: {status, any}
@@ -1312,14 +1313,14 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 13985 }
-
-      iex> Cachex.ttl(:my_cache, "my_key_with_no_ttl")
-      { :ok, nil }
-
-      iex> Cachex.ttl(:my_cache, "missing_key")
-      { :ok, nil }
+      iex> cache_name = :cachex_ttl_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "my_key", "my_value", expire: 100)
+      iex> {:ok, ttl} = Cachex.ttl(cache_name, "my_key")
+      iex> is_integer(ttl) and ttl >= 0
+      true
+      iex> {:ok, nil} = Cachex.ttl(cache_name, "my_key_with_no_ttl")
+      iex> {:ok, nil} = Cachex.ttl(cache_name, "missing_key")
 
   """
   @spec ttl(Cachex.t(), any, Keyword.t()) :: {status, integer | nil}
@@ -1336,15 +1337,15 @@ defmodule Cachex do
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.get(:my_cache, "key")
+      iex> cache_name = :cachex_update_example
+      iex> {:ok, _pid} = Cachex.start_link(cache_name)
+      iex> Cachex.put(cache_name, "key", "value")
+      iex> Cachex.get(cache_name, "key")
       { :ok, "value" }
-
-      iex> Cachex.update(:my_cache, "key", "new_value")
-      iex> Cachex.get(:my_cache, "key")
+      iex> Cachex.update(cache_name, "key", "new_value")
+      iex> Cachex.get(cache_name, "key")
       { :ok, "new_value" }
-
-      iex> Cachex.update(:my_cache, "missing_key", "new_value")
+      iex> Cachex.update(cache_name, "missing_key", "new_value")
       { :ok, false }
 
   """
@@ -1360,6 +1361,11 @@ defmodule Cachex do
   value of this function will contain the list of modules which
   were warmed as a result of this call.
 
+  ```
+  {:ok, _pid} = Cachex.start_link([:my_cache])
+  {:ok, [MyWarmer]} = Cachex.warm(:my_cache)
+  ```
+
   ## Options
 
     * `:only`
@@ -1368,25 +1374,21 @@ defmodule Cachex do
       behaviour of this function is to trigger warming in all modules. You may
       provide either the module name, or the registered warmer name.
 
+      ```
+      Cachex.warm(:my_cache, only: [MyWarmer])
+      { :ok, [MyWarmer] }
+      ```
+
     * `:wait`
 
       Whether to wait for warmer completion or not, as a boolean. By default
       warmers are triggered to run in the background, but passing `true` here
       will block the return of this call until all warmers have completed.
 
-  ## Examples
-
-      iex> Cachex.warm(:my_cache)
-      { :ok, [MyWarmer] }
-
-      iex> Cachex.warm(:my_cache, only: [MyWarmer])
-      { :ok, [MyWarmer] }
-
-      iex> Cachex.warm(:my_cache, only: [])
-      { :ok, [] }
-
-      iex> Cachex.warm(:my_cache, wait: true)
+      ```
+      Cachex.warm(:my_cache, wait: true)
       { :ok, [MyWarmer]}
+      ```
 
   """
   @spec warm(Cachex.t(), Keyword.t()) :: {status, [atom()]}

@@ -244,11 +244,9 @@ defmodule Cachex.OptionsTest do
     name = TestUtils.create_name()
 
     # parse our values as options
-    {:ok, cache(ordered: ordered1)} =
-      Cachex.Options.parse(name, ordered: true)
+    {:ok, cache(ordered: ordered1)} = Cachex.Options.parse(name, ordered: true)
 
-    {:ok, cache(ordered: ordered2)} =
-      Cachex.Options.parse(name, ordered: false)
+    {:ok, cache(ordered: ordered2)} = Cachex.Options.parse(name, ordered: false)
 
     {:ok, cache(ordered: ordered3)} = Cachex.Options.parse(name, [])
 

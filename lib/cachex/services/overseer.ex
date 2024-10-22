@@ -106,7 +106,7 @@ defmodule Cachex.Services.Overseer do
   @doc """
   Carries out a transaction against the state table.
   """
-  @spec transaction(atom, (-> any)) :: any
+  @spec transaction(atom, (() -> any)) :: any
   def transaction(name, fun) when is_atom(name) and is_function(fun, 0),
     do: :sleeplocks.execute(@manager_name, fun)
 
