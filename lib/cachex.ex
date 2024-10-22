@@ -586,8 +586,8 @@ defmodule Cachex do
   As of Cachex v3.6, you can also provide a third element in a `:commit`
   Tuple, to allow passthrough of options from within your fallback. The
   options supported in this list match the options you can provide to a
-  call of `put/4`. An example is the `:ttl` option to set an expiration
-  from directly inside your fallback.
+  call of `Cachex.put/4`. An example is the `:expire` option to set an
+  expiration from directly inside your fallback.
 
   If a fallback function has an arity of 1, the requested entry key
   will be passed through to allow for contextual computation. If a
@@ -595,10 +595,6 @@ defmodule Cachex do
   `:fallback` cache option will be provided as the second argument.
   This is to allow easy state sharing, such as remote clients. If a
   function has an arity of 0, it will be executed without arguments.
-
-  If a cache has been initialized with a default fallback function
-  in the `:fallback` option at cache startup, the third argument to
-  this call becomes optional.
 
   ## Examples
 
@@ -718,7 +714,7 @@ defmodule Cachex do
       { :ok, 1 }
 
   """
-  @spec import(Cachex.t(), Enumerable.t(), Keyword.t()) :: {status, any}
+  @spec import(Cachex.t(), Enumerable.t(), Keyword.t()) :: {status, integer}
   def import(cache, entries, options \\ []) when is_list(options),
     do: Router.route(cache, {:import, [entries, options]})
 
@@ -1100,7 +1096,7 @@ defmodule Cachex do
       { :ok, 1 }
 
   """
-  @spec restore(Cachex.t(), binary, Keyword.t()) :: {status, any}
+  @spec restore(Cachex.t(), binary, Keyword.t()) :: {status, integer}
   def restore(cache, path, options \\ [])
       when is_binary(path) and is_list(options),
       do: Router.route(cache, {:restore, [path, options]})
