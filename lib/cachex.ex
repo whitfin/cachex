@@ -1162,7 +1162,7 @@ defmodule Cachex do
   @doc """
   Retrieves statistics about a cache.
 
-  This will only provide statistics if the `:stats` option was
+  This will only provide statistics if the `:hooks` option with `hook(module: Cachex.Stats)` was
   provided on cache startup in `start_link/2`.
 
   ## Examples
