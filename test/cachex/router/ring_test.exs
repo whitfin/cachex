@@ -141,12 +141,14 @@ defmodule Cachex.Router.RingTest do
     # convert the name to a cache and sort
     cache = Services.Overseer.retrieve(cache)
 
-    # verify that only the manage was attached to the ring
+    # verify that only the manager was attached to the ring
     assert Cachex.Router.nodes(cache) == {:ok, [node()]}
 
+    # spawn a new member inside the cache cluster
     {:ok, [_member1]} = LocalCluster.start(cluster, 1)
 
-    :timer.sleep(250)
+    # wait for detection
+    :timer.sleep(100)
 
     # make sure that the exclusion applies on newly detected nodes
     assert Cachex.Router.nodes(cache) == {:ok, [node()]}
@@ -154,6 +156,9 @@ defmodule Cachex.Router.RingTest do
 
   test "matching node names against include/exclude params" do
     name = Atom.to_string(node())
+
+    # when neither include/exclude are provided, all are valid
+    assert Cachex.Router.Ring.included?(node(), [], [])
 
     # accepting all patterns will always return truthy
     assert Cachex.Router.Ring.included?(node(), [".*"], [])
