@@ -27,7 +27,7 @@ defmodule Cachex.Router.Ring.Monitor do
         type = Keyword.get(options, :monitor_type)
 
         includes = Keyword.get(options, :monitor_includes, [])
-        excludes = Keyword.get(options, :monitor_includes, [])
+        excludes = Keyword.get(options, :monitor_excludes, [])
 
         :ok = :net_kernel.monitor_nodes(true, node_type: type)
 

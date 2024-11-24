@@ -124,7 +124,7 @@ defmodule Cachex.Router.RingTest do
   @tag distributed: true
   test "routing keys via a ring router with excluded nodes" do
     # create a test cache cluster for nodes
-    {cache, _nodes, _cluster} =
+    {cache, _nodes, cluster} =
       TestUtils.create_cache_cluster(3,
         router:
           router(
@@ -142,6 +142,13 @@ defmodule Cachex.Router.RingTest do
     cache = Services.Overseer.retrieve(cache)
 
     # verify that only the manage was attached to the ring
+    assert Cachex.Router.nodes(cache) == {:ok, [node()]}
+
+    {:ok, [_member1]} = LocalCluster.start(cluster, 1)
+
+    :timer.sleep(250)
+
+    # make sure that the exclusion applies on newly detected nodes
     assert Cachex.Router.nodes(cache) == {:ok, [node()]}
   end
 
