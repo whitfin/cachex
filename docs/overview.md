@@ -96,7 +96,7 @@ The `!` version of functions exists for convenience, in particular to make chain
 
 ## Advanced Examples
 
-Beyond the typical get/set semantics of a cache, Cachex offers many additional features to help with typical use cases and access patterns a developer may meeting during their day-to-day.
+Beyond the typical get/set semantics of a cache, Cachex offers many additional features to help with typical use cases and access patterns a developer may meet during their day-to-day.
 
 While the list is too long to properly cover everything in detail here, let's take a look at some of the most common cache actions:
 
@@ -127,14 +127,14 @@ end)
   {:commit, String.reverse(key)}
 end)
 
-# we can also write keys with an time expiration (in milliseconds)
+# we can also write keys with a time expiration (in milliseconds)
 {:ok, true} = Cachex.put(:my_cache, "secret_mission", "...", expire: 1)
 
 # and if we pull it back after expiration, it's not there!
 {:ok, nil} = Cachex.get(:my_cache, "secret_mission")
 ```
 
-These are just some of the conveniences made available by Cachex's API, but there's a still a bunch of other fun stuff in the `Cachex` API, covering a broad range of patterns and use cases.
+These are just some of the conveniences made available by Cachex's API, but there's still a bunch of other fun stuff in the `Cachex` API, covering a broad range of patterns and use cases.
 
 For further information or examples on supported features and options, please see the Cachex [documentation](https://hexdocs.pm/cachex) where there are several guides on specific features and workflows.
 
