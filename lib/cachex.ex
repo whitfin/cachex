@@ -587,9 +587,6 @@ defmodule Cachex do
 
   If a fallback function has an arity of 1, the requested entry key
   will be passed through to allow for contextual computation. If a
-  function has an arity of 2, the `:provide` option from the global
-  `:fallback` cache option will be provided as the second argument.
-  This is to allow easy state sharing, such as remote clients. If a
   function has an arity of 0, it will be executed without arguments.
 
   ## Examples
