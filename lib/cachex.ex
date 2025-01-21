@@ -617,7 +617,7 @@ defmodule Cachex do
 
   """
   @spec fetch(Cachex.t(), any, function(), Keyword.t()) ::
-          {status | :commit | :ignore, any} | {:commit, any, any}
+          {status | :commit | :ignore, any} | {:commit, any}
   def fetch(cache, key, fallback, options \\ [])
       when is_function(fallback) and is_list(options),
       do: Router.route(cache, {:fetch, [key, fallback, options]})
