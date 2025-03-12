@@ -53,7 +53,7 @@ defmodule Cachex.Limit.Accessed do
   # This will update the modification time of a key if tracked in a successful cache
   # action. In combination with LRW caching, this provides a simple LRU policy.
   def handle_notify({_action, [key | _]}, _result, cache) do
-    {:ok, true} = Cachex.touch(cache, key)
+    {:ok, _} = Cachex.touch(cache, key)
     {:ok, cache}
   end
 
