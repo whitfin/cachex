@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Warm do
       warmers
       |> Enum.filter(&filter_mod(&1, only))
       |> Enum.map(&spawn_call(&1, wait))
-      |> Task.yield_many()
+      |> Task.yield_many(:infinity)
       |> Enum.map(&extract_name/1)
 
     {:ok, warmed}

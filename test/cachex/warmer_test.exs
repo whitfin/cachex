@@ -14,6 +14,50 @@ defmodule Cachex.WarmerTest do
     assert Cachex.get!(cache, 1) == 1
   end
 
+  test "warmers with long running tasks" do
+    # create a test warmer to pass to the cache
+    TestUtils.create_warmer(:long_running_warmer, fn _ ->
+      # exceed default timeout of `5000`
+      Process.sleep(5001)
+      {:ok, [{1, 1}]}
+    end)
+
+    # create a cache instance with a warmer
+    cache =
+      TestUtils.create_cache(warmers: [warmer(module: :long_running_warmer)])
+
+    # check that the key was warmed
+    assert Cachex.get!(cache, 1) == 1
+  end
+
+  test "warmers with long running async tasks" do
+    # create a test warmer to pass to the cache
+    TestUtils.create_warmer(:long_running_async_warmer, fn _ ->
+      {:ok,
+       [1, 2]
+       |> Task.async_stream(
+         fn num ->
+           # exceed default timeout of `5000`
+           Process.sleep(5001)
+           {num, num}
+         end,
+         timeout: :infinity
+       )
+       |> Stream.map(fn {:ok, result} -> result end)
+       |> Enum.to_list()}
+    end)
+
+    # create a cache instance with a warmer
+    cache =
+      TestUtils.create_cache(
+        warmers: [warmer(module: :long_running_async_warmer)]
+      )
+
+    # check that the keys were warmed
+    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get!(cache, 2) == 2
+  end
+
   test "warmers which set values with options" do
     # create a test warmer to pass to the cache
     TestUtils.create_warmer(:options_warmer, fn _ ->
