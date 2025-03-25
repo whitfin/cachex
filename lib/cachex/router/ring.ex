@@ -87,7 +87,7 @@ defmodule Cachex.Router.Ring do
   Create a child specification to back a ring routing state.
   """
   @spec children(cache :: Cachex.t(), options :: Keyword.t()) ::
-          Supervisor.child_spec()
+          [Supervisor.child_spec()]
   def children(cache(name: name), options) do
     name = name(name, :router)
 
