@@ -148,4 +148,22 @@ defmodule Cachex.WarmerTest do
     assert_receive({{:put_many, [[{1, 1}], []]}, {:ok, true}})
     assert_receive({{:put_many, [[{2, 2}], []]}, {:ok, true}})
   end
+
+  test "warmers populate $callers" do
+    test_process = self()
+
+    TestUtils.create_cache(
+      warmers: [
+        warmer(
+          module: Cachex.Test.Warmer.Callers,
+          interval: 15000,
+          required: true,
+          state: test_process
+        )
+      ]
+    )
+
+    assert_receive callers
+    assert test_process in callers
+  end
 end
