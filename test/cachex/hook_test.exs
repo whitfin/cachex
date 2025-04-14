@@ -11,6 +11,15 @@ defmodule Cachex.HookTest do
     :ok
   end
 
+  test "$callers in hooks" do
+    test_process = self()
+    callers_hook = CallersHook.create()
+    cache = TestUtils.create_cache(hooks: [callers_hook])
+    Cachex.fetch(cache, "key1", fn _ -> "val1" end)
+    assert_receive hook_callers
+    assert test_process in hook_callers
+  end
+
   test "concatenating hooks in a cache" do
     # create a set of 3 hooks to test with
     hook1 = ForwardHook.create(:concat_hook_1)
