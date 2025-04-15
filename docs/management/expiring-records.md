@@ -26,7 +26,7 @@ A cache record contains an internal modification time, as well as an associated 
 
 If a key is retrieved after the expiration has passed, the key will be removed at that time and return `nil` to the caller just as if the key did not exist in the cache. This provides guarantees of consistency even if the Janitor hasn't run recently; you can still never accidentally fetch an expired key. In turn this allows us to run the Janitor a little less frequently as we don't have to be scared of stale values.
 
-There is a very minimal overhead to this lazy checking, and there are cases where you don't need to be as accurate. For these reasons you can easily disable this behaviour by seting the `:lazy` option to false at cache startup:
+There is a very minimal overhead to this lazy checking, and there are cases where you don't need to be as accurate. For these reasons you can easily disable this behaviour by setting the `:lazy` option to false at cache startup:
 
 ```elixir
 import Cachex.Spec
