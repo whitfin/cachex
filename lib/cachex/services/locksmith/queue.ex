@@ -38,8 +38,10 @@ defmodule Cachex.Services.Locksmith.Queue do
   """
   @spec transaction(Cachex.t(), [any], (-> any)) :: any
   def transaction(cache() = cache, keys, func)
-      when is_list(keys) and is_function(func, 0),
-      do: service_call(cache, :locksmith, {:transaction, keys, func})
+      when is_list(keys) and is_function(func, 0) do
+    callers = get_callers()
+    service_call(cache, :locksmith, {:transaction, keys, func, callers})
+  end
 
   ####################
   # Server Callbacks #
@@ -72,7 +74,8 @@ defmodule Cachex.Services.Locksmith.Queue do
   # locks after execution. The key here is that the locks set on a key will stop
   # other processes from writing them, and force them to queue their writes
   # inside this queue process instead.
-  def handle_call({:transaction, keys, func}, _ctx, cache) do
+  def handle_call({:transaction, keys, func, callers}, _ctx, cache) do
+    put_callers(callers)
     true = lock(cache, keys)
     val = safe_exec(func)
     true = unlock(cache, keys)

@@ -28,10 +28,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   to update the existing record.
   """
   def execute(cache() = cache, key, update_fun, _options) do
-    callers = get_callers()
-
     Locksmith.transaction(cache, [key], fn ->
-      put_callers(callers)
       {_label, value} = Cachex.get(cache, key, [])
 
       formatted =
