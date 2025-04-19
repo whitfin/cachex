@@ -1,6 +1,15 @@
 defmodule Cachex.WarmerTest do
   use Cachex.Test.Case
 
+  defmodule Warmer.Callers do
+    use Cachex.Warmer
+
+    def execute(proc) do
+      send(proc, Process.get(:"$callers"))
+      {:ok, []}
+    end
+  end
+
   test "warmers which set basic values" do
     # create a test warmer to pass to the cache
     TestUtils.create_warmer(:basic_warmer, fn _ ->
@@ -155,7 +164,7 @@ defmodule Cachex.WarmerTest do
     TestUtils.create_cache(
       warmers: [
         warmer(
-          module: Cachex.Test.Warmer.Callers,
+          module: Warmer.Callers,
           interval: 15000,
           required: true,
           state: test_process
