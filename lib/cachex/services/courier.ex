@@ -40,7 +40,7 @@ defmodule Cachex.Services.Courier do
   """
   @spec dispatch(Cachex.t(), any, (-> any)) :: any
   def dispatch(cache() = cache, key, task) when is_function(task, 0) do
-    callers = [self() | Process.get(:"$callers") || []]
+    callers = get_callers()
 
     service_call(
       cache,
@@ -89,7 +89,7 @@ defmodule Cachex.Services.Courier do
               spawn_link(fn ->
                 result =
                   try do
-                    Process.put(:"$callers", callers)
+                    put_callers(callers)
                     task.()
                   rescue
                     e ->

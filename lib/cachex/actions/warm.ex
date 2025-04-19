@@ -55,13 +55,13 @@ defmodule Cachex.Actions.Warm do
 
   # Invokes a warmer with blocking enabled.
   defp call_warmer(warmer(name: name), true) do
-    callers = [self() | Process.get(:"$callers") || []]
+    callers = get_callers()
     GenServer.call(name, {:cachex_warmer, callers}, :infinity)
   end
 
   # Invokes a warmer with blocking disabled.
   defp call_warmer(warmer(name: name), _) do
-    callers = [self() | Process.get(:"$callers") || []]
+    callers = get_callers()
     send(name, {:cachex_warmer, callers})
   end
 

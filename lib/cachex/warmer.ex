@@ -95,7 +95,7 @@ defmodule Cachex.Warmer do
             {:cachex_warmer, callers},
             {cache, state, interval, timer}
           ) do
-        Process.put(:"$callers", callers)
+        put_callers(callers)
         # clean our any existing timers
         if timer, do: Process.cancel_timer(timer)
 
