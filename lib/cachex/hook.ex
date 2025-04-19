@@ -139,7 +139,9 @@ defmodule Cachex.Hook do
       end
 
       @doc false
-      def handle_info({:cachex_notify, {event, result}}, state) do
+      def handle_info({:cachex_notify, {event, result, callers}}, state) do
+        put_callers(callers)
+
         case timeout() do
           nil ->
             {:ok, new_state} = handle_notify(event, result, state)
