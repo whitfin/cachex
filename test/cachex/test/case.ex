@@ -6,7 +6,6 @@ defmodule Cachex.Test.Case do
 
       alias Cachex.Test.Hook.Execute, as: ExecuteHook
       alias Cachex.Test.Hook.Forward, as: ForwardHook
-      alias Cachex.Test.Hook.Callers, as: CallersHook
       alias Cachex.Test.Utils, as: TestUtils
       alias Cachex.Services
 
