@@ -21,15 +21,11 @@ defmodule Cachex.Services.JanitorTest do
 
     # expired combination regardless of state
     result1 =
-      Services.Janitor.expired?(
-        entry(modified: modified1, expiration: expiration1)
-      )
+      Services.Janitor.expired?(entry(modified: modified1, expiration: expiration1))
 
     # unexpired combination regardless of state
     result2 =
-      Services.Janitor.expired?(
-        entry(modified: modified2, expiration: expiration2)
-      )
+      Services.Janitor.expired?(entry(modified: modified2, expiration: expiration2))
 
     # expired combination with state enabled
     result3 =

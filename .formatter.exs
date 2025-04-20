@@ -6,5 +6,5 @@
   ],
 
   # match the Credo linter
-  line_length: 80
+  line_length: 100
 ]

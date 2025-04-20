@@ -19,11 +19,9 @@ defmodule Cachex.ErrorTest do
       invalid_warmer: "Invalid warmer definition provided",
       janitor_disabled: "Specified janitor process running",
       no_cache: "Specified cache not running",
-      non_numeric_value:
-        "Attempted arithmetic operations on a non-numeric value",
+      non_numeric_value: "Attempted arithmetic operations on a non-numeric value",
       non_distributed: "Attempted to use a local function across nodes",
-      not_started:
-        "Cache table not active, have you started the Cachex application?",
+      not_started: "Cache table not active, have you started the Cachex application?",
       stats_disabled: "Stats are not enabled for the specified cache",
       unreachable_file: "Unable to access provided file path"
     ]

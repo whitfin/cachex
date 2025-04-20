@@ -73,10 +73,7 @@ defmodule Cachex.QueryTest do
     # verify the queries of all queries
     assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c1
     assert {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}} = c2
-
-    assert {:andalso,
-            {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}},
-            false} = c3
+    assert {:andalso, {:orelse, {:==, :"$4", nil}, {:>, {:+, :"$3", :"$4"}, _now}}, false} = c3
 
     # verify the returns of both queries
     assert [{_, _, [:"$_"]}] = clause1

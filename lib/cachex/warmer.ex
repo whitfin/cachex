@@ -40,8 +40,7 @@ defmodule Cachex.Warmer do
   @callback execute(state :: any) ::
               :ignore
               | {:ok, pairs :: [{key :: any, value :: any}]}
-              | {:ok, pairs :: [{key :: any, value :: any}],
-                 options :: Keyword.t()}
+              | {:ok, pairs :: [{key :: any, value :: any}], options :: Keyword.t()}
 
   ##################
   # Implementation #

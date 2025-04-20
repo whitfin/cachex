@@ -57,10 +57,7 @@ defmodule Cachex.WarmerTest do
     end)
 
     # create a cache instance with a warmer
-    cache =
-      TestUtils.create_cache(
-        warmers: [warmer(module: :long_running_async_warmer)]
-      )
+    cache = TestUtils.create_cache(warmers: [warmer(module: :long_running_async_warmer)])
 
     # check that the keys were warmed
     assert Cachex.get!(cache, 1) == 1
@@ -121,10 +118,7 @@ defmodule Cachex.WarmerTest do
     state = :os.timestamp()
 
     # create a cache instance with a warmer
-    cache =
-      TestUtils.create_cache(
-        warmers: [warmer(module: :state_warmer, state: state)]
-      )
+    cache = TestUtils.create_cache(warmers: [warmer(module: :state_warmer, state: state)])
 
     # check that the key was warmed with state
     assert Cachex.get!(cache, "state") == state
