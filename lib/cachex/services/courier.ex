@@ -43,7 +43,7 @@ defmodule Cachex.Services.Courier do
     service_call(
       cache,
       :courier,
-      {:dispatch, key, task, local_stack(), get_callers()}
+      {:dispatch, key, task, local_stack(), callers()}
     )
   end
 
@@ -69,14 +69,7 @@ defmodule Cachex.Services.Courier do
   # Due to the nature of the async behaviour, this call will return before
   # the task has been completed, and the :notify callback will receive the
   # results from the task after completion (regardless of outcome).
-  def handle_call(
-        {:dispatch, key, task, stack, callers},
-        caller,
-        {cache, tasks} = state
-      ) do
-    put_callers(callers)
-    callers = get_callers()
-
+  def handle_call({:dispatch, key, task, stack, callers}, caller, {cache, tasks} = state) do
     case Map.get(tasks, key) do
       {pid, listeners} ->
         {:noreply, {cache, Map.put(tasks, key, {pid, [caller | listeners]})}}
@@ -88,9 +81,10 @@ defmodule Cachex.Services.Courier do
 
             worker =
               spawn_link(fn ->
+                Process.put(:"$callers", [parent, elem(caller, 0) | callers])
+
                 result =
                   try do
-                    put_callers(callers)
                     task.()
                   rescue
                     e ->
