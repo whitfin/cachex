@@ -54,12 +54,14 @@ defmodule Cachex.Actions.Warm do
   end
 
   # Invokes a warmer with blocking enabled.
-  defp call_warmer(warmer(name: name), true),
-    do: GenServer.call(name, :cachex_warmer, :infinity)
+  defp call_warmer(warmer(name: name), true) do
+    GenServer.call(name, {:cachex_warmer, get_callers()}, :infinity)
+  end
 
   # Invokes a warmer with blocking disabled.
-  defp call_warmer(warmer(name: name), _),
-    do: send(name, :cachex_warmer)
+  defp call_warmer(warmer(name: name), _) do
+    send(name, {:cachex_warmer, get_callers()})
+  end
 
   # Converts a task result to a name reference.
   defp extract_name({_, {:ok, name}}),

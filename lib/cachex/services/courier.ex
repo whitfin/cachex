@@ -39,8 +39,13 @@ defmodule Cachex.Services.Courier do
   call which will wait until a result can be loaded.
   """
   @spec dispatch(Cachex.t(), any, (-> any)) :: any
-  def dispatch(cache() = cache, key, task) when is_function(task, 0),
-    do: service_call(cache, :courier, {:dispatch, key, task, local_stack()})
+  def dispatch(cache() = cache, key, task) when is_function(task, 0) do
+    service_call(
+      cache,
+      :courier,
+      {:dispatch, key, task, local_stack(), get_callers()}
+    )
+  end
 
   ####################
   # Server Callbacks #
@@ -64,7 +69,14 @@ defmodule Cachex.Services.Courier do
   # Due to the nature of the async behaviour, this call will return before
   # the task has been completed, and the :notify callback will receive the
   # results from the task after completion (regardless of outcome).
-  def handle_call({:dispatch, key, task, stack}, caller, {cache, tasks} = state) do
+  def handle_call(
+        {:dispatch, key, task, stack, callers},
+        caller,
+        {cache, tasks} = state
+      ) do
+    put_callers(callers)
+    callers = get_callers()
+
     case Map.get(tasks, key) do
       {pid, listeners} ->
         {:noreply, {cache, Map.put(tasks, key, {pid, [caller | listeners]})}}
@@ -78,6 +90,7 @@ defmodule Cachex.Services.Courier do
               spawn_link(fn ->
                 result =
                   try do
+                    put_callers(callers)
                     task.()
                   rescue
                     e ->

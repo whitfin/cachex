@@ -1,6 +1,15 @@
 defmodule Cachex.WarmerTest do
   use Cachex.Test.Case
 
+  defmodule Warmer.Callers do
+    use Cachex.Warmer
+
+    def execute(proc) do
+      send(proc, Process.get(:"$callers"))
+      {:ok, []}
+    end
+  end
+
   test "warmers which set basic values" do
     # create a test warmer to pass to the cache
     TestUtils.create_warmer(:basic_warmer, fn _ ->
@@ -147,5 +156,23 @@ defmodule Cachex.WarmerTest do
     # ensure that we receive the creation of both warmers
     assert_receive({{:put_many, [[{1, 1}], []]}, {:ok, true}})
     assert_receive({{:put_many, [[{2, 2}], []]}, {:ok, true}})
+  end
+
+  test "warmers populate $callers" do
+    test_process = self()
+
+    TestUtils.create_cache(
+      warmers: [
+        warmer(
+          module: Warmer.Callers,
+          interval: 15000,
+          required: true,
+          state: test_process
+        )
+      ]
+    )
+
+    assert_receive callers
+    assert test_process in callers
   end
 end

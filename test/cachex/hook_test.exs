@@ -1,6 +1,26 @@
 defmodule Cachex.HookTest do
   use Cachex.Test.Case
 
+  defmodule Hook.Callers do
+    use Cachex.Hook
+    import Cachex.Spec
+
+    def async?, do: true
+    def actions, do: :all
+    def type, do: :pre
+
+    @doc """
+    Returns a hook definition for a custom execute hook.
+    """
+    def create(name \\ nil),
+      do: hook(module: __MODULE__, args: self(), name: name)
+
+    def handle_notify(_, _, proc) do
+      send(proc, Process.get(:"$callers"))
+      {:noreply, proc}
+    end
+  end
+
   setup_all do
     ForwardHook.bind(
       concat_hook_1: [type: :pre],
@@ -9,6 +29,15 @@ defmodule Cachex.HookTest do
     )
 
     :ok
+  end
+
+  test "$callers in hooks" do
+    test_process = self()
+    callers_hook = Hook.Callers.create()
+    cache = TestUtils.create_cache(hooks: [callers_hook])
+    Cachex.fetch(cache, "key1", fn _ -> "val1" end)
+    assert_receive hook_callers
+    assert test_process in hook_callers
   end
 
   test "concatenating hooks in a cache" do

@@ -120,4 +120,22 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert(get1 == {:ok, "1"})
     assert(get2 == {:ok, "2"})
   end
+
+  test "fallback function has test process in $callers" do
+    test_process = self()
+    callers_reference = make_ref()
+
+    cache = TestUtils.create_cache()
+
+    result =
+      Cachex.get_and_update(cache, "key", fn _ ->
+        send(test_process, {callers_reference, Process.get(:"$callers")})
+        {:commit, "value"}
+      end)
+
+    assert(result == {:commit, "value"})
+
+    assert_receive({^callers_reference, callers})
+    assert test_process in callers
+  end
 end

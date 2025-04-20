@@ -202,4 +202,21 @@ defmodule Cachex.Actions.FetchTest do
     # all should have been called just once
     assert %{1 => 1000} == calls
   end
+
+  test "fallback function has test process in $callers" do
+    test_process = self()
+    callers_reference = make_ref()
+
+    cache = TestUtils.create_cache()
+
+    fallback_fun = fn ->
+      send(test_process, {callers_reference, Process.get(:"$callers")})
+      "value"
+    end
+
+    {:commit, "value"} = Cachex.fetch(cache, "key", fallback_fun)
+
+    assert_receive({^callers_reference, callers})
+    assert test_process in callers
+  end
 end

@@ -470,4 +470,22 @@ defmodule Cachex.Spec do
   @spec wrap(any, atom) :: {atom, any}
   defmacro wrap(value, tag) when is_atom(tag),
     do: quote(do: {unquote(tag), unquote(value)})
+
+  # extracts list of `$callers` from the process dicionary
+  # and adds the current process to the list
+  # the intended use is to save it in a variable
+  # and use it inside spawned code
+  # e.g.
+  #
+  #     callers = get_callers()
+  #     spawn(fn -> put_callers() ... end)
+  #
+  # `$callers` allows mocking libraries like `Mox`
+  # to set mocks in the test process and use them
+  # in other processes that have the test process in `$callers`
+  @doc false
+  def get_callers(), do: [self() | Process.get(:"$callers") || []]
+
+  @doc false
+  def put_callers(callers), do: Process.put(:"$callers", callers)
 end
