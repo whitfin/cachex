@@ -77,8 +77,8 @@ defmodule Cachex.Warmer do
       #
       # This is a blocking binding to `handle_info(:cache_warmer)`. See
       # the documentation of that implementation for more information.
-      def handle_call({:cachex_warmer, callers}, _from, state) do
-        {:noreply, new_state} = handle_info({:cachex_warmer, callers}, state)
+      def handle_call({:cachex_warmer, _callers} = message, _from, state) do
+        {:noreply, new_state} = handle_info(message, state)
         {:reply, :ok, new_state}
       end
 
@@ -116,7 +116,7 @@ defmodule Cachex.Warmer do
         timer =
           case interval do
             nil -> nil
-            val -> :erlang.send_after(val, self(), {:cachex_warmer, [self()]})
+            val -> :erlang.send_after(val, self(), {:cachex_warmer, nil})
           end
 
         # pass the new state
