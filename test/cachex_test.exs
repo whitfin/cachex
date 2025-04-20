@@ -1,5 +1,6 @@
 defmodule CachexTest do
   use Cachex.Test.Case
+  doctest Cachex
 
   # Ensures that we're able to start a cache and link it to the current process.
   # We verify the link by spawning a cache from inside another thread and making
