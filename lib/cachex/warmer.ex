@@ -90,11 +90,10 @@ defmodule Cachex.Warmer do
       # cache via `Cachex.put_many/3` if returns in a Tuple tagged with the
       # `:ok` atom. If `:ignore` is returned, nothing happens aside from
       # scheduling the next execution of the warming to occur on interval.
-      def handle_info(
-            {:cachex_warmer, callers},
-            {cache, state, interval, timer}
-          ) do
-        put_callers(callers)
+      def handle_info({:cachex_warmer, callers}, {cache, state, interval, timer}) do
+        # store the calling processes
+        Process.put(:"$callers", callers)
+
         # clean our any existing timers
         if timer, do: Process.cancel_timer(timer)
 
@@ -117,7 +116,7 @@ defmodule Cachex.Warmer do
         timer =
           case interval do
             nil -> nil
-            val -> :erlang.send_after(val, self(), :cachex_warmer)
+            val -> :erlang.send_after(val, self(), {:cachex_warmer, [self()]})
           end
 
         # pass the new state
