@@ -24,13 +24,14 @@ defmodule Cachex.Actions.Warm do
   had a warming triggered will be returned in the result of this call.
   """
   def execute(cache(warmers: warmers), options) do
+    proc = self()
     only = Keyword.get(options, :only, nil)
     wait = Keyword.get(options, :wait, false)
 
     warmed =
       warmers
       |> Enum.filter(&filter_mod(&1, only))
-      |> Enum.map(&spawn_call(&1, wait))
+      |> Enum.map(&spawn_call(&1, wait, proc))
       |> Task.yield_many(:infinity)
       |> Enum.map(&extract_name/1)
 
@@ -46,8 +47,12 @@ defmodule Cachex.Actions.Warm do
     do: only == nil or mod in only or name in only
 
   # Spawns a task to invoke the call to the remote warmer.
-  defp spawn_call(warmer(name: name) = warmer, wait) do
+  #
+  # We have to manually set $callers because we support Elixir v1.7 and this
+  # wasn't automated via the Task module at that point in time.
+  defp spawn_call(warmer(name: name) = warmer, wait, proc) do
     Task.async(fn ->
+      Process.put(:"$callers", [proc | callers()])
       call_warmer(warmer, wait)
       name
     end)
