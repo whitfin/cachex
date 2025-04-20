@@ -81,7 +81,7 @@ defmodule Cachex.HookTest do
     cache = TestUtils.create_cache(hooks: [ExecuteHook.create()])
 
     # find the hook (with the populated runtime process identifier)
-    cache(hooks: hooks(post: [hook])) = Cachex.inspect!(cache, :cache)
+    cache(hooks: hooks(post: [hook])) = Services.Overseer.get(cache)
 
     # notify and fetch callers in order to send them back to this parent process
     Services.Informant.notify([hook], {:exec, fn -> Process.get(:"$callers") end}, nil)
