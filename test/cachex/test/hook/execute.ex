@@ -58,18 +58,14 @@ defmodule Cachex.Test.Hook.Execute do
           @doc """
           Executes a received function and forwards to the state process.
           """
-          def handle_notify({_tag, fun}, _results, proc) do
-            handle_info(fun.(), proc)
-            {:ok, proc}
-          end
+          def handle_notify({_tag, fun}, _results, proc) when is_function(fun, 0),
+            do: handle_info(fun.(), proc) && {:ok, proc}
 
           @doc """
           Forwards received messages to the state process.
           """
-          def handle_info(msg, proc) do
-            send(proc, msg)
-            {:noreply, proc}
-          end
+          def handle_info(msg, proc),
+            do: send(proc, msg) && {:noreply, proc}
         end
       end
     end

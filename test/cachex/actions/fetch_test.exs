@@ -203,20 +203,24 @@ defmodule Cachex.Actions.FetchTest do
     assert %{1 => 1000} == calls
   end
 
-  test "fallback function has test process in $callers" do
-    test_process = self()
-    callers_reference = make_ref()
-
+  # This test covers whether $callers is correctly propagated through to the
+  # fallback function to allow things like mocking, etc.
+  test "fetching functions have access to $callers" do
+    # create a test cache
     cache = TestUtils.create_cache()
+    cache = Services.Overseer.get(cache)
 
-    fallback_fun = fn ->
-      send(test_process, {callers_reference, Process.get(:"$callers")})
-      "value"
-    end
+    # process chain
+    parent = self()
+    courier = Services.locate(cache, Services.Courier)
 
-    {:commit, "value"} = Cachex.fetch(cache, "key", fallback_fun)
+    # trigger a fetch in another process
+    Cachex.fetch(cache, "key", fn ->
+      send(parent, Process.get(:"$callers"))
+      {:ignore, nil}
+    end)
 
-    assert_receive({^callers_reference, callers})
-    assert test_process in callers
+    # check callers are the Courier and us
+    assert_receive([^courier, ^parent])
   end
 end
