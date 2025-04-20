@@ -60,8 +60,7 @@ defmodule Cachex.Actions.Warm do
 
   # Invokes a warmer with blocking disabled.
   defp call_warmer(warmer(name: name), _) do
-    callers = get_callers()
-    send(name, {:cachex_warmer, callers})
+    send(name, {:cachex_warmer, get_callers()})
   end
 
   # Converts a task result to a name reference.
