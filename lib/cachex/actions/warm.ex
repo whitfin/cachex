@@ -30,7 +30,7 @@ defmodule Cachex.Actions.Warm do
     warmed =
       warmers
       |> Enum.filter(&filter_mod(&1, only))
-      |> Enum.map(&spawn_call(&1, wait, self()))
+      |> Enum.map(&spawn_call(&1, wait))
       |> Task.yield_many(:infinity)
       |> Enum.map(&extract_name/1)
 
@@ -49,9 +49,11 @@ defmodule Cachex.Actions.Warm do
   #
   # We have to manually set $callers because we support Elixir v1.7 and this
   # wasn't automated via the Task module at that point in time.
-  defp spawn_call(warmer(name: name) = warmer, wait, parent) do
+  defp spawn_call(warmer(name: name) = warmer, wait) do
+    callers = [self() | callers()]
+
     Task.async(fn ->
-      Process.put(:"$callers", [parent | callers()])
+      Process.put(:"$callers", callers)
       call_warmer(warmer, wait)
       name
     end)
