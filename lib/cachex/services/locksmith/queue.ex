@@ -31,16 +31,14 @@ defmodule Cachex.Services.Locksmith.Queue do
   """
   @spec execute(Cachex.t(), (-> any)) :: any
   def execute(cache() = cache, func) when is_function(func, 0),
-    do: service_call(cache, :locksmith, {:exec, func})
+    do: service_call(cache, :locksmith, {:exec, func, callers()})
 
   @doc """
   Executes a function in a transactional context.
   """
   @spec transaction(Cachex.t(), [any], (-> any)) :: any
-  def transaction(cache() = cache, keys, func)
-      when is_list(keys) and is_function(func, 0) do
-    service_call(cache, :locksmith, {:transaction, keys, func, callers()})
-  end
+  def transaction(cache() = cache, keys, func) when is_list(keys) and is_function(func, 0),
+    do: service_call(cache, :locksmith, {:transaction, keys, func, callers()})
 
   ####################
   # Server Callbacks #
@@ -63,8 +61,8 @@ defmodule Cachex.Services.Locksmith.Queue do
   #
   # Because locks are handled sequentially inside this process, this execution
   # can guarantee that there are no locks set on the table when it fires.
-  def handle_call({:exec, func}, _ctx, cache),
-    do: {:reply, safe_exec(func), cache}
+  def handle_call({:exec, func, callers}, {caller, _tag}, cache),
+    do: {:reply, safe_exec(func, [caller | callers]), cache}
 
   @doc false
   # Executes a function in a transactional context.
@@ -74,10 +72,8 @@ defmodule Cachex.Services.Locksmith.Queue do
   # other processes from writing them, and force them to queue their writes
   # inside this queue process instead.
   def handle_call({:transaction, keys, func, callers}, {caller, _tag}, cache) do
-    Process.put(:"$callers", [caller | callers])
-
     true = lock(cache, keys)
-    val = safe_exec(func)
+    val = safe_exec(func, [caller | callers])
     true = unlock(cache, keys)
 
     {:reply, val, cache}
@@ -91,9 +87,13 @@ defmodule Cachex.Services.Locksmith.Queue do
   #
   # Any errors which occur are rescued and returned in an
   # `:error` tagged Tuple to avoid crashing the process.
-  defp safe_exec(fun) do
-    fun.()
-  rescue
-    e -> {:error, Exception.message(e)}
+  defp safe_exec(fun, chain) do
+    Process.put(:"$callers", chain)
+
+    try do
+      fun.()
+    rescue
+      e -> {:error, Exception.message(e)}
+    end
   end
 end
