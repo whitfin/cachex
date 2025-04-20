@@ -56,7 +56,14 @@ defmodule Cachex.Services.Informant do
   but it's general purpose enough that it's exposed as part of the public API.
   """
   @spec notify([Cachex.Spec.hook()], tuple, any) :: :ok
-  def notify(hooks, {_name, _args} = action, result) when is_list(hooks) do
+  def notify([], _action, _result),
+    do: :ok
+
+  def notify(hooks, action, result) when is_list(hooks) do
+    # define the base payload, as all hooks get the same message
+    message = {:cachex_notify, {action, result, [self() | callers()]}}
+
+    # iterate hooks
     Enum.each(hooks, fn
       # not running, so skip
       hook(name: nil) ->
@@ -66,13 +73,9 @@ defmodule Cachex.Services.Informant do
       hook(name: name, module: module) ->
         # skip notifying service hooks
         if module.type() != :service do
-          # define the base payload, regardless of type
-          payload = {:cachex_notify, {action, result, [self() | callers()]}}
-
-          # handle async vs. sync
           case module.async?() do
-            true -> send(name, payload)
-            false -> GenServer.call(name, payload, :infinity)
+            true -> send(name, message)
+            false -> GenServer.call(name, message, :infinity)
           end
         end
     end)
