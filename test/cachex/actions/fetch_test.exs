@@ -6,8 +6,6 @@ defmodule Cachex.Actions.FetchTest do
   # the value is not returned and the hooks are updated with an eviction.
   # If the provided function is arity 1, we ignore the state argument.
   test "fetching keys from a cache" do
-    test_process = self()
-    callers_reference = make_ref()
     # create a forwarding hook
     hook = ForwardHook.create()
 
@@ -30,11 +28,6 @@ defmodule Cachex.Actions.FetchTest do
     fb_opt3 = &{:ignore, String.reverse(&1)}
     fb_opt4 = fn -> "6yek" end
 
-    fb_opt5 = fn ->
-      send(test_process, {callers_reference, Process.get(:"$callers")})
-      "key7"
-    end
-
     # fetch the first and second keys
     result1 = Cachex.fetch(cache, "key1", fb_opt1)
     result2 = Cachex.fetch(cache, "key2", fb_opt1)
@@ -50,17 +43,12 @@ defmodule Cachex.Actions.FetchTest do
     result4 = Cachex.fetch(cache, "key4", fb_opt2)
     result5 = Cachex.fetch(cache, "key5", fb_opt3)
     result6 = Cachex.fetch(cache, "key6", fb_opt4)
-    result7 = Cachex.fetch(cache, "key7", fb_opt5)
-
-    assert_receive({^callers_reference, callers})
-    assert test_process in callers
 
     # verify the fallback fetches
     assert(result3 == {:commit, "3yek"})
     assert(result4 == {:commit, "4yek"})
     assert(result5 == {:ignore, "5yek"})
     assert(result6 == {:commit, "6yek"})
-    assert(result7 == {:commit, "key7"})
 
     # assert we receive valid notifications
     assert_receive({{:fetch, ["key1", ^fb_opt1, []]}, ^result1})
@@ -69,7 +57,6 @@ defmodule Cachex.Actions.FetchTest do
     assert_receive({{:fetch, ["key4", ^fb_opt2, []]}, ^result4})
     assert_receive({{:fetch, ["key5", ^fb_opt3, []]}, ^result5})
     assert_receive({{:fetch, ["key6", ^fb_opt4, []]}, ^result6})
-    assert_receive({{:fetch, ["key7", ^fb_opt5, []]}, ^result7})
 
     # check we received valid purge actions for the TTL
     assert_receive({{:purge, [[]]}, {:ok, 1}})
@@ -214,5 +201,22 @@ defmodule Cachex.Actions.FetchTest do
 
     # all should have been called just once
     assert %{1 => 1000} == calls
+  end
+
+  test "fallback function has test process in $callers" do
+    test_process = self()
+    callers_reference = make_ref()
+
+    cache = TestUtils.create_cache()
+
+    fallback_fun = fn ->
+      send(test_process, {callers_reference, Process.get(:"$callers")})
+      "value"
+    end
+
+    {:commit, "value"} = Cachex.fetch(cache, "key", fallback_fun)
+
+    assert_receive({^callers_reference, callers})
+    assert test_process in callers
   end
 end
