@@ -139,22 +139,3 @@ These are just some of the conveniences made available by Cachex's API, but ther
 For further information or examples on supported features and options, please see the Cachex [documentation](https://hexdocs.pm/cachex) where there are several guides on specific features and workflows.
 
 All of the hosted documentation is also available in raw form in the [repository](https://github.com/whitfin/cachex/tree/main/docs).
-
-# Testing
-
-`Cachex` propagates `$callers` similarly to Elixir's `Task`. It allows libaries that use this pattern (e.g. `Req` or `Mox`) to define mocks and stubs in the test process even when the code calling the stub runs in another process. E.g.
-
-```
-test "some test" do
-  # runs in test process
-  Req.Test.stub(MyApp.Weather, fn conn ->
-    Req.Test.json(conn, %{"celsius" => 25.0})
-  end)
-
-  Cachex.fetch(:my_cache, key, fn ->
-    # runs in Cachex process
-    # but it will be able to find the stub
-    MyApp.Weather.get_temperature("Kraków, Poland")
-  end)
-end
-```
