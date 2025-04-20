@@ -41,9 +41,8 @@ defmodule Cachex.Actions.GetAndUpdate do
 
       with {:commit, new_value, options} <- normalized do
         apply(Cachex, operation, [cache, key, new_value, options])
+        {:commit, new_value}
       end
-
-      formatted
     end)
   end
 end
