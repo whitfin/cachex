@@ -138,4 +138,24 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert_receive({^callers_reference, callers})
     assert test_process in callers
   end
+
+  # This test covers whether $callers is correctly propagated through to the
+  # update function to allow things like mocking, etc.
+  test "update functions have access to $callers" do
+    # create a test cache
+    cache = TestUtils.create_cache()
+    cache = Services.Overseer.get(cache)
+
+    # process chain
+    parent = self()
+
+    # trigger a fetch in another process
+    Cachex.get_and_update(cache, "key", fn _ ->
+      send(parent, Process.get(:"$callers"))
+      {:ignore, nil}
+    end)
+
+    # check callers are just the base process
+    assert_receive([^parent])
+  end
 end

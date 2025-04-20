@@ -1,26 +1,6 @@
 defmodule Cachex.HookTest do
   use Cachex.Test.Case
 
-  defmodule Hook.Callers do
-    use Cachex.Hook
-    import Cachex.Spec
-
-    def async?, do: true
-    def actions, do: :all
-    def type, do: :pre
-
-    @doc """
-    Returns a hook definition for a custom execute hook.
-    """
-    def create(name \\ nil),
-      do: hook(module: __MODULE__, args: self(), name: name)
-
-    def handle_notify(_, _, proc) do
-      send(proc, Process.get(:"$callers"))
-      {:noreply, proc}
-    end
-  end
-
   setup_all do
     ForwardHook.bind(
       concat_hook_1: [type: :pre],
@@ -29,15 +9,6 @@ defmodule Cachex.HookTest do
     )
 
     :ok
-  end
-
-  test "$callers in hooks" do
-    test_process = self()
-    callers_hook = Hook.Callers.create()
-    cache = TestUtils.create_cache(hooks: [callers_hook])
-    Cachex.fetch(cache, "key1", fn _ -> "val1" end)
-    assert_receive hook_callers
-    assert test_process in hook_callers
   end
 
   test "concatenating hooks in a cache" do
@@ -100,5 +71,25 @@ defmodule Cachex.HookTest do
 
     # check that locating with the wrong type finds nothing
     assert Cachex.Hook.locate(cache1, :concat_hook_1, :post) == nil
+  end
+
+  # This test covers whether $callers is correctly propagated through to hooks
+  # when triggered by a parent process. We validate this by sending the value
+  # back through to the test process to validate it contains the process identifier.
+  test "accessing $callers in hooks" do
+    # create a test cache and execution hook
+    cache = TestUtils.create_cache(hooks: [ExecuteHook.create()])
+
+    # find the hook (with the populated runtime process identifier)
+    cache(hooks: hooks(post: [hook])) = Cachex.inspect!(cache, :cache)
+
+    # notify and fetch callers in order to send them back to this parent process
+    Services.Informant.notify([hook], {:exec, fn -> Process.get(:"$callers") end}, nil)
+
+    # process chain
+    parent = self()
+
+    # check callers are just us
+    assert_receive([^parent])
   end
 end
