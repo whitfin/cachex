@@ -140,7 +140,7 @@ defmodule Cachex.Hook do
 
       @doc false
       def handle_info({:cachex_notify, {event, result, callers}}, state) do
-        put_callers(callers)
+        Process.put(:"$callers", callers)
 
         case timeout() do
           nil ->
