@@ -5,8 +5,6 @@ defmodule Cachex.Actions.GetAndUpdateTest do
   # to check the ability to ignore a value rather than committing, as well as the
   # TTL of a key being maintained after the update calls.
   test "retrieving and updated cache records" do
-    test_process = self()
-    callers_reference = make_ref()
     # create a forwarding hook
     hook = ForwardHook.create()
 
@@ -48,13 +46,6 @@ defmodule Cachex.Actions.GetAndUpdateTest do
         {:commit, "6"}
       end)
 
-    # ensure correct callers
-    result7 =
-      Cachex.get_and_update(cache, 7, fn _ ->
-        send(test_process, {callers_reference, Process.get(:"$callers")})
-        {:commit, "7"}
-      end)
-
     # verify the first key is retrieved
     assert(result1 == {:commit, "1"})
 
@@ -68,7 +59,6 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     # verify the fifth and sixth results
     assert(result5 == {:ignore, "5"})
     assert(result6 == {:commit, "6"})
-    assert(result7 == {:commit, "7"})
 
     # assert we receive valid notifications
     assert_receive({{:get_and_update, [1, _to_string, []]}, ^result1})
@@ -77,10 +67,6 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert_receive({{:get_and_update, [4, _to_string, []]}, ^result4})
     assert_receive({{:get_and_update, [5, _my_functs, []]}, ^result5})
     assert_receive({{:get_and_update, [6, _my_functs, []]}, ^result6})
-    assert_receive({{:get_and_update, [7, _my_functs, []]}, ^result7})
-
-    assert_receive({^callers_reference, callers})
-    assert test_process in callers
 
     # check we received valid purge actions for the TTL
     assert_receive({{:purge, [[]]}, {:ok, 1}})
@@ -133,5 +119,23 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     # both should come back
     assert(get1 == {:ok, "1"})
     assert(get2 == {:ok, "2"})
+  end
+
+  test "fallback function has test process in $callers" do
+    test_process = self()
+    callers_reference = make_ref()
+
+    cache = TestUtils.create_cache()
+
+    result =
+      Cachex.get_and_update(cache, "key", fn _ ->
+        send(test_process, {callers_reference, Process.get(:"$callers")})
+        {:commit, "value"}
+      end)
+
+    assert(result == {:commit, "value"})
+
+    assert_receive({^callers_reference, callers})
+    assert test_process in callers
   end
 end
