@@ -43,7 +43,7 @@ defmodule Cachex.Router do
   Create a child specification to back a routing state.
   """
   @callback children(cache :: Cachex.t(), options :: Keyword.t()) ::
-              Supervisor.child_spec()
+              [Supervisor.child_spec()]
 
   ##################
   # Implementation #
