@@ -40,12 +40,10 @@ defmodule Cachex.Services.Courier do
   """
   @spec dispatch(Cachex.t(), any, (-> any)) :: any
   def dispatch(cache() = cache, key, task) when is_function(task, 0) do
-    callers = get_callers()
-
     service_call(
       cache,
       :courier,
-      {:dispatch, key, task, local_stack(), callers}
+      {:dispatch, key, task, local_stack(), get_callers()}
     )
   end
 
@@ -76,6 +74,9 @@ defmodule Cachex.Services.Courier do
         caller,
         {cache, tasks} = state
       ) do
+    put_callers(callers)
+    callers = get_callers()
+
     case Map.get(tasks, key) do
       {pid, listeners} ->
         {:noreply, {cache, Map.put(tasks, key, {pid, [caller | listeners]})}}

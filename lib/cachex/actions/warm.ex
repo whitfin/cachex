@@ -55,8 +55,7 @@ defmodule Cachex.Actions.Warm do
 
   # Invokes a warmer with blocking enabled.
   defp call_warmer(warmer(name: name), true) do
-    callers = get_callers()
-    GenServer.call(name, {:cachex_warmer, callers}, :infinity)
+    GenServer.call(name, {:cachex_warmer, get_callers()}, :infinity)
   end
 
   # Invokes a warmer with blocking disabled.

@@ -67,8 +67,7 @@ defmodule Cachex.Services.Informant do
         # skip notifying service hooks
         if module.type() != :service do
           # define the base payload, regardless of type
-          callers = get_callers()
-          payload = {:cachex_notify, {action, result, callers}}
+          payload = {:cachex_notify, {action, result, get_callers()}}
 
           # handle async vs. sync
           case module.async?() do

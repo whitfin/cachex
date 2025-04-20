@@ -39,8 +39,7 @@ defmodule Cachex.Services.Locksmith.Queue do
   @spec transaction(Cachex.t(), [any], (-> any)) :: any
   def transaction(cache() = cache, keys, func)
       when is_list(keys) and is_function(func, 0) do
-    callers = get_callers()
-    service_call(cache, :locksmith, {:transaction, keys, func, callers})
+    service_call(cache, :locksmith, {:transaction, keys, func, get_callers()})
   end
 
   ####################
