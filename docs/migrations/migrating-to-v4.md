@@ -69,6 +69,25 @@ This is covered in much more detail in the corresponding documentation of [Cache
 
 Last but not least, the `:transactional` flag has been renamed to `:transactions`. Ironically this used to be the name in the Cachex v2 days, but it turned out that it was a mistake to change it in Cachex v3!
 
+## Return Value Change
+
+The return value for `Cachex.fetch/4` has changed. When `fetch/4` is given a fallback function that returns a three-element tuple 
+(like `{ :commit, String.reverse(key), expire: :timer.seconds(60) }`), it returns a two-element tuple isntead of a three-element tuple.
+
+Typespec for `fetch/4` prior to 4.X:
+
+```elixir
+@spec fetch(cache(), any(), function() | nil, Keyword.t()) ::
+  {status() | :commit | :ignore, any()} | {:commit, any(), any()}
+```
+
+Typespec for `fetch/4` in 4.X:
+
+```elixir
+@spec fetch(Cachex.t(), any, function(), Keyword.t()) ::
+  {status | :commit | :ignore, any}
+```
+
 ## Warming Changes
 
 There are some minor changes to cache warmers in Cachex v4, which require only a couple of minutes to update.
