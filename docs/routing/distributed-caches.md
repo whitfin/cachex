@@ -70,7 +70,7 @@ There are several actions within Cachex which accept a function as an argument. 
 
 To expand on this, providing an inline function such as `fn x -> x * 2 end` will not work as expected, because it exists only on the local node. If this action is then delegated to a different node, the function no longer exists. Fortunately this is simple to work around, by instead naming the function within a module and providing it via `&MyModule.my_fun/1`.
 
-This is mainly due ot the naming conventions of anonymous functions, meaning that they cannot be guaranteed to be exactly the same on different OTP nodes. In the case of a named function, even though the anonymous binding is different, it's only passing through to a known function we can guarantee is consistent.
+This is mainly due to the naming conventions of anonymous functions, meaning that they cannot be guaranteed to be exactly the same on different OTP nodes. In the case of a named function, even though the anonymous binding is different, it's only passing through to a known function we can guarantee is consistent.
 
 If this doesn't make sense, just remember to use module functions rather than inlined functions!
 
