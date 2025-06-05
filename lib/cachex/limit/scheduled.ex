@@ -31,6 +31,8 @@ defmodule Cachex.Limit.Scheduled do
   # Hook Configuration #
   ######################
 
+  @default_frequency 1000
+
   @doc """
   Returns the provisions this policy requires.
   """
@@ -71,7 +73,7 @@ defmodule Cachex.Limit.Scheduled do
   # Schedules a check to occur after the designated interval.
   defp schedule(options) do
     options
-    |> Keyword.get(:frequency, :timer.seconds(3))
+    |> Keyword.get(:frequency, @default_frequency)
     |> :erlang.send_after(self(), :policy_check)
 
     :ok
