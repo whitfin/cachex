@@ -21,8 +21,8 @@ defmodule Cachex.Limit.Scheduled do
     * `:frequency`
 
       The polling frequency for this hook to use when scheduling cache pruning.
-      This should be an non-negative number of milliseconds. Defaults to `1000`,
-      which is once per second.
+      This should be a non-negative number of milliseconds. Defaults to `3000`,
+      which is three seconds.
 
   """
   use Cachex.Hook
