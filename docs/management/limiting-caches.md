@@ -72,7 +72,7 @@ Cachex.start(:my_cache,
 )
 ```
 
-This will spawn a cache hook to continually prune your cache periodically, based on the options you provided. You can pass options for `Cachex.prune/3` as the second element of the `args` tuple, and customize the hook itself in the third element. Currently the only supported parameter for the hook is `:frequency`, which defaults to `1000` (one second). Please see the documentation for an updated list of supported configuration.
+This will spawn a cache hook to continually prune your cache periodically, based on the options you provided. You can pass options for `Cachex.prune/3` as the second element of the `args` tuple, and customize the hook itself in the third element. Currently the only supported parameter for the hook is `:frequency`, which defaults to `3000` (three seconds). Please see the documentation for an updated list of supported configuration.
 
 If you need more exact timing you can opt to use `Cachex.Limit.Evented` rather than `Cachex.Limit.Scheduled`, which will react to hook events inside a cache instead of running on a schedule:
 
