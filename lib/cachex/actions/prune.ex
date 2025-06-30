@@ -37,7 +37,7 @@ defmodule Cachex.Actions.Prune do
     reclaim = Keyword.get(options, :reclaim, 0.1)
     reclaim_bound = round(size * reclaim)
 
-    case Cachex.size!(cache, const(:notify_false)) do
+    case Cachex.size!(cache, const(:local) ++ const(:notify_false)) do
       cache_size when cache_size <= size ->
         notify_worker(0, cache)
 
@@ -73,7 +73,7 @@ defmodule Cachex.Actions.Prune do
   # the reclaim space, meaning that a positive result require us to carry out
   # further evictions manually down the chain.
   defp calculate_poffset(reclaim_space, cache) when reclaim_space > 0,
-    do: reclaim_space - Cachex.purge!(cache)
+    do: reclaim_space - Cachex.purge!(cache, const(:local))
 
   # Erases the least recently written records up to the offset limit.
   #
