@@ -4,7 +4,7 @@ defmodule Cachex.Limit.Scheduled do
 
   This module implements a scheduled LRW eviction policy for Cachex, using a basic
   timer to trigger bound enforcement in a repeatable way. This has the same bound
-  accuracy as `Cachex.Policy.LRW.Evented`, but has potential for some delay. The
+  accuracy as `Cachex.Limit.Evented`, but has potential for some delay. The
   main advantage of this implementation is a far lower memory cost due to not
   using hook messages.
 

@@ -188,7 +188,7 @@ defmodule Cachex do
       The `:hooks` option allow the user to attach a list of notification hooks to
       enable listening on cache actions (either before or after they happen). These
       hooks should be valid `:hook` records provided by `Cachex.Spec`. Example hook
-      implementations can be found in `Cachex.Stats` and `Cachex.Policy.LRW`.
+      implementations can be found in `Cachex.Stats` and `Cachex.Limited.Scheduled`.
 
           iex> import Cachex.Spec
           ...>
@@ -795,8 +795,10 @@ defmodule Cachex do
 
       iex> Cachex.inspect(:my_cache, :cache)
       {:ok,
-        {:cache, :my_cache, %{}, {:expiration, nil, 3000, true}, {:fallback, nil, nil},
-          {:hooks, [], []}, {:limit, nil, Cachex.Policy.LRW, 0.1, []}, false, []}}
+        {:cache, :my_cache, %{}, false, {:expiration, nil, 3000, true}, 
+          {:hooks, [], [{:hook, Cachex.Stats, nil, #PID<0.986.0>}]}, 
+            [{:hook, Cachex.Limit.Scheduled, {500, [], []}, #PID<0.985.0>}], nil, false,
+          {:router, [], Cachex.Router.Local, nil}, false, []}}
 
       iex> Cachex.inspect(:my_cache, { :entry, "my_key" } )
       { :ok, { :entry, "my_key", 1475476615662, 1, "my_value" } }
