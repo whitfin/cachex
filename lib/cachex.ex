@@ -956,7 +956,7 @@ defmodule Cachex do
       { :ok, 5000 }
 
   """
-  @spec put(Cachex.t(), any, any, Keyword.t()) :: {status, boolean}
+  @spec put(Cachex.t(), any, any, Keyword.t()) :: {status, any}
   def put(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:put, [key, value, options]})
 
@@ -985,7 +985,7 @@ defmodule Cachex do
       { :ok, 5000 }
 
   """
-  @spec put_many(Cachex.t(), [{any, any}], Keyword.t()) :: {status, boolean}
+  @spec put_many(Cachex.t(), [{any, any}], Keyword.t()) :: {status, any}
   def put_many(cache, pairs, options \\ [])
       when is_list(pairs) and is_list(options),
       do: Router.route(cache, {:put_many, [pairs, options]})
