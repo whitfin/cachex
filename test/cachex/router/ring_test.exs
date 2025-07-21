@@ -108,7 +108,7 @@ defmodule Cachex.Router.RingTest do
             options: [
               monitor: true,
               monitor_includes: [
-                ~r/^manager.*$/
+                "^manager.*$"
               ]
             ]
           )
@@ -132,7 +132,7 @@ defmodule Cachex.Router.RingTest do
             options: [
               monitor: true,
               monitor_excludes: [
-                ~r/^[a-zA-Z0-9]+\d@.*$/
+                "^[a-zA-Z0-9]+\\d@.*$"
               ]
             ]
           )
