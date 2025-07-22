@@ -562,39 +562,28 @@ defmodule Cachex do
     do: Router.route(cache, {:export, [options]})
 
   @doc """
-  Fetches an entry from a cache, generating a value on cache miss.
+  Fetches an entry from a cache the same way as `get/3`, but calls `fallback`
+  to lazily generate a value on cache miss. Conceptually similar to a
+  read-through cache.
 
-  If the entry requested is found in the cache, this function will
-  operate in the same way as `get/3`. If the entry is not contained
-  in the cache, the provided fallback function will be executed.
+  `fallback` should return a Tuple like `{:commit, value}` or
+  `{:ignore, value}`. Passing `:ignore` instructs Cachex not to store the value.
+  Any other value returned will assume `:commit`.
 
-  A fallback function is a function used to lazily generate a value
-  to place inside a cache on miss. Consider it a way to achieve the
-  ability to create a read-through cache.
+  You may provide a third element in a `:commit` Tuple to passthrough options
+  to `put/4`, for example `expire: ...`
 
-  A fallback function should return a Tuple consisting of a `:commit`
-  or `:ignore` tag and a value. If the Tuple is tagged `:commit` the
-  value will be placed into the cache and then returned. If tagged
-  `:ignore` the value will be returned without being written to the
-  cache. If you return a value which does not fit this structure, it
-  will be assumed that you are committing the value.
+  `fallback` optionally takes argument `key`.
 
-  As of Cachex v3.6, you can also provide a third element in a `:commit`
-  Tuple, to allow passthrough of options from within your fallback. The
-  options supported in this list match the options you can provide to a
-  call of `Cachex.put/4`. An example is the `:expire` option to set an
-  expiration from directly inside your fallback.
-
-  If a fallback function has an arity of 1, the requested entry key
-  will be passed through to allow for contextual computation. If a
-  function has an arity of 0, it will be executed without arguments.
+  Multiple calls to `fetch/4` with the same key while the `fallback` is running
+  will wait on the lazy evaluation to complete. Multiple instances of
+  `fallback` will never run concurrently for a given key.
 
   ## Examples
 
-      iex> Cachex.put(:my_cache, "key", "value")
-      iex> Cachex.fetch(:my_cache, "key", fn(key) ->
-      ...>   { :commit, String.reverse(key) }
-      ...> end)
+      iex> Cachex.fetch(:my_cache, "key", fn -> "value" end)
+      { :commit, "value" }
+      iex> Cachex.fetch(:my_cache, "key", fn -> "value" end)
       { :ok, "value" }
 
       iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
@@ -607,10 +596,10 @@ defmodule Cachex do
       ...> end)
       { :commit, "yek_gnissim" }
 
-      iex> Cachex.fetch(:my_cache, "missing_key_expires", fn(key) ->
+      iex> Cachex.fetch(:my_cache, "with_options", fn(key) ->
       ...>   { :commit, String.reverse(key), expire: :timer.seconds(60) }
       ...> end)
-      { :commit, "seripxe_yek_gnissim" }
+      { :commit, "snoitpo_htiw" }
 
   """
   @spec fetch(Cachex.t(), any, function(), Keyword.t()) ::
