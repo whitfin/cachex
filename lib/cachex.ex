@@ -565,8 +565,9 @@ defmodule Cachex do
   Fetches an entry from a cache, generating a value on cache miss.
 
   If the entry requested is found in the cache, this function will
-  operate in the same way as `get/3`. If the entry is not contained
-  in the cache, the provided fallback function will be executed.
+  operate in the same way as `get/3`. If the key does not exist
+  in the cache, or if it does exist but the value is nil, then the
+  provided fallback function will be executed.
 
   A fallback function is a function used to lazily generate a value
   to place inside a cache on miss. Consider it a way to achieve the
