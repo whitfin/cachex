@@ -145,16 +145,19 @@ defmodule Cachex.Services.Overseer do
   """
   @spec with(cache :: Cachex.t(), (cache :: Cachex.t() -> any)) :: any
   def with(cache, handler) do
-    case Overseer.get(cache) do
-      nil ->
-        error(:no_cache)
+    state = Overseer.get(cache)
 
-      cache(name: name) = cache ->
-        if :erlang.whereis(name) != :undefined do
-          handler.(cache)
-        else
-          error(:no_cache)
-        end
+    if unknown?(state) do
+      error(:no_cache)
+    else
+      handler.(state)
     end
   end
+
+  # Check whether a cache has a known location.
+  defp unknown?(cache(name: name)),
+    do: :erlang.whereis(name) == :undefined
+
+  defp unknown?(nil),
+    do: true
 end
