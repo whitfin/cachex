@@ -208,7 +208,7 @@ defmodule Cachex.Actions.FetchTest do
   test "fetching functions have access to $callers" do
     # create a test cache
     cache = TestUtils.create_cache()
-    cache = Services.Overseer.get(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # process chain
     parent = self()

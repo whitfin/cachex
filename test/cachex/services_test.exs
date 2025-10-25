@@ -11,7 +11,7 @@ defmodule Cachex.ServicesTest do
   test "generating default cache specifications" do
     # generate the test cache state
     name = TestUtils.create_cache()
-    cache = Services.Overseer.retrieve(name)
+    cache = Services.Overseer.lookup(name)
 
     # validate the services
     assert [
@@ -30,7 +30,7 @@ defmodule Cachex.ServicesTest do
   test "generating cache specifications with routing" do
     # generate the test cache state using an async router
     name = TestUtils.create_cache(router: Cachex.Router.Ring)
-    cache = Services.Overseer.retrieve(name)
+    cache = Services.Overseer.lookup(name)
 
     # validate the services
     assert [
@@ -54,7 +54,7 @@ defmodule Cachex.ServicesTest do
   test "skipping cache janitor specifications" do
     # generate the test cache state with the Janitor disabled
     name = TestUtils.create_cache(expiration: expiration(interval: nil))
-    cache = Services.Overseer.retrieve(name)
+    cache = Services.Overseer.lookup(name)
 
     # validate the services
     assert [
@@ -72,7 +72,7 @@ defmodule Cachex.ServicesTest do
   test "locating running services" do
     # generate the test cache state with the Janitor disabled
     name = TestUtils.create_cache(expiration: expiration(interval: nil))
-    cache = Services.Overseer.retrieve(name)
+    cache = Services.Overseer.lookup(name)
 
     # validate the service locations
     assert Services.locate(cache, Services.Courier) != nil

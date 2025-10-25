@@ -18,7 +18,6 @@ defmodule Cachex.Services.Overseer do
   alias Cachex.Services
 
   # add service aliases
-  alias Services.Overseer
   alias Services.Steward
 
   # constants for manager/table names
@@ -53,22 +52,6 @@ defmodule Cachex.Services.Overseer do
   end
 
   @doc """
-  Retrieves a cache from a name or record.
-
-  Retrieving a cache will map the provided argument to a
-  cache record if available, otherwise a nil value.
-  """
-  @spec get(Cachex.t()) :: Cachex.t() | nil
-  def get(cache() = cache),
-    do: cache
-
-  def get(name) when is_atom(name),
-    do: retrieve(name)
-
-  def get(_miss),
-    do: nil
-
-  @doc """
   Determines whether a cache is known by the Overseer.
   """
   @spec known?(atom) :: true | false
@@ -76,17 +59,16 @@ defmodule Cachex.Services.Overseer do
     do: :ets.member(@table_name, name)
 
   @doc """
-  Registers a cache record against a name.
-  """
-  @spec register(atom, Cachex.t()) :: true
-  def register(name, cache() = cache) when is_atom(name),
-    do: :ets.insert(@table_name, {name, cache})
+  Retrieves a cache from a name or record.
 
-  @doc """
-  Retrieves a cache record, or `nil` if none exists.
+  Retrieving a cache will map the provided argument to a
+  cache record if available, otherwise a nil value.
   """
-  @spec retrieve(atom) :: Cachex.t() | nil
-  def retrieve(name) do
+  @spec lookup(Cachex.t()) :: Cachex.t() | nil
+  def lookup(cache() = cache),
+    do: cache
+
+  def lookup(name) when is_atom(name) do
     case :ets.lookup(@table_name, name) do
       [{^name, state}] ->
         state
@@ -95,6 +77,16 @@ defmodule Cachex.Services.Overseer do
         nil
     end
   end
+
+  def lookup(_any),
+    do: nil
+
+  @doc """
+  Registers a cache record against a name.
+  """
+  @spec register(atom, Cachex.t()) :: true
+  def register(name, cache() = cache) when is_atom(name),
+    do: :ets.insert(@table_name, {name, cache})
 
   @doc """
   Determines whether the Overseer has been started.
@@ -126,7 +118,7 @@ defmodule Cachex.Services.Overseer do
   @spec update(atom, Cachex.t() | (Cachex.t() -> Cachex.t())) :: Cachex.t()
   def update(name, fun) when is_atom(name) and is_function(fun, 1) do
     transaction(name, fn ->
-      cstate = retrieve(name)
+      cstate = lookup(name)
       nstate = fun.(cstate)
 
       register(name, nstate)
@@ -145,7 +137,7 @@ defmodule Cachex.Services.Overseer do
   """
   @spec with(cache :: Cachex.t(), (cache :: Cachex.t() -> any)) :: any
   def with(cache, handler) do
-    state = Overseer.get(cache)
+    state = lookup(cache)
 
     if unknown?(state) do
       error(:no_cache)

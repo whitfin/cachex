@@ -21,7 +21,7 @@ defmodule Cachex.ActionsTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # retrieve the state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # write several values
     {:ok, true} = Cachex.put(cache, 1, 1)
@@ -59,7 +59,7 @@ defmodule Cachex.ActionsTest do
     cache = TestUtils.create_cache()
 
     # retrieve the state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # write some values into the cache
     write1 =

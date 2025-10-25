@@ -71,7 +71,7 @@ defmodule Cachex.Services.JanitorTest do
         expiration: expiration(interval: ttl_interval)
       )
 
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # add a new cache entry
     {:ok, true} = Cachex.put(cache, "key", "value", expire: ttl_value)

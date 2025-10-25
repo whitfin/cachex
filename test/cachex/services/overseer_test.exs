@@ -48,14 +48,14 @@ defmodule Cachex.OverseerTest do
     Services.Overseer.register(name, state)
 
     # ensure that the state comes back
-    assert(Services.Overseer.get(state) === state)
-    assert(Services.Overseer.get(name) === state)
+    assert(Services.Overseer.lookup(state) === state)
+    assert(Services.Overseer.lookup(name) === state)
 
     # remove our state from the table
     Services.Overseer.unregister(name)
 
     # ensure the state is gone
-    assert(Services.Overseer.get(name) == nil)
+    assert(Services.Overseer.lookup(name) == nil)
   end
 
   # Covers the retrieval of a cache state from inside the table. We just have to
@@ -72,7 +72,7 @@ defmodule Cachex.OverseerTest do
     Services.Overseer.register(name, state)
 
     # pull back the state from the table
-    result = Services.Overseer.retrieve(name)
+    result = Services.Overseer.lookup(name)
 
     # ensure nothing has changed
     assert(result == state)
@@ -91,7 +91,7 @@ defmodule Cachex.OverseerTest do
     name = TestUtils.create_cache(hooks: hook)
 
     # retrieve our state
-    cache(expiration: expiration) = state = Services.Overseer.retrieve(name)
+    cache(expiration: expiration) = state = Services.Overseer.lookup(name)
 
     # store our updated states
     update1 = cache(state, expiration: expiration(expiration, default: 5))
@@ -118,7 +118,7 @@ defmodule Cachex.OverseerTest do
     :timer.sleep(50)
 
     # pull back the state from the table
-    cache(expiration: expiration) = Services.Overseer.retrieve(name)
+    cache(expiration: expiration) = Services.Overseer.lookup(name)
 
     # ensure the last call is the new value
     assert(expiration(expiration, :default) == 3)

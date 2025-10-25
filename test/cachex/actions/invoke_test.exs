@@ -88,7 +88,7 @@ defmodule Cachex.Actions.InvokeTest do
     cache = TestUtils.create_cache()
 
     # retrieve the state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # modify the state to have fake commands
     state =
