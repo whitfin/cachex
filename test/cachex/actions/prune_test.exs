@@ -50,7 +50,7 @@ defmodule Cachex.Actions.PruneTest do
     cache = TestUtils.create_cache()
 
     # retrieve the cache state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # set 50 keys without ttl
     for x <- 1..50 do

@@ -134,7 +134,7 @@ defmodule Cachex.Actions.InspectTest do
     cache = TestUtils.create_cache()
 
     # retrieve the cache state
-    state1 = Services.Overseer.retrieve(cache)
+    state1 = Services.Overseer.lookup(cache)
 
     # update the state to have a different setting
     state2 =

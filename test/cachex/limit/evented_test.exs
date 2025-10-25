@@ -9,7 +9,7 @@ defmodule Cachex.Limit.EventedTest do
     cache = TestUtils.create_cache()
 
     # retrieve the cache state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # add 5000 keys to the cache
     for x <- 1..5000 do
@@ -51,7 +51,7 @@ defmodule Cachex.Limit.EventedTest do
       )
 
     # retrieve the cache state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # add 100 keys to the cache
     for x <- 1..100 do

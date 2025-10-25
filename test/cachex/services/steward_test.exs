@@ -14,7 +14,7 @@ defmodule Cachex.Services.StewardTest do
 
     # start a new cache using our forwarded hook
     cache = TestUtils.create_cache(hooks: [hook])
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # the provisioned value should match
     assert_receive({:cache, ^cache})

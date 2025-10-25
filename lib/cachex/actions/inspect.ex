@@ -63,7 +63,7 @@ defmodule Cachex.Actions.Inspect do
   # This is relatively easy to get via other methods, but it's available here
   # as the "best" way for a developer to do so (outside of the internal API).
   def execute(cache(name: name), :cache, _options),
-    do: {:ok, Overseer.retrieve(name)}
+    do: {:ok, Overseer.lookup(name)}
 
   # Retrieves a raw entry from the cache table.
   #

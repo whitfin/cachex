@@ -13,7 +13,7 @@ defmodule Cachex.Actions.TouchTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # pull back the state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # add some keys to the cache
     {:ok, true} = Cachex.put(cache, 1, 1)

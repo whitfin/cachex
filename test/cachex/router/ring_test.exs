@@ -9,7 +9,7 @@ defmodule Cachex.Router.RingTest do
       )
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # fetch the router state after initialize
     cache(router: router(state: state)) = cache
@@ -34,7 +34,7 @@ defmodule Cachex.Router.RingTest do
       )
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # fetch the router state after initialize
     cache(router: router(state: state)) = cache
@@ -60,7 +60,7 @@ defmodule Cachex.Router.RingTest do
       )
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # pull back the routable nodes from router
     {:ok, routable1} = Cachex.Router.nodes(cache)
@@ -115,7 +115,7 @@ defmodule Cachex.Router.RingTest do
       )
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # verify that only the manage was attached to the ring
     assert Cachex.Router.nodes(cache) == {:ok, [node()]}
@@ -139,7 +139,7 @@ defmodule Cachex.Router.RingTest do
       )
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # verify that only the manager was attached to the ring
     assert Cachex.Router.nodes(cache) == {:ok, [node()]}

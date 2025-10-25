@@ -64,7 +64,7 @@ defmodule Cachex.Actions.TransactionTest do
     cache = TestUtils.create_cache()
 
     # retrieve the cache state
-    state1 = Services.Overseer.retrieve(cache)
+    state1 = Services.Overseer.lookup(cache)
 
     # verify transactions are disabled
     assert(cache(state1, :transactions) == false)
@@ -73,7 +73,7 @@ defmodule Cachex.Actions.TransactionTest do
     Cachex.transaction(cache, [], & &1)
 
     # pull the state back from the cache again
-    state2 = Services.Overseer.retrieve(cache)
+    state2 = Services.Overseer.lookup(cache)
 
     # verify transactions are now enabled
     assert(cache(state2, :transactions) == true)
