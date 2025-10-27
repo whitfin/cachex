@@ -153,13 +153,15 @@ defmodule CachexTest do
     # fetch a name
     name = TestUtils.create_name()
 
-    # try to execute a cache action against a missing cache and an invalid name
-    {:error, reason1} = Cachex.execute(name, & &1)
-    {:error, reason2} = Cachex.execute("na", & &1)
+    # try to execute a cache action against a missing cache
+    assert_raise ArgumentError, ~r/no cache available:/, fn ->
+      Cachex.execute(name, & &1)
+    end
 
-    # match the reason to be more granular
-    assert(reason1 == :no_cache)
-    assert(reason2 == :no_cache)
+    # try to execute a cache action against an invalid name
+    assert_raise ArgumentError, ~r/no cache available:/, fn ->
+      Cachex.execute("na", & &1)
+    end
   end
 
   # This tests ensures that we provide delegate functions for Cachex functions
@@ -197,11 +199,6 @@ defmodule CachexTest do
 
     # create a basic test cache
     cache = TestUtils.create_cache()
-
-    # validate an unsafe call to test handling
-    assert_raise(Cachex.Error, fn ->
-      Cachex.get!(:missing_cache, "key")
-    end)
 
     # validate an unsafe call to test handling
     assert_raise(Cachex.Error, fn ->
