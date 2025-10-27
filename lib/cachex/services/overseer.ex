@@ -11,7 +11,6 @@ defmodule Cachex.Services.Overseer do
   # this new design. Cache states are stored in a single ETS table backing this
   # module and all cache calls will be routed through here first to ensure their
   # state is up to date.
-  import Cachex.Error
   import Cachex.Spec
 
   # add any aliases
@@ -139,17 +138,10 @@ defmodule Cachex.Services.Overseer do
   def with(cache, handler) do
     state = lookup(cache)
 
-    if unknown?(state) do
-      error(:no_cache)
-    else
-      handler.(state)
+    if state == nil or :erlang.whereis(cache(state, :name)) == :undefined do
+      raise ArgumentError, "no cache available: #{inspect(cache)}"
     end
+
+    handler.(state)
   end
-
-  # Check whether a cache has a known location.
-  defp unknown?(cache(name: name)),
-    do: :erlang.whereis(name) == :undefined
-
-  defp unknown?(nil),
-    do: true
 end
