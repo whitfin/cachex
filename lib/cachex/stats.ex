@@ -178,17 +178,17 @@ defmodule Cachex.Stats do
   #
   # This operates in the same way as the `del()` call statistics, except that
   # a count is received in the result, and is used to increment by instead.
-  defp register_action(stats, {:clear, _args}, {_tag, count}),
+  defp register_action(stats, {:clear, _args}, count),
     do: increment(stats, [:evictions], count)
 
   # Handles registration of `exists?()` command calls.
   #
   # The result boolean will determine whether this increments the `:hits` or
   # `:misses` key of the main statistics container (true/false respectively).
-  defp register_action(stats, {:exists?, _args}, {_tag, true}),
+  defp register_action(stats, {:exists?, _args}, true),
     do: increment(stats, [:hits], 1)
 
-  defp register_action(stats, {:exists?, _args}, {_tag, false}),
+  defp register_action(stats, {:exists?, _args}, false),
     do: increment(stats, [:misses], 1)
 
   # Handles registration of `take()` command calls.

@@ -12,27 +12,19 @@ defmodule Cachex.Actions.DelTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some cache entries
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
-    # delete some entries
-    result1 = Cachex.del(cache, 1)
-    result2 = Cachex.del(cache, 2)
-
-    # verify both are true
-    assert(result1 == {:ok, true})
-    assert(result2 == {:ok, true})
+    # delete some entries, verify both are true
+    assert Cachex.del(cache, 1) == {:ok, true}
+    assert Cachex.del(cache, 2) == {:ok, true}
 
     # verify the hooks were updated with the delete
-    assert_receive({{:del, [1, []]}, ^result1})
-    assert_receive({{:del, [2, []]}, ^result2})
+    assert_receive({{:del, [1, []]}, {:ok, true}})
+    assert_receive({{:del, [2, []]}, {:ok, true}})
 
-    # retrieve all items
-    value1 = Cachex.get(cache, 1)
-    value2 = Cachex.get(cache, 2)
-
-    # verify the items are gone
-    assert(value1 == {:ok, nil})
-    assert(value2 == {:ok, nil})
+    # retrieve all items, verify the items are gone
+    assert Cachex.get(cache, 1) == {:ok, nil}
+    assert Cachex.get(cache, 2) == {:ok, nil}
   end
 
   # This test verifies that this action is correctly distributed across
@@ -44,27 +36,19 @@ defmodule Cachex.Actions.DelTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # check the results of the calls across nodes
-    size1 = Cachex.size(cache, local: true)
-    size2 = Cachex.size(cache, local: false)
-
-    # one local, two total
-    assert(size1 == {:ok, 1})
-    assert(size2 == {:ok, 2})
+    assert Cachex.size(cache, local: true) == 1
+    assert Cachex.size(cache, local: false) == 2
 
     # delete each item from the cache cluster
-    {:ok, true} = Cachex.del(cache, 1)
-    {:ok, true} = Cachex.del(cache, 2)
+    assert Cachex.del(cache, 1) == {:ok, true}
+    assert Cachex.del(cache, 2) == {:ok, true}
 
     # check the results of the calls across nodes
-    size3 = Cachex.size(cache, local: true)
-    size4 = Cachex.size(cache, local: false)
-
-    # no records are left
-    assert(size3 == {:ok, 0})
-    assert(size4 == {:ok, 0})
+    assert Cachex.size(cache, local: true) == 0
+    assert Cachex.size(cache, local: false) == 0
   end
 end

@@ -347,16 +347,16 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
       iex> Cachex.size(:my_cache)
-      { :ok, 1 }
+      1
 
       iex> Cachex.clear(:my_cache)
-      { :ok, 1 }
+      1
 
       iex> Cachex.size(:my_cache)
-      { :ok, 0 }
+      0
 
   """
-  @spec clear(Cachex.t(), Keyword.t()) :: {status, integer}
+  @spec clear(Cachex.t(), Keyword.t()) :: integer()
   def clear(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:clear, [options]})
 
@@ -434,7 +434,7 @@ defmodule Cachex do
       { :ok, true }
 
   """
-  @spec empty?(Cachex.t(), Keyword.t()) :: {status, boolean}
+  @spec empty?(Cachex.t(), Keyword.t()) :: boolean()
   def empty?(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:empty?, [options]})
 
@@ -482,13 +482,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.exists?(:my_cache, "key")
-      { :ok, true }
+      true
 
       iex> Cachex.exists?(:my_cache, "missing_key")
-      { :ok, false }
+      false
 
   """
-  @spec exists?(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec exists?(Cachex.t(), any, Keyword.t()) :: boolean()
   def exists?(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:exists?, [key, options]})
 
@@ -795,8 +795,8 @@ defmodule Cachex do
 
       iex> Cachex.inspect(:my_cache, :cache)
       {:ok,
-        {:cache, :my_cache, %{}, false, {:expiration, nil, 3000, true}, 
-          {:hooks, [], [{:hook, Cachex.Stats, nil, #PID<0.986.0>}]}, 
+        {:cache, :my_cache, %{}, false, {:expiration, nil, 3000, true},
+          {:hooks, [], [{:hook, Cachex.Stats, nil, #PID<0.986.0>}]},
             [{:hook, Cachex.Limit.Scheduled, {500, [], []}, #PID<0.985.0>}], nil, false,
           {:router, [], Cachex.Router.Local, nil}, false, []}}
 
@@ -1148,13 +1148,13 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key2", "value2")
       iex> Cachex.put(:my_cache, "key3", "value3", expire: 1)
       iex> Cachex.size(:my_cache)
-      { :ok, 3 }
+      3
 
       iex> Cachex.size(:my_cache, expired: false)
-      { :ok, 2 }
+      2
 
   """
-  @spec size(Cachex.t(), Keyword.t()) :: {status, number}
+  @spec size(Cachex.t(), Keyword.t()) :: integer()
   def size(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:size, [options]})
 
@@ -1459,5 +1459,8 @@ defmodule Cachex do
     do: reraise(e, stack)
 
   defp unwrap_unsafe({_state, value}),
+    do: value
+
+  defp unwrap_unsafe(value),
     do: value
 end

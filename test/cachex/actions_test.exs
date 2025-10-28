@@ -24,34 +24,25 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.lookup(cache)
 
     # write several values
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
 
     # let the TTL expire
     :timer.sleep(2)
 
     # read back the values from the table
-    record1 = Cachex.Actions.read(state, 1)
-    record2 = Cachex.Actions.read(state, 2)
-    record3 = Cachex.Actions.read(state, 3)
+    record = Cachex.Actions.read(state, 1)
+    assert match?(entry(key: 1, value: 1), record)
 
-    # the first should find a record
-    assert(match?(entry(key: 1, value: 1), record1))
-
-    # the second should expire
-    assert(record2 == nil)
-
-    # the third is missing
-    assert(record3 == nil)
+    # read back missing values from the table
+    assert Cachex.Actions.read(state, 2) == nil
+    assert Cachex.Actions.read(state, 3) == nil
 
     # we should receive the purge of the second key
     assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # verify if the second key exists
-    exists1 = Cachex.exists?(cache, 2)
-
-    # it shouldn't exist
-    assert(exists1 == {:ok, false})
+    refute Cachex.exists?(cache, 2)
   end
 
   test "carrying out generic write actions" do
@@ -75,100 +66,52 @@ defmodule Cachex.ActionsTest do
     # verify the write
     assert(write1 == {:ok, true})
 
-    # retrieve the value
-    value1 = Cachex.Actions.read(state, "key")
-
     # validate the value
-    assert(
-      value1 ==
-        entry(
-          key: "key",
-          value: "value",
-          modified: 1
-        )
-    )
+    assert Cachex.Actions.read(state, "key") ==
+             entry(
+               key: "key",
+               value: "value",
+               modified: 1
+             )
 
     # attempt to update some values
-    update1 = Cachex.Actions.update(state, "key", entry_mod(value: "yek"))
-    update2 = Cachex.Actions.update(state, "nop", entry_mod(value: "yek"))
-
-    # the first should be ok
-    assert(update1 == {:ok, true})
-
-    # the second is missing
-    assert(update2 == {:ok, false})
-
-    # retrieve the value
-    value2 = Cachex.Actions.read(state, "key")
+    assert Cachex.Actions.update(state, "key", entry_mod(value: "yek")) == {:ok, true}
+    assert Cachex.Actions.update(state, "nop", entry_mod(value: "yek")) == {:ok, false}
 
     # validate the update took effect
-    assert(
-      value2 ==
-        entry(
-          key: "key",
-          value: "yek",
-          modified: 1
-        )
-    )
+    assert Cachex.Actions.read(state, "key") ==
+             entry(
+               key: "key",
+               value: "yek",
+               modified: 1
+             )
   end
 
   # This test just ensures that we correctly convert return values to either a
   # :commit Tuple or an :ignore Tuple. We also make sure to verify that the default
   # behaviour is a :commit Tuple for backwards compatibility.
   test "formatting commit/ignore return values" do
-    # define our base Tuples to test against
-    tuple1 = {:commit, true}
-    tuple2 = {:ignore, true}
-    tuple3 = {:error, true}
-    tuple4 = {:commit, true, []}
-
-    # define our base value
-    value1 = true
-
-    # format all values
-    result1 = Cachex.Actions.format_fetch_value(tuple1)
-    result2 = Cachex.Actions.format_fetch_value(tuple2)
-    result3 = Cachex.Actions.format_fetch_value(tuple3)
-    result4 = Cachex.Actions.format_fetch_value(tuple4)
-    result5 = Cachex.Actions.format_fetch_value(value1)
-
-    # the first three should persist
-    assert(result1 == tuple1)
-    assert(result2 == tuple2)
-    assert(result3 == tuple3)
-    assert(result4 == tuple4)
+    # format all values are acceptable as is if they're matching the pattern
+    assert Cachex.Actions.format_fetch_value({:commit, true}) == {:commit, true}
+    assert Cachex.Actions.format_fetch_value({:ignore, true}) == {:ignore, true}
+    assert Cachex.Actions.format_fetch_value({:error, true}) == {:error, true}
+    assert Cachex.Actions.format_fetch_value({:commit, true, []}) == {:commit, true, []}
 
     # the value should be converted to the first
-    assert(result5 == tuple1)
+    assert Cachex.Actions.format_fetch_value(true) == {:commit, true}
   end
 
   # Simple test to ensure that commit normalization correctly assigns
   # options to a commit tuple without, and maintains those with.
   test "normalizing formatted :commit values" do
-    # define our base Tuples to test against
-    tuple1 = {:commit, true}
-    tuple2 = {:commit, true, []}
-
-    # normalize all values
-    result1 = Cachex.Actions.normalize_commit(tuple1)
-    result2 = Cachex.Actions.normalize_commit(tuple2)
-
-    # both should have options
-    assert(result1 == tuple2)
-    assert(result2 == tuple2)
+    assert Cachex.Actions.normalize_commit({:commit, true}) == {:commit, true, []}
+    assert Cachex.Actions.normalize_commit({:commit, true, []}) == {:commit, true, []}
   end
 
   # This test just provides basic coverage of the write_op function, by using
   # a prior value to determine the correct Action to use to write a value.
   test "retrieving a module name to write with" do
-    # ask for some modules
-    result1 = Cachex.Actions.write_op(nil)
-    result2 = Cachex.Actions.write_op("value")
-
-    # the first should be Set actions
-    assert(result1 == :put)
-
-    # the second should be an Update
-    assert(result2 == :update)
+    assert Cachex.Actions.write_op(nil) == :put
+    assert Cachex.Actions.write_op("value") == :update
   end
 end

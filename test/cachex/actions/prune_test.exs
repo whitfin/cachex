@@ -11,13 +11,13 @@ defmodule Cachex.Actions.PruneTest do
     end
 
     # guarantee we have 100 keys in the cache
-    assert Cachex.size(cache) == {:ok, 100}
+    assert Cachex.size(cache) == 100
 
     # trigger a pruning down to 50 keys
     assert Cachex.prune(cache, 50) == {:ok, true}
 
     # verify that we're down to 50 keys
-    assert Cachex.size(cache) == {:ok, 45}
+    assert Cachex.size(cache) == 45
   end
 
   test "pruning a cache to a size with a custom reclaim" do
@@ -30,13 +30,13 @@ defmodule Cachex.Actions.PruneTest do
     end
 
     # guarantee we have 100 keys in the cache
-    assert Cachex.size(cache) == {:ok, 100}
+    assert Cachex.size(cache) == 100
 
     # trigger a pruning down to 50 keys, reclaiming 10%
     assert Cachex.prune(cache, 50, reclaim: 0) == {:ok, true}
 
     # verify that we're down to 50 keys
-    assert Cachex.size(cache) == {:ok, 50}
+    assert Cachex.size(cache) == 50
   end
 
   # This test ensures that the cache eviction policy will evict any expired values
@@ -55,7 +55,7 @@ defmodule Cachex.Actions.PruneTest do
     # set 50 keys without ttl
     for x <- 1..50 do
       # set the key
-      {:ok, true} = Cachex.put(state, x, x)
+      assert Cachex.put(state, x, x) == {:ok, true}
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -64,7 +64,7 @@ defmodule Cachex.Actions.PruneTest do
     # set a more recent 50 keys
     for x <- 51..100 do
       # set the key
-      {:ok, true} = Cachex.put(state, x, x, expire: 1)
+      assert Cachex.put(state, x, x, expire: 1) == {:ok, true}
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -77,23 +77,20 @@ defmodule Cachex.Actions.PruneTest do
     assert(size1 == 100)
 
     # add a new key to the cache to trigger oversize
-    {:ok, true} = Cachex.put(state, 101, 101)
+    assert Cachex.put(state, 101, 101) == {:ok, true}
 
     # trigger the cache pruning down to 100 records
-    {:ok, true} = Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1)
+    assert Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1) == {:ok, true}
 
     # verify the cache shrinks to 51%
-    assert Cachex.size(state) == {:ok, 51}
+    assert Cachex.size(state) == 51
 
     # our validation step
     validate = fn range, expected ->
       # iterate all keys in the range
       for x <- range do
-        # retrieve whether the key exists
-        exists = Cachex."exists?!"(state, x)
-
-        # verify whether it exists
-        assert(exists == expected)
+        # retrieve whether the key exists and verify
+        assert Cachex.exists?(state, x) == expected
       end
     end
 

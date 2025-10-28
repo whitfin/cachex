@@ -12,34 +12,26 @@ defmodule Cachex.Actions.ClearTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
-    {:ok, true} = Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 3, 3) == {:ok, true}
 
     # clear all hook
     TestUtils.flush()
 
-    # clear the cache
-    result = Cachex.clear(cache)
-
     # 3 items should have been removed
-    assert(result == {:ok, 3})
+    assert Cachex.clear(cache) == 3
 
     # verify the hooks were updated with the clear
-    assert_receive({{:clear, [[]]}, ^result})
+    assert_receive({{:clear, [[]]}, 3})
 
     # verify the size call never notified
-    refute_receive({{:size, [[]]}, ^result})
+    refute_receive({{:size, [[]]}, 3})
 
-    # retrieve all items
-    value1 = Cachex.get(cache, 1)
-    value2 = Cachex.get(cache, 2)
-    value3 = Cachex.get(cache, 3)
-
-    # verify the items are gone
-    assert(value1 == {:ok, nil})
-    assert(value2 == {:ok, nil})
-    assert(value3 == {:ok, nil})
+    # retrieve all items, verify the items are gone
+    assert Cachex.get(cache, 1) == {:ok, nil}
+    assert Cachex.get(cache, 2) == {:ok, nil}
+    assert Cachex.get(cache, 3) == {:ok, nil}
   end
 
   # This test verifies that the distributed router correctly controls
@@ -53,18 +45,14 @@ defmodule Cachex.Actions.ClearTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # retrieve the cache size, should be 2
-    {:ok, 2} = Cachex.size(cache)
+    assert Cachex.size(cache) == 2
 
     # clear just the local cache to start with
-    clear1 = Cachex.clear(cache, local: true)
-    clear2 = Cachex.clear(cache, local: false)
-
-    # check the local removed 1
-    assert(clear1 == {:ok, 1})
-    assert(clear2 == {:ok, 1})
+    assert Cachex.clear(cache, local: true) == 1
+    assert Cachex.clear(cache, local: false) == 1
   end
 end
