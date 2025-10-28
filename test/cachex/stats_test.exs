@@ -21,7 +21,7 @@ defmodule Cachex.StatsTest do
     end
 
     # clear the cache values
-    {:ok, 5} = Cachex.clear(cache)
+    assert Cachex.clear(cache) == 5
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -91,11 +91,11 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # check for a couple of keys
-    {:ok, true} = Cachex.exists?(cache, 1)
-    {:ok, false} = Cachex.exists?(cache, 2)
+    assert Cachex.exists?(cache, 1)
+    refute Cachex.exists?(cache, 2)
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -129,11 +129,11 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # check for a couple of keys
-    {:ok, 1} = Cachex.get(cache, 1)
-    {:ok, nil} = Cachex.get(cache, 2)
+    assert Cachex.get(cache, 1) == {:ok, 1}
+    assert Cachex.get(cache, 2) == {:ok, nil}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -168,12 +168,12 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # fetch an existing value
-    {:ok, 1} = Cachex.fetch(cache, 1, fn _ -> {:commit, "na"} end)
-    {:commit, "na"} = Cachex.fetch(cache, 2, fn _ -> {:commit, "na"} end)
-    {:ignore, "na"} = Cachex.fetch(cache, 3, fn _ -> {:ignore, "na"} end)
+    assert Cachex.fetch(cache, 1, fn _ -> {:commit, "na"} end) == {:ok, 1}
+    assert Cachex.fetch(cache, 2, fn _ -> {:commit, "na"} end) == {:commit, "na"}
+    assert Cachex.fetch(cache, 3, fn _ -> {:ignore, "na"} end) == {:ignore, "na"}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -210,12 +210,12 @@ defmodule Cachex.StatsTest do
       )
 
     # incr values in the cache
-    {:ok, 5} = Cachex.incr(cache, 1, 3, default: 2)
-    {:ok, 6} = Cachex.incr(cache, 1)
+    assert Cachex.incr(cache, 1, 3, default: 2) == {:ok, 5}
+    assert Cachex.incr(cache, 1) == {:ok, 6}
 
     # decr values in the cache
-    {:ok, -5} = Cachex.decr(cache, 2, 3, default: -2)
-    {:ok, -6} = Cachex.decr(cache, 2)
+    assert Cachex.decr(cache, 2, 3, default: -2) == {:ok, -5}
+    assert Cachex.decr(cache, 2) == {:ok, -6}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -259,11 +259,11 @@ defmodule Cachex.StatsTest do
       )
 
     # put the base value
-    {:ok, true} = Cachex.put(cache, "list", [1, 2, 3])
+    assert Cachex.put(cache, "list", [1, 2, 3]) == {:ok, true}
 
     # run each command
-    {:ok, 3} = Cachex.invoke(cache, :last, "list")
-    {:ok, 1} = Cachex.invoke(cache, :lpop, "list")
+    assert Cachex.invoke(cache, :last, "list") == {:ok, 3}
+    assert Cachex.invoke(cache, :lpop, "list") == {:ok, 1}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -306,14 +306,14 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..4 do
-      {:ok, true} = Cachex.put(cache, i, i, expire: 1)
+      assert Cachex.put(cache, i, i, expire: 1) == {:ok, true}
     end
 
     # ensure purge
     :timer.sleep(5)
 
     # purge the cache values
-    {:ok, 5} = Cachex.purge(cache)
+    assert Cachex.purge(cache) == {:ok, 5}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -347,7 +347,7 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..4 do
-      {:ok, true} = Cachex.put(cache, i, i)
+      assert Cachex.put(cache, i, i) == {:ok, true}
     end
 
     # retrieve the statistics
@@ -415,11 +415,11 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # delete our cache values
-    {:ok, 1} = Cachex.take(cache, 1)
-    {:ok, nil} = Cachex.take(cache, 2)
+    assert Cachex.take(cache, 1) == {:ok, 1}
+    assert Cachex.take(cache, 2) == {:ok, nil}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -453,8 +453,8 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.touch(cache, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.touch(cache, 1) == {:ok, true}
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)

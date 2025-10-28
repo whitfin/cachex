@@ -13,25 +13,19 @@ defmodule Cachex.Actions.EmptyTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # check if the cache is empty
-    result1 = Cachex.empty?(cache)
-
-    # it should be
-    assert(result1 == {:ok, true})
+    assert Cachex.empty?(cache)
 
     # verify the hooks were updated with the message
-    assert_receive({{:empty?, [[]]}, ^result1})
+    assert_receive({{:empty?, [[]]}, true})
 
     # add some cache entries
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # check if the cache is empty
-    result2 = Cachex.empty?(cache)
-
-    # it shouldn't be
-    assert(result2 == {:ok, false})
+    refute Cachex.empty?(cache)
 
     # verify the hooks were updated with the message
-    assert_receive({{:empty?, [[]]}, ^result2})
+    assert_receive({{:empty?, [[]]}, false})
   end
 
   # This test verifies that the distributed router correctly controls
@@ -45,37 +39,25 @@ defmodule Cachex.Actions.EmptyTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # check if the cache is empty, locally and remote
-    empty1 = Cachex.empty?(cache, local: true)
-    empty2 = Cachex.empty?(cache, local: false)
-
-    # both should be non-empty
-    assert(empty1 == {:ok, false})
-    assert(empty2 == {:ok, false})
+    refute Cachex.empty?(cache, local: true)
+    refute Cachex.empty?(cache, local: false)
 
     # delete the key on the local node
-    {:ok, 1} = Cachex.clear(cache, local: true)
+    assert Cachex.clear(cache, local: true) == 1
 
     # check again as to whether the cache is empty
-    empty3 = Cachex.empty?(cache, local: true)
-    empty4 = Cachex.empty?(cache, local: false)
-
-    # only the local node is now empty
-    assert(empty3 == {:ok, true})
-    assert(empty4 == {:ok, false})
+    assert Cachex.empty?(cache, local: true)
+    refute Cachex.empty?(cache, local: false)
 
     # finally delete all keys in the cluster
-    {:ok, 1} = Cachex.clear(cache, local: false)
+    assert Cachex.clear(cache, local: false) == 1
 
     # check again as to whether the cache is empty
-    empty5 = Cachex.empty?(cache, local: true)
-    empty6 = Cachex.empty?(cache, local: false)
-
-    # both should now show empty
-    assert(empty5 == {:ok, true})
-    assert(empty6 == {:ok, true})
+    assert Cachex.empty?(cache, local: true)
+    assert Cachex.empty?(cache, local: false)
   end
 end

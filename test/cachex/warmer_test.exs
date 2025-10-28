@@ -81,7 +81,7 @@ defmodule Cachex.WarmerTest do
     cache = TestUtils.create_cache(warmers: [warmer(module: :ignore_warmer)])
 
     # check that the cache is empty
-    assert Cachex.empty?(cache) == {:ok, true}
+    assert Cachex.empty?(cache)
   end
 
   test "warmers which aren't blocking" do

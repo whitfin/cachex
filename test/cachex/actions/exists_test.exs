@@ -12,8 +12,8 @@ defmodule Cachex.Actions.ExistsTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
 
     # let TTLs clear
     :timer.sleep(2)
@@ -22,34 +22,22 @@ defmodule Cachex.Actions.ExistsTest do
     TestUtils.flush()
 
     # check if several keys exist
-    exists1 = Cachex.exists?(cache, 1)
-    exists2 = Cachex.exists?(cache, 2)
-    exists3 = Cachex.exists?(cache, 3)
-
-    # the first result should exist
-    assert(exists1 == {:ok, true})
-
-    # the next two should be missing
-    assert(exists2 == {:ok, false})
-    assert(exists3 == {:ok, false})
+    assert Cachex.exists?(cache, 1)
+    refute Cachex.exists?(cache, 2)
+    refute Cachex.exists?(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:exists?, [1, []]}, ^exists1})
-    assert_receive({{:exists?, [2, []]}, ^exists2})
-    assert_receive({{:exists?, [3, []]}, ^exists3})
+    assert_receive({{:exists?, [1, []]}, true})
+    assert_receive({{:exists?, [2, []]}, false})
+    assert_receive({{:exists?, [3, []]}, false})
 
     # check we received valid purge actions for the TTL
     assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # retrieve all values from the cache
-    value1 = Cachex.get(cache, 1)
-    value2 = Cachex.get(cache, 2)
-    value3 = Cachex.get(cache, 3)
-
-    # verify the second was removed
-    assert(value1 == {:ok, 1})
-    assert(value2 == {:ok, nil})
-    assert(value3 == {:ok, nil})
+    assert Cachex.get(cache, 1) == {:ok, 1}
+    assert Cachex.get(cache, 2) == {:ok, nil}
+    assert Cachex.get(cache, 3) == {:ok, nil}
   end
 
   # This test verifies that this action is correctly distributed across
@@ -61,15 +49,11 @@ defmodule Cachex.Actions.ExistsTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # check the results of the calls across nodes
-    exists1 = Cachex.exists?(cache, 1)
-    exists2 = Cachex.exists?(cache, 2)
-
-    # both exist in the cluster
-    assert(exists1 == {:ok, true})
-    assert(exists2 == {:ok, true})
+    assert Cachex.exists?(cache, 1)
+    assert Cachex.exists?(cache, 2)
   end
 end

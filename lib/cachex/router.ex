@@ -275,16 +275,27 @@ defmodule Cachex.Router do
       end
 
     # execution on the local node, using the local macros and then unpack
-    {:ok, result} = route_local(cache, module, call)
+    result = route_local(cache, module, call)
+    tagged = match?({:ok, _}, result)
+
+    mapped = fn
+      {:ok, v} -> v
+      v -> v
+    end
+
+    # TODO: patched for migration
+    result = mapped.(result)
+    results = Enum.map(results, mapped)
 
     # results merge
-    merge_result =
-      results
-      |> Enum.map(&elem(&1, 1))
-      |> Enum.reduce(result, &result_merge/2)
+    merge_result = Enum.reduce(results, result, &result_merge/2)
 
     # return after merge
-    {:ok, merge_result}
+    if tagged do
+      {:ok, merge_result}
+    else
+      merge_result
+    end
   end
 
   # actions which always run locally

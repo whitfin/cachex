@@ -14,32 +14,19 @@ defmodule Cachex.Actions.DecrTest do
     # define write options
     opts1 = [default: 10]
 
-    # decrement some items
-    decr1 = Cachex.decr(cache, "key1")
-    decr2 = Cachex.decr(cache, "key1", 2)
-    decr3 = Cachex.decr(cache, "key2", 1, opts1)
-
-    # the first result should be -1
-    assert(decr1 == {:ok, -1})
-
-    # the second result should be -3
-    assert(decr2 == {:ok, -3})
-
-    # the third result should be 9
-    assert(decr3 == {:ok, 9})
+    # decrement some items, verify the values
+    assert Cachex.decr(cache, "key1") == {:ok, -1}
+    assert Cachex.decr(cache, "key1", 2) == {:ok, -3}
+    assert Cachex.decr(cache, "key2", 1, opts1) == {:ok, 9}
 
     # verify the hooks were updated with the decrement
-    assert_receive({{:decr, ["key1", 1, []]}, ^decr1})
-    assert_receive({{:decr, ["key1", 2, []]}, ^decr2})
-    assert_receive({{:decr, ["key2", 1, ^opts1]}, ^decr3})
+    assert_receive({{:decr, ["key1", 1, []]}, {:ok, -1}})
+    assert_receive({{:decr, ["key1", 2, []]}, {:ok, -3}})
+    assert_receive({{:decr, ["key2", 1, ^opts1]}, {:ok, 9}})
 
-    # retrieve all items
-    value1 = Cachex.get(cache, "key1")
-    value2 = Cachex.get(cache, "key2")
-
-    # verify the items match
-    assert(value1 == {:ok, -3})
-    assert(value2 == {:ok, 9})
+    # retrieve all items, verify the items match
+    assert Cachex.get(cache, "key1") == {:ok, -3}
+    assert Cachex.get(cache, "key2") == {:ok, 9}
   end
 
   # This test covers the negative case where a value exists but is not an integer,
@@ -50,13 +37,10 @@ defmodule Cachex.Actions.DecrTest do
     cache = TestUtils.create_cache()
 
     # set a non-numeric value
-    {:ok, true} = Cachex.put(cache, "key", "value")
+    assert Cachex.put(cache, "key", "value") == {:ok, true}
 
-    # try to increment the value
-    result = Cachex.decr(cache, "key", 1)
-
-    # we should receive an error
-    assert(result == {:error, :non_numeric_value})
+    # try to increment the value, we should receive an error
+    assert Cachex.decr(cache, "key", 1) == {:error, :non_numeric_value}
   end
 
   # This test verifies that this action is correctly distributed across
@@ -68,15 +52,11 @@ defmodule Cachex.Actions.DecrTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, -1} = Cachex.decr(cache, 1, 1)
-    {:ok, -2} = Cachex.decr(cache, 2, 2)
+    assert Cachex.decr(cache, 1, 1) == {:ok, -1}
+    assert Cachex.decr(cache, 2, 2) == {:ok, -2}
 
     # check the results of the calls across nodes
-    size1 = Cachex.size(cache, local: true)
-    size2 = Cachex.size(cache, local: false)
-
-    # one local, two total
-    assert(size1 == {:ok, 1})
-    assert(size2 == {:ok, 2})
+    assert Cachex.size(cache, local: true) == 1
+    assert Cachex.size(cache, local: false) == 2
   end
 end

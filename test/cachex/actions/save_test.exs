@@ -13,28 +13,23 @@ defmodule Cachex.Actions.SaveTest do
     cache = TestUtils.create_cache()
 
     # add some cache entries
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file
-    result1 = Cachex.save(cache, path)
-    result2 = Cachex.clear(cache)
-    result3 = Cachex.size(cache)
+    assert Cachex.save(cache, path) == {:ok, true}
 
     # verify the result and clearance
-    assert(result1 == {:ok, true})
-    assert(result2 == {:ok, 1})
-    assert(result3 == {:ok, 0})
+    assert Cachex.clear(cache) == 1
+    assert Cachex.size(cache) == 0
 
     # load the cache from the disk
-    result4 = Cachex.restore(cache, path)
-    result5 = Cachex.size(cache)
+    assert Cachex.restore(cache, path) == {:ok, 1}
 
     # verify that the load was ok
-    assert(result4 == {:ok, 1})
-    assert(result5 == {:ok, 1})
+    assert Cachex.size(cache) == 1
   end
 
   # This test covers the backing up of a cache cluster to a local disk location. We
@@ -49,42 +44,30 @@ defmodule Cachex.Actions.SaveTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # create a local path to write to
     path1 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
     path2 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file for local/remote
-    save1 = Cachex.save(cache, path1, local: true)
-    save2 = Cachex.save(cache, path2, local: false)
-
-    # verify the save results
-    assert(save1 == {:ok, true})
-    assert(save2 == {:ok, true})
+    assert Cachex.save(cache, path1, local: true) == {:ok, true}
+    assert Cachex.save(cache, path2, local: false) == {:ok, true}
 
     # clear the cache to remove all
-    {:ok, 2} = Cachex.clear(cache)
+    assert Cachex.clear(cache) == 2
 
     # load the local cache from the disk
-    load1 = Cachex.restore(cache, path1)
-    size1 = Cachex.size(cache)
-
-    # verify that the load was ok
-    assert(load1 == {:ok, 1})
-    assert(size1 == {:ok, 1})
+    assert Cachex.restore(cache, path1) == {:ok, 1}
+    assert Cachex.size(cache) == 1
 
     # clear the cache again
-    {:ok, 1} = Cachex.clear(cache)
+    assert Cachex.clear(cache) == 1
 
     # load the full cache from the disk
-    load2 = Cachex.restore(cache, path2)
-    size2 = Cachex.size(cache)
-
-    # verify that the load was ok
-    assert(load2 == {:ok, 2})
-    assert(size2 == {:ok, 2})
+    assert Cachex.restore(cache, path2) == {:ok, 2}
+    assert Cachex.size(cache) == 2
   end
 
   test "returning an error on invalid output path" do

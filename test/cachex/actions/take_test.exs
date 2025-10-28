@@ -12,8 +12,8 @@ defmodule Cachex.Actions.TakeTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -22,36 +22,24 @@ defmodule Cachex.Actions.TakeTest do
     TestUtils.flush()
 
     # take the first and second key
-    result1 = Cachex.take(cache, 1)
-    result2 = Cachex.take(cache, 2)
+    assert Cachex.take(cache, 1) == {:ok, 1}
+    assert Cachex.take(cache, 2) == {:ok, nil}
 
     # take a missing key
-    result3 = Cachex.take(cache, 3)
-
-    # verify the first key is retrieved
-    assert(result1 == {:ok, 1})
-
-    # verify the second and third keys are missing
-    assert(result2 == {:ok, nil})
-    assert(result3 == {:ok, nil})
+    assert Cachex.take(cache, 3) == {:ok, nil}
 
     # assert we receive valid notifications
-    assert_receive({{:take, [1, []]}, ^result1})
-    assert_receive({{:take, [2, []]}, ^result2})
-    assert_receive({{:take, [3, []]}, ^result3})
+    assert_receive({{:take, [1, []]}, {:ok, 1}})
+    assert_receive({{:take, [2, []]}, {:ok, nil}})
+    assert_receive({{:take, [3, []]}, {:ok, nil}})
 
     # check we received valid purge actions for the TTL
     assert_receive({{:purge, [[]]}, {:ok, 1}})
 
     # ensure that the keys no longer exist in the cache
-    exists1 = Cachex.exists?(cache, 1)
-    exists2 = Cachex.exists?(cache, 2)
-    exists3 = Cachex.exists?(cache, 3)
-
-    # none should exist
-    assert(exists1 == {:ok, false})
-    assert(exists2 == {:ok, false})
-    assert(exists3 == {:ok, false})
+    refute Cachex.exists?(cache, 1)
+    refute Cachex.exists?(cache, 2)
+    refute Cachex.exists?(cache, 3)
   end
 
   # This test verifies that this action is correctly distributed across
@@ -63,31 +51,19 @@ defmodule Cachex.Actions.TakeTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # check the results of the calls across nodes
-    size1 = Cachex.size(cache, local: true)
-    size2 = Cachex.size(cache, local: false)
-
-    # one local, two total
-    assert(size1 == {:ok, 1})
-    assert(size2 == {:ok, 2})
+    assert Cachex.size(cache, local: true) == 1
+    assert Cachex.size(cache, local: false) == 2
 
     # take each item from the cache cluster
-    take1 = Cachex.take(cache, 1)
-    take2 = Cachex.take(cache, 2)
-
-    # check both records are taken
-    assert(take1 == {:ok, 1})
-    assert(take2 == {:ok, 2})
+    assert Cachex.take(cache, 1) == {:ok, 1}
+    assert Cachex.take(cache, 2) == {:ok, 2}
 
     # check the results of the calls across nodes
-    size3 = Cachex.size(cache, local: true)
-    size4 = Cachex.size(cache, local: false)
-
-    # no records are left
-    assert(size3 == {:ok, 0})
-    assert(size4 == {:ok, 0})
+    assert Cachex.size(cache, local: true) == 0
+    assert Cachex.size(cache, local: false) == 0
   end
 end

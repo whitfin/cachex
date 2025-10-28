@@ -7,9 +7,9 @@ defmodule Cachex.Actions.ExportTest do
     cache = TestUtils.create_cache()
 
     # fill with some items
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
-    {:ok, true} = Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 3, 3) == {:ok, true}
 
     # export the items
     {:ok, export} = Cachex.export(cache)
@@ -29,8 +29,8 @@ defmodule Cachex.Actions.ExportTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # retrieve the keys from both local & remote
     {:ok, export1} = Cachex.export(cache, local: true)
@@ -41,7 +41,7 @@ defmodule Cachex.Actions.ExportTest do
     assert(length(export2) == 2)
 
     # delete the single local key
-    {:ok, 1} = Cachex.clear(cache, local: true)
+    assert Cachex.clear(cache, local: true) == 1
 
     # retrieve the keys again from both local & remote
     {:ok, export3} = Cachex.export(cache, local: true)
@@ -52,7 +52,7 @@ defmodule Cachex.Actions.ExportTest do
     assert(length(export4) == 1)
 
     # delete the remaining key inside the cluster
-    {:ok, 1} = Cachex.clear(cache, local: false)
+    assert Cachex.clear(cache, local: false) == 1
 
     # retrieve the keys again from both local & remote
     {:ok, export5} = Cachex.keys(cache, local: true)

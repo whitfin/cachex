@@ -13,14 +13,14 @@ defmodule Cachex.Actions.KeysTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
-    {:ok, true} = Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 3, 3) == {:ok, true}
 
     # add some expired items
-    {:ok, true} = Cachex.put(cache, 4, 4, expire: 1)
-    {:ok, true} = Cachex.put(cache, 5, 5, expire: 1)
-    {:ok, true} = Cachex.put(cache, 6, 6, expire: 1)
+    assert Cachex.put(cache, 4, 4, expire: 1) == {:ok, true}
+    assert Cachex.put(cache, 5, 5, expire: 1) == {:ok, true}
+    assert Cachex.put(cache, 6, 6, expire: 1) == {:ok, true}
 
     # let entries expire
     :timer.sleep(2)
@@ -55,8 +55,8 @@ defmodule Cachex.Actions.KeysTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # retrieve the keys from both local & remote
     {:ok, keys1} = Cachex.keys(cache, local: true)
@@ -67,7 +67,7 @@ defmodule Cachex.Actions.KeysTest do
     assert(length(keys2) == 2)
 
     # delete the single local key
-    {:ok, 1} = Cachex.clear(cache, local: true)
+    assert Cachex.clear(cache, local: true) == 1
 
     # retrieve the keys again from both local & remote
     {:ok, keys3} = Cachex.keys(cache, local: true)
@@ -78,7 +78,7 @@ defmodule Cachex.Actions.KeysTest do
     assert(length(keys4) == 1)
 
     # delete the remaining key inside the cluster
-    {:ok, 1} = Cachex.clear(cache, local: false)
+    assert Cachex.clear(cache, local: false) == 1
 
     # retrieve the keys again from both local & remote
     {:ok, keys5} = Cachex.keys(cache, local: true)

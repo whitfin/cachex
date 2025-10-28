@@ -25,26 +25,11 @@ defmodule Cachex.Actions.Clear do
   """
   def execute(cache(name: name) = cache, _options) do
     Locksmith.transaction(cache, [], fn ->
-      evicted =
-        cache
-        |> Size.execute([])
-        |> handle_evicted
+      evicted = Size.execute(cache, [])
 
       true = :ets.delete_all_objects(name)
 
       evicted
     end)
   end
-
-  ###############
-  # Private API #
-  ###############
-
-  # Handles the result of a size() call.
-  #
-  # This just verifies that we can safely return a size. Being realistic,
-  # this will almost always hit the top case - the latter is just provided
-  # in order to avoid crashing if something goes totally wrong.
-  defp handle_evicted({:ok, _size} = res),
-    do: res
 end
