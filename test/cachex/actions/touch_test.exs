@@ -114,7 +114,7 @@ defmodule Cachex.Actions.TouchTest do
     entry(modified: modified4) = record4
 
     # new modified should be larger than old
-    assert(modified3 > modified1)
-    assert(modified4 > modified2)
+    assert modified3 > modified1
+    assert modified4 > modified2
   end
 end

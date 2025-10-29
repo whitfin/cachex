@@ -28,7 +28,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming of all modules
-    assert Cachex.warm(cache) == {:ok, [:manual_warmer1]}
+    assert Cachex.warm(cache) == [:manual_warmer1]
 
     # wait for the warming
     :timer.sleep(50)
@@ -62,7 +62,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming of all modules
-    assert Cachex.warm(cache, wait: true) == {:ok, [:manual_warmer2]}
+    assert Cachex.warm(cache, wait: true) == [:manual_warmer2]
     assert Cachex.get!(cache, 1) == 1
   end
 
@@ -94,7 +94,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming
-    assert Cachex.warm(cache, only: []) == {:ok, []}
+    assert Cachex.warm(cache, only: []) == []
 
     # wait for the warming
     :timer.sleep(50)
@@ -103,8 +103,7 @@ defmodule Cachex.Actions.WarmTest do
     assert Cachex.get!(cache, 1) == nil
 
     # manually trigger a cache warming, specifying our module
-    assert Cachex.warm(cache, only: [:manual_warmer3]) ==
-             {:ok, [:manual_warmer3]}
+    assert Cachex.warm(cache, only: [:manual_warmer3]) == [:manual_warmer3]
 
     # wait for the warming
     :timer.sleep(50)

@@ -31,27 +31,26 @@ defmodule Cachex.Actions.ExpireTest do
     refute Cachex.expire(cache, 4, f_expire_time)
 
     # verify the hooks were updated with the message
-    assert_receive({{:expire, [1, ^f_expire_time, []]}, true})
-    assert_receive({{:expire, [2, ^f_expire_time, []]}, true})
-    assert_receive({{:expire, [3, ^p_expire_time, []]}, true})
-    assert_receive({{:expire, [4, ^f_expire_time, []]}, false})
+    assert_receive {{:expire, [1, ^f_expire_time, []]}, true}
+    assert_receive {{:expire, [2, ^f_expire_time, []]}, true}
+    assert_receive {{:expire, [3, ^p_expire_time, []]}, true}
+    assert_receive {{:expire, [4, ^f_expire_time, []]}, false}
 
     # check we received valid purge actions for the removed key
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
-
-    # retrieve all TTLs from the cache
-    ttl1 = Cachex.ttl!(cache, 1)
-    ttl2 = Cachex.ttl!(cache, 2)
-    ttl3 = Cachex.ttl(cache, 3)
-    ttl4 = Cachex.ttl(cache, 4)
+    assert_receive({{:purge, [[]]}, 1})
 
     # verify the new TTL has taken effect
-    assert_in_delta(ttl1, 10000, 25)
-    assert_in_delta(ttl2, 10000, 25)
+    cache
+    |> Cachex.ttl(1)
+    |> assert_in_delta(10000, 25)
+
+    cache
+    |> Cachex.ttl(2)
+    |> assert_in_delta(10000, 25)
 
     # assert the last two keys don't exist
-    assert(ttl3 == {:ok, nil})
-    assert(ttl4 == {:ok, nil})
+    assert Cachex.ttl(cache, 3) == nil
+    assert Cachex.ttl(cache, 4) == nil
   end
 
   # This test verifies that this action is correctly distributed across

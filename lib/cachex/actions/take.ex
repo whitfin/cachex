@@ -50,7 +50,7 @@ defmodule Cachex.Actions.Take do
   defp handle_take([entry(value: value) = entry], cache) do
     case Janitor.expired?(cache, entry) do
       false ->
-        {:ok, value}
+        value
 
       true ->
         Informant.broadcast(
@@ -59,10 +59,10 @@ defmodule Cachex.Actions.Take do
           const(:purge_override_result)
         )
 
-        {:ok, nil}
+        nil
     end
   end
 
   defp handle_take([], _cache),
-    do: {:ok, nil}
+    do: nil
 end

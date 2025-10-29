@@ -328,7 +328,7 @@ defmodule Cachex.Spec do
 
   # Constant to override purge results
   defmacro const(:purge_override_result),
-    do: quote(do: {:ok, 1})
+    do: quote(do: 1)
 
   # Constant to override purge calls
   defmacro const(:purge_override),

@@ -140,7 +140,7 @@ defmodule Cachex.Stats do
   # A purge call will increment the `:evictions` key using the count of
   # purged keys as the number to increment by. The `:expirations` key
   # will also be incremented in the same way, to surface TTL deletions.
-  defp register_action(stats, {:purge, _args}, {_status, count}) do
+  defp register_action(stats, {:purge, _args}, count) do
     stats
     |> increment([:expirations], count)
     |> increment([:evictions], count)
@@ -196,7 +196,7 @@ defmodule Cachex.Stats do
   # Take calls are a little complicated because they need to increment the
   # global eviction count (due to removal) but also increment the global
   # hit/miss count, in addition to the status in the `:take` namespace.
-  defp register_action(stats, {:take, _args}, {_tag, nil}),
+  defp register_action(stats, {:take, _args}, nil),
     do: increment(stats, [:misses], 1)
 
   defp register_action(stats, {:take, _args}, _result) do

@@ -19,19 +19,19 @@ defmodule Cachex.Actions.PurgeTest do
     TestUtils.flush()
 
     # purge before the entry expires
-    assert Cachex.purge(cache) == {:ok, 0}
+    assert Cachex.purge(cache) == 0
 
     # ensure we received a message
-    assert_receive({{:purge, [[]]}, {:ok, 0}})
+    assert_receive({{:purge, [[]]}, 0})
 
     # wait until the entry has expired
     :timer.sleep(50)
 
     # purge after the entry expires
-    assert Cachex.purge(cache) == {:ok, 1}
+    assert Cachex.purge(cache) == 1
 
     # ensure we received a message
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
+    assert_receive({{:purge, [[]]}, 1})
 
     # check whether the key exists, verify that the key is gone
     refute Cachex.exists?(cache, "key")
@@ -58,7 +58,7 @@ defmodule Cachex.Actions.PurgeTest do
     :timer.sleep(5)
 
     # purge just the local cache to start with
-    assert Cachex.purge(cache, local: true) == {:ok, 1}
-    assert Cachex.purge(cache, local: false) == {:ok, 1}
+    assert Cachex.purge(cache, local: true) == 1
+    assert Cachex.purge(cache, local: false) == 1
   end
 end
