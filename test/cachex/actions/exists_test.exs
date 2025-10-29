@@ -32,7 +32,7 @@ defmodule Cachex.Actions.ExistsTest do
     assert_receive({{:exists?, [3, []]}, false})
 
     # check we received valid purge actions for the TTL
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
+    assert_receive({{:purge, [[]]}, 1})
 
     # retrieve all values from the cache
     assert Cachex.get(cache, 1) == {:ok, 1}

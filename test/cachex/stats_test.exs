@@ -313,7 +313,7 @@ defmodule Cachex.StatsTest do
     :timer.sleep(5)
 
     # purge the cache values
-    assert Cachex.purge(cache) == {:ok, 5}
+    assert Cachex.purge(cache) == 5
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -418,8 +418,8 @@ defmodule Cachex.StatsTest do
     assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # delete our cache values
-    assert Cachex.take(cache, 1) == {:ok, 1}
-    assert Cachex.take(cache, 2) == {:ok, nil}
+    assert Cachex.take(cache, 1) == 1
+    assert Cachex.take(cache, 2) == nil
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)

@@ -27,14 +27,11 @@ defmodule Cachex.Actions.Warm do
     only = Keyword.get(options, :only, nil)
     wait = Keyword.get(options, :wait, false)
 
-    warmed =
-      warmers
-      |> Enum.filter(&filter_mod(&1, only))
-      |> Enum.map(&spawn_call(&1, wait))
-      |> Task.yield_many(:infinity)
-      |> Enum.map(&extract_name/1)
-
-    {:ok, warmed}
+    warmers
+    |> Enum.filter(&filter_mod(&1, only))
+    |> Enum.map(&spawn_call(&1, wait))
+    |> Task.yield_many(:infinity)
+    |> Enum.map(&extract_name/1)
   end
 
   ###############

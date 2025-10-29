@@ -27,13 +27,13 @@ defmodule Cachex.Actions.StatsTest do
     assert_in_delta(stats.meta.creation_date, ctime, 5)
 
     # verify attached statistics
-    assert(stats.hits == 1)
-    assert(stats.misses == 0)
-    assert(stats.operations == 2)
-    assert(stats.writes == 1)
+    assert stats.hits == 1
+    assert stats.misses == 0
+    assert stats.operations == 2
+    assert stats.writes == 1
 
     # verify attached rates
-    assert(stats.hit_rate == 100)
+    assert stats.hit_rate == 100
   end
 
   # This test just verifies that we receive an error trying to retrieve stats
@@ -42,11 +42,8 @@ defmodule Cachex.Actions.StatsTest do
     # create a test cache
     cache = TestUtils.create_cache(stats: false)
 
-    # retrieve default stats
-    stats = Cachex.stats(cache)
-
-    # we should receive an error
-    assert(stats == {:error, :stats_disabled})
+    # retrieve default stats, we should receive an error
+    assert Cachex.stats(cache) == {:error, :stats_disabled}
   end
 
   # This test verifies that we correctly handle hit/miss rates when there are 0

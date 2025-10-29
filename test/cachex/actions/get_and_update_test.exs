@@ -61,39 +61,28 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert(result6 == {:commit, "6"})
 
     # assert we receive valid notifications
-    assert_receive({{:get_and_update, [1, _to_string, []]}, ^result1})
-    assert_receive({{:get_and_update, [2, _to_string, []]}, ^result2})
-    assert_receive({{:get_and_update, [3, _to_string, []]}, ^result3})
-    assert_receive({{:get_and_update, [4, _to_string, []]}, ^result4})
-    assert_receive({{:get_and_update, [5, _my_functs, []]}, ^result5})
-    assert_receive({{:get_and_update, [6, _my_functs, []]}, ^result6})
+    assert_receive {{:get_and_update, [1, _to_string, []]}, ^result1}
+    assert_receive {{:get_and_update, [2, _to_string, []]}, ^result2}
+    assert_receive {{:get_and_update, [3, _to_string, []]}, ^result3}
+    assert_receive {{:get_and_update, [4, _to_string, []]}, ^result4}
+    assert_receive {{:get_and_update, [5, _my_functs, []]}, ^result5}
+    assert_receive {{:get_and_update, [6, _my_functs, []]}, ^result6}
 
     # check we received valid purge actions for the TTL
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
+    assert_receive {{:purge, [[]]}, 1}
 
     # retrieve all entries from the cache
-    value1 = Cachex.get(cache, 1)
-    value2 = Cachex.get(cache, 2)
-    value3 = Cachex.get(cache, 3)
-    value4 = Cachex.get(cache, 4)
-    value5 = Cachex.get(cache, 5)
-    value6 = Cachex.get(cache, 6)
-
-    # all should now have values
-    assert(value1 == {:ok, "1"})
-    assert(value2 == {:ok, ""})
-    assert(value3 == {:ok, ""})
-    assert(value4 == {:ok, "4"})
-
-    # verify the commit tags
-    assert(value5 == {:ok, 5})
-    assert(value6 == {:ok, "6"})
-
-    # check the TTL on the last key
-    ttl1 = Cachex.ttl!(cache, 4)
+    assert Cachex.get(cache, 1) == {:ok, "1"}
+    assert Cachex.get(cache, 2) == {:ok, ""}
+    assert Cachex.get(cache, 3) == {:ok, ""}
+    assert Cachex.get(cache, 4) == {:ok, "4"}
+    assert Cachex.get(cache, 5) == {:ok, 5}
+    assert Cachex.get(cache, 6) == {:ok, "6"}
 
     # TTL should be maintained
-    assert_in_delta(ttl1, 965, 11)
+    cache
+    |> Cachex.ttl(4)
+    |> assert_in_delta(965, 11)
   end
 
   # This test verifies that this action is correctly distributed across
@@ -109,16 +98,12 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     {:ok, true} = Cachex.put(cache, 2, 2)
 
     # update both keys with a known function name
-    {:commit, "1"} = Cachex.get_and_update(cache, 1, &Integer.to_string/1)
-    {:commit, "2"} = Cachex.get_and_update(cache, 2, &Integer.to_string/1)
+    assert Cachex.get_and_update(cache, 1, &Integer.to_string/1) == {:commit, "1"}
+    assert Cachex.get_and_update(cache, 2, &Integer.to_string/1) == {:commit, "2"}
 
     # try to retrieve both of the set keys
-    get1 = Cachex.get(cache, 1)
-    get2 = Cachex.get(cache, 2)
-
-    # both should come back
-    assert(get1 == {:ok, "1"})
-    assert(get2 == {:ok, "2"})
+    assert Cachex.get(cache, 1) == {:ok, "1"}
+    assert Cachex.get(cache, 2) == {:ok, "2"}
   end
 
   test "fallback function has test process in $callers" do
@@ -133,9 +118,9 @@ defmodule Cachex.Actions.GetAndUpdateTest do
         {:commit, "value"}
       end)
 
-    assert(result == {:commit, "value"})
+    assert result == {:commit, "value"}
 
-    assert_receive({^callers_reference, callers})
+    assert_receive {^callers_reference, callers}
     assert test_process in callers
   end
 
@@ -156,6 +141,6 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     end)
 
     # check callers are just the base process
-    assert_receive([^parent])
+    assert_receive [^parent]
   end
 end

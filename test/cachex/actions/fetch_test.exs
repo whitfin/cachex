@@ -59,7 +59,7 @@ defmodule Cachex.Actions.FetchTest do
     assert_receive({{:fetch, ["key6", ^fb_opt4, []]}, ^result6})
 
     # check we received valid purge actions for the TTL
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
+    assert_receive({{:purge, [[]]}, 1})
 
     # retrieve the loaded keys
     value1 = Cachex.get(cache, "key3")

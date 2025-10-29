@@ -927,10 +927,10 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.purge(:my_cache)
-      { :ok, 15 }
+      15
 
   """
-  @spec purge(Cachex.t(), Keyword.t()) :: {status, number}
+  @spec purge(Cachex.t(), Keyword.t()) :: number()
   def purge(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:purge, [options]})
 
@@ -1041,19 +1041,19 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "my_key", "my_value")
       iex> Cachex.reset(:my_cache)
       iex> Cachex.size(:my_cache)
-      { :ok, 0 }
+      0
 
       iex> Cachex.reset(:my_cache, [ only: :hooks ])
-      { :ok, true }
+      true
 
       iex> Cachex.reset(:my_cache, [ only: :hooks, hooks: [ MyHook ] ])
-      { :ok, true }
+      true
 
       iex> Cachex.reset(:my_cache, [ only: :cache ])
-      { :ok, true }
+      true
 
   """
-  @spec reset(Cachex.t(), Keyword.t()) :: {status, true}
+  @spec reset(Cachex.t(), Keyword.t()) :: boolean()
   def reset(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:reset, [options]})
 
@@ -1235,16 +1235,16 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.take(:my_cache, "key")
-      { :ok, "value" }
+      "value"
 
       iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
+      nil
 
       iex> Cachex.take(:my_cache, "missing_key")
-      { :ok, nil }
+      nil
 
   """
-  @spec take(Cachex.t(), any, Keyword.t()) :: {status, any}
+  @spec take(Cachex.t(), any(), Keyword.t()) :: any()
   def take(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:take, [key, options]})
 
@@ -1324,16 +1324,16 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 13985 }
+      13985
 
       iex> Cachex.ttl(:my_cache, "my_key_with_no_ttl")
-      { :ok, nil }
+      nil
 
       iex> Cachex.ttl(:my_cache, "missing_key")
-      { :ok, nil }
+      nil
 
   """
-  @spec ttl(Cachex.t(), any, Keyword.t()) :: {status, integer | nil}
+  @spec ttl(Cachex.t(), any(), Keyword.t()) :: integer() | nil
   def ttl(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:ttl, [key, options]})
 
@@ -1388,19 +1388,19 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.warm(:my_cache)
-      { :ok, [MyWarmer] }
+      [MyWarmer]
 
       iex> Cachex.warm(:my_cache, only: [MyWarmer])
-      { :ok, [MyWarmer] }
+      [MyWarmer]
 
       iex> Cachex.warm(:my_cache, only: [])
-      { :ok, [] }
+      []
 
       iex> Cachex.warm(:my_cache, wait: true)
-      { :ok, [MyWarmer]}
+      [MyWarmer]
 
   """
-  @spec warm(Cachex.t(), Keyword.t()) :: {status, [atom()]}
+  @spec warm(Cachex.t(), Keyword.t()) :: [atom()]
   def warm(cache, options \\ []),
     do: Router.route(cache, {:warm, [options]})
 
@@ -1453,10 +1453,10 @@ defmodule Cachex do
     required = [only: Enum.map(req, &warmer(&1, :name)), wait: true]
     optional = [only: Enum.map(opt, &warmer(&1, :name)), wait: false]
 
-    with {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ required),
-         {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ optional) do
-      :ok
-    end
+    Cachex.warm(cache, const(:notify_false) ++ required)
+    Cachex.warm(cache, const(:notify_false) ++ optional)
+
+    :ok
   end
 
   # Unwraps a command result into an unsafe form.

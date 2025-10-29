@@ -39,7 +39,7 @@ defmodule Cachex.ActionsTest do
     assert Cachex.Actions.read(state, 3) == nil
 
     # we should receive the purge of the second key
-    assert_receive({{:purge, [[]]}, {:ok, 1}})
+    assert_receive {{:purge, [[]]}, 1}
 
     # verify if the second key exists
     refute Cachex.exists?(cache, 2)
@@ -64,7 +64,7 @@ defmodule Cachex.ActionsTest do
       )
 
     # verify the write
-    assert(write1 == {:ok, true})
+    assert write1 == {:ok, true}
 
     # validate the value
     assert Cachex.Actions.read(state, "key") ==
