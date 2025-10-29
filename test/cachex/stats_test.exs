@@ -58,8 +58,8 @@ defmodule Cachex.StatsTest do
     end
 
     # delete our cache values
-    {:ok, true} = Cachex.del(cache, 0)
-    {:ok, true} = Cachex.del(cache, 1)
+    assert Cachex.del(cache, 0)
+    assert Cachex.del(cache, 1)
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -454,7 +454,7 @@ defmodule Cachex.StatsTest do
 
     # set a value in the cache
     assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.touch(cache, 1) == {:ok, true}
+    assert Cachex.touch(cache, 1)
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)

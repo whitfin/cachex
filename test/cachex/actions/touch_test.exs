@@ -39,21 +39,14 @@ defmodule Cachex.Actions.TouchTest do
     :timer.sleep(50)
 
     # touch the keys
-    touch1 = Cachex.touch(cache, 1)
-    touch2 = Cachex.touch(cache, 2)
-    touch3 = Cachex.touch(cache, 3)
-
-    # the first two writes should succeed
-    assert(touch1 == {:ok, true})
-    assert(touch2 == {:ok, true})
-
-    # the third shouldn't, as it's missing
-    assert(touch3 == {:ok, false})
+    assert Cachex.touch(cache, 1)
+    assert Cachex.touch(cache, 2)
+    refute Cachex.touch(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:touch, [1, []]}, ^touch1})
-    assert_receive({{:touch, [2, []]}, ^touch2})
-    assert_receive({{:touch, [3, []]}, ^touch3})
+    assert_receive({{:touch, [1, []]}, true})
+    assert_receive({{:touch, [2, []]}, true})
+    assert_receive({{:touch, [3, []]}, false})
 
     # retrieve the raw records again
     entry(modified: modified3, expiration: expiration3) =
@@ -107,8 +100,8 @@ defmodule Cachex.Actions.TouchTest do
     entry(modified: modified2) = record2
 
     # now touch both keys
-    {:ok, true} = Cachex.touch(cache, 1)
-    {:ok, true} = Cachex.touch(cache, 2)
+    assert Cachex.touch(cache, 1)
+    assert Cachex.touch(cache, 2)
 
     # pull back the records after the touchs
     {:ok, export2} = Cachex.export(cache)

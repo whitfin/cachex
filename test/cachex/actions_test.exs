@@ -75,8 +75,8 @@ defmodule Cachex.ActionsTest do
              )
 
     # attempt to update some values
-    assert Cachex.Actions.update(state, "key", entry_mod(value: "yek")) == {:ok, true}
-    assert Cachex.Actions.update(state, "nop", entry_mod(value: "yek")) == {:ok, false}
+    assert Cachex.Actions.update(state, "key", entry_mod(value: "yek"))
+    refute Cachex.Actions.update(state, "nop", entry_mod(value: "yek"))
 
     # validate the update took effect
     assert Cachex.Actions.read(state, "key") ==

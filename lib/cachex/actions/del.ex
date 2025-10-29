@@ -21,7 +21,7 @@ defmodule Cachex.Actions.Del do
   """
   def execute(cache(name: name) = cache, key, _options) do
     Locksmith.write(cache, [key], fn ->
-      {:ok, :ets.delete(name, key)}
+      :ets.delete(name, key)
     end)
   end
 end

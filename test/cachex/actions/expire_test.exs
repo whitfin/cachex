@@ -25,26 +25,16 @@ defmodule Cachex.Actions.ExpireTest do
     p_expire_time = -10000
 
     # expire several keys
-    result1 = Cachex.expire(cache, 1, f_expire_time)
-    result2 = Cachex.expire(cache, 2, f_expire_time)
-    result3 = Cachex.expire(cache, 3, p_expire_time)
-    result4 = Cachex.expire(cache, 4, f_expire_time)
-
-    # the first two should succeed
-    assert(result1 == {:ok, true})
-    assert(result2 == {:ok, true})
-
-    # the third should succeed and remove the key
-    assert(result3 == {:ok, true})
-
-    # the last one is missing and should fail
-    assert(result4 == {:ok, false})
+    assert Cachex.expire(cache, 1, f_expire_time)
+    assert Cachex.expire(cache, 2, f_expire_time)
+    assert Cachex.expire(cache, 3, p_expire_time)
+    refute Cachex.expire(cache, 4, f_expire_time)
 
     # verify the hooks were updated with the message
-    assert_receive({{:expire, [1, ^f_expire_time, []]}, ^result1})
-    assert_receive({{:expire, [2, ^f_expire_time, []]}, ^result2})
-    assert_receive({{:expire, [3, ^p_expire_time, []]}, ^result3})
-    assert_receive({{:expire, [4, ^f_expire_time, []]}, ^result4})
+    assert_receive({{:expire, [1, ^f_expire_time, []]}, true})
+    assert_receive({{:expire, [2, ^f_expire_time, []]}, true})
+    assert_receive({{:expire, [3, ^p_expire_time, []]}, true})
+    assert_receive({{:expire, [4, ^f_expire_time, []]}, false})
 
     # check we received valid purge actions for the removed key
     assert_receive({{:purge, [[]]}, {:ok, 1}})
@@ -77,15 +67,11 @@ defmodule Cachex.Actions.ExpireTest do
     {:ok, true} = Cachex.put(cache, 2, 2)
 
     # set expirations on both keys
-    {:ok, true} = Cachex.expire(cache, 1, 5000)
-    {:ok, true} = Cachex.expire(cache, 2, 5000)
+    assert Cachex.expire(cache, 1, 5000)
+    assert Cachex.expire(cache, 2, 5000)
 
     # check the expiration of each key in the cluster
-    {:ok, expiration1} = Cachex.ttl(cache, 1)
-    {:ok, expiration2} = Cachex.ttl(cache, 2)
-
-    # both have an expiration
-    assert(expiration1 != nil)
-    assert(expiration2 != nil)
+    assert Cachex.ttl!(cache, 1) != nil
+    assert Cachex.ttl!(cache, 2) != nil
   end
 end

@@ -132,7 +132,7 @@ defmodule Cachex.Stats do
   #
   # Cache deletions will increment the `:evictions` key count, based on
   # whether the call succeeded (i.e. the result value is truthy).
-  defp register_action(stats, {:del, _args}, {_tag, true}),
+  defp register_action(stats, {:del, _args}, true),
     do: increment(stats, [:evictions], 1)
 
   # Handles registration of `purge()` command calls.
@@ -215,7 +215,7 @@ defmodule Cachex.Stats do
   #
   # All of the matches calls (dictated by @update_calls) will increment the main
   # `:updates` key in the statistics map only if the value is received as `true`.
-  defp register_action(stats, {action, _args}, {_tag, true})
+  defp register_action(stats, {action, _args}, true)
        when action in @update_calls,
        do: increment(stats, [:updates], 1)
 
