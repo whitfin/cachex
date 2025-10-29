@@ -66,7 +66,7 @@ defmodule Cachex.Limit.Evented do
   # able to cause a net gain in cache size (so removals are also ignored).
   def handle_notify(_message, {status, _value}, {cache, {size, options}} = opts)
       when status not in @ignored do
-    {:ok, true} = Cachex.prune(cache, size, options)
+    true = Cachex.prune(cache, size, options)
     {:ok, opts}
   end
 

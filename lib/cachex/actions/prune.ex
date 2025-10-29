@@ -37,7 +37,7 @@ defmodule Cachex.Actions.Prune do
     reclaim = Keyword.get(options, :reclaim, 0.1)
     reclaim_bound = round(size * reclaim)
 
-    case Cachex.size!(cache, const(:local) ++ const(:notify_false)) do
+    case Cachex.size(cache, const(:local) ++ const(:notify_false)) do
       cache_size when cache_size <= size ->
         notify_worker(0, cache)
 
@@ -49,7 +49,7 @@ defmodule Cachex.Actions.Prune do
         |> notify_worker(cache)
     end
 
-    {:ok, true}
+    true
   end
 
   ###############
@@ -73,7 +73,7 @@ defmodule Cachex.Actions.Prune do
   # the reclaim space, meaning that a positive result require us to carry out
   # further evictions manually down the chain.
   defp calculate_poffset(reclaim_space, cache) when reclaim_space > 0,
-    do: reclaim_space - Cachex.purge!(cache, const(:local))
+    do: reclaim_space - Cachex.purge(cache, const(:local))
 
   # Erases the least recently written records up to the offset limit.
   #
@@ -93,15 +93,19 @@ defmodule Cachex.Actions.Prune do
       |> Enum.concat(const(:notify_false))
       |> Enum.concat(buffer: buffer)
 
-    with {:ok, stream} <- Cachex.stream(cache, @query, options) do
-      cache(name: name) = cache
+    case Cachex.stream(cache, @query, options) do
+      {:error, _reason} = error ->
+        error
 
-      stream
-      |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
-      |> Enum.take(offset)
-      |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
+      stream ->
+        cache(name: name) = cache
 
-      offset
+        stream
+        |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
+        |> Enum.take(offset)
+        |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
+
+        offset
     end
   end
 
@@ -121,7 +125,7 @@ defmodule Cachex.Actions.Prune do
   # results of `clear()` and `purge()` calls in this hook, otherwise we would end
   # up in a recursive loop due to the hook system.
   defp notify_worker(offset, state) when offset > 0,
-    do: Informant.broadcast(state, {:clear, [[]]}, {:ok, offset})
+    do: Informant.broadcast(state, {:clear, [[]]}, offset)
 
   defp notify_worker(_offset, _state),
     do: :ok

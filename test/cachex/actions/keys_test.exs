@@ -29,19 +29,13 @@ defmodule Cachex.Actions.KeysTest do
     TestUtils.flush()
 
     # retrieve the keys
-    {status, keys} = Cachex.keys(cache)
-
-    # ensure the status is ok
-    assert(status == :ok)
-
-    # sort the keys
-    result = Enum.sort(keys)
+    keys = Cachex.keys(cache)
 
     # only 3 items should come back
-    assert(result == [1, 2, 3])
+    assert Enum.sort(keys) == [1, 2, 3]
 
     # verify the hooks were updated with the count
-    assert_receive({{:keys, [[]]}, {^status, ^keys}})
+    assert_receive {{:keys, [[]]}, ^keys}
   end
 
   # This test verifies that the distributed router correctly controls
@@ -59,33 +53,33 @@ defmodule Cachex.Actions.KeysTest do
     assert Cachex.put(cache, 2, 2) == {:ok, true}
 
     # retrieve the keys from both local & remote
-    {:ok, keys1} = Cachex.keys(cache, local: true)
-    {:ok, keys2} = Cachex.keys(cache, local: false)
+    keys1 = Cachex.keys(cache, local: true)
+    keys2 = Cachex.keys(cache, local: false)
 
     # local just one, cluster has two
-    assert(length(keys1) == 1)
-    assert(length(keys2) == 2)
+    assert length(keys1) == 1
+    assert length(keys2) == 2
 
     # delete the single local key
     assert Cachex.clear(cache, local: true) == 1
 
     # retrieve the keys again from both local & remote
-    {:ok, keys3} = Cachex.keys(cache, local: true)
-    {:ok, keys4} = Cachex.keys(cache, local: false)
+    keys3 = Cachex.keys(cache, local: true)
+    keys4 = Cachex.keys(cache, local: false)
 
     # now local has no keys
-    assert(length(keys3) == 0)
-    assert(length(keys4) == 1)
+    assert length(keys3) == 0
+    assert length(keys4) == 1
 
     # delete the remaining key inside the cluster
     assert Cachex.clear(cache, local: false) == 1
 
     # retrieve the keys again from both local & remote
-    {:ok, keys5} = Cachex.keys(cache, local: true)
-    {:ok, keys6} = Cachex.keys(cache, local: false)
+    keys5 = Cachex.keys(cache, local: true)
+    keys6 = Cachex.keys(cache, local: false)
 
     # now both don't have any keys
-    assert(length(keys5) == 0)
-    assert(length(keys6) == 0)
+    assert length(keys5) == 0
+    assert length(keys6) == 0
   end
 end

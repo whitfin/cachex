@@ -216,8 +216,7 @@ defmodule Cachex.Router do
   # the total number of slots available (i.e. the count of the nodes). If it comes
   # out to the local node, just execute the local code, otherwise RPC the base call
   # to the remote node, and just assume that it'll correctly handle it.
-  defp route_cluster(cache, module, {action, [key | _]} = call)
-       when action in @keyed_actions do
+  defp route_cluster(cache, module, {action, [key | _]} = call) when action in @keyed_actions do
     cache(router: router(module: router, state: nodes)) = cache
     route_node(cache, module, call, router.route(nodes, key))
   end
@@ -241,8 +240,7 @@ defmodule Cachex.Router do
   # them with the results on the local node. The hooks will only be notified
   # on the local node, due to an annoying recursion issue when handling the
   # same across all nodes - seems to provide better logic though.
-  defp route_cluster(cache, module, {action, arguments} = call)
-       when action in @merge_actions do
+  defp route_cluster(cache, module, {action, arguments} = call) when action in @merge_actions do
     # fetch the nodes from the cluster state
     cache(router: router(module: router, state: state)) = cache
 

@@ -19,14 +19,14 @@ defmodule Cachex.Actions.SaveTest do
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file
-    assert Cachex.save(cache, path) == {:ok, true}
+    assert Cachex.save(cache, path)
 
     # verify the result and clearance
     assert Cachex.clear(cache) == 1
     assert Cachex.size(cache) == 0
 
     # load the cache from the disk
-    assert Cachex.restore(cache, path) == {:ok, 1}
+    assert Cachex.restore(cache, path) == 1
 
     # verify that the load was ok
     assert Cachex.size(cache) == 1
@@ -52,21 +52,21 @@ defmodule Cachex.Actions.SaveTest do
     path2 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file for local/remote
-    assert Cachex.save(cache, path1, local: true) == {:ok, true}
-    assert Cachex.save(cache, path2, local: false) == {:ok, true}
+    assert Cachex.save(cache, path1, local: true)
+    assert Cachex.save(cache, path2, local: false)
 
     # clear the cache to remove all
     assert Cachex.clear(cache) == 2
 
     # load the local cache from the disk
-    assert Cachex.restore(cache, path1) == {:ok, 1}
+    assert Cachex.restore(cache, path1) == 1
     assert Cachex.size(cache) == 1
 
     # clear the cache again
     assert Cachex.clear(cache) == 1
 
     # load the full cache from the disk
-    assert Cachex.restore(cache, path2) == {:ok, 2}
+    assert Cachex.restore(cache, path2) == 2
     assert Cachex.size(cache) == 2
   end
 

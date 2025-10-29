@@ -20,7 +20,7 @@ defmodule Cachex.Actions.Import do
   a large import set.
   """
   def execute(cache() = cache, entries, _options),
-    do: {:ok, Enum.reduce(entries, 0, &import(cache, &1, &2, now()))}
+    do: Enum.reduce(entries, 0, &import(cache, &1, &2, now()))
 
   ###############
   # Private API #

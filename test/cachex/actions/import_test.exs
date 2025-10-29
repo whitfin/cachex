@@ -23,12 +23,12 @@ defmodule Cachex.Actions.ImportTest do
     :timer.sleep(50)
 
     # load the cache from the export
-    assert Cachex.import(cache, elem(result1, 1)) == {:ok, 2}
+    assert Cachex.import(cache, result1) == 2
     assert Cachex.size(cache) == 2
 
     # verify TTL offsetting happens
     cache
-    |> Cachex.ttl!(3)
+    |> Cachex.ttl(3)
     |> assert_in_delta(10_000 - (now() - start), 5)
   end
 end
