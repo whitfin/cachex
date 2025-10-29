@@ -16,30 +16,20 @@ defmodule Cachex.Actions.UpdateTest do
     {:ok, true} = Cachex.put(cache, 2, 2, expire: 10000)
 
     # attempt to update both keys
-    update1 = Cachex.update(cache, 1, 3)
-    update2 = Cachex.update(cache, 2, 3)
-
-    # ensure both succeeded
-    assert(update1 == {:ok, true})
-    assert(update2 == {:ok, true})
+    assert Cachex.update(cache, 1, 3)
+    assert Cachex.update(cache, 2, 3)
 
     # retrieve the modified keys
-    value1 = Cachex.get(cache, 1)
-    value2 = Cachex.get(cache, 2)
-
-    # verify the updates
-    assert(value1 == {:ok, 3})
-    assert(value2 == {:ok, 3})
-
-    # pull back the TTLs
-    ttl1 = Cachex.ttl!(cache, 1)
-    ttl2 = Cachex.ttl!(cache, 2)
+    assert Cachex.get(cache, 1) == {:ok, 3}
+    assert Cachex.get(cache, 2) == {:ok, 3}
 
     # the first TTL should still be unset
-    assert(ttl1 == nil)
+    assert Cachex.ttl!(cache, 1) == nil
 
     # the second should still be set
-    assert_in_delta(ttl2, 10000, 10)
+    cache
+    |> Cachex.ttl!(2)
+    |> assert_in_delta(10000, 10)
   end
 
   # This test just verifies that we successfully return an error when we try to
@@ -49,12 +39,8 @@ defmodule Cachex.Actions.UpdateTest do
     cache = TestUtils.create_cache()
 
     # attempt to update a missing key in the cache
-    update1 = Cachex.update(cache, 1, 3)
-    update2 = Cachex.update(cache, 2, 3)
-
-    # ensure both failed
-    assert(update1 == {:ok, false})
-    assert(update2 == {:ok, false})
+    refute Cachex.update(cache, 1, 3)
+    refute Cachex.update(cache, 2, 3)
   end
 
   # This test verifies that this action is correctly distributed across
@@ -70,15 +56,11 @@ defmodule Cachex.Actions.UpdateTest do
     {:ok, true} = Cachex.put(cache, 2, 2, expire: 500)
 
     # run updates against both keys
-    {:ok, true} = Cachex.update(cache, 1, -1)
-    {:ok, true} = Cachex.update(cache, 2, -2)
+    assert Cachex.update(cache, 1, -1)
+    assert Cachex.update(cache, 2, -2)
 
     # try to retrieve both of the set keys
-    updated1 = Cachex.get(cache, 1)
-    updated2 = Cachex.get(cache, 2)
-
-    # check the update occurred
-    assert(updated1 == {:ok, -1})
-    assert(updated2 == {:ok, -2})
+    assert Cachex.get(cache, 1) == {:ok, -1}
+    assert Cachex.get(cache, 2) == {:ok, -2}
   end
 end

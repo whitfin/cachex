@@ -396,8 +396,8 @@ defmodule Cachex do
   @doc """
   Removes an entry from a cache.
 
-  This will return `{ :ok, true }` regardless of whether a key has been removed
-  or not. The `true` value can be thought of as "is key no longer present?".
+  This will return `true` regardless of whether a key has been removed or
+  not. The `true` value can be thought of as "is key no longer present?".
 
   ## Examples
 
@@ -406,13 +406,13 @@ defmodule Cachex do
       { :ok, "value" }
 
       iex> Cachex.del(:my_cache, "key")
-      { :ok, true }
+      true
 
       iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
+      nil
 
   """
-  @spec del(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec del(Cachex.t(), any(), Keyword.t()) :: boolean()
   def del(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:del, [key, options]})
 
@@ -427,11 +427,11 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key1", "value1")
       iex> Cachex.empty?(:my_cache)
-      { :ok, false }
+      false
 
       iex> Cachex.clear(:my_cache)
       iex> Cachex.empty?(:my_cache)
-      { :ok, true }
+      true
 
   """
   @spec empty?(Cachex.t(), Keyword.t()) :: boolean()
@@ -488,7 +488,7 @@ defmodule Cachex do
       false
 
   """
-  @spec exists?(Cachex.t(), any, Keyword.t()) :: boolean()
+  @spec exists?(Cachex.t(), any(), Keyword.t()) :: boolean()
   def exists?(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:exists?, [key, options]})
 
@@ -505,13 +505,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.expire(:my_cache, "key", :timer.seconds(5))
-      { :ok, true }
+      true
 
       iex> Cachex.expire(:my_cache, "missing_key", :timer.seconds(5))
-      { :ok, false }
+      false
 
   """
-  @spec expire(Cachex.t(), any, number | nil, Keyword.t()) :: {status, boolean}
+  @spec expire(Cachex.t(), any(), number() | nil, Keyword.t()) :: boolean()
   def expire(cache, key, expiration, options \\ [])
       when (is_nil(expiration) or is_number(expiration)) and is_list(options),
       do: Router.route(cache, {:expire, [key, expiration, options]})
@@ -533,7 +533,7 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec expire_at(Cachex.t(), any, number, Keyword.t()) :: {status, boolean}
+  @spec expire_at(Cachex.t(), any(), number(), Keyword.t()) :: boolean()
   def expire_at(cache, key, timestamp, options \\ [])
       when is_number(timestamp) and is_list(options) do
     via_opts = via({:expire_at, [key, timestamp, options]}, options)
@@ -860,13 +860,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value", expiration: 1000)
       iex> Cachex.persist(:my_cache, "key")
-      { :ok, true }
+      true
 
       iex> Cachex.persist(:my_cache, "missing_key")
-      { :ok, false }
+      false
 
   """
-  @spec persist(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec persist(Cachex.t(), any(), Keyword.t()) :: boolean()
   def persist(cache, key, options \\ []) when is_list(options),
     do: expire(cache, key, nil, via({:persist, [key, options]}, options))
 
@@ -1011,10 +1011,10 @@ defmodule Cachex do
       { :ok, 5000 }
 
       iex> Cachex.refresh(:my_cache, "missing_key")
-      { :ok, false }
+      false
 
   """
-  @spec refresh(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec refresh(Cachex.t(), any(), Keyword.t()) :: boolean()
   def refresh(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:refresh, [key, options]})
 
@@ -1253,6 +1253,21 @@ defmodule Cachex do
 
   This is very similar to `refresh/3` except that the expiration
   time is maintained inside the record (using a calculated offset).
+
+  ## Examples
+
+      iex> Cachex.put(:my_cache, "my_key", "my_value", expire: :timer.seconds(5))
+      iex> Process.sleep(4)
+      iex> Cachex.ttl(:my_cache, "my_key")
+      { :ok, 1000 }
+
+      iex> Cachex.touch(:my_cache, "my_key")
+      iex> Cachex.ttl(:my_cache, "my_key")
+      { :ok, 1000 }
+
+      iex> Cachex.touch(:my_cache, "missing_key")
+      false
+
   """
   @spec touch(Cachex.t(), any, Keyword.t()) :: {status, boolean}
   def touch(cache, key, options \\ []) when is_list(options),
@@ -1341,10 +1356,10 @@ defmodule Cachex do
       { :ok, "new_value" }
 
       iex> Cachex.update(:my_cache, "missing_key", "new_value")
-      { :ok, false }
+      false
 
   """
-  @spec update(Cachex.t(), any, any, Keyword.t()) :: {status, any}
+  @spec update(Cachex.t(), any(), any(), Keyword.t()) :: boolean()
   def update(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:update, [key, value, options]})
 

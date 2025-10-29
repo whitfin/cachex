@@ -14,13 +14,13 @@ defmodule Cachex.Actions.DelTest do
     # add some cache entries
     assert Cachex.put(cache, 1, 1) == {:ok, true}
 
-    # delete some entries, verify both are true
-    assert Cachex.del(cache, 1) == {:ok, true}
-    assert Cachex.del(cache, 2) == {:ok, true}
+    # delete some entries
+    assert Cachex.del(cache, 1)
+    assert Cachex.del(cache, 2)
 
     # verify the hooks were updated with the delete
-    assert_receive({{:del, [1, []]}, {:ok, true}})
-    assert_receive({{:del, [2, []]}, {:ok, true}})
+    assert_receive({{:del, [1, []]}, true})
+    assert_receive({{:del, [2, []]}, true})
 
     # retrieve all items, verify the items are gone
     assert Cachex.get(cache, 1) == {:ok, nil}
@@ -44,8 +44,8 @@ defmodule Cachex.Actions.DelTest do
     assert Cachex.size(cache, local: false) == 2
 
     # delete each item from the cache cluster
-    assert Cachex.del(cache, 1) == {:ok, true}
-    assert Cachex.del(cache, 2) == {:ok, true}
+    assert Cachex.del(cache, 1)
+    assert Cachex.del(cache, 2)
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 0
