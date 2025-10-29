@@ -24,8 +24,12 @@ defmodule Cachex.Actions.Export do
     query = Query.build()
     options = const(:local) ++ const(:notify_false)
 
-    with {:ok, stream} <- Cachex.stream(cache, query, options) do
-      {:ok, Enum.to_list(stream)}
+    case Cachex.stream(cache, query, options) do
+      {:error, _reason} = error ->
+        error
+
+      stream ->
+        Enum.to_list(stream)
     end
   end
 end

@@ -22,7 +22,7 @@ defmodule Cachex.Actions.RestoreTest do
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file
-    assert Cachex.save(cache, path) == {:ok, true}
+    assert Cachex.save(cache, path)
 
     # verify the result and clearance
     assert Cachex.clear(cache) == 3
@@ -32,7 +32,7 @@ defmodule Cachex.Actions.RestoreTest do
     :timer.sleep(50)
 
     # load the cache from the disk
-    assert Cachex.restore(cache, path) == {:ok, 2}
+    assert Cachex.restore(cache, path) == 2
     assert Cachex.size(cache) == 2
 
     # verify TTL offsetting happens

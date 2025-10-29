@@ -14,7 +14,7 @@ defmodule Cachex.Actions.PruneTest do
     assert Cachex.size(cache) == 100
 
     # trigger a pruning down to 50 keys
-    assert Cachex.prune(cache, 50) == {:ok, true}
+    assert Cachex.prune(cache, 50)
 
     # verify that we're down to 50 keys
     assert Cachex.size(cache) == 45
@@ -33,7 +33,7 @@ defmodule Cachex.Actions.PruneTest do
     assert Cachex.size(cache) == 100
 
     # trigger a pruning down to 50 keys, reclaiming 10%
-    assert Cachex.prune(cache, 50, reclaim: 0) == {:ok, true}
+    assert Cachex.prune(cache, 50, reclaim: 0)
 
     # verify that we're down to 50 keys
     assert Cachex.size(cache) == 50
@@ -80,7 +80,7 @@ defmodule Cachex.Actions.PruneTest do
     assert Cachex.put(state, 101, 101) == {:ok, true}
 
     # trigger the cache pruning down to 100 records
-    assert Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1) == {:ok, true}
+    assert Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1)
 
     # verify the cache shrinks to 51%
     assert Cachex.size(state) == 51

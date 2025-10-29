@@ -18,14 +18,14 @@ defmodule Cachex.Actions.StreamTest do
     {:ok, entry2} = Cachex.inspect(cache, {:entry, "key2"})
     {:ok, entry3} = Cachex.inspect(cache, {:entry, "key3"})
 
-    # create a cache stream
-    {:ok, stream} = Cachex.stream(cache)
-
-    # consume the stream
-    result = Enum.sort(stream)
+    # create and consume a cache stream
+    result =
+      cache
+      |> Cachex.stream()
+      |> Enum.sort()
 
     # verify the results are the ordered entries
-    assert(result == [entry1, entry2, entry3])
+    assert result == [entry1, entry2, entry3]
   end
 
   # This test covers the use case of custom match patterns, by testing various
@@ -48,24 +48,18 @@ defmodule Cachex.Actions.StreamTest do
     query2 = Cachex.Query.build(where: filter, output: :key)
 
     # create cache streams
-    {:ok, stream1} = Cachex.stream(cache, query1)
-    {:ok, stream2} = Cachex.stream(cache, query2)
-
-    # consume the streams
-    result1 = Enum.sort(stream1)
-    result2 = Enum.sort(stream2)
+    stream1 = Cachex.stream(cache, query1)
+    stream2 = Cachex.stream(cache, query2)
 
     # verify the first results
-    assert(
-      result1 == [
-        {"key1", "value1"},
-        {"key2", "value2"},
-        {"key3", "value3"}
-      ]
-    )
+    assert Enum.sort(stream1) == [
+             {"key1", "value1"},
+             {"key2", "value2"},
+             {"key3", "value3"}
+           ]
 
     # verify the second results
-    assert(result2 == ["key1", "key2", "key3"])
+    assert Enum.sort(stream2) == ["key1", "key2", "key3"]
   end
 
   # If an invalid match spec is provided in the of option, an error is returned.
@@ -74,11 +68,8 @@ defmodule Cachex.Actions.StreamTest do
     # create a test cache
     cache = TestUtils.create_cache()
 
-    # create cache stream
-    result = Cachex.stream(cache, {:invalid})
-
-    # verify the stream fails
-    assert(result == {:error, :invalid_match})
+    # create cache stream, verify the stream fails
+    assert Cachex.stream(cache, {:invalid}) == {:error, :invalid_match}
   end
 
   # This test verifies that this action is correctly disabled in a cluster,
@@ -101,10 +92,7 @@ defmodule Cachex.Actions.StreamTest do
     # build a generic query to use later
     query = Cachex.Query.build()
 
-    # create a cache stream with the local flag
-    stream = Cachex.stream(cache, query, local: true)
-
-    # we should be able to stream the local node
-    assert stream != {:error, :non_distributed}
+    # create a cache stream with the local flag, we should be able to stream
+    assert Cachex.stream(cache, query, local: true) != {:error, :non_distributed}
   end
 end

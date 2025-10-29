@@ -30,10 +30,10 @@ defmodule Cachex.Actions.TouchTest do
       Cachex.Actions.read(state, 2)
 
     # the first TTL should be nil
-    assert(expiration1 == nil)
+    assert expiration1 == nil
 
     # the second TTL should be roughly 1000
-    assert_in_delta(expiration2, 995, 6)
+    assert_in_delta expiration2, 995, 6
 
     # wait for 50ms
     :timer.sleep(50)
@@ -56,22 +56,19 @@ defmodule Cachex.Actions.TouchTest do
       Cachex.Actions.read(state, 2)
 
     # the first expiration should still be nil
-    assert(expiration3 == nil)
+    assert expiration3 == nil
 
     # the first touch time should be roughly 50ms after the first one
-    assert_in_delta(modified3, modified1 + 60, 11)
+    assert_in_delta modified3, modified1 + 60, 11
 
     # the second expiration should be roughly 50ms lower than the first
-    assert_in_delta(expiration4, expiration2 - 60, 11)
+    assert_in_delta expiration4, expiration2 - 60, 11
 
     # the second touch time should also be 50ms after the first one
-    assert_in_delta(modified4, modified2 + 60, 11)
-
-    # for good measure, retrieve the second expiration
-    expiration5 = Cachex.ttl!(cache, 2)
+    assert_in_delta modified4, modified2 + 60, 11
 
     # it should be roughly 945ms left
-    assert_in_delta(expiration5, 940, 11)
+    assert_in_delta Cachex.ttl(cache, 2), 940, 11
   end
 
   # This test verifies that this action is correctly distributed across
@@ -89,11 +86,9 @@ defmodule Cachex.Actions.TouchTest do
     # wait a little
     :timer.sleep(10)
 
-    # pull back the records inserted so far
-    {:ok, export1} = Cachex.export(cache)
-
     # sort to guarantee we're checking well
-    [record1, record2] = Enum.sort(export1)
+    [record1, record2] =
+      cache |> Cachex.export() |> Enum.sort()
 
     # unpack the records touch time
     entry(modified: modified1) = record1
@@ -103,11 +98,9 @@ defmodule Cachex.Actions.TouchTest do
     assert Cachex.touch(cache, 1)
     assert Cachex.touch(cache, 2)
 
-    # pull back the records after the touchs
-    {:ok, export2} = Cachex.export(cache)
-
     # sort to guarantee we're checking well
-    [record3, record4] = Enum.sort(export2)
+    [record3, record4] =
+      cache |> Cachex.export() |> Enum.sort()
 
     # unpack the records touch time
     entry(modified: modified3) = record3
