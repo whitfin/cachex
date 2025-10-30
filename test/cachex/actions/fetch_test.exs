@@ -13,8 +13,8 @@ defmodule Cachex.Actions.FetchTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    {:ok, true} = Cachex.put(cache, "key1", 1)
-    {:ok, true} = Cachex.put(cache, "key2", 2, expire: 1)
+    assert Cachex.put(cache, "key1", 1)
+    assert Cachex.put(cache, "key2", 2, expire: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -107,9 +107,7 @@ defmodule Cachex.Actions.FetchTest do
     assert Cachex.fetch(cache, "key", fb_opt) == {:commit, "yek"}
 
     # check we have a set expiration
-    cache
-    |> Cachex.ttl("key")
-    |> assert_in_delta(60000, 250)
+    assert_in_delta Cachex.ttl(cache, "key"), 60000, 250
   end
 
   # This test verifies that this action is correctly distributed across

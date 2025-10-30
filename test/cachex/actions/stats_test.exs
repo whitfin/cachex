@@ -17,7 +17,7 @@ defmodule Cachex.Actions.StatsTest do
     ctime = now()
 
     # execute some cache actions
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1)
     assert Cachex.get(cache, 1) == 1
 
     # retrieve default stats
@@ -63,16 +63,16 @@ defmodule Cachex.Actions.StatsTest do
     assert Cachex.get(cache1, 1) == nil
 
     # set cache2 to 100% hits
-    {:ok, true} = Cachex.put(cache2, 1, 1)
+    assert Cachex.put(cache2, 1, 1)
     assert Cachex.get(cache2, 1) == 1
 
     # set cache3 to be 50% each way
-    {:ok, true} = Cachex.put(cache3, 1, 1)
+    assert Cachex.put(cache3, 1, 1)
     assert Cachex.get(cache3, 1) == 1
     assert Cachex.get(cache3, 2) == nil
 
     # set cache4 to have some loads
-    {:commit, 1} = Cachex.fetch(cache4, 1, & &1)
+    assert Cachex.fetch(cache4, 1, & &1) == {:commit, 1}
 
     # retrieve all cache rates
     stats1 = Cachex.stats!(cache1)

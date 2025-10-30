@@ -13,7 +13,7 @@ defmodule Cachex.Actions.SaveTest do
     cache = TestUtils.create_cache()
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
@@ -44,8 +44,8 @@ defmodule Cachex.Actions.SaveTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # create a local path to write to
     path1 = Path.join(tmp, TestUtils.gen_rand_bytes(8))

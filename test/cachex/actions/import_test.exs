@@ -8,9 +8,9 @@ defmodule Cachex.Actions.ImportTest do
     start = now()
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
-    assert Cachex.put(cache, 3, 3, expire: 10_000) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 3, 3, expire: 10_000)
 
     # export the cache to a list
     result1 = Cachex.export(cache)
@@ -27,8 +27,6 @@ defmodule Cachex.Actions.ImportTest do
     assert Cachex.size(cache) == 2
 
     # verify TTL offsetting happens
-    cache
-    |> Cachex.ttl(3)
-    |> assert_in_delta(10_000 - (now() - start), 5)
+    assert_in_delta Cachex.ttl(cache, 3), 10_000 - (now() - start), 5
   end
 end

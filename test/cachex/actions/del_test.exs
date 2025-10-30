@@ -12,7 +12,7 @@ defmodule Cachex.Actions.DelTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # delete some entries
     assert Cachex.del(cache, 1)
@@ -36,8 +36,8 @@ defmodule Cachex.Actions.DelTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1

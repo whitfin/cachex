@@ -17,7 +17,7 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..4 do
-      {:ok, true} = Cachex.put(cache, i, i)
+      assert Cachex.put(cache, i, i)
     end
 
     # clear the cache values
@@ -54,7 +54,7 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..1 do
-      {:ok, true} = Cachex.put(cache, i, i)
+      assert Cachex.put(cache, i, i)
     end
 
     # delete our cache values
@@ -91,7 +91,7 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # check for a couple of keys
     assert Cachex.exists?(cache, 1)
@@ -129,7 +129,7 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # check for a couple of keys
     assert Cachex.get(cache, 1) == 1
@@ -168,7 +168,7 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # fetch an existing value
     assert Cachex.fetch(cache, 1, fn _ -> {:commit, "na"} end) == 1
@@ -259,7 +259,7 @@ defmodule Cachex.StatsTest do
       )
 
     # put the base value
-    assert Cachex.put(cache, "list", [1, 2, 3]) == {:ok, true}
+    assert Cachex.put(cache, "list", [1, 2, 3])
 
     # run each command
     assert Cachex.invoke(cache, :last, "list") == 3
@@ -306,7 +306,7 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..4 do
-      assert Cachex.put(cache, i, i, expire: 1) == {:ok, true}
+      assert Cachex.put(cache, i, i, expire: 1)
     end
 
     # ensure purge
@@ -347,7 +347,7 @@ defmodule Cachex.StatsTest do
 
     # set a few values in the cache
     for i <- 0..4 do
-      assert Cachex.put(cache, i, i) == {:ok, true}
+      assert Cachex.put(cache, i, i)
     end
 
     # retrieve the statistics
@@ -377,14 +377,13 @@ defmodule Cachex.StatsTest do
       )
 
     # set a few values in the cache
-    {:ok, true} =
-      Cachex.put_many(cache, [
-        {1, 1},
-        {2, 2},
-        {3, 3},
-        {4, 4},
-        {5, 5}
-      ])
+    assert Cachex.put_many(cache, [
+             {1, 1},
+             {2, 2},
+             {3, 3},
+             {4, 4},
+             {5, 5}
+           ])
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -415,7 +414,7 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # delete our cache values
     assert Cachex.take(cache, 1) == 1
@@ -453,7 +452,7 @@ defmodule Cachex.StatsTest do
       )
 
     # set a value in the cache
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
     assert Cachex.touch(cache, 1)
 
     # retrieve the statistics

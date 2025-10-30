@@ -10,7 +10,7 @@ defmodule Cachex.Actions.InspectTest do
 
     # set several values in the cache
     for x <- 1..3 do
-      {:ok, true} = Cachex.put(cache, "key#{x}", "value#{x}", expire: 1)
+      assert Cachex.put(cache, "key#{x}", "value#{x}", expire: 1)
     end
 
     # make sure they expire
@@ -93,7 +93,7 @@ defmodule Cachex.Actions.InspectTest do
     ctime = now()
 
     # set a cache record
-    {:ok, true} = Cachex.put(cache, 1, "one", expire: 1000)
+    assert Cachex.put(cache, 1, "one", expire: 1000)
 
     # break down the first record
     entry(key: key, modified: mod, expiration: exp, value: value) =
@@ -151,8 +151,8 @@ defmodule Cachex.Actions.InspectTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # lookup both entries on the local node
     entry1 = Cachex.inspect(cache, {:entry, 1})

@@ -13,8 +13,8 @@ defmodule Cachex.Actions.RefreshTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1000)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1000)
 
     # clear messages
     TestUtils.flush()
@@ -22,15 +22,11 @@ defmodule Cachex.Actions.RefreshTest do
     # wait for 25ms
     :timer.sleep(25)
 
-    # retrieve all TTLs from the cache
-    ttl1 = Cachex.ttl!(cache, 1)
-    ttl2 = Cachex.ttl!(cache, 2)
-
     # the first TTL should be nil
-    assert(ttl1 == nil)
+    assert Cachex.ttl(cache, 1) == nil
 
     # the second TTL should be roughly 975
-    assert_in_delta(ttl2, 970, 6)
+    assert_in_delta Cachex.ttl(cache, 2), 970, 6
 
     # refresh some TTLs
     assert Cachex.refresh(cache, 1)
@@ -38,17 +34,15 @@ defmodule Cachex.Actions.RefreshTest do
     refute Cachex.refresh(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:refresh, [1, []]}, true})
-    assert_receive({{:refresh, [2, []]}, true})
-    assert_receive({{:refresh, [3, []]}, false})
+    assert_receive {{:refresh, [1, []]}, true}
+    assert_receive {{:refresh, [2, []]}, true}
+    assert_receive {{:refresh, [3, []]}, false}
 
     # the first TTL should still be nil
-    assert Cachex.ttl!(cache, 1) == nil
+    assert Cachex.ttl(cache, 1) == nil
 
     # the second TTL should be reset to 1000
-    cache
-    |> Cachex.ttl!(2)
-    |> assert_in_delta(995, 10)
+    assert_in_delta Cachex.ttl(cache, 2), 995, 10
   end
 
   # This test verifies that this action is correctly distributed across
@@ -60,8 +54,8 @@ defmodule Cachex.Actions.RefreshTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1, expire: 500)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 500)
+    assert Cachex.put(cache, 1, 1, expire: 500)
+    assert Cachex.put(cache, 2, 2, expire: 500)
 
     # pause to reduce the TTL a little
     :timer.sleep(250)
@@ -75,7 +69,7 @@ defmodule Cachex.Actions.RefreshTest do
     assert Cachex.refresh(cache, 2)
 
     # check the time reset
-    assert Cachex.ttl!(cache, 1) > 300
-    assert Cachex.ttl!(cache, 2) > 300
+    assert Cachex.ttl(cache, 1) > 300
+    assert Cachex.ttl(cache, 2) > 300
   end
 end

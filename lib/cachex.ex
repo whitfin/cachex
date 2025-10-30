@@ -946,14 +946,14 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
-      { :ok, true }
+      true
 
       iex> Cachex.put(:my_cache, "key", "value", expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
+      5000
 
   """
-  @spec put(Cachex.t(), any, any, Keyword.t()) :: {status, any}
+  @spec put(Cachex.t(), any(), any(), Keyword.t()) :: boolean()
   def put(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:put, [key, value, options]})
 
@@ -975,17 +975,16 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
-      { :ok, true }
+      true
 
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
+      5000
 
   """
-  @spec put_many(Cachex.t(), [{any, any}], Keyword.t()) :: {status, any}
-  def put_many(cache, pairs, options \\ [])
-      when is_list(pairs) and is_list(options),
-      do: Router.route(cache, {:put_many, [pairs, options]})
+  @spec put_many(Cachex.t(), [{any, any}], Keyword.t()) :: boolean() | Cachex.error()
+  def put_many(cache, pairs, options \\ []) when is_list(pairs) and is_list(options),
+    do: Router.route(cache, {:put_many, [pairs, options]})
 
   @doc """
   Refreshes an expiration for an entry in a cache.

@@ -12,11 +12,11 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1)
-    {:ok, true} = Cachex.put(cache, 4, 4, expire: 1000)
-    {:ok, true} = Cachex.put(cache, 5, 5)
-    {:ok, true} = Cachex.put(cache, 6, 6)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 4, 4, expire: 1000)
+    assert Cachex.put(cache, 5, 5)
+    assert Cachex.put(cache, 6, 6)
 
     # wait for the TTL to pass
     :timer.sleep(25)
@@ -80,9 +80,7 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert Cachex.get(cache, 6) == "6"
 
     # TTL should be maintained
-    cache
-    |> Cachex.ttl(4)
-    |> assert_in_delta(965, 11)
+    assert_in_delta Cachex.ttl(cache, 4), 965, 11
   end
 
   # This test verifies that this action is correctly distributed across
@@ -94,8 +92,8 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # update both keys with a known function name
     assert Cachex.get_and_update(cache, 1, &Integer.to_string/1) == {:commit, "1"}
