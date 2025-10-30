@@ -15,14 +15,14 @@ defmodule Cachex.Actions.IncrTest do
     opts1 = [default: 10]
 
     # increment some items, verify the values
-    assert Cachex.incr(cache, "key1") == {:ok, 1}
-    assert Cachex.incr(cache, "key1", 2) == {:ok, 3}
-    assert Cachex.incr(cache, "key2", 1, opts1) == {:ok, 11}
+    assert Cachex.incr(cache, "key1") == 1
+    assert Cachex.incr(cache, "key1", 2) == 3
+    assert Cachex.incr(cache, "key2", 1, opts1) == 11
 
     # verify the hooks were updated with the increment
-    assert_receive({{:incr, ["key1", 1, []]}, {:ok, 1}})
-    assert_receive({{:incr, ["key1", 2, []]}, {:ok, 3}})
-    assert_receive({{:incr, ["key2", 1, ^opts1]}, {:ok, 11}})
+    assert_receive {{:incr, ["key1", 1, []]}, 1}
+    assert_receive {{:incr, ["key1", 2, []]}, 3}
+    assert_receive {{:incr, ["key2", 1, ^opts1]}, 11}
 
     # retrieve all items, verify the items match
     assert Cachex.get(cache, "key1") == {:ok, 3}
@@ -52,8 +52,8 @@ defmodule Cachex.Actions.IncrTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.incr(cache, 1, 1) == {:ok, 1}
-    assert Cachex.incr(cache, 2, 2) == {:ok, 2}
+    assert Cachex.incr(cache, 1, 1) == 1
+    assert Cachex.incr(cache, 2, 2) == 2
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1

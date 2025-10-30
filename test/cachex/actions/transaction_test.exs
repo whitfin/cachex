@@ -24,10 +24,7 @@ defmodule Cachex.Actions.TransactionTest do
     :timer.sleep(10)
 
     # write a key from outside a transaction
-    incr = Cachex.incr(cache, "key")
-
-    # verify the write was queued after the transaction
-    assert(incr == {:ok, 2})
+    assert Cachex.incr(cache, "key") == 2
   end
 
   # This test ensures that any errors which occur inside a transaction are caught
@@ -43,7 +40,7 @@ defmodule Cachex.Actions.TransactionTest do
       end)
 
     # verify the error was caught
-    assert(result1 == {:error, "Error message"})
+    assert result1 == {:error, "Error message"}
 
     # ensure a new transaction executes normally
     result2 =
@@ -52,7 +49,7 @@ defmodule Cachex.Actions.TransactionTest do
       end)
 
     # verify the results are correct
-    assert(result2 == {:ok, true})
+    assert result2 == {:ok, true}
   end
 
   # This test makes sure that a cache with transactions disabled will automatically
@@ -67,7 +64,7 @@ defmodule Cachex.Actions.TransactionTest do
     state1 = Services.Overseer.lookup(cache)
 
     # verify transactions are disabled
-    assert(cache(state1, :transactions) == false)
+    assert cache(state1, :transactions) == false
 
     # execute a transactions
     Cachex.transaction(cache, [], & &1)
@@ -76,7 +73,7 @@ defmodule Cachex.Actions.TransactionTest do
     state2 = Services.Overseer.lookup(cache)
 
     # verify transactions are now enabled
-    assert(cache(state2, :transactions) == true)
+    assert cache(state2, :transactions) == true
   end
 
   # This test verifies that this action is correctly distributed across
@@ -92,7 +89,7 @@ defmodule Cachex.Actions.TransactionTest do
     {:ok, ^result} = Cachex.transaction(cache, [2, 3], &:erlang.phash2/1)
 
     # check the result phashed ok
-    assert(result > 0 && is_integer(result))
+    assert result > 0 && is_integer(result)
   end
 
   # This test verifies that all keys in a put_many/3 must hash to the
@@ -102,10 +99,7 @@ defmodule Cachex.Actions.TransactionTest do
     # create a new cache cluster for cleaning
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
-    # we know that 1 & 3 don't hash to the same slots
-    transaction = Cachex.transaction(cache, [1, 2], &:erlang.phash2/1)
-
-    # so there should be an error
-    assert(transaction == {:error, :cross_slot})
+    # we know that 1 & 3 don't hash to the same slots, so there should be an error
+    assert Cachex.transaction(cache, [1, 2], &:erlang.phash2/1) == {:error, :cross_slot}
   end
 end

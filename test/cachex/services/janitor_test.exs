@@ -68,7 +68,7 @@ defmodule Cachex.Services.JanitorTest do
     refute Cachex.exists?(cache, "key")
 
     # retrieve the metadata
-    {:ok, metadata1} = Services.Janitor.last_run(cache)
+    metadata1 = Services.Janitor.last_run(cache)
 
     # verify the count was updated
     assert metadata1[:count] == 1

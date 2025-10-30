@@ -13,11 +13,6 @@ defmodule Cachex.Actions.StreamTest do
     {:ok, true} = Cachex.put(cache, "key2", "value2")
     {:ok, true} = Cachex.put(cache, "key3", "value3")
 
-    # grab the raw versions of each record
-    {:ok, entry1} = Cachex.inspect(cache, {:entry, "key1"})
-    {:ok, entry2} = Cachex.inspect(cache, {:entry, "key2"})
-    {:ok, entry3} = Cachex.inspect(cache, {:entry, "key3"})
-
     # create and consume a cache stream
     result =
       cache
@@ -25,7 +20,11 @@ defmodule Cachex.Actions.StreamTest do
       |> Enum.sort()
 
     # verify the results are the ordered entries
-    assert result == [entry1, entry2, entry3]
+    assert result == [
+             Cachex.inspect(cache, {:entry, "key1"}),
+             Cachex.inspect(cache, {:entry, "key2"}),
+             Cachex.inspect(cache, {:entry, "key3"})
+           ]
   end
 
   # This test covers the use case of custom match patterns, by testing various

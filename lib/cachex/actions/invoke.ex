@@ -43,7 +43,7 @@ defmodule Cachex.Actions.Invoke do
   # passed through in expired/missing cases.
   defp invoke(command(type: :read, execute: exec), cache, key) do
     {_status_, value} = Cachex.get(cache, key, [])
-    {:ok, exec.(value)}
+    exec.(value)
   end
 
   # Executes a write command on the backing cache table.
@@ -64,7 +64,7 @@ defmodule Cachex.Actions.Invoke do
           [cache, key, tempv, []]
         )
 
-      {:ok, return}
+      return
     end)
   end
 

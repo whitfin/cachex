@@ -23,29 +23,19 @@ defmodule Cachex.Actions.InvokeTest do
     entry(key: "list", modified: modified) =
       Cachex.inspect!(cache, {:entry, "list"})
 
-    # execute some custom commands
-    lpop1 = Cachex.invoke(cache, :lpop, "list")
-    lpop2 = Cachex.invoke(cache, :lpop, "list")
-    rpop1 = Cachex.invoke(cache, :rpop, "list")
-    rpop2 = Cachex.invoke(cache, :rpop, "list")
-
     # verify that all results are as expected
-    assert(lpop1 == {:ok, 1})
-    assert(lpop2 == {:ok, 2})
-    assert(rpop1 == {:ok, 4})
-    assert(rpop2 == {:ok, 3})
+    assert Cachex.invoke(cache, :lpop, "list") == 1
+    assert Cachex.invoke(cache, :lpop, "list") == 2
+    assert Cachex.invoke(cache, :rpop, "list") == 4
+    assert Cachex.invoke(cache, :rpop, "list") == 3
 
     # verify the modified time was unchanged
     assert Cachex.inspect!(cache, {:entry, "list"}) ==
              entry(key: "list", modified: modified, value: [])
 
     # pop some extras to test avoiding writes
-    lpop3 = Cachex.invoke(cache, :lpop, "list")
-    rpop3 = Cachex.invoke(cache, :rpop, "list")
-
-    # verify we stayed the same
-    assert(lpop3 == {:ok, nil})
-    assert(rpop3 == {:ok, nil})
+    assert Cachex.invoke(cache, :lpop, "list") == nil
+    assert Cachex.invoke(cache, :rpop, "list") == nil
   end
 
   # This test covers the ability to run commands tagged with the `:return type.
@@ -65,11 +55,8 @@ defmodule Cachex.Actions.InvokeTest do
       # set a list inside the cache
       {:ok, true} = Cachex.put(cache, "list", list)
 
-      # retrieve the last value
-      last = Cachex.invoke(cache, :last, "list")
-
-      # compare with the expected
-      assert(last == {:ok, expected})
+      # retrieve the last value, compare with the expected
+      assert Cachex.invoke(cache, :last, "list") == expected
     end
 
     # ensure basic list works
@@ -100,16 +87,11 @@ defmodule Cachex.Actions.InvokeTest do
       )
 
     # try to invoke a missing command
-    invoke1 = Cachex.invoke(state, :unknowns, "heh")
+    assert Cachex.invoke(state, :unknowns, "heh") == {:error, :invalid_command}
 
     # try to invoke bad arity commands
-    invoke2 = Cachex.invoke(state, :fake_mod, "heh")
-    invoke3 = Cachex.invoke(state, :fake_ret, "heh")
-
-    # all should error
-    assert(invoke1 == {:error, :invalid_command})
-    assert(invoke2 == {:error, :invalid_command})
-    assert(invoke3 == {:error, :invalid_command})
+    assert Cachex.invoke(state, :fake_mod, "heh") == {:error, :invalid_command}
+    assert Cachex.invoke(state, :fake_ret, "heh") == {:error, :invalid_command}
   end
 
   # This test verifies that this action is correctly distributed across
@@ -130,12 +112,8 @@ defmodule Cachex.Actions.InvokeTest do
     {:ok, true} = Cachex.put(cache, 2, [4, 5, 6])
 
     # check the results from both keys in the nodes
-    last1 = Cachex.invoke(cache, :last, 1)
-    last2 = Cachex.invoke(cache, :last, 2)
-
-    # check the command results
-    assert(last1 == {:ok, 3})
-    assert(last2 == {:ok, 6})
+    assert Cachex.invoke(cache, :last, 1) == 3
+    assert Cachex.invoke(cache, :last, 2) == 6
   end
 
   # A simple left pop for a List to remove the head and return the tail as the

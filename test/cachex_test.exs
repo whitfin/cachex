@@ -239,13 +239,13 @@ defmodule CachexTest do
     {:ok, _pid} = Cachex.start_link(name: :child_spec6, transactions: true)
 
     # verify the caches that are created only from a name
-    {:ok, cache()} = Cachex.inspect(:child_spec1, :cache)
-    {:ok, cache()} = Cachex.inspect(:child_spec3, :cache)
-    {:ok, cache()} = Cachex.inspect(:child_spec5, :cache)
+    cache() = Cachex.inspect(:child_spec1, :cache)
+    cache() = Cachex.inspect(:child_spec3, :cache)
+    cache() = Cachex.inspect(:child_spec5, :cache)
 
     # double check those with options provided by double checking the value
-    {:ok, cache(transactions: true)} = Cachex.inspect(:child_spec2, :cache)
-    {:ok, cache(transactions: true)} = Cachex.inspect(:child_spec4, :cache)
-    {:ok, cache(transactions: true)} = Cachex.inspect(:child_spec6, :cache)
+    cache(transactions: true) = Cachex.inspect(:child_spec2, :cache)
+    cache(transactions: true) = Cachex.inspect(:child_spec4, :cache)
+    cache(transactions: true) = Cachex.inspect(:child_spec6, :cache)
   end
 end
