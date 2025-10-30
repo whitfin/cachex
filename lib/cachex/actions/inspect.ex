@@ -63,7 +63,7 @@ defmodule Cachex.Actions.Inspect do
   # This is relatively easy to get via other methods, but it's available here
   # as the "best" way for a developer to do so (outside of the internal API).
   def execute(cache(name: name), :cache, _options),
-    do: {:ok, Overseer.lookup(name)}
+    do: Overseer.lookup(name)
 
   # Retrieves a raw entry from the cache table.
   #
@@ -72,8 +72,8 @@ defmodule Cachex.Actions.Inspect do
   # are not taken into account (either lazily or otherwise) on this read call.
   def execute(cache(name: name), {:entry, key}, _options) do
     case :ets.lookup(name, key) do
-      [] -> {:ok, nil}
-      [e] -> {:ok, e}
+      [] -> nil
+      [e] -> e
     end
   end
 
@@ -86,7 +86,7 @@ defmodule Cachex.Actions.Inspect do
     filter = Query.expired()
     clause = Query.build(where: filter, output: true)
 
-    {:ok, :ets.select_count(name, clause)}
+    :ets.select_count(name, clause)
   end
 
   # Returns the keys of expired entries currently inside the cache.
@@ -98,7 +98,7 @@ defmodule Cachex.Actions.Inspect do
     filter = Query.expired()
     clause = Query.build(where: filter, output: :key)
 
-    {:ok, :ets.select(name, clause)}
+    :ets.select(name, clause)
   end
 
   # Returns information about the last run of the Janitor service.
@@ -115,18 +115,17 @@ defmodule Cachex.Actions.Inspect do
   #
   # This should be treated as an estimation as it's rounded based on
   # the number of words used to maintain the cache.
-  def execute(cache() = cache, {:memory, :bytes}, options) do
-    {:ok, mem_words} = execute(cache, {:memory, :words}, options)
-    {:ok, mem_words * :erlang.system_info(:wordsize)}
-  end
+  def execute(cache() = cache, {:memory, :bytes}, options),
+    do: execute(cache, {:memory, :words}, options) * :erlang.system_info(:wordsize)
 
   # Retrieves the current size of the backing cache table in a readable format.
   #
   # This should be treated as an estimation as it's rounded based on the number
   # of words used to maintain the cache.
   def execute(cache() = cache, {:memory, :binary}, options) do
-    {:ok, bytes} = execute(cache, {:memory, :bytes}, options)
-    {:ok, bytes_to_readable(bytes)}
+    cache
+    |> execute({:memory, :bytes}, options)
+    |> bytes_to_readable
   end
 
   # Retrieves the current size of the backing cache table in machine words.
@@ -134,7 +133,7 @@ defmodule Cachex.Actions.Inspect do
   # It's unlikely the caller will want to use this directly, but as it's used
   # by other inspection methods there's no harm in exposing it in the API.
   def execute(cache(name: name), {:memory, :words}, _options),
-    do: {:ok, :ets.info(name, :memory)}
+    do: :ets.info(name, :memory)
 
   # Catch-all to return an error.
   def execute(_cache, _option, _options),

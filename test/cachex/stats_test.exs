@@ -210,12 +210,12 @@ defmodule Cachex.StatsTest do
       )
 
     # incr values in the cache
-    assert Cachex.incr(cache, 1, 3, default: 2) == {:ok, 5}
-    assert Cachex.incr(cache, 1) == {:ok, 6}
+    assert Cachex.incr(cache, 1, 3, default: 2) == 5
+    assert Cachex.incr(cache, 1) == 6
 
     # decr values in the cache
-    assert Cachex.decr(cache, 2, 3, default: -2) == {:ok, -5}
-    assert Cachex.decr(cache, 2) == {:ok, -6}
+    assert Cachex.decr(cache, 2, 3, default: -2) == -5
+    assert Cachex.decr(cache, 2) == -6
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -262,8 +262,8 @@ defmodule Cachex.StatsTest do
     assert Cachex.put(cache, "list", [1, 2, 3]) == {:ok, true}
 
     # run each command
-    assert Cachex.invoke(cache, :last, "list") == {:ok, 3}
-    assert Cachex.invoke(cache, :lpop, "list") == {:ok, 1}
+    assert Cachex.invoke(cache, :last, "list") == 3
+    assert Cachex.invoke(cache, :lpop, "list") == 1
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)

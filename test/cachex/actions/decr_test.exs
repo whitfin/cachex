@@ -15,14 +15,14 @@ defmodule Cachex.Actions.DecrTest do
     opts1 = [default: 10]
 
     # decrement some items, verify the values
-    assert Cachex.decr(cache, "key1") == {:ok, -1}
-    assert Cachex.decr(cache, "key1", 2) == {:ok, -3}
-    assert Cachex.decr(cache, "key2", 1, opts1) == {:ok, 9}
+    assert Cachex.decr(cache, "key1") == -1
+    assert Cachex.decr(cache, "key1", 2) == -3
+    assert Cachex.decr(cache, "key2", 1, opts1) == 9
 
     # verify the hooks were updated with the decrement
-    assert_receive({{:decr, ["key1", 1, []]}, {:ok, -1}})
-    assert_receive({{:decr, ["key1", 2, []]}, {:ok, -3}})
-    assert_receive({{:decr, ["key2", 1, ^opts1]}, {:ok, 9}})
+    assert_receive {{:decr, ["key1", 1, []]}, -1}
+    assert_receive {{:decr, ["key1", 2, []]}, -3}
+    assert_receive {{:decr, ["key2", 1, ^opts1]}, 9}
 
     # retrieve all items, verify the items match
     assert Cachex.get(cache, "key1") == {:ok, -3}
@@ -52,8 +52,8 @@ defmodule Cachex.Actions.DecrTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.decr(cache, 1, 1) == {:ok, -1}
-    assert Cachex.decr(cache, 2, 2) == {:ok, -2}
+    assert Cachex.decr(cache, 1, 1) == -1
+    assert Cachex.decr(cache, 2, 2) == -2
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1

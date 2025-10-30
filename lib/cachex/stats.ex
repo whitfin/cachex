@@ -208,7 +208,10 @@ defmodule Cachex.Stats do
   # Handles registration of `invoke()` command calls.
   #
   # This will increment a custom invocations map to track custom command calls.
-  defp register_action(stats, {:invoke, [cmd | _args]}, {:ok, _value}),
+  defp register_action(stats, {:invoke, _args}, {:error, :invalid_command}),
+    do: stats
+
+  defp register_action(stats, {:invoke, [cmd | _args]}, _any),
     do: increment(stats, [:invocations, cmd], 1)
 
   # Handles registration of updating command calls.
@@ -254,7 +257,10 @@ defmodule Cachex.Stats do
   # basically just a sign flip). It's split out as it's a little more involved
   # than a basic stat count as we need to reverse the arguments to determine if
   # there was a new write or an update (based on the initial/amount arguments).
-  defp register_increment(stats, {_type, args}, {_tag, value}, offset) do
+  defp register_increment(stats, _call, {:error, _reason}, _offset),
+    do: stats
+
+  defp register_increment(stats, {_type, args}, value, offset) do
     amount = Enum.at(args, 1, 1)
     options = Enum.at(args, 2, [])
 

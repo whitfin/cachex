@@ -70,7 +70,7 @@ defmodule Cachex.Services.Janitor do
 
   If the service is disabled on the cache, an error is returned.
   """
-  @spec last_run(Cachex.t()) :: %{}
+  @spec last_run(Cachex.t()) :: %{} | Cachex.error()
   def last_run(cache(expiration: expiration(interval: nil))),
     do: error(:janitor_disabled)
 
@@ -99,7 +99,7 @@ defmodule Cachex.Services.Janitor do
   #
   # The returned information should be treated as non-guaranteed.
   def handle_call(:last, _ctx, {_cache, last} = state),
-    do: {:reply, {:ok, last}, state}
+    do: {:reply, last, state}
 
   @doc false
   # Executes an expiration cleanup against a cache table.
