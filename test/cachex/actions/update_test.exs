@@ -20,11 +20,11 @@ defmodule Cachex.Actions.UpdateTest do
     assert Cachex.update(cache, 2, 3)
 
     # retrieve the modified keys
-    assert Cachex.get(cache, 1) == {:ok, 3}
-    assert Cachex.get(cache, 2) == {:ok, 3}
+    assert Cachex.get(cache, 1) == 3
+    assert Cachex.get(cache, 2) == 3
 
     # the first TTL should still be unset
-    assert Cachex.ttl!(cache, 1) == nil
+    assert Cachex.ttl(cache, 1) == nil
 
     # the second should still be set
     cache
@@ -60,7 +60,7 @@ defmodule Cachex.Actions.UpdateTest do
     assert Cachex.update(cache, 2, -2)
 
     # try to retrieve both of the set keys
-    assert Cachex.get(cache, 1) == {:ok, -1}
-    assert Cachex.get(cache, 2) == {:ok, -2}
+    assert Cachex.get(cache, 1) == -1
+    assert Cachex.get(cache, 2) == -2
   end
 end

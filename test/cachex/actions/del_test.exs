@@ -19,12 +19,12 @@ defmodule Cachex.Actions.DelTest do
     assert Cachex.del(cache, 2)
 
     # verify the hooks were updated with the delete
-    assert_receive({{:del, [1, []]}, true})
-    assert_receive({{:del, [2, []]}, true})
+    assert_receive {{:del, [1, []]}, true}
+    assert_receive {{:del, [2, []]}, true}
 
     # retrieve all items, verify the items are gone
-    assert Cachex.get(cache, 1) == {:ok, nil}
-    assert Cachex.get(cache, 2) == {:ok, nil}
+    assert Cachex.get(cache, 1) == nil
+    assert Cachex.get(cache, 2) == nil
   end
 
   # This test verifies that this action is correctly distributed across

@@ -25,8 +25,8 @@ defmodule Cachex.Actions.DecrTest do
     assert_receive {{:decr, ["key2", 1, ^opts1]}, 9}
 
     # retrieve all items, verify the items match
-    assert Cachex.get(cache, "key1") == {:ok, -3}
-    assert Cachex.get(cache, "key2") == {:ok, 9}
+    assert Cachex.get(cache, "key1") == -3
+    assert Cachex.get(cache, "key2") == 9
   end
 
   # This test covers the negative case where a value exists but is not an integer,

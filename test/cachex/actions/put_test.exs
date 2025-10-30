@@ -26,19 +26,19 @@ defmodule Cachex.Actions.PutTest do
     assert Cachex.put(cache2, 2, 2, expire: 5000) == {:ok, true}
 
     # verify the hooks were updated with the message
-    assert_receive({{:put, [1, 1, []]}, {:ok, true}})
-    assert_receive({{:put, [1, 1, []]}, {:ok, true}})
-    assert_receive({{:put, [2, 2, [expire: 5000]]}, {:ok, true}})
-    assert_receive({{:put, [2, 2, [expire: 5000]]}, {:ok, true}})
+    assert_receive {{:put, [1, 1, []]}, {:ok, true}}
+    assert_receive {{:put, [1, 1, []]}, {:ok, true}}
+    assert_receive {{:put, [2, 2, [expire: 5000]]}, {:ok, true}}
+    assert_receive {{:put, [2, 2, [expire: 5000]]}, {:ok, true}}
 
     # read back all values from the cache
-    assert Cachex.get(cache1, 1) == {:ok, 1}
-    assert Cachex.get(cache1, 2) == {:ok, 2}
-    assert Cachex.get(cache2, 1) == {:ok, 1}
-    assert Cachex.get(cache2, 2) == {:ok, 2}
+    assert Cachex.get(cache1, 1) == 1
+    assert Cachex.get(cache1, 2) == 2
+    assert Cachex.get(cache2, 1) == 1
+    assert Cachex.get(cache2, 2) == 2
 
     # read back all key TTLs
-    assert Cachex.ttl!(cache1, 1) == nil
+    assert Cachex.ttl(cache1, 1) == nil
 
     # the second should have a TTL around 5s
     cache1

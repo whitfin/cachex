@@ -16,10 +16,7 @@ defmodule Cachex.Services.CourierTest do
     assert result == {:commit, "my_value"}
 
     # check the key was placed in the table
-    retrieved = Cachex.get(cache, "my_key")
-
-    # the retrieved value should match
-    assert retrieved == {:ok, "my_value"}
+    assert Cachex.get(cache, "my_key") == "my_value"
   end
 
   test "dispatching tasks from multiple processes" do
@@ -43,19 +40,13 @@ defmodule Cachex.Services.CourierTest do
     end)
 
     # dispatch an arbitrary task from the current process
-    result = Services.Courier.dispatch(cache, "my_key", task)
-
-    # check the returned value with the options set
-    assert result == {:commit, "my_value"}
+    assert Services.Courier.dispatch(cache, "my_key", task) == {:commit, "my_value"}
 
     # check the forwarded task completed (no options)
-    assert_receive({:ok, "my_value"})
+    assert_receive "my_value"
 
     # check the key was placed in the table
-    retrieved = Cachex.get(cache, "my_key")
-
-    # the retrieved value should match
-    assert retrieved == {:ok, "my_value"}
+    assert Cachex.get(cache, "my_key") == "my_value"
   end
 
   test "gracefully handling crashes inside tasks" do

@@ -627,13 +627,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
+      "value"
 
       iex> Cachex.get(:my_cache, "missing_key")
-      { :ok, nil }
+      nil
 
   """
-  @spec get(Cachex.t(), any, Keyword.t()) :: {atom, any}
+  @spec get(Cachex.t(), any(), Keyword.t()) :: any() | nil
   def get(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:get, [key, options]})
 
@@ -663,8 +663,8 @@ defmodule Cachex do
       { :ignore, nil }
 
   """
-  @spec get_and_update(Cachex.t(), any, function, Keyword.t()) ::
-          {:commit | :ignore, any}
+  @spec get_and_update(Cachex.t(), any(), function(), Keyword.t()) ::
+          {:commit | :ignore, any()}
   def get_and_update(cache, key, updater, options \\ [])
       when is_function(updater, 1) and is_list(options),
       do: Router.route(cache, {:get_and_update, [key, updater, options]})

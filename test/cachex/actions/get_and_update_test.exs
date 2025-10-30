@@ -47,18 +47,18 @@ defmodule Cachex.Actions.GetAndUpdateTest do
       end)
 
     # verify the first key is retrieved
-    assert(result1 == {:commit, "1"})
+    assert result1 == {:commit, "1"}
 
     # verify the second and third keys are missing
-    assert(result2 == {:commit, ""})
-    assert(result3 == {:commit, ""})
+    assert result2 == {:commit, ""}
+    assert result3 == {:commit, ""}
 
     # verify the fourth result
-    assert(result4 == {:commit, "4"})
+    assert result4 == {:commit, "4"}
 
     # verify the fifth and sixth results
-    assert(result5 == {:ignore, "5"})
-    assert(result6 == {:commit, "6"})
+    assert result5 == {:ignore, "5"}
+    assert result6 == {:commit, "6"}
 
     # assert we receive valid notifications
     assert_receive {{:get_and_update, [1, _to_string, []]}, ^result1}
@@ -72,12 +72,12 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert_receive {{:purge, [[]]}, 1}
 
     # retrieve all entries from the cache
-    assert Cachex.get(cache, 1) == {:ok, "1"}
-    assert Cachex.get(cache, 2) == {:ok, ""}
-    assert Cachex.get(cache, 3) == {:ok, ""}
-    assert Cachex.get(cache, 4) == {:ok, "4"}
-    assert Cachex.get(cache, 5) == {:ok, 5}
-    assert Cachex.get(cache, 6) == {:ok, "6"}
+    assert Cachex.get(cache, 1) == "1"
+    assert Cachex.get(cache, 2) == ""
+    assert Cachex.get(cache, 3) == ""
+    assert Cachex.get(cache, 4) == "4"
+    assert Cachex.get(cache, 5) == 5
+    assert Cachex.get(cache, 6) == "6"
 
     # TTL should be maintained
     cache
@@ -102,8 +102,8 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert Cachex.get_and_update(cache, 2, &Integer.to_string/1) == {:commit, "2"}
 
     # try to retrieve both of the set keys
-    assert Cachex.get(cache, 1) == {:ok, "1"}
-    assert Cachex.get(cache, 2) == {:ok, "2"}
+    assert Cachex.get(cache, 1) == "1"
+    assert Cachex.get(cache, 2) == "2"
   end
 
   test "fallback function has test process in $callers" do

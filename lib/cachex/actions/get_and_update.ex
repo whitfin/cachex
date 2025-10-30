@@ -29,7 +29,7 @@ defmodule Cachex.Actions.GetAndUpdate do
   """
   def execute(cache() = cache, key, update_fun, _options) do
     Locksmith.transaction(cache, [key], fn ->
-      {_label, value} = Cachex.get(cache, key, [])
+      value = Cachex.get(cache, key, [])
 
       formatted =
         value

@@ -29,49 +29,30 @@ defmodule Cachex.Actions.FetchTest do
     fb_opt4 = fn -> "6yek" end
 
     # fetch the first and second keys
-    result1 = Cachex.fetch(cache, "key1", fb_opt1)
-    result2 = Cachex.fetch(cache, "key2", fb_opt1)
-
-    # verify fetching an existing key
-    assert(result1 == {:ok, 1})
-
-    # verify the ttl expiration
-    assert(result2 == {:commit, "2yek"})
+    assert Cachex.fetch(cache, "key1", fb_opt1) == 1
+    assert Cachex.fetch(cache, "key2", fb_opt1) == {:commit, "2yek"}
 
     # fetch keys with a provided fallback
-    result3 = Cachex.fetch(cache, "key3", fb_opt1)
-    result4 = Cachex.fetch(cache, "key4", fb_opt2)
-    result5 = Cachex.fetch(cache, "key5", fb_opt3)
-    result6 = Cachex.fetch(cache, "key6", fb_opt4)
-
-    # verify the fallback fetches
-    assert(result3 == {:commit, "3yek"})
-    assert(result4 == {:commit, "4yek"})
-    assert(result5 == {:ignore, "5yek"})
-    assert(result6 == {:commit, "6yek"})
+    assert Cachex.fetch(cache, "key3", fb_opt1) == {:commit, "3yek"}
+    assert Cachex.fetch(cache, "key4", fb_opt2) == {:commit, "4yek"}
+    assert Cachex.fetch(cache, "key5", fb_opt3) == {:ignore, "5yek"}
+    assert Cachex.fetch(cache, "key6", fb_opt4) == {:commit, "6yek"}
 
     # assert we receive valid notifications
-    assert_receive({{:fetch, ["key1", ^fb_opt1, []]}, ^result1})
-    assert_receive({{:fetch, ["key2", ^fb_opt1, []]}, ^result2})
-    assert_receive({{:fetch, ["key3", ^fb_opt1, []]}, ^result3})
-    assert_receive({{:fetch, ["key4", ^fb_opt2, []]}, ^result4})
-    assert_receive({{:fetch, ["key5", ^fb_opt3, []]}, ^result5})
-    assert_receive({{:fetch, ["key6", ^fb_opt4, []]}, ^result6})
+    assert_receive {{:fetch, ["key1", ^fb_opt1, []]}, 1}
+    assert_receive {{:fetch, ["key2", ^fb_opt1, []]}, {:commit, "2yek"}}
+    assert_receive {{:fetch, ["key3", ^fb_opt1, []]}, {:commit, "3yek"}}
+    assert_receive {{:fetch, ["key4", ^fb_opt2, []]}, {:commit, "4yek"}}
+    assert_receive {{:fetch, ["key5", ^fb_opt3, []]}, {:ignore, "5yek"}}
+    assert_receive {{:fetch, ["key6", ^fb_opt4, []]}, {:commit, "6yek"}}
 
     # check we received valid purge actions for the TTL
-    assert_receive({{:purge, [[]]}, 1})
+    assert_receive {{:purge, [[]]}, 1}
 
     # retrieve the loaded keys
-    value1 = Cachex.get(cache, "key3")
-    value2 = Cachex.get(cache, "key4")
-    value3 = Cachex.get(cache, "key5")
-
-    # committed keys should now exist
-    assert(value1 == {:ok, "3yek"})
-    assert(value2 == {:ok, "4yek"})
-
-    # ignored keys should not exist
-    assert(value3 == {:ok, nil})
+    assert Cachex.get(cache, "key3") == "3yek"
+    assert Cachex.get(cache, "key4") == "4yek"
+    assert Cachex.get(cache, "key5") == nil
   end
 
   # This test ensures that the fallback is executed just once when a
@@ -110,7 +91,7 @@ defmodule Cachex.Actions.FetchTest do
       Task.await(task2)
 
       # check the fallback was only executed a single time
-      assert Cachex.get(cache, "key1_count") == {:ok, 1}
+      assert Cachex.get(cache, "key1_count") == 1
     end
   end
 
@@ -123,16 +104,12 @@ defmodule Cachex.Actions.FetchTest do
     fb_opt = &{:commit, String.reverse(&1), purged}
 
     # fetch our key using our fallback
-    result = Cachex.fetch(cache, "key", fb_opt)
-
-    # verify fetching an existing key
-    assert(result == {:commit, "yek"})
-
-    # fetch back the expiration of the key
-    expiration = Cachex.ttl!(cache, "key")
+    assert Cachex.fetch(cache, "key", fb_opt) == {:commit, "yek"}
 
     # check we have a set expiration
-    assert_in_delta(expiration, 60000, 250)
+    cache
+    |> Cachex.ttl("key")
+    |> assert_in_delta(60000, 250)
   end
 
   # This test verifies that this action is correctly distributed across
@@ -145,16 +122,12 @@ defmodule Cachex.Actions.FetchTest do
 
     # we know that 1 & 2 hash to different nodes - have to make sure that we
     # use a known function, otherwise it fails with an undefined function.
-    {:commit, "1"} = Cachex.fetch(cache, 1, &Integer.to_string/1)
-    {:commit, "2"} = Cachex.fetch(cache, 2, &Integer.to_string/1)
+    assert Cachex.fetch(cache, 1, &Integer.to_string/1) == {:commit, "1"}
+    assert Cachex.fetch(cache, 2, &Integer.to_string/1) == {:commit, "2"}
 
     # try to retrieve both of the set keys
-    get1 = Cachex.get(cache, 1)
-    get2 = Cachex.get(cache, 2)
-
-    # both should come back
-    assert(get1 == {:ok, "1"})
-    assert(get2 == {:ok, "2"})
+    assert Cachex.get(cache, 1) == "1"
+    assert Cachex.get(cache, 2) == "2"
   end
 
   # This test ensures that the fallback is executed just once per key, per TTL,
@@ -221,6 +194,6 @@ defmodule Cachex.Actions.FetchTest do
     end)
 
     # check callers are the Courier and us
-    assert_receive([^courier, ^parent])
+    assert_receive [^courier, ^parent]
   end
 end

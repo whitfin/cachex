@@ -23,16 +23,16 @@ defmodule Cachex.Actions.GetTest do
     TestUtils.flush()
 
     # verify the first key is retrieved
-    assert Cachex.get(cache1, 1) == {:ok, 1}
+    assert Cachex.get(cache1, 1) == 1
 
     # verify the second and third keys are missing
-    assert Cachex.get(cache1, 2) == {:ok, nil}
-    assert Cachex.get(cache1, 3) == {:ok, nil}
+    assert Cachex.get(cache1, 2) == nil
+    assert Cachex.get(cache1, 3) == nil
 
     # assert we receive valid notifications
-    assert_receive {{:get, [1, []]}, {:ok, 1}}
-    assert_receive {{:get, [2, []]}, {:ok, nil}}
-    assert_receive {{:get, [3, []]}, {:ok, nil}}
+    assert_receive {{:get, [1, []]}, 1}
+    assert_receive {{:get, [2, []]}, nil}
+    assert_receive {{:get, [3, []]}, nil}
 
     # check we received valid purge actions for the TTL
     assert_receive {{:purge, [[]]}, 1}
@@ -51,7 +51,7 @@ defmodule Cachex.Actions.GetTest do
     {:ok, true} = Cachex.put(cache, 2, 2)
 
     # try to retrieve both of the set keys
-    assert Cachex.get(cache, 1) == {:ok, 1}
-    assert Cachex.get(cache, 2) == {:ok, 2}
+    assert Cachex.get(cache, 1) == 1
+    assert Cachex.get(cache, 2) == 2
   end
 end

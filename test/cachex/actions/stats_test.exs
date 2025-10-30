@@ -18,13 +18,13 @@ defmodule Cachex.Actions.StatsTest do
 
     # execute some cache actions
     {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, 1} = Cachex.get(cache, 1)
+    assert Cachex.get(cache, 1) == 1
 
     # retrieve default stats
     stats = Cachex.stats!(cache)
 
     # verify the first returns a valid meta object
-    assert_in_delta(stats.meta.creation_date, ctime, 5)
+    assert_in_delta stats.meta.creation_date, ctime, 5
 
     # verify attached statistics
     assert stats.hits == 1
@@ -60,16 +60,16 @@ defmodule Cachex.Actions.StatsTest do
     cache4 = TestUtils.create_cache(hooks: [hook])
 
     # set cache1 to 100% misses
-    {:ok, nil} = Cachex.get(cache1, 1)
+    assert Cachex.get(cache1, 1) == nil
 
     # set cache2 to 100% hits
     {:ok, true} = Cachex.put(cache2, 1, 1)
-    {:ok, 1} = Cachex.get(cache2, 1)
+    assert Cachex.get(cache2, 1) == 1
 
     # set cache3 to be 50% each way
     {:ok, true} = Cachex.put(cache3, 1, 1)
-    {:ok, 1} = Cachex.get(cache3, 1)
-    {:ok, nil} = Cachex.get(cache3, 2)
+    assert Cachex.get(cache3, 1) == 1
+    assert Cachex.get(cache3, 2) == nil
 
     # set cache4 to have some loads
     {:commit, 1} = Cachex.fetch(cache4, 1, & &1)
