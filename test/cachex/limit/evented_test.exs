@@ -13,7 +13,7 @@ defmodule Cachex.Limit.EventedTest do
 
     # add 5000 keys to the cache
     for x <- 1..5000 do
-      {:ok, true} = Cachex.put(state, x, x)
+      assert Cachex.put(state, x, x)
     end
 
     # make sure all keys are there
@@ -53,7 +53,7 @@ defmodule Cachex.Limit.EventedTest do
     # add 100 keys to the cache
     for x <- 1..100 do
       # add the entry to the cache
-      {:ok, true} = Cachex.put(state, x, x)
+      assert Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -75,7 +75,7 @@ defmodule Cachex.Limit.EventedTest do
     assert Cachex.size(cache) == 100
 
     # add a new key to the cache to trigger evictions
-    {:ok, true} = Cachex.put(state, 101, 101)
+    assert Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 25%
     TestUtils.poll(250, 25, fn ->

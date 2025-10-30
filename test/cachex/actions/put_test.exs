@@ -20,16 +20,16 @@ defmodule Cachex.Actions.PutTest do
       )
 
     # set some values in the cache
-    assert Cachex.put(cache1, 1, 1) == {:ok, true}
-    assert Cachex.put(cache1, 2, 2, expire: 5000) == {:ok, true}
-    assert Cachex.put(cache2, 1, 1) == {:ok, true}
-    assert Cachex.put(cache2, 2, 2, expire: 5000) == {:ok, true}
+    assert Cachex.put(cache1, 1, 1)
+    assert Cachex.put(cache1, 2, 2, expire: 5000)
+    assert Cachex.put(cache2, 1, 1)
+    assert Cachex.put(cache2, 2, 2, expire: 5000)
 
     # verify the hooks were updated with the message
-    assert_receive {{:put, [1, 1, []]}, {:ok, true}}
-    assert_receive {{:put, [1, 1, []]}, {:ok, true}}
-    assert_receive {{:put, [2, 2, [expire: 5000]]}, {:ok, true}}
-    assert_receive {{:put, [2, 2, [expire: 5000]]}, {:ok, true}}
+    assert_receive {{:put, [1, 1, []]}, true}
+    assert_receive {{:put, [1, 1, []]}, true}
+    assert_receive {{:put, [2, 2, [expire: 5000]]}, true}
+    assert_receive {{:put, [2, 2, [expire: 5000]]}, true}
 
     # read back all values from the cache
     assert Cachex.get(cache1, 1) == 1
@@ -41,19 +41,13 @@ defmodule Cachex.Actions.PutTest do
     assert Cachex.ttl(cache1, 1) == nil
 
     # the second should have a TTL around 5s
-    cache1
-    |> Cachex.ttl!(2)
-    |> assert_in_delta(5000, 10)
+    assert_in_delta Cachex.ttl(cache1, 2), 5000, 10
 
     # the second should have a TTL around 10s
-    cache2
-    |> Cachex.ttl!(1)
-    |> assert_in_delta(10000, 10)
+    assert_in_delta Cachex.ttl(cache2, 1), 10000, 10
 
     # the fourth should have a TTL around 5s
-    cache2
-    |> Cachex.ttl!(2)
-    |> assert_in_delta(5000, 10)
+    assert_in_delta Cachex.ttl(cache2, 2), 5000, 10
   end
 
   # This test verifies that this action is correctly distributed across
@@ -65,8 +59,8 @@ defmodule Cachex.Actions.PutTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1

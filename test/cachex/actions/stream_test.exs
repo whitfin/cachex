@@ -9,9 +9,9 @@ defmodule Cachex.Actions.StreamTest do
     cache = TestUtils.create_cache()
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, "key1", "value1")
-    {:ok, true} = Cachex.put(cache, "key2", "value2")
-    {:ok, true} = Cachex.put(cache, "key3", "value3")
+    assert Cachex.put(cache, "key1", "value1")
+    assert Cachex.put(cache, "key2", "value2")
+    assert Cachex.put(cache, "key3", "value3")
 
     # create and consume a cache stream
     result =
@@ -35,9 +35,9 @@ defmodule Cachex.Actions.StreamTest do
     cache = TestUtils.create_cache()
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, "key1", "value1")
-    {:ok, true} = Cachex.put(cache, "key2", "value2")
-    {:ok, true} = Cachex.put(cache, "key3", "value3")
+    assert Cachex.put(cache, "key1", "value1")
+    assert Cachex.put(cache, "key2", "value2")
+    assert Cachex.put(cache, "key3", "value3")
 
     # create our query filter
     filter = Cachex.Query.unexpired()

@@ -21,11 +21,11 @@ defmodule Cachex.Actions.WarmTest do
       )
 
     # check that the key was warmed
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
 
     # clean out our cache entries
-    assert Cachex.clear!(cache) == 1
-    assert Cachex.get!(cache, 1) == nil
+    assert Cachex.clear(cache) == 1
+    assert Cachex.get(cache, 1) == nil
 
     # manually trigger a cache warming of all modules
     assert Cachex.warm(cache) == [:manual_warmer1]
@@ -55,15 +55,15 @@ defmodule Cachex.Actions.WarmTest do
       )
 
     # check that the key was warmed
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
 
     # clean out our cache entries
-    assert Cachex.clear!(cache) == 1
-    assert Cachex.get!(cache, 1) == nil
+    assert Cachex.clear(cache) == 1
+    assert Cachex.get(cache, 1) == nil
 
     # manually trigger a cache warming of all modules
     assert Cachex.warm(cache, wait: true) == [:manual_warmer2]
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
   end
 
   # This test covers the case where you manually specify a list of modules
@@ -87,11 +87,11 @@ defmodule Cachex.Actions.WarmTest do
       )
 
     # check that the key was warmed
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
 
     # clean out our cache entries
-    assert Cachex.clear!(cache) == 1
-    assert Cachex.get!(cache, 1) == nil
+    assert Cachex.clear(cache) == 1
+    assert Cachex.get(cache, 1) == nil
 
     # manually trigger a cache warming
     assert Cachex.warm(cache, only: []) == []
@@ -100,7 +100,7 @@ defmodule Cachex.Actions.WarmTest do
     :timer.sleep(50)
 
     # check that our key was never put back
-    assert Cachex.get!(cache, 1) == nil
+    assert Cachex.get(cache, 1) == nil
 
     # manually trigger a cache warming, specifying our module
     assert Cachex.warm(cache, only: [:manual_warmer3]) == [:manual_warmer3]
@@ -109,6 +109,6 @@ defmodule Cachex.Actions.WarmTest do
     :timer.sleep(50)
 
     # check that our key has been put back
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
   end
 end

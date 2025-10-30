@@ -56,7 +56,7 @@ defmodule Cachex.Services.JanitorTest do
     cache = Services.Overseer.lookup(cache)
 
     # add a new cache entry
-    assert Cachex.put(cache, "key", "value", expire: ttl_value) == {:ok, true}
+    assert Cachex.put(cache, "key", "value", expire: ttl_value)
 
     # before the schedule, the key should exist
     assert Cachex.exists?(cache, "key")

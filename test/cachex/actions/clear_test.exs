@@ -12,9 +12,9 @@ defmodule Cachex.Actions.ClearTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
-    assert Cachex.put(cache, 3, 3) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 3, 3)
 
     # clear all hook
     TestUtils.flush()
@@ -45,8 +45,8 @@ defmodule Cachex.Actions.ClearTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # retrieve the cache size, should be 2
     assert Cachex.size(cache) == 2

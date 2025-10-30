@@ -11,7 +11,7 @@ defmodule Cachex.WarmerTest do
     cache = TestUtils.create_cache(warmers: [warmer(module: :basic_warmer)])
 
     # check that the key was warmed
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
   end
 
   test "warmers with long running tasks" do
@@ -27,7 +27,7 @@ defmodule Cachex.WarmerTest do
       TestUtils.create_cache(warmers: [warmer(module: :long_running_warmer)])
 
     # check that the key was warmed
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
   end
 
   test "warmers with long running async tasks" do
@@ -51,8 +51,8 @@ defmodule Cachex.WarmerTest do
     cache = TestUtils.create_cache(warmers: [warmer(module: :long_running_async_warmer)])
 
     # check that the keys were warmed
-    assert Cachex.get!(cache, 1) == 1
-    assert Cachex.get!(cache, 2) == 2
+    assert Cachex.get(cache, 1) == 1
+    assert Cachex.get(cache, 2) == 2
   end
 
   test "warmers which set values with options" do
@@ -65,10 +65,10 @@ defmodule Cachex.WarmerTest do
     cache = TestUtils.create_cache(warmers: [warmer(module: :options_warmer)])
 
     # check that the key was warmed
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
 
     # check that there's a TTL
-    assert Cachex.ttl!(cache, 1) != nil
+    assert Cachex.ttl(cache, 1) != nil
   end
 
   test "warmers which don't set values" do
@@ -96,7 +96,7 @@ defmodule Cachex.WarmerTest do
     cache = TestUtils.create_cache(warmers: [warmer])
 
     # check that the key was not warmed
-    assert Cachex.get!(cache, 1) == nil
+    assert Cachex.get(cache, 1) == nil
   end
 
   test "providing warmers with states" do
@@ -112,7 +112,7 @@ defmodule Cachex.WarmerTest do
     cache = TestUtils.create_cache(warmers: [warmer(module: :state_warmer, state: state)])
 
     # check that the key was warmed with state
-    assert Cachex.get!(cache, "state") == state
+    assert Cachex.get(cache, "state") == state
   end
 
   test "triggering cache hooks from within warmers" do
@@ -139,8 +139,8 @@ defmodule Cachex.WarmerTest do
     )
 
     # ensure that we receive the creation of both warmers
-    assert_receive({{:put_many, [[{1, 1}], []]}, {:ok, true}})
-    assert_receive({{:put_many, [[{2, 2}], []]}, {:ok, true}})
+    assert_receive {{:put_many, [[{1, 1}], []]}, true}
+    assert_receive {{:put_many, [[{2, 2}], []]}, true}
   end
 
   test "accessing $callers in warmers" do
@@ -165,6 +165,6 @@ defmodule Cachex.WarmerTest do
     )
 
     # check callers are just us
-    assert_receive([^parent])
+    assert_receive [^parent]
   end
 end

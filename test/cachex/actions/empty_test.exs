@@ -16,16 +16,16 @@ defmodule Cachex.Actions.EmptyTest do
     assert Cachex.empty?(cache)
 
     # verify the hooks were updated with the message
-    assert_receive({{:empty?, [[]]}, true})
+    assert_receive {{:empty?, [[]]}, true}
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # check if the cache is empty
     refute Cachex.empty?(cache)
 
     # verify the hooks were updated with the message
-    assert_receive({{:empty?, [[]]}, false})
+    assert_receive {{:empty?, [[]]}, false}
   end
 
   # This test verifies that the distributed router correctly controls
@@ -39,8 +39,8 @@ defmodule Cachex.Actions.EmptyTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # check if the cache is empty, locally and remote
     refute Cachex.empty?(cache, local: true)

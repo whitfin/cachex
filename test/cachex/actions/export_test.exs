@@ -7,9 +7,9 @@ defmodule Cachex.Actions.ExportTest do
     cache = TestUtils.create_cache()
 
     # fill with some items
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
-    assert Cachex.put(cache, 3, 3) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 3, 3)
 
     # export the items
     export = Cachex.export(cache)
@@ -29,16 +29,16 @@ defmodule Cachex.Actions.ExportTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # retrieve the keys from both local & remote
     export1 = Cachex.export(cache, local: true)
     export2 = Cachex.export(cache, local: false)
 
     # local just one, cluster has two
-    assert(length(export1) == 1)
-    assert(length(export2) == 2)
+    assert length(export1) == 1
+    assert length(export2) == 2
 
     # delete the single local key
     assert Cachex.clear(cache, local: true) == 1
@@ -48,8 +48,8 @@ defmodule Cachex.Actions.ExportTest do
     export4 = Cachex.export(cache, local: false)
 
     # now local has no keys
-    assert(length(export3) == 0)
-    assert(length(export4) == 1)
+    assert length(export3) == 0
+    assert length(export4) == 1
 
     # delete the remaining key inside the cluster
     assert Cachex.clear(cache, local: false) == 1
@@ -59,7 +59,7 @@ defmodule Cachex.Actions.ExportTest do
     export6 = Cachex.keys(cache, local: false)
 
     # now both don't have any keys
-    assert(length(export5) == 0)
-    assert(length(export6) == 0)
+    assert length(export5) == 0
+    assert length(export6) == 0
   end
 end

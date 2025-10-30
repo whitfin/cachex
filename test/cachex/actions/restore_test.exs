@@ -14,9 +14,9 @@ defmodule Cachex.Actions.RestoreTest do
     start = now()
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
-    assert Cachex.put(cache, 3, 3, expire: 10_000) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 3, 3, expire: 10_000)
 
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
@@ -36,9 +36,7 @@ defmodule Cachex.Actions.RestoreTest do
     assert Cachex.size(cache) == 2
 
     # verify TTL offsetting happens
-    cache
-    |> Cachex.ttl!(3)
-    |> assert_in_delta(10_000 - (now() - start), 5)
+    assert_in_delta Cachex.ttl(cache, 3), 10_000 - (now() - start), 5
 
     # reload a bad file from disk (should not be trusted)
     assert Cachex.restore(cache, tmp, trust: false) == {:error, :unreachable_file}

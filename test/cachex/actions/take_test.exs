@@ -12,8 +12,8 @@ defmodule Cachex.Actions.TakeTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1)
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -29,12 +29,12 @@ defmodule Cachex.Actions.TakeTest do
     assert Cachex.take(cache, 3) == nil
 
     # assert we receive valid notifications
-    assert_receive({{:take, [1, []]}, 1})
-    assert_receive({{:take, [2, []]}, nil})
-    assert_receive({{:take, [3, []]}, nil})
+    assert_receive {{:take, [1, []]}, 1}
+    assert_receive {{:take, [2, []]}, nil}
+    assert_receive {{:take, [3, []]}, nil}
 
     # check we received valid purge actions for the TTL
-    assert_receive({{:purge, [[]]}, 1})
+    assert_receive {{:purge, [[]]}, 1}
 
     # ensure that the keys no longer exist in the cache
     refute Cachex.exists?(cache, 1)
@@ -51,8 +51,8 @@ defmodule Cachex.Actions.TakeTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1

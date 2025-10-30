@@ -18,9 +18,6 @@ defmodule Cachex.Limit.Evented do
   """
   use Cachex.Hook
 
-  # actions which didn't trigger
-  @ignored [:error, :ignore]
-
   ######################
   # Hook Configuration #
   ######################
@@ -64,16 +61,16 @@ defmodule Cachex.Limit.Evented do
   #
   # Note that this will ignore error results and only operates on actions which are
   # able to cause a net gain in cache size (so removals are also ignored).
-  def handle_notify(_message, {status, _value}, {cache, {size, options}} = opts)
-      when status not in @ignored do
+  def handle_notify(_message, {status, _value}, opts) when status in [:error, :ignore],
+    do: {:ok, opts}
+
+  def handle_notify(_message, _result, {cache, {size, options}} = opts) do
     true = Cachex.prune(cache, size, options)
     {:ok, opts}
   end
 
-  def handle_notify(_message, _result, opts),
-    do: {:ok, opts}
-
   @doc false
+
   # Receives a provisioned cache instance.
   #
   # The provided cache is then stored in the cache and used for cache calls going

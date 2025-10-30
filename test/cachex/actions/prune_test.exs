@@ -7,7 +7,7 @@ defmodule Cachex.Actions.PruneTest do
 
     # insert 100 keys
     for i <- 1..100 do
-      Cachex.put!(cache, i, i)
+      assert Cachex.put(cache, i, i)
     end
 
     # guarantee we have 100 keys in the cache
@@ -26,7 +26,7 @@ defmodule Cachex.Actions.PruneTest do
 
     # insert 100 keys
     for i <- 1..100 do
-      Cachex.put!(cache, i, i)
+      assert Cachex.put(cache, i, i)
     end
 
     # guarantee we have 100 keys in the cache
@@ -55,7 +55,7 @@ defmodule Cachex.Actions.PruneTest do
     # set 50 keys without ttl
     for x <- 1..50 do
       # set the key
-      assert Cachex.put(state, x, x) == {:ok, true}
+      assert Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -64,7 +64,7 @@ defmodule Cachex.Actions.PruneTest do
     # set a more recent 50 keys
     for x <- 51..100 do
       # set the key
-      assert Cachex.put(state, x, x, expire: 1) == {:ok, true}
+      assert Cachex.put(state, x, x, expire: 1)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -77,7 +77,7 @@ defmodule Cachex.Actions.PruneTest do
     assert(size1 == 100)
 
     # add a new key to the cache to trigger oversize
-    assert Cachex.put(state, 101, 101) == {:ok, true}
+    assert Cachex.put(state, 101, 101)
 
     # trigger the cache pruning down to 100 records
     assert Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1)

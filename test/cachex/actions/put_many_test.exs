@@ -20,16 +20,16 @@ defmodule Cachex.Actions.PutManyTest do
       )
 
     # set some values in the cache
-    assert Cachex.put_many(cache1, [{1, 1}, {2, 2}]) == {:ok, true}
-    assert Cachex.put_many(cache1, [{3, 3}, {4, 4}], expire: 5000) == {:ok, true}
-    assert Cachex.put_many(cache2, [{1, 1}, {2, 2}]) == {:ok, true}
-    assert Cachex.put_many(cache2, [{3, 3}, {4, 4}], expire: 5000) == {:ok, true}
+    assert Cachex.put_many(cache1, [{1, 1}, {2, 2}])
+    assert Cachex.put_many(cache1, [{3, 3}, {4, 4}], expire: 5000)
+    assert Cachex.put_many(cache2, [{1, 1}, {2, 2}])
+    assert Cachex.put_many(cache2, [{3, 3}, {4, 4}], expire: 5000)
 
     # verify the hooks were updated with the message
-    assert_receive {{:put_many, [[{1, 1}, {2, 2}], []]}, {:ok, true}}
-    assert_receive {{:put_many, [[{1, 1}, {2, 2}], []]}, {:ok, true}}
-    assert_receive {{:put_many, [[{3, 3}, {4, 4}], [expire: 5000]]}, {:ok, true}}
-    assert_receive {{:put_many, [[{3, 3}, {4, 4}], [expire: 5000]]}, {:ok, true}}
+    assert_receive {{:put_many, [[{1, 1}, {2, 2}], []]}, true}
+    assert_receive {{:put_many, [[{1, 1}, {2, 2}], []]}, true}
+    assert_receive {{:put_many, [[{3, 3}, {4, 4}], [expire: 5000]]}, true}
+    assert_receive {{:put_many, [[{3, 3}, {4, 4}], [expire: 5000]]}, true}
 
     # read back all values from the cache
     assert Cachex.get(cache1, 1) == 1
@@ -65,7 +65,7 @@ defmodule Cachex.Actions.PutManyTest do
     cache = TestUtils.create_cache()
 
     # try set some values in the cache
-    assert Cachex.put_many(cache, []) == {:ok, false}
+    refute Cachex.put_many(cache, [])
   end
 
   # Since we have a hard requirement on the format of a batch, we
@@ -97,7 +97,7 @@ defmodule Cachex.Actions.PutManyTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
-    {:ok, true} = Cachex.put_many(cache, [{2, 2}, {3, 3}])
+    assert Cachex.put_many(cache, [{2, 2}, {3, 3}])
 
     # try to retrieve both of the set keys
     assert Cachex.get(cache, 2) == 2

@@ -12,21 +12,17 @@ defmodule Cachex.Actions.PersistTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1000)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1000)
 
     # clear messages
     TestUtils.flush()
 
-    # retrieve all TTLs from the cache
-    ttl1 = Cachex.ttl!(cache, 1)
-    ttl2 = Cachex.ttl!(cache, 2)
-
     # the first TTL should be nil
-    assert(ttl1 == nil)
+    assert Cachex.ttl(cache, 1) == nil
 
     # the second TTL should be roughly 1000
-    assert_in_delta(ttl2, 995, 6)
+    assert_in_delta Cachex.ttl(cache, 2), 995, 6
 
     # remove the TTLs
     assert Cachex.persist(cache, 1)
@@ -34,13 +30,13 @@ defmodule Cachex.Actions.PersistTest do
     refute Cachex.persist(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:persist, [1, []]}, true})
-    assert_receive({{:persist, [2, []]}, true})
-    assert_receive({{:persist, [3, []]}, false})
+    assert_receive {{:persist, [1, []]}, true}
+    assert_receive {{:persist, [2, []]}, true}
+    assert_receive {{:persist, [3, []]}, false}
 
     # both TTLs should now be nil
-    assert Cachex.ttl!(cache, 1) == nil
-    assert Cachex.ttl!(cache, 2) == nil
+    assert Cachex.ttl(cache, 1) == nil
+    assert Cachex.ttl(cache, 2) == nil
   end
 
   # This test verifies that this action is correctly distributed across
@@ -52,8 +48,8 @@ defmodule Cachex.Actions.PersistTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1, expire: 5000)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 5000)
+    assert Cachex.put(cache, 1, 1, expire: 5000)
+    assert Cachex.put(cache, 2, 2, expire: 5000)
 
     # remove expirations on both keys
     assert Cachex.persist(cache, 1)

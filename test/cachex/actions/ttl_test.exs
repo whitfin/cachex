@@ -9,17 +9,15 @@ defmodule Cachex.Actions.TtlTest do
     cache = TestUtils.create_cache()
 
     # set several keys in the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 10000)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 10000)
 
     # verify the TTL the nil keys
     assert Cachex.ttl(cache, 1) == nil
     assert Cachex.ttl(cache, 3) == nil
 
     # the second should be close to 10s
-    cache
-    |> Cachex.ttl(2)
-    |> assert_in_delta(10000, 10)
+    assert_in_delta Cachex.ttl(cache, 2), 10000, 10
   end
 
   # This test verifies that this action is correctly distributed across
@@ -31,8 +29,8 @@ defmodule Cachex.Actions.TtlTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1, expire: 500)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 500)
+    assert Cachex.put(cache, 1, 1, expire: 500)
+    assert Cachex.put(cache, 2, 2, expire: 500)
 
     # check the expiration of each key in the cluster
     assert Cachex.ttl(cache, 1) > 450

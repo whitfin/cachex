@@ -24,8 +24,8 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.lookup(cache)
 
     # write several values
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2, expire: 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1)
 
     # let the TTL expire
     :timer.sleep(2)
@@ -53,18 +53,14 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.lookup(cache)
 
     # write some values into the cache
-    write1 =
-      Cachex.Actions.write(
-        state,
-        entry(
-          key: "key",
-          value: "value",
-          modified: 1
-        )
-      )
-
-    # verify the write
-    assert write1 == {:ok, true}
+    assert Cachex.Actions.write(
+             state,
+             entry(
+               key: "key",
+               value: "value",
+               modified: 1
+             )
+           )
 
     # validate the value
     assert Cachex.Actions.read(state, "key") ==

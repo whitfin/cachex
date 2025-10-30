@@ -16,8 +16,8 @@ defmodule Cachex.Actions.TouchTest do
     state = Services.Overseer.lookup(cache)
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1000)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1000)
 
     # clear messages
     TestUtils.flush()
@@ -44,9 +44,9 @@ defmodule Cachex.Actions.TouchTest do
     refute Cachex.touch(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:touch, [1, []]}, true})
-    assert_receive({{:touch, [2, []]}, true})
-    assert_receive({{:touch, [3, []]}, false})
+    assert_receive {{:touch, [1, []]}, true}
+    assert_receive {{:touch, [2, []]}, true}
+    assert_receive {{:touch, [3, []]}, false}
 
     # retrieve the raw records again
     entry(modified: modified3, expiration: expiration3) =
@@ -80,8 +80,8 @@ defmodule Cachex.Actions.TouchTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # wait a little
     :timer.sleep(10)

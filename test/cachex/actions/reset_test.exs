@@ -25,8 +25,8 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    assert Cachex.put(cache1, 1, 1) == {:ok, true}
-    assert Cachex.put(cache2, 1, 1) == {:ok, true}
+    assert Cachex.put(cache1, 1, 1)
+    assert Cachex.put(cache2, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache1)
@@ -76,7 +76,7 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)
@@ -172,8 +172,8 @@ defmodule Cachex.Actions.ResetTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1) == {:ok, true}
-    assert Cachex.put(cache, 2, 2) == {:ok, true}
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # retrieve the cache size, should be 2
     assert Cachex.size(cache) == 2
