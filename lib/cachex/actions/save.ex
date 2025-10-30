@@ -29,21 +29,16 @@ defmodule Cachex.Actions.Save do
   def execute(cache(router: router(module: router)) = cache, path, options) do
     file = File.open!(path, [:write, :compressed])
     buffer = Options.get(options, :buffer, &is_positive_integer/1, 25)
-    locality = Keyword.get(options, :local)
 
-    case init_stream(locality, router, cache, buffer) do
-      {:error, _reason} = error ->
-        error
+    options
+    |> Keyword.get(:local)
+    |> init_stream(router, cache, buffer)
+    |> Stream.chunk_every(buffer)
+    |> Stream.map(&handle_batch/1)
+    |> Enum.each(&IO.binwrite(file, &1))
 
-      stream ->
-        stream
-        |> Stream.chunk_every(buffer)
-        |> Stream.map(&handle_batch/1)
-        |> Enum.each(&IO.binwrite(file, &1))
-
-        with :ok <- File.close(file) do
-          true
-        end
+    with :ok <- File.close(file) do
+      true
     end
   rescue
     File.Error -> error(:unreachable_file)

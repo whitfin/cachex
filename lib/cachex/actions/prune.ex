@@ -86,27 +86,20 @@ defmodule Cachex.Actions.Prune do
   # which only selects the key and touch time as a minor optimization. The key is
   # naturally required when it comes to removing the document, and the touch time is
   # used to determine the sort order required for LRW.
-  defp erase_lower_bound(offset, cache, buffer) when offset > 0 do
+  defp erase_lower_bound(offset, cache(name: name) = cache, buffer) when offset > 0 do
     options =
       :local
       |> const()
       |> Enum.concat(const(:notify_false))
       |> Enum.concat(buffer: buffer)
 
-    case Cachex.stream(cache, @query, options) do
-      {:error, _reason} = error ->
-        error
+    cache
+    |> Cachex.stream(@query, options)
+    |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
+    |> Enum.take(offset)
+    |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
 
-      stream ->
-        cache(name: name) = cache
-
-        stream
-        |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
-        |> Enum.take(offset)
-        |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
-
-        offset
-    end
+    offset
   end
 
   defp erase_lower_bound(offset, _state, _buffer),

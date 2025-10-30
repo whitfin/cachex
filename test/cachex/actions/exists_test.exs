@@ -27,17 +27,17 @@ defmodule Cachex.Actions.ExistsTest do
     refute Cachex.exists?(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:exists?, [1, []]}, true})
-    assert_receive({{:exists?, [2, []]}, false})
-    assert_receive({{:exists?, [3, []]}, false})
+    assert_receive {{:exists?, [1, []]}, true}
+    assert_receive {{:exists?, [2, []]}, false}
+    assert_receive {{:exists?, [3, []]}, false}
 
     # check we received valid purge actions for the TTL
-    assert_receive({{:purge, [[]]}, 1})
+    assert_receive {{:purge, [[]]}, 1}
 
     # retrieve all values from the cache
-    assert Cachex.get(cache, 1) == {:ok, 1}
-    assert Cachex.get(cache, 2) == {:ok, nil}
-    assert Cachex.get(cache, 3) == {:ok, nil}
+    assert Cachex.get(cache, 1) == 1
+    assert Cachex.get(cache, 2) == nil
+    assert Cachex.get(cache, 3) == nil
   end
 
   # This test verifies that this action is correctly distributed across

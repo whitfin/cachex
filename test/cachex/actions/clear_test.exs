@@ -23,15 +23,15 @@ defmodule Cachex.Actions.ClearTest do
     assert Cachex.clear(cache) == 3
 
     # verify the hooks were updated with the clear
-    assert_receive({{:clear, [[]]}, 3})
+    assert_receive {{:clear, [[]]}, 3}
 
     # verify the size call never notified
-    refute_receive({{:size, [[]]}, 3})
+    refute_receive {{:size, [[]]}, 3}
 
     # retrieve all items, verify the items are gone
-    assert Cachex.get(cache, 1) == {:ok, nil}
-    assert Cachex.get(cache, 2) == {:ok, nil}
-    assert Cachex.get(cache, 3) == {:ok, nil}
+    assert Cachex.get(cache, 1) == nil
+    assert Cachex.get(cache, 2) == nil
+    assert Cachex.get(cache, 3) == nil
   end
 
   # This test verifies that the distributed router correctly controls

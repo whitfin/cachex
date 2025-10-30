@@ -108,10 +108,10 @@ defmodule Cachex.Stats do
   # This will increment the hits/misses of the stats container, based on
   # whether the value pulled back is `nil` or not (as `nil` is treated as
   # a missing value through Cachex as of v3).
-  defp register_action(stats, {:get, _args}, {_tag, nil}),
+  defp register_action(stats, {:get, _args}, nil),
     do: increment(stats, [:misses], 1)
 
-  defp register_action(stats, {:get, _args}, {_tag, _value}),
+  defp register_action(stats, {:get, _args}, _value),
     do: increment(stats, [:hits], 1)
 
   # Handles registration of `put()` command calls.
@@ -153,6 +153,9 @@ defmodule Cachex.Stats do
   defp register_action(stats, {:fetch, _args}, {label, _value}),
     do: register_fetch(stats, label)
 
+  defp register_action(stats, {:fetch, _args}, _value),
+    do: register_fetch(stats, :ok)
+
   # Handles registration of `incr()` command calls.
   #
   # This delegates through to `register_increment/4` as the logic is a
@@ -171,7 +174,7 @@ defmodule Cachex.Stats do
   #
   # This will increment the `:updates` key if the value signals that the
   # update was successful, otherwise nothing will be modified.
-  defp register_action(stats, {:update, _args}, {_tag, true}),
+  defp register_action(stats, {:update, _args}, true),
     do: increment(stats, [:updates], 1)
 
   # Handles registration of `clear()` command calls.

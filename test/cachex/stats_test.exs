@@ -132,8 +132,8 @@ defmodule Cachex.StatsTest do
     assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # check for a couple of keys
-    assert Cachex.get(cache, 1) == {:ok, 1}
-    assert Cachex.get(cache, 2) == {:ok, nil}
+    assert Cachex.get(cache, 1) == 1
+    assert Cachex.get(cache, 2) == nil
 
     # retrieve the statistics
     {:ok, stats} = stats_no_meta(cache)
@@ -171,7 +171,7 @@ defmodule Cachex.StatsTest do
     assert Cachex.put(cache, 1, 1) == {:ok, true}
 
     # fetch an existing value
-    assert Cachex.fetch(cache, 1, fn _ -> {:commit, "na"} end) == {:ok, 1}
+    assert Cachex.fetch(cache, 1, fn _ -> {:commit, "na"} end) == 1
     assert Cachex.fetch(cache, 2, fn _ -> {:commit, "na"} end) == {:commit, "na"}
     assert Cachex.fetch(cache, 3, fn _ -> {:ignore, "na"} end) == {:ignore, "na"}
 
