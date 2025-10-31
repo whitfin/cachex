@@ -9,7 +9,7 @@ defmodule Cachex.Router.ModTest do
       )
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
     nodes = Enum.sort(nodes)
 
     # fetch the router state after initialize
@@ -34,7 +34,7 @@ defmodule Cachex.Router.ModTest do
 
     # create a test cache and fetch back
     cache = TestUtils.create_cache(router: router)
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # fetch the router state after initialize
     cache(router: router(state: state)) = cache

@@ -25,18 +25,18 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    {:ok, true} = Cachex.put(cache1, 1, 1)
-    {:ok, true} = Cachex.put(cache2, 1, 1)
+    assert Cachex.put(cache1, 1, 1)
+    assert Cachex.put(cache2, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache1)
 
     # verify the stats
-    assert_in_delta(stats1.meta.creation_date, ctime1, 10)
+    assert_in_delta stats1.meta.creation_date, ctime1, 10
 
     # ensure the cache is not empty
-    refute(Cachex."empty?!"(cache1))
-    refute(Cachex."empty?!"(cache2))
+    refute Cachex.empty?(cache1)
+    refute Cachex.empty?(cache2)
 
     # wait for 10ms
     :timer.sleep(10)
@@ -45,22 +45,18 @@ defmodule Cachex.Actions.ResetTest do
     ctime2 = now()
 
     # reset the whole cache
-    reset1 = Cachex.reset(cache1)
-    reset2 = Cachex.reset(cache2)
-
-    # verify the reset
-    assert(reset1 == {:ok, true})
-    assert(reset2 == {:ok, true})
+    assert Cachex.reset(cache1)
+    assert Cachex.reset(cache2)
 
     # ensure the cache is reset
-    assert(Cachex."empty?!"(cache1))
-    assert(Cachex."empty?!"(cache2))
+    assert Cachex.empty?(cache1)
+    assert Cachex.empty?(cache2)
 
     # retrieve the stats
     stats2 = Cachex.stats!(cache1)
 
     # verify they reset properly
-    assert_in_delta(stats2.meta.creation_date, ctime2, 10)
+    assert_in_delta stats2.meta.creation_date, ctime2, 10
   end
 
   # This test ensures that we can reset a cache without touching any of the hooks
@@ -80,31 +76,28 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)
 
     # verify the stats
-    assert_in_delta(stats1.meta.creation_date, ctime1, 5)
+    assert_in_delta stats1.meta.creation_date, ctime1, 5
 
     # ensure the cache is not empty
-    refute(Cachex."empty?!"(cache))
+    refute Cachex.empty?(cache)
 
     # reset only cache
-    reset1 = Cachex.reset(cache, only: :cache)
-
-    # verify the reset
-    assert(reset1 == {:ok, true})
+    assert Cachex.reset(cache, only: :cache)
 
     # ensure the cache is reset
-    assert(Cachex."empty?!"(cache))
+    assert Cachex.empty?(cache)
 
     # retrieve the stats
     stats2 = Cachex.stats!(cache)
 
     # verify they didn't change
-    assert(stats2.meta.creation_date == stats1.meta.creation_date)
+    assert stats2.meta.creation_date == stats1.meta.creation_date
   end
 
   # This test covers the resetting of a cache's hooks, but not resetting the cache
@@ -126,16 +119,16 @@ defmodule Cachex.Actions.ResetTest do
     ctime1 = now()
 
     # set some values
-    {:ok, true} = Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1)
 
     # retrieve the stats
     stats1 = Cachex.stats!(cache)
 
     # verify the stats
-    assert_in_delta(stats1.meta.creation_date, ctime1, 5)
+    assert_in_delta stats1.meta.creation_date, ctime1, 5
 
     # ensure the cache is not empty
-    refute(Cachex."empty?!"(cache))
+    refute Cachex.empty?(cache)
 
     # wait for 10ms
     :timer.sleep(10)
@@ -144,34 +137,28 @@ defmodule Cachex.Actions.ResetTest do
     ctime2 = now()
 
     # reset only cache
-    reset1 = Cachex.reset(cache, only: :hooks, hooks: [MyModule])
-
-    # verify the reset
-    assert(reset1 == {:ok, true})
+    assert Cachex.reset(cache, only: :hooks, hooks: [MyModule])
 
     # ensure the cache is not reset
-    refute(Cachex."empty?!"(cache))
+    refute Cachex.empty?(cache)
 
     # retrieve the stats
     stats2 = Cachex.stats!(cache)
 
     # verify they don't reset
-    assert(stats2.meta.creation_date == stats1.meta.creation_date)
+    assert stats2.meta.creation_date == stats1.meta.creation_date
 
     # reset without a hooks list
-    reset2 = Cachex.reset(cache, only: :hooks)
-
-    # verify the reset
-    assert(reset2 == {:ok, true})
+    assert Cachex.reset(cache, only: :hooks)
 
     # ensure the cache is not reset
-    refute(Cachex."empty?!"(cache))
+    refute Cachex.empty?(cache)
 
     # retrieve the stats
     stats3 = Cachex.stats!(cache)
 
     # verify they don't reset
-    assert_in_delta(stats3.meta.creation_date, ctime2, 5)
+    assert_in_delta stats3.meta.creation_date, ctime2, 5
   end
 
   # This test verifies that the distributed router correctly controls
@@ -185,26 +172,22 @@ defmodule Cachex.Actions.ResetTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # retrieve the cache size, should be 2
-    {:ok, 2} = Cachex.size(cache)
+    assert Cachex.size(cache) == 2
 
     # reset just the local cache to start with
-    reset1 = Cachex.reset(cache, local: true)
-    sized1 = Cachex.size(cache)
+    assert Cachex.reset(cache, local: true)
 
     # check the local removal worked
-    assert(reset1 == {:ok, true})
-    assert(sized1 == {:ok, 1})
+    assert Cachex.size(cache) == 1
 
     # reset the rest of the cluster cached
-    reset2 = Cachex.reset(cache, local: false)
-    sized2 = Cachex.size(cache)
+    assert Cachex.reset(cache, local: false)
 
     # check the other removals worked
-    assert(reset2 == {:ok, true})
-    assert(sized2 == {:ok, 0})
+    assert Cachex.size(cache) == 0
   end
 end

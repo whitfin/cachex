@@ -37,7 +37,7 @@ defmodule Cachex.Actions.Prune do
     reclaim = Keyword.get(options, :reclaim, 0.1)
     reclaim_bound = round(size * reclaim)
 
-    case Cachex.size!(cache, const(:local) ++ const(:notify_false)) do
+    case Cachex.size(cache, const(:local) ++ const(:notify_false)) do
       cache_size when cache_size <= size ->
         notify_worker(0, cache)
 
@@ -49,7 +49,7 @@ defmodule Cachex.Actions.Prune do
         |> notify_worker(cache)
     end
 
-    {:ok, true}
+    true
   end
 
   ###############
@@ -73,7 +73,7 @@ defmodule Cachex.Actions.Prune do
   # the reclaim space, meaning that a positive result require us to carry out
   # further evictions manually down the chain.
   defp calculate_poffset(reclaim_space, cache) when reclaim_space > 0,
-    do: reclaim_space - Cachex.purge!(cache, const(:local))
+    do: reclaim_space - Cachex.purge(cache, const(:local))
 
   # Erases the least recently written records up to the offset limit.
   #
@@ -86,23 +86,20 @@ defmodule Cachex.Actions.Prune do
   # which only selects the key and touch time as a minor optimization. The key is
   # naturally required when it comes to removing the document, and the touch time is
   # used to determine the sort order required for LRW.
-  defp erase_lower_bound(offset, cache, buffer) when offset > 0 do
+  defp erase_lower_bound(offset, cache(name: name) = cache, buffer) when offset > 0 do
     options =
       :local
       |> const()
       |> Enum.concat(const(:notify_false))
       |> Enum.concat(buffer: buffer)
 
-    with {:ok, stream} <- Cachex.stream(cache, @query, options) do
-      cache(name: name) = cache
+    cache
+    |> Cachex.stream(@query, options)
+    |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
+    |> Enum.take(offset)
+    |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
 
-      stream
-      |> Enum.sort(fn {_k1, t1}, {_k2, t2} -> t1 < t2 end)
-      |> Enum.take(offset)
-      |> Enum.each(fn {k, _t} -> :ets.delete(name, k) end)
-
-      offset
-    end
+    offset
   end
 
   defp erase_lower_bound(offset, _state, _buffer),
@@ -121,7 +118,7 @@ defmodule Cachex.Actions.Prune do
   # results of `clear()` and `purge()` calls in this hook, otherwise we would end
   # up in a recursive loop due to the hook system.
   defp notify_worker(offset, state) when offset > 0,
-    do: Informant.broadcast(state, {:clear, [[]]}, {:ok, offset})
+    do: Informant.broadcast(state, {:clear, [[]]}, offset)
 
   defp notify_worker(_offset, _state),
     do: :ok

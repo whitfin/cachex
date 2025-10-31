@@ -9,18 +9,15 @@ defmodule Cachex.Limit.ScheduledTest do
     cache = TestUtils.create_cache()
 
     # retrieve the cache state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # add 5000 keys to the cache
     for x <- 1..5000 do
-      {:ok, true} = Cachex.put(state, x, x)
+      assert Cachex.put(state, x, x)
     end
 
-    # retrieve the cache size
-    count = Cachex.size!(state)
-
     # make sure all keys are there
-    assert(count == 5000)
+    assert Cachex.size(state) == 5000
   end
 
   # This test ensures that a cache will cap caches at a given limit by trimming
@@ -54,28 +51,25 @@ defmodule Cachex.Limit.ScheduledTest do
       )
 
     # retrieve the cache state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # add 1000 keys to the cache
     for x <- 1..100 do
       # add the entry to the cache
-      {:ok, true} = Cachex.put(state, x, x)
+      assert Cachex.put(state, x, x)
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
     end
 
-    # retrieve the cache size
-    size1 = Cachex.size!(cache)
-
     # verify the cache size
-    assert(size1 == 100)
+    assert Cachex.size(cache) == 100
 
     # flush all existing hook events
     TestUtils.flush()
 
     # add a new key to the cache to trigger evictions
-    {:ok, true} = Cachex.put(state, 101, 101)
+    assert Cachex.put(state, 101, 101)
 
     # verify the cache shrinks to 25%
     TestUtils.poll(250, 25, fn ->
@@ -87,10 +81,7 @@ defmodule Cachex.Limit.ScheduledTest do
       # iterate all keys in the range
       for x <- range do
         # retrieve whether the key exists
-        exists = Cachex."exists?!"(state, x)
-
-        # verify whether it exists
-        assert(exists == expected)
+        assert Cachex.exists?(state, x) == expected
       end
     end
 
@@ -101,7 +92,7 @@ defmodule Cachex.Limit.ScheduledTest do
     validate.(77..101, true)
 
     # finally, verify hooks are notified
-    assert_receive({{:clear, [[]]}, {:ok, 76}})
+    assert_receive {{:clear, [[]]}, 76}
 
     # retrieve the policy hook definition
     cache(hooks: hooks(post: [hook1 | _])) = state

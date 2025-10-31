@@ -20,34 +20,16 @@ defmodule Cachex.Services.JanitorTest do
     state2 = cache(expiration: expiration(lazy: false))
 
     # expired combination regardless of state
-    result1 =
-      Services.Janitor.expired?(entry(modified: modified1, expiration: expiration1))
+    assert Services.Janitor.expired?(entry(modified: modified1, expiration: expiration1))
 
     # unexpired combination regardless of state
-    result2 =
-      Services.Janitor.expired?(entry(modified: modified2, expiration: expiration2))
+    refute Services.Janitor.expired?(entry(modified: modified2, expiration: expiration2))
 
     # expired combination with state enabled
-    result3 =
-      Services.Janitor.expired?(
-        state1,
-        entry(modified: modified1, expiration: expiration1)
-      )
+    assert Services.Janitor.expired?(state1, entry(modified: modified1, expiration: expiration1))
 
     # expired combination with state disabled
-    result4 =
-      Services.Janitor.expired?(
-        state2,
-        entry(modified: modified1, expiration: expiration1)
-      )
-
-    # only the first and third should have expired
-    assert(result1)
-    assert(result3)
-
-    # the second and fourth should not have
-    refute(result2)
-    refute(result4)
+    refute Services.Janitor.expired?(state2, entry(modified: modified1, expiration: expiration1))
   end
 
   # The Janitor process can run on a schedule too, to automatically purge records.
@@ -71,44 +53,38 @@ defmodule Cachex.Services.JanitorTest do
         expiration: expiration(interval: ttl_interval)
       )
 
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # add a new cache entry
-    {:ok, true} = Cachex.put(cache, "key", "value", expire: ttl_value)
-
-    # check that the key exists
-    exists1 = Cachex.exists?(cache, "key")
+    assert Cachex.put(cache, "key", "value", expire: ttl_value)
 
     # before the schedule, the key should exist
-    assert(exists1 == {:ok, true})
+    assert Cachex.exists?(cache, "key")
 
     # wait for the schedule
     :timer.sleep(ttl_wait)
 
-    # check that the key exists
-    exists2 = Cachex.exists?(cache, "key")
-
     # the key should have been removed
-    assert(exists2 == {:ok, false})
+    refute Cachex.exists?(cache, "key")
 
     # retrieve the metadata
-    {:ok, metadata1} = Services.Janitor.last_run(cache)
+    metadata1 = Services.Janitor.last_run(cache)
 
     # verify the count was updated
-    assert(metadata1[:count] == 1)
+    assert metadata1[:count] == 1
 
     # verify the duration is valid
-    assert(is_integer(metadata1[:duration]))
+    assert is_integer(metadata1[:duration])
 
     # windows will round to nearest millis (0)
-    assert(metadata1[:duration] >= 0)
+    assert metadata1[:duration] >= 0
 
     # verify the start time was set
-    assert(is_integer(metadata1[:started]))
-    assert(metadata1[:started] > 0)
-    assert(metadata1[:started] <= :os.system_time(:milli_seconds))
+    assert is_integer(metadata1[:started])
+    assert metadata1[:started] > 0
+    assert metadata1[:started] <= :os.system_time(:milli_seconds)
 
     # ensure we receive(d) the hook notification
-    assert_receive({{:purge, [[{:local, true}]]}, {:ok, 1}})
+    assert_receive {{:purge, [[{:local, true}]]}, 1}
   end
 end

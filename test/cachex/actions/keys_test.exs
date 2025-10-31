@@ -13,14 +13,14 @@ defmodule Cachex.Actions.KeysTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
-    {:ok, true} = Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 3, 3)
 
     # add some expired items
-    {:ok, true} = Cachex.put(cache, 4, 4, expire: 1)
-    {:ok, true} = Cachex.put(cache, 5, 5, expire: 1)
-    {:ok, true} = Cachex.put(cache, 6, 6, expire: 1)
+    assert Cachex.put(cache, 4, 4, expire: 1)
+    assert Cachex.put(cache, 5, 5, expire: 1)
+    assert Cachex.put(cache, 6, 6, expire: 1)
 
     # let entries expire
     :timer.sleep(2)
@@ -29,19 +29,13 @@ defmodule Cachex.Actions.KeysTest do
     TestUtils.flush()
 
     # retrieve the keys
-    {status, keys} = Cachex.keys(cache)
-
-    # ensure the status is ok
-    assert(status == :ok)
-
-    # sort the keys
-    result = Enum.sort(keys)
+    keys = Cachex.keys(cache)
 
     # only 3 items should come back
-    assert(result == [1, 2, 3])
+    assert Enum.sort(keys) == [1, 2, 3]
 
     # verify the hooks were updated with the count
-    assert_receive({{:keys, [[]]}, {^status, ^keys}})
+    assert_receive {{:keys, [[]]}, ^keys}
   end
 
   # This test verifies that the distributed router correctly controls
@@ -55,37 +49,37 @@ defmodule Cachex.Actions.KeysTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # retrieve the keys from both local & remote
-    {:ok, keys1} = Cachex.keys(cache, local: true)
-    {:ok, keys2} = Cachex.keys(cache, local: false)
+    keys1 = Cachex.keys(cache, local: true)
+    keys2 = Cachex.keys(cache, local: false)
 
     # local just one, cluster has two
-    assert(length(keys1) == 1)
-    assert(length(keys2) == 2)
+    assert length(keys1) == 1
+    assert length(keys2) == 2
 
     # delete the single local key
-    {:ok, 1} = Cachex.clear(cache, local: true)
+    assert Cachex.clear(cache, local: true) == 1
 
     # retrieve the keys again from both local & remote
-    {:ok, keys3} = Cachex.keys(cache, local: true)
-    {:ok, keys4} = Cachex.keys(cache, local: false)
+    keys3 = Cachex.keys(cache, local: true)
+    keys4 = Cachex.keys(cache, local: false)
 
     # now local has no keys
-    assert(length(keys3) == 0)
-    assert(length(keys4) == 1)
+    assert length(keys3) == 0
+    assert length(keys4) == 1
 
     # delete the remaining key inside the cluster
-    {:ok, 1} = Cachex.clear(cache, local: false)
+    assert Cachex.clear(cache, local: false) == 1
 
     # retrieve the keys again from both local & remote
-    {:ok, keys5} = Cachex.keys(cache, local: true)
-    {:ok, keys6} = Cachex.keys(cache, local: false)
+    keys5 = Cachex.keys(cache, local: true)
+    keys6 = Cachex.keys(cache, local: false)
 
     # now both don't have any keys
-    assert(length(keys5) == 0)
-    assert(length(keys6) == 0)
+    assert length(keys5) == 0
+    assert length(keys6) == 0
   end
 end

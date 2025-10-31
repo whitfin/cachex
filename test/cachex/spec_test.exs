@@ -20,7 +20,7 @@ defmodule Cachex.SpecTest do
     assert const(:local) == [local: true]
     assert const(:notify_false) == [notify: false]
     assert const(:purge_override_call) == {:purge, [[]]}
-    assert const(:purge_override_result) == {:ok, 1}
+    assert const(:purge_override_result) == 1
 
     assert const(:purge_override) == [
              via: const(:purge_override_call),
@@ -60,8 +60,8 @@ defmodule Cachex.SpecTest do
     entry(modified: modified2, key: key) = entry_now(key: "key")
 
     assert key == "key"
-    assert_in_delta(modified1, :os.system_time(1000), 5)
-    assert_in_delta(modified2, :os.system_time(1000), 5)
+    assert_in_delta modified1, :os.system_time(1000), 5
+    assert_in_delta modified2, :os.system_time(1000), 5
   end
 
   test "name generation for components" do
@@ -108,7 +108,7 @@ defmodule Cachex.SpecTest do
     millis = (mega * 1_000_000 + seconds) * 1000 + div(ms, 1000)
 
     # check they're the same (with an error bound of 2ms)
-    assert_in_delta(now(), millis, 2)
+    assert_in_delta now(), millis, 2
   end
 
   test "wrapping values inside tagged Tuples",

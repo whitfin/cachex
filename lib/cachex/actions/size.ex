@@ -37,13 +37,13 @@ defmodule Cachex.Actions.Size do
 
   # Retrieve the full table count.
   defp retrieve_count(true, name),
-    do: {:ok, :ets.info(name, :size)}
+    do: :ets.info(name, :size)
 
   # Retrieve only the unexpired table count.
   defp retrieve_count(false, name) do
     filter = Query.unexpired()
     clause = Query.build(where: filter, output: true)
 
-    {:ok, :ets.select_count(name, clause)}
+    :ets.select_count(name, clause)
   end
 end

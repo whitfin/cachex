@@ -9,7 +9,7 @@ defmodule Cachex.Limit.AccessedTest do
     cache = TestUtils.create_cache(hooks: [hook(module: Cachex.Limit.Accessed)])
 
     # create a new key to check against
-    {:ok, true} = Cachex.put(cache, "key", 1)
+    assert Cachex.put(cache, "key", 1)
 
     # fetch the raw modification time of the cache entry
     entry(modified: modified1) = Cachex.inspect!(cache, {:entry, "key"})
@@ -18,7 +18,7 @@ defmodule Cachex.Limit.AccessedTest do
     :timer.sleep(50)
 
     # fetch back the key again
-    {:ok, 1} = Cachex.get(cache, "key")
+    assert Cachex.get(cache, "key") == 1
 
     # the modification time should update...
     TestUtils.poll(250, true, fn ->

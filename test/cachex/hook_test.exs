@@ -28,7 +28,7 @@ defmodule Cachex.HookTest do
       )
 
     # turn the cache into a cache state
-    cache1 = Services.Overseer.retrieve(cache)
+    cache1 = Services.Overseer.lookup(cache)
 
     # compare the order and all hooks listed
     assert [
@@ -55,7 +55,7 @@ defmodule Cachex.HookTest do
       )
 
     # turn the cache into a cache state
-    cache1 = Services.Overseer.retrieve(cache)
+    cache1 = Services.Overseer.lookup(cache)
 
     # locate each of the hooks (as they're different types)
     locate1 = Cachex.Hook.locate(cache1, :concat_hook_1)
@@ -81,7 +81,7 @@ defmodule Cachex.HookTest do
     cache = TestUtils.create_cache(hooks: [ExecuteHook.create()])
 
     # find the hook (with the populated runtime process identifier)
-    cache(hooks: hooks(post: [hook])) = Services.Overseer.get(cache)
+    cache(hooks: hooks(post: [hook])) = Services.Overseer.lookup(cache)
 
     # notify and fetch callers in order to send them back to this parent process
     Services.Informant.notify([hook], {:exec, fn -> Process.get(:"$callers") end}, nil)

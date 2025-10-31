@@ -88,16 +88,16 @@ defmodule Cachex.Actions do
 
   Note that updates are atomic; either all updates will take place, or none will.
   """
-  @spec update(Cachex.t(), any, [tuple]) :: {:ok, boolean}
+  @spec update(Cachex.t(), any(), [tuple()]) :: boolean()
   def update(cache(name: name), key, changes),
-    do: {:ok, :ets.update_element(name, key, changes)}
+    do: :ets.update_element(name, key, changes)
 
   @doc """
   Writes a new entry into a cache.
   """
   @spec write(Cachex.t(), Cachex.Spec.entries()) :: {:ok, boolean}
   def write(cache(name: name), entries),
-    do: {:ok, :ets.insert(name, entries)}
+    do: :ets.insert(name, entries)
 
   @doc """
   Returns the operation used for a write based on a prior value.

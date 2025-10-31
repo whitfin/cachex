@@ -7,12 +7,12 @@ defmodule Cachex.Actions.ExportTest do
     cache = TestUtils.create_cache()
 
     # fill with some items
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
-    {:ok, true} = Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 3, 3)
 
     # export the items
-    {:ok, export} = Cachex.export(cache)
+    export = Cachex.export(cache)
 
     # check the exported count
     assert length(export) == 3
@@ -29,37 +29,37 @@ defmodule Cachex.Actions.ExportTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # retrieve the keys from both local & remote
-    {:ok, export1} = Cachex.export(cache, local: true)
-    {:ok, export2} = Cachex.export(cache, local: false)
+    export1 = Cachex.export(cache, local: true)
+    export2 = Cachex.export(cache, local: false)
 
     # local just one, cluster has two
-    assert(length(export1) == 1)
-    assert(length(export2) == 2)
+    assert length(export1) == 1
+    assert length(export2) == 2
 
     # delete the single local key
-    {:ok, 1} = Cachex.clear(cache, local: true)
+    assert Cachex.clear(cache, local: true) == 1
 
     # retrieve the keys again from both local & remote
-    {:ok, export3} = Cachex.export(cache, local: true)
-    {:ok, export4} = Cachex.export(cache, local: false)
+    export3 = Cachex.export(cache, local: true)
+    export4 = Cachex.export(cache, local: false)
 
     # now local has no keys
-    assert(length(export3) == 0)
-    assert(length(export4) == 1)
+    assert length(export3) == 0
+    assert length(export4) == 1
 
     # delete the remaining key inside the cluster
-    {:ok, 1} = Cachex.clear(cache, local: false)
+    assert Cachex.clear(cache, local: false) == 1
 
     # retrieve the keys again from both local & remote
-    {:ok, export5} = Cachex.keys(cache, local: true)
-    {:ok, export6} = Cachex.keys(cache, local: false)
+    export5 = Cachex.keys(cache, local: true)
+    export6 = Cachex.keys(cache, local: false)
 
     # now both don't have any keys
-    assert(length(export5) == 0)
-    assert(length(export6) == 0)
+    assert length(export5) == 0
+    assert length(export6) == 0
   end
 end

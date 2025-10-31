@@ -216,8 +216,7 @@ defmodule Cachex.Router do
   # the total number of slots available (i.e. the count of the nodes). If it comes
   # out to the local node, just execute the local code, otherwise RPC the base call
   # to the remote node, and just assume that it'll correctly handle it.
-  defp route_cluster(cache, module, {action, [key | _]} = call)
-       when action in @keyed_actions do
+  defp route_cluster(cache, module, {action, [key | _]} = call) when action in @keyed_actions do
     cache(router: router(module: router, state: nodes)) = cache
     route_node(cache, module, call, router.route(nodes, key))
   end
@@ -241,50 +240,40 @@ defmodule Cachex.Router do
   # them with the results on the local node. The hooks will only be notified
   # on the local node, due to an annoying recursion issue when handling the
   # same across all nodes - seems to provide better logic though.
-  defp route_cluster(cache, module, {action, arguments} = call)
-       when action in @merge_actions do
+  defp route_cluster(cache, module, {action, arguments} = call) when action in @merge_actions do
     # fetch the nodes from the cluster state
     cache(router: router(module: router, state: state)) = cache
+
+    # execution on the local node to combine
+    result = route_local(cache, module, call)
 
     # all calls have options we can use
     options = List.last(arguments)
 
     # can force local node setting local: true
-    results =
-      case Keyword.get(options, :local) do
-        true ->
-          []
+    case Keyword.get(options, :local) do
+      true ->
+        result
 
-        _any ->
-          # don't want to execute on the local node
-          other_nodes =
-            state
-            |> router.nodes()
-            |> List.delete(node())
+      _any ->
+        # don't want to execute on the local node
+        other_nodes =
+          state
+          |> router.nodes()
+          |> List.delete(node())
 
-          # execute the call on all other nodes
-          {results, _} =
-            :rpc.multicall(
-              other_nodes,
-              module,
-              :execute,
-              [cache | arguments]
-            )
+        # execute the call on all other nodes
+        {results, _} =
+          :rpc.multicall(
+            other_nodes,
+            module,
+            :execute,
+            [cache | arguments]
+          )
 
-          results
-      end
-
-    # execution on the local node, using the local macros and then unpack
-    {:ok, result} = route_local(cache, module, call)
-
-    # results merge
-    merge_result =
-      results
-      |> Enum.map(&elem(&1, 1))
-      |> Enum.reduce(result, &result_merge/2)
-
-    # return after merge
-    {:ok, merge_result}
+        # run result merging to blend both sets
+        Enum.reduce(results, result, &result_merge/2)
+    end
   end
 
   # actions which always run locally

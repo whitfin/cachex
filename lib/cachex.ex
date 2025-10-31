@@ -55,9 +55,10 @@ defmodule Cachex do
   import Kernel, except: [inspect: 2]
 
   # the type aliases for a cache type
-  @type t :: atom | Cachex.Spec.cache()
+  @type t :: atom() | Cachex.Spec.cache()
 
   # custom status type
+  @type error :: {:error, atom()}
   @type status :: :ok | :error
 
   # generate unsafe definitions
@@ -327,8 +328,7 @@ defmodule Cachex do
   #
   # This will start all cache services required using the `Cachex.Services`
   # module and attach them under a Supervisor instance backing the cache.
-  @spec init(cache :: Cachex.t()) ::
-          {:ok, {Supervisor.sup_flags(), [Supervisor.child_spec()]}}
+  @spec init(cache :: Cachex.t()) :: {:ok, {Supervisor.sup_flags(), [Supervisor.child_spec()]}}
   def init(cache() = cache) do
     cache
     |> Services.cache_spec()
@@ -347,16 +347,16 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
       iex> Cachex.size(:my_cache)
-      { :ok, 1 }
+      1
 
       iex> Cachex.clear(:my_cache)
-      { :ok, 1 }
+      1
 
       iex> Cachex.size(:my_cache)
-      { :ok, 0 }
+      0
 
   """
-  @spec clear(Cachex.t(), Keyword.t()) :: {status, integer}
+  @spec clear(Cachex.t(), Keyword.t()) :: integer()
   def clear(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:clear, [options]})
 
@@ -376,19 +376,18 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.decr(:my_cache, "my_key")
-      { :ok, 9 }
+      :ok, 9
 
       iex> Cachex.put(:my_cache, "my_new_key", 10)
       iex> Cachex.decr(:my_cache, "my_new_key", 5)
-      { :ok, 5 }
+      :ok, 5
 
       iex> Cachex.decr(:my_cache, "missing_key", 5, default: 2)
-      { :ok, -3 }
+      -3
 
   """
-  @spec decr(Cachex.t(), any, integer, Keyword.t()) :: {status, integer}
-  def decr(cache, key, amount \\ 1, options \\ [])
-      when is_integer(amount) and is_list(options) do
+  @spec decr(Cachex.t(), any(), integer(), Keyword.t()) :: integer() | Cachex.error()
+  def decr(cache, key, amount \\ 1, options \\ []) when is_integer(amount) and is_list(options) do
     via_opt = via({:decr, [key, amount, options]}, options)
     incr(cache, key, amount * -1, via_opt)
   end
@@ -396,8 +395,8 @@ defmodule Cachex do
   @doc """
   Removes an entry from a cache.
 
-  This will return `{ :ok, true }` regardless of whether a key has been removed
-  or not. The `true` value can be thought of as "is key no longer present?".
+  This will return `true` regardless of whether a key has been removed or
+  not. The `true` value can be thought of as "is key no longer present?".
 
   ## Examples
 
@@ -406,13 +405,13 @@ defmodule Cachex do
       { :ok, "value" }
 
       iex> Cachex.del(:my_cache, "key")
-      { :ok, true }
+      true
 
       iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
+      nil
 
   """
-  @spec del(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec del(Cachex.t(), any(), Keyword.t()) :: boolean()
   def del(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:del, [key, options]})
 
@@ -427,14 +426,14 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key1", "value1")
       iex> Cachex.empty?(:my_cache)
-      { :ok, false }
+      false
 
       iex> Cachex.clear(:my_cache)
       iex> Cachex.empty?(:my_cache)
-      { :ok, true }
+      true
 
   """
-  @spec empty?(Cachex.t(), Keyword.t()) :: {status, boolean}
+  @spec empty?(Cachex.t(), Keyword.t()) :: boolean()
   def empty?(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:empty?, [options]})
 
@@ -461,14 +460,14 @@ defmodule Cachex do
       ...>   val2 = Cachex.get!(worker, "key2")
       ...>   [val1, val2]
       ...> end)
-      { :ok, [ "value1", "value2" ] }
+      [ "value1", "value2" ]
 
   """
-  @spec execute(Cachex.t(), function, Keyword.t()) :: {status, any}
+  @spec execute(Cachex.t(), function(), Keyword.t()) :: any()
   def execute(cache, operation, options \\ [])
       when is_function(operation, 1) and is_list(options) do
     Overseer.with(cache, fn cache ->
-      {:ok, operation.(cache)}
+      operation.(cache)
     end)
   end
 
@@ -482,13 +481,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.exists?(:my_cache, "key")
-      { :ok, true }
+      true
 
       iex> Cachex.exists?(:my_cache, "missing_key")
-      { :ok, false }
+      false
 
   """
-  @spec exists?(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec exists?(Cachex.t(), any(), Keyword.t()) :: boolean()
   def exists?(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:exists?, [key, options]})
 
@@ -505,13 +504,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.expire(:my_cache, "key", :timer.seconds(5))
-      { :ok, true }
+      true
 
       iex> Cachex.expire(:my_cache, "missing_key", :timer.seconds(5))
-      { :ok, false }
+      false
 
   """
-  @spec expire(Cachex.t(), any, number | nil, Keyword.t()) :: {status, boolean}
+  @spec expire(Cachex.t(), any(), number() | nil, Keyword.t()) :: boolean()
   def expire(cache, key, expiration, options \\ [])
       when (is_nil(expiration) or is_number(expiration)) and is_list(options),
       do: Router.route(cache, {:expire, [key, expiration, options]})
@@ -533,7 +532,7 @@ defmodule Cachex do
       { :ok, false }
 
   """
-  @spec expire_at(Cachex.t(), any, number, Keyword.t()) :: {status, boolean}
+  @spec expire_at(Cachex.t(), any(), number(), Keyword.t()) :: boolean()
   def expire_at(cache, key, timestamp, options \\ [])
       when is_number(timestamp) and is_list(options) do
     via_opts = via({:expire_at, [key, timestamp, options]}, options)
@@ -554,10 +553,10 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.export(:my_cache)
-      { :ok, [ { :entry, "key", 1538714590095, nil, "value" } ] }
+      [ { :entry, "key", 1538714590095, nil, "value" } ]
 
   """
-  @spec export(Cachex.t(), Keyword.t()) :: {status, [Cachex.Spec.entry()]}
+  @spec export(Cachex.t(), Keyword.t()) :: [Cachex.Spec.entry()] | Cachex.error()
   def export(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:export, [options]})
 
@@ -596,7 +595,7 @@ defmodule Cachex do
       iex> Cachex.fetch(:my_cache, "key", fn(key) ->
       ...>   { :commit, String.reverse(key) }
       ...> end)
-      { :ok, "value" }
+      "value"
 
       iex> Cachex.fetch(:my_cache, "missing_key", fn(key) ->
       ...>   { :ignore, String.reverse(key) }
@@ -614,8 +613,8 @@ defmodule Cachex do
       { :commit, "seripxe_yek_gnissim" }
 
   """
-  @spec fetch(Cachex.t(), any, function(), Keyword.t()) ::
-          {status | :commit | :ignore, any}
+  @spec fetch(Cachex.t(), any(), function(), Keyword.t()) ::
+          any() | {:commit, any()} | {:ignore, any()} | Cachex.error()
   def fetch(cache, key, fallback, options \\ [])
       when is_function(fallback) and is_list(options),
       do: Router.route(cache, {:fetch, [key, fallback, options]})
@@ -627,13 +626,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
+      "value"
 
       iex> Cachex.get(:my_cache, "missing_key")
-      { :ok, nil }
+      nil
 
   """
-  @spec get(Cachex.t(), any, Keyword.t()) :: {atom, any}
+  @spec get(Cachex.t(), any(), Keyword.t()) :: any() | nil
   def get(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:get, [key, options]})
 
@@ -663,8 +662,8 @@ defmodule Cachex do
       { :ignore, nil }
 
   """
-  @spec get_and_update(Cachex.t(), any, function, Keyword.t()) ::
-          {:commit | :ignore, any}
+  @spec get_and_update(Cachex.t(), any(), function(), Keyword.t()) ::
+          {:commit | :ignore, any()}
   def get_and_update(cache, key, updater, options \\ [])
       when is_function(updater, 1) and is_list(options),
       do: Router.route(cache, {:get_and_update, [key, updater, options]})
@@ -680,14 +679,14 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key2", "value2")
       iex> Cachex.put(:my_cache, "key3", "value3")
       iex> Cachex.keys(:my_cache)
-      { :ok, [ "key2", "key1", "key3" ] }
+      [ "key2", "key1", "key3" ]
 
       iex> Cachex.clear(:my_cache)
       iex> Cachex.keys(:my_cache)
-      { :ok, [] }
+      []
 
   """
-  @spec keys(Cachex.t(), Keyword.t()) :: {status, [any]}
+  @spec keys(Cachex.t(), Keyword.t()) :: [any()]
   def keys(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:keys, [options]})
 
@@ -701,10 +700,10 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.import(:my_cache, [ { :entry, "key", "value", 1538714590095, nil } ])
-      { :ok, 1 }
+      1
 
   """
-  @spec import(Cachex.t(), Enumerable.t(), Keyword.t()) :: {status, integer}
+  @spec import(Cachex.t(), Enumerable.t(), Keyword.t()) :: integer() | Cachex.error()
   def import(cache, entries, options \\ []) when is_list(options),
     do: Router.route(cache, {:import, [entries, options]})
 
@@ -724,20 +723,19 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.incr(:my_cache, "my_key")
-      { :ok, 11 }
+      11
 
       iex> Cachex.put(:my_cache, "my_new_key", 10)
       iex> Cachex.incr(:my_cache, "my_new_key", 5)
-      { :ok, 15 }
+      15
 
       iex> Cachex.incr(:my_cache, "missing_key", 5, default: 2)
-      { :ok, 7 }
+      7
 
   """
-  @spec incr(Cachex.t(), any, integer, Keyword.t()) :: {status, integer}
-  def incr(cache, key, amount \\ 1, options \\ [])
-      when is_integer(amount) and is_list(options),
-      do: Router.route(cache, {:incr, [key, amount, options]})
+  @spec incr(Cachex.t(), any(), integer(), Keyword.t()) :: integer() | Cachex.error()
+  def incr(cache, key, amount \\ 1, options \\ []) when is_integer(amount) and is_list(options),
+    do: Router.route(cache, {:incr, [key, amount, options]})
 
   @doc """
   Inspects various aspects of a cache.
@@ -795,35 +793,33 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.inspect(:my_cache, :cache)
-      {:ok,
-        {:cache, :my_cache, %{}, false, {:expiration, nil, 3000, true}, 
-          {:hooks, [], [{:hook, Cachex.Stats, nil, #PID<0.986.0>}]}, 
-            [{:hook, Cachex.Limit.Scheduled, {500, [], []}, #PID<0.985.0>}], nil, false,
-          {:router, [], Cachex.Router.Local, nil}, false, []}}
+      {:cache, :test, %{}, false, {:expiration, nil, 3000, true},
+        {:hooks, [], [], []}, nil, false, {:router, [], Cachex.Router.Local, nil},
+        false, []}
 
       iex> Cachex.inspect(:my_cache, { :entry, "my_key" } )
-      { :ok, { :entry, "my_key", 1475476615662, 1, "my_value" } }
+      { :entry, "my_key", 1475476615662, 1, "my_value" }
 
       iex> Cachex.inspect(:my_cache, { :expired, :count })
-      { :ok, 0 }
+      0
 
       iex> Cachex.inspect(:my_cache, { :expired, :keys })
-      { :ok, [ ] }
+      [ ]
 
       iex> Cachex.inspect(:my_cache, { :janitor, :last })
-      { :ok, %{ count: 0, duration: 57, started: 1475476530925 } }
+      %{ count: 0, duration: 57, started: 1475476530925 }
 
       iex> Cachex.inspect(:my_cache, { :memory, :binary })
-      { :ok, "10.38 KiB" }
+      "10.38 KiB"
 
       iex> Cachex.inspect(:my_cache, { :memory, :bytes })
-      { :ok, 10624 }
+      10624
 
       iex> Cachex.inspect(:my_cache, { :memory, :words })
-      { :ok, 1328 }
+      1328
 
   """
-  @spec inspect(Cachex.t(), atom | tuple, Keyword.t()) :: {status, any}
+  @spec inspect(Cachex.t(), atom() | tuple(), Keyword.t()) :: any() | Cachex.error()
   def inspect(cache, option, options \\ []) when is_list(options),
     do: Router.route(cache, {:inspect, [option, options]})
 
@@ -849,7 +845,7 @@ defmodule Cachex do
       { :ok, 3 }
 
   """
-  @spec invoke(Cachex.t(), atom, any, Keyword.t()) :: any
+  @spec invoke(Cachex.t(), atom(), any(), Keyword.t()) :: any()
   def invoke(cache, cmd, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:invoke, [cmd, key, options]})
 
@@ -860,13 +856,13 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value", expiration: 1000)
       iex> Cachex.persist(:my_cache, "key")
-      { :ok, true }
+      true
 
       iex> Cachex.persist(:my_cache, "missing_key")
-      { :ok, false }
+      false
 
   """
-  @spec persist(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec persist(Cachex.t(), any(), Keyword.t()) :: boolean()
   def persist(cache, key, options \\ []) when is_list(options),
     do: expire(cache, key, nil, via({:persist, [key, options]}, options))
 
@@ -896,25 +892,24 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put(:my_cache, "key1", "value1")
-      { :ok, true }
+      true
 
       iex> :timer.sleep(1)
       :ok
 
       iex> Cachex.put(:my_cache, "key2", "value2")
-      { :ok, true }
+      true
 
       iex> Cachex.prune(:my_cache, 1, reclaim: 0)
-      { :ok, true }
+      true
 
       iex> Cachex.keys(:my_cache)
-      { :ok, [ "key2"] }
+      [ "key2"]
 
   """
-  @spec prune(Cachex.t(), integer, Keyword.t()) :: {status, boolean}
-  def prune(cache, size, options \\ [])
-      when is_positive_integer(size) and is_list(options),
-      do: Router.route(cache, {:prune, [size, options]})
+  @spec prune(Cachex.t(), integer, Keyword.t()) :: boolean()
+  def prune(cache, size, options \\ []) when is_positive_integer(size) and is_list(options),
+    do: Router.route(cache, {:prune, [size, options]})
 
   @doc """
   Triggers a cleanup of all expired entries in a cache.
@@ -927,10 +922,10 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.purge(:my_cache)
-      { :ok, 15 }
+      15
 
   """
-  @spec purge(Cachex.t(), Keyword.t()) :: {status, number}
+  @spec purge(Cachex.t(), Keyword.t()) :: number()
   def purge(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:purge, [options]})
 
@@ -950,14 +945,14 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
-      { :ok, true }
+      true
 
       iex> Cachex.put(:my_cache, "key", "value", expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
+      5000
 
   """
-  @spec put(Cachex.t(), any, any, Keyword.t()) :: {status, any}
+  @spec put(Cachex.t(), any(), any(), Keyword.t()) :: boolean()
   def put(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:put, [key, value, options]})
 
@@ -979,17 +974,16 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
-      { :ok, true }
+      true
 
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
-      { :ok, 5000 }
+      5000
 
   """
-  @spec put_many(Cachex.t(), [{any, any}], Keyword.t()) :: {status, any}
-  def put_many(cache, pairs, options \\ [])
-      when is_list(pairs) and is_list(options),
-      do: Router.route(cache, {:put_many, [pairs, options]})
+  @spec put_many(Cachex.t(), [{any(), any()}], Keyword.t()) :: boolean() | Cachex.error()
+  def put_many(cache, pairs, options \\ []) when is_list(pairs) and is_list(options),
+    do: Router.route(cache, {:put_many, [pairs, options]})
 
   @doc """
   Refreshes an expiration for an entry in a cache.
@@ -1004,17 +998,17 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "my_key", "my_value", expire: :timer.seconds(5))
       iex> Process.sleep(4)
       iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 1000 }
+      1000
 
       iex> Cachex.refresh(:my_cache, "my_key")
       iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 5000 }
+      5000
 
       iex> Cachex.refresh(:my_cache, "missing_key")
-      { :ok, false }
+      false
 
   """
-  @spec refresh(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec refresh(Cachex.t(), any(), Keyword.t()) :: boolean()
   def refresh(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:refresh, [key, options]})
 
@@ -1041,19 +1035,19 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "my_key", "my_value")
       iex> Cachex.reset(:my_cache)
       iex> Cachex.size(:my_cache)
-      { :ok, 0 }
+      0
 
       iex> Cachex.reset(:my_cache, [ only: :hooks ])
-      { :ok, true }
+      true
 
       iex> Cachex.reset(:my_cache, [ only: :hooks, hooks: [ MyHook ] ])
-      { :ok, true }
+      true
 
       iex> Cachex.reset(:my_cache, [ only: :cache ])
-      { :ok, true }
+      true
 
   """
-  @spec reset(Cachex.t(), Keyword.t()) :: {status, true}
+  @spec reset(Cachex.t(), Keyword.t()) :: boolean()
   def reset(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:reset, [options]})
 
@@ -1079,26 +1073,25 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.save(:my_cache, "/tmp/my_backup")
-      { :ok, true }
+      true
 
       iex> Cachex.size(:my_cache)
-      { :ok, 1 }
+      1
 
       iex> Cachex.clear(:my_cache)
       iex> Cachex.size(:my_cache)
-      { :ok, 0 }
+      0
 
       iex> Cachex.restore(:my_cache, "/tmp/my_backup")
-      { :ok, 1 }
+      1
 
       iex> Cachex.size(:my_cache)
-      { :ok, 1 }
+      1
 
   """
-  @spec restore(Cachex.t(), binary, Keyword.t()) :: {status, integer}
-  def restore(cache, path, options \\ [])
-      when is_binary(path) and is_list(options),
-      do: Router.route(cache, {:restore, [path, options]})
+  @spec restore(Cachex.t(), binary(), Keyword.t()) :: integer() | Cachex.error()
+  def restore(cache, path, options \\ []) when is_binary(path) and is_list(options),
+    do: Router.route(cache, {:restore, [path, options]})
 
   @doc """
   Serializes a cache to a location on a filesystem.
@@ -1120,13 +1113,12 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.save(:my_cache, "/tmp/my_default_backup")
-      { :ok, true }
+      true
 
   """
-  @spec save(Cachex.t(), binary, Keyword.t()) :: {status, any}
-  def save(cache, path, options \\ [])
-      when is_binary(path) and is_list(options),
-      do: Router.route(cache, {:save, [path, options]})
+  @spec save(Cachex.t(), binary(), Keyword.t()) :: boolean() | Cachex.error()
+  def save(cache, path, options \\ []) when is_binary(path) and is_list(options),
+    do: Router.route(cache, {:save, [path, options]})
 
   @doc """
   Retrieves the total size of a cache.
@@ -1149,13 +1141,13 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key2", "value2")
       iex> Cachex.put(:my_cache, "key3", "value3", expire: 1)
       iex> Cachex.size(:my_cache)
-      { :ok, 3 }
+      3
 
       iex> Cachex.size(:my_cache, expired: false)
-      { :ok, 2 }
+      2
 
   """
-  @spec size(Cachex.t(), Keyword.t()) :: {status, number}
+  @spec size(Cachex.t(), Keyword.t()) :: integer()
   def size(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:size, [options]})
 
@@ -1168,13 +1160,13 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.stats(:my_cache)
-      {:ok, %{meta: %{creation_date: 1518984857331}}}
+      %{meta: %{creation_date: 1518984857331}}
 
       iex> Cachex.stats(:cache_with_no_stats)
       { :error, :stats_disabled }
 
   """
-  @spec stats(Cachex.t(), Keyword.t()) :: {status, map()}
+  @spec stats(Cachex.t(), Keyword.t()) :: map() | Cachex.error()
   def stats(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:stats, [options]})
 
@@ -1200,30 +1192,29 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "a", 1)
       iex> Cachex.put(:my_cache, "b", 2)
       iex> Cachex.put(:my_cache, "c", 3)
-      {:ok, true}
+      true
 
-      iex> :my_cache |> Cachex.stream! |> Enum.to_list
+      iex> :my_cache |> Cachex.stream |> Enum.to_list
       [{:entry, "b", 1519015801794, nil, 2},
         {:entry, "c", 1519015805679, nil, 3},
         {:entry, "a", 1519015794445, nil, 1}]
 
       iex> query = Cachex.Query.build(output: :key)
-      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      iex> :my_cache |> Cachex.stream(query) |> Enum.to_list
       ["b", "c", "a"]
 
       iex> query = Cachex.Query.build(output: :value)
-      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      iex> :my_cache |> Cachex.stream(query) |> Enum.to_list
       [2, 3, 1]
 
       iex> query = Cachex.Query.build(output: {:key, :value})
-      iex> :my_cache |> Cachex.stream!(query) |> Enum.to_list
+      iex> :my_cache |> Cachex.stream(query) |> Enum.to_list
       [{"b", 2}, {"c", 3}, {"a", 1}]
 
   """
-  @spec stream(Cachex.t(), any, Keyword.t()) :: {status, Enumerable.t()}
-  def stream(cache, query \\ Q.build(where: Q.unexpired()), options \\ [])
-      when is_list(options),
-      do: Router.route(cache, {:stream, [query, options]})
+  @spec stream(Cachex.t(), any(), Keyword.t()) :: Enumerable.t() | Cachex.error()
+  def stream(cache, query \\ Q.build(where: Q.unexpired()), options \\ []) when is_list(options),
+    do: Router.route(cache, {:stream, [query, options]})
 
   @doc """
   Takes an entry from a cache.
@@ -1235,16 +1226,16 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.take(:my_cache, "key")
-      { :ok, "value" }
+      "value"
 
       iex> Cachex.get(:my_cache, "key")
-      { :ok, nil }
+      nil
 
       iex> Cachex.take(:my_cache, "missing_key")
-      { :ok, nil }
+      nil
 
   """
-  @spec take(Cachex.t(), any, Keyword.t()) :: {status, any}
+  @spec take(Cachex.t(), any(), Keyword.t()) :: any()
   def take(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:take, [key, options]})
 
@@ -1253,8 +1244,23 @@ defmodule Cachex do
 
   This is very similar to `refresh/3` except that the expiration
   time is maintained inside the record (using a calculated offset).
+
+  ## Examples
+
+      iex> Cachex.put(:my_cache, "my_key", "my_value", expire: :timer.seconds(5))
+      iex> Process.sleep(4)
+      iex> Cachex.ttl(:my_cache, "my_key")
+      1000
+
+      iex> Cachex.touch(:my_cache, "my_key")
+      iex> Cachex.ttl(:my_cache, "my_key")
+      1000
+
+      iex> Cachex.touch(:my_cache, "missing_key")
+      false
+
   """
-  @spec touch(Cachex.t(), any, Keyword.t()) :: {status, boolean}
+  @spec touch(Cachex.t(), any(), Keyword.t()) :: boolean()
   def touch(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:touch, [key, options]})
 
@@ -1277,10 +1283,10 @@ defmodule Cachex do
       ...>   val2 = Cachex.get(worker, "key2")
       ...>   [val1, val2]
       ...> end)
-      { :ok, [ "value1", "value2" ] }
+      [ "value1", "value2" ]
 
   """
-  @spec transaction(Cachex.t(), [any], function, Keyword.t()) :: {status, any}
+  @spec transaction(Cachex.t(), [any()], function(), Keyword.t()) :: any()
   def transaction(cache, keys, operation, options \\ [])
       when is_function(operation) and is_list(keys) and is_list(options) do
     Overseer.with(cache, fn cache ->
@@ -1309,16 +1315,16 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.ttl(:my_cache, "my_key")
-      { :ok, 13985 }
+      13985
 
       iex> Cachex.ttl(:my_cache, "my_key_with_no_ttl")
-      { :ok, nil }
+      nil
 
       iex> Cachex.ttl(:my_cache, "missing_key")
-      { :ok, nil }
+      nil
 
   """
-  @spec ttl(Cachex.t(), any, Keyword.t()) :: {status, integer | nil}
+  @spec ttl(Cachex.t(), any(), Keyword.t()) :: integer() | nil
   def ttl(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:ttl, [key, options]})
 
@@ -1334,17 +1340,17 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.get(:my_cache, "key")
-      { :ok, "value" }
+      "value"
 
       iex> Cachex.update(:my_cache, "key", "new_value")
       iex> Cachex.get(:my_cache, "key")
-      { :ok, "new_value" }
+      "new_value"
 
       iex> Cachex.update(:my_cache, "missing_key", "new_value")
-      { :ok, false }
+      false
 
   """
-  @spec update(Cachex.t(), any, any, Keyword.t()) :: {status, any}
+  @spec update(Cachex.t(), any(), any(), Keyword.t()) :: boolean()
   def update(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:update, [key, value, options]})
 
@@ -1373,19 +1379,19 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.warm(:my_cache)
-      { :ok, [MyWarmer] }
+      [MyWarmer]
 
       iex> Cachex.warm(:my_cache, only: [MyWarmer])
-      { :ok, [MyWarmer] }
+      [MyWarmer]
 
       iex> Cachex.warm(:my_cache, only: [])
-      { :ok, [] }
+      []
 
       iex> Cachex.warm(:my_cache, wait: true)
-      { :ok, [MyWarmer]}
+      [MyWarmer]
 
   """
-  @spec warm(Cachex.t(), Keyword.t()) :: {status, [atom()]}
+  @spec warm(Cachex.t(), Keyword.t()) :: [atom()]
   def warm(cache, options \\ []),
     do: Router.route(cache, {:warm, [options]})
 
@@ -1438,10 +1444,10 @@ defmodule Cachex do
     required = [only: Enum.map(req, &warmer(&1, :name)), wait: true]
     optional = [only: Enum.map(opt, &warmer(&1, :name)), wait: false]
 
-    with {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ required),
-         {:ok, _} <- Cachex.warm(cache, const(:notify_false) ++ optional) do
-      :ok
-    end
+    Cachex.warm(cache, const(:notify_false) ++ required)
+    Cachex.warm(cache, const(:notify_false) ++ optional)
+
+    :ok
   end
 
   # Unwraps a command result into an unsafe form.
@@ -1460,5 +1466,8 @@ defmodule Cachex do
     do: reraise(e, stack)
 
   defp unwrap_unsafe({_state, value}),
+    do: value
+
+  defp unwrap_unsafe(value),
     do: value
 end

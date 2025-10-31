@@ -71,7 +71,7 @@ defmodule Cachex.Services.Courier do
 
       nil ->
         case Get.execute(cache, key, []) do
-          {:ok, nil} ->
+          nil ->
             parent = self()
 
             worker =
@@ -106,8 +106,8 @@ defmodule Cachex.Services.Courier do
 
             {:noreply, {cache, Map.put(tasks, key, {worker, [caller]})}}
 
-          {:ok, _value} = res ->
-            {:reply, res, state}
+          result ->
+            {:reply, result, state}
         end
     end
   end
@@ -138,7 +138,7 @@ defmodule Cachex.Services.Courier do
 
       result =
         with {:commit, value} <- result do
-          {:ok, value}
+          value
         end
 
       for caller <- children do

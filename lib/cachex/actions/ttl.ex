@@ -25,10 +25,10 @@ defmodule Cachex.Actions.Ttl do
   def execute(cache() = cache, key, _options) do
     case Actions.read(cache, key) do
       entry(modified: modified, expiration: exp) when not is_nil(exp) ->
-        {:ok, modified + exp - now()}
+        modified + exp - now()
 
       _anything_else ->
-        {:ok, nil}
+        nil
     end
   end
 end

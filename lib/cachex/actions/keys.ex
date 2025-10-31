@@ -27,6 +27,6 @@ defmodule Cachex.Actions.Keys do
     filter = Query.unexpired()
     clause = Query.build(where: filter, output: :key)
 
-    {:ok, :ets.select(name, clause)}
+    :ets.select(name, clause)
   end
 end

@@ -17,23 +17,23 @@ defmodule Cachex.Actions.StatsTest do
     ctime = now()
 
     # execute some cache actions
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, 1} = Cachex.get(cache, 1)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.get(cache, 1) == 1
 
     # retrieve default stats
     stats = Cachex.stats!(cache)
 
     # verify the first returns a valid meta object
-    assert_in_delta(stats.meta.creation_date, ctime, 5)
+    assert_in_delta stats.meta.creation_date, ctime, 5
 
     # verify attached statistics
-    assert(stats.hits == 1)
-    assert(stats.misses == 0)
-    assert(stats.operations == 2)
-    assert(stats.writes == 1)
+    assert stats.hits == 1
+    assert stats.misses == 0
+    assert stats.operations == 2
+    assert stats.writes == 1
 
     # verify attached rates
-    assert(stats.hit_rate == 100)
+    assert stats.hit_rate == 100
   end
 
   # This test just verifies that we receive an error trying to retrieve stats
@@ -42,11 +42,8 @@ defmodule Cachex.Actions.StatsTest do
     # create a test cache
     cache = TestUtils.create_cache(stats: false)
 
-    # retrieve default stats
-    stats = Cachex.stats(cache)
-
-    # we should receive an error
-    assert(stats == {:error, :stats_disabled})
+    # retrieve default stats, we should receive an error
+    assert Cachex.stats(cache) == {:error, :stats_disabled}
   end
 
   # This test verifies that we correctly handle hit/miss rates when there are 0
@@ -63,25 +60,25 @@ defmodule Cachex.Actions.StatsTest do
     cache4 = TestUtils.create_cache(hooks: [hook])
 
     # set cache1 to 100% misses
-    {:ok, nil} = Cachex.get(cache1, 1)
+    assert Cachex.get(cache1, 1) == nil
 
     # set cache2 to 100% hits
-    {:ok, true} = Cachex.put(cache2, 1, 1)
-    {:ok, 1} = Cachex.get(cache2, 1)
+    assert Cachex.put(cache2, 1, 1)
+    assert Cachex.get(cache2, 1) == 1
 
     # set cache3 to be 50% each way
-    {:ok, true} = Cachex.put(cache3, 1, 1)
-    {:ok, 1} = Cachex.get(cache3, 1)
-    {:ok, nil} = Cachex.get(cache3, 2)
+    assert Cachex.put(cache3, 1, 1)
+    assert Cachex.get(cache3, 1) == 1
+    assert Cachex.get(cache3, 2) == nil
 
     # set cache4 to have some loads
-    {:commit, 1} = Cachex.fetch(cache4, 1, & &1)
+    assert Cachex.fetch(cache4, 1, & &1) == {:commit, 1}
 
     # retrieve all cache rates
-    stats1 = Cachex.stats!(cache1)
-    stats2 = Cachex.stats!(cache2)
-    stats3 = Cachex.stats!(cache3)
-    stats4 = Cachex.stats!(cache4)
+    stats1 = Cachex.stats(cache1)
+    stats2 = Cachex.stats(cache2)
+    stats3 = Cachex.stats(cache3)
+    stats4 = Cachex.stats(cache4)
 
     # remove the metadata from the stats
     stats1 = Map.delete(stats1, :meta)

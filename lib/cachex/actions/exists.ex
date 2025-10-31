@@ -21,5 +21,5 @@ defmodule Cachex.Actions.Exists do
   `Cachex.Actions` module and just cast the result to a boolean.
   """
   def execute(cache() = cache, key, _options),
-    do: {:ok, !!Actions.read(cache, key)}
+    do: !!Actions.read(cache, key)
 end

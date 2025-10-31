@@ -33,7 +33,7 @@ defmodule Cachex.Stats do
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec for_cache(cache :: Cachex.t()) :: {:ok, map()} | {:error, atom()}
+  @spec for_cache(cache :: Cachex.t()) :: map() | {:error, atom()}
   def for_cache(cache() = cache) do
     case Hook.locate(cache, __MODULE__) do
       nil ->
@@ -66,7 +66,7 @@ defmodule Cachex.Stats do
   #
   # This will just return the internal state to the calling process.
   def handle_call(:retrieve, _ctx, stats),
-    do: {:reply, {:ok, stats}, stats}
+    do: {:reply, stats, stats}
 
   @doc false
   # Registers an action against the stats container.
@@ -108,31 +108,31 @@ defmodule Cachex.Stats do
   # This will increment the hits/misses of the stats container, based on
   # whether the value pulled back is `nil` or not (as `nil` is treated as
   # a missing value through Cachex as of v3).
-  defp register_action(stats, {:get, _args}, {_tag, nil}),
+  defp register_action(stats, {:get, _args}, nil),
     do: increment(stats, [:misses], 1)
 
-  defp register_action(stats, {:get, _args}, {_tag, _value}),
+  defp register_action(stats, {:get, _args}, _value),
     do: increment(stats, [:hits], 1)
 
   # Handles registration of `put()` command calls.
   #
   # These calls will just increment the `:writes` count of the statistics
   # container, but only if the write succeeded (as determined by the value).
-  defp register_action(stats, {:put, _args}, {_tag, true}),
+  defp register_action(stats, {:put, _args}, true),
     do: increment(stats, [:writes], 1)
 
   # Handles registration of `put_many()` command calls.
   #
   # This is the same as the `put()` handler except that it will count the
   # number of pairs being processed when incrementing the `:writes` key.
-  defp register_action(stats, {:put_many, [pairs | _]}, {_tag, true}),
+  defp register_action(stats, {:put_many, [pairs | _]}, true),
     do: increment(stats, [:writes], length(pairs))
 
   # Handles registration of `del()` command calls.
   #
   # Cache deletions will increment the `:evictions` key count, based on
   # whether the call succeeded (i.e. the result value is truthy).
-  defp register_action(stats, {:del, _args}, {_tag, true}),
+  defp register_action(stats, {:del, _args}, true),
     do: increment(stats, [:evictions], 1)
 
   # Handles registration of `purge()` command calls.
@@ -140,7 +140,7 @@ defmodule Cachex.Stats do
   # A purge call will increment the `:evictions` key using the count of
   # purged keys as the number to increment by. The `:expirations` key
   # will also be incremented in the same way, to surface TTL deletions.
-  defp register_action(stats, {:purge, _args}, {_status, count}) do
+  defp register_action(stats, {:purge, _args}, count) do
     stats
     |> increment([:expirations], count)
     |> increment([:evictions], count)
@@ -152,6 +152,9 @@ defmodule Cachex.Stats do
   # more complicated, and this will keep down the noise of head matches.
   defp register_action(stats, {:fetch, _args}, {label, _value}),
     do: register_fetch(stats, label)
+
+  defp register_action(stats, {:fetch, _args}, _value),
+    do: register_fetch(stats, :ok)
 
   # Handles registration of `incr()` command calls.
   #
@@ -171,24 +174,24 @@ defmodule Cachex.Stats do
   #
   # This will increment the `:updates` key if the value signals that the
   # update was successful, otherwise nothing will be modified.
-  defp register_action(stats, {:update, _args}, {_tag, true}),
+  defp register_action(stats, {:update, _args}, true),
     do: increment(stats, [:updates], 1)
 
   # Handles registration of `clear()` command calls.
   #
   # This operates in the same way as the `del()` call statistics, except that
   # a count is received in the result, and is used to increment by instead.
-  defp register_action(stats, {:clear, _args}, {_tag, count}),
+  defp register_action(stats, {:clear, _args}, count),
     do: increment(stats, [:evictions], count)
 
   # Handles registration of `exists?()` command calls.
   #
   # The result boolean will determine whether this increments the `:hits` or
   # `:misses` key of the main statistics container (true/false respectively).
-  defp register_action(stats, {:exists?, _args}, {_tag, true}),
+  defp register_action(stats, {:exists?, _args}, true),
     do: increment(stats, [:hits], 1)
 
-  defp register_action(stats, {:exists?, _args}, {_tag, false}),
+  defp register_action(stats, {:exists?, _args}, false),
     do: increment(stats, [:misses], 1)
 
   # Handles registration of `take()` command calls.
@@ -196,7 +199,7 @@ defmodule Cachex.Stats do
   # Take calls are a little complicated because they need to increment the
   # global eviction count (due to removal) but also increment the global
   # hit/miss count, in addition to the status in the `:take` namespace.
-  defp register_action(stats, {:take, _args}, {_tag, nil}),
+  defp register_action(stats, {:take, _args}, nil),
     do: increment(stats, [:misses], 1)
 
   defp register_action(stats, {:take, _args}, _result) do
@@ -208,14 +211,17 @@ defmodule Cachex.Stats do
   # Handles registration of `invoke()` command calls.
   #
   # This will increment a custom invocations map to track custom command calls.
-  defp register_action(stats, {:invoke, [cmd | _args]}, {:ok, _value}),
+  defp register_action(stats, {:invoke, _args}, {:error, :invalid_command}),
+    do: stats
+
+  defp register_action(stats, {:invoke, [cmd | _args]}, _any),
     do: increment(stats, [:invocations, cmd], 1)
 
   # Handles registration of updating command calls.
   #
   # All of the matches calls (dictated by @update_calls) will increment the main
   # `:updates` key in the statistics map only if the value is received as `true`.
-  defp register_action(stats, {action, _args}, {_tag, true})
+  defp register_action(stats, {action, _args}, true)
        when action in @update_calls,
        do: increment(stats, [:updates], 1)
 
@@ -254,7 +260,10 @@ defmodule Cachex.Stats do
   # basically just a sign flip). It's split out as it's a little more involved
   # than a basic stat count as we need to reverse the arguments to determine if
   # there was a new write or an update (based on the initial/amount arguments).
-  defp register_increment(stats, {_type, args}, {_tag, value}, offset) do
+  defp register_increment(stats, _call, {:error, _reason}, _offset),
+    do: stats
+
+  defp register_increment(stats, {_type, args}, value, offset) do
     amount = Enum.at(args, 1, 1)
     options = Enum.at(args, 2, [])
 

@@ -30,18 +30,15 @@ defmodule Cachex.Actions.Save do
     file = File.open!(path, [:write, :compressed])
     buffer = Options.get(options, :buffer, &is_positive_integer/1, 25)
 
-    {:ok, stream} =
-      options
-      |> Keyword.get(:local)
-      |> init_stream(router, cache, buffer)
-
-    stream
+    options
+    |> Keyword.get(:local)
+    |> init_stream(router, cache, buffer)
     |> Stream.chunk_every(buffer)
     |> Stream.map(&handle_batch/1)
     |> Enum.each(&IO.binwrite(file, &1))
 
     with :ok <- File.close(file) do
-      {:ok, true}
+      true
     end
   rescue
     File.Error -> error(:unreachable_file)
@@ -52,8 +49,7 @@ defmodule Cachex.Actions.Save do
   ###############
 
   # Use a local stream to lazily walk through records on a local cache.
-  defp init_stream(local, router, cache, buffer)
-       when local or router == Local do
+  defp init_stream(local, router, cache, buffer) when local or router == Local do
     options =
       :local
       |> const()

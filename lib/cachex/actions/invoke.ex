@@ -42,8 +42,9 @@ defmodule Cachex.Actions.Invoke do
   # It should be noted that expirations are taken into account, and nil will be
   # passed through in expired/missing cases.
   defp invoke(command(type: :read, execute: exec), cache, key) do
-    {_status_, value} = Cachex.get(cache, key, [])
-    {:ok, exec.(value)}
+    cache
+    |> Cachex.get(key, [])
+    |> exec.()
   end
 
   # Executes a write command on the backing cache table.
@@ -54,7 +55,7 @@ defmodule Cachex.Actions.Invoke do
   # is returned (i.e. a non-Tuple, or a Tuple with invalid size).
   defp invoke(command(type: :write, execute: exec), cache() = cache, key) do
     Locksmith.transaction(cache, [key], fn ->
-      {_label, value} = Cachex.get(cache, key, [])
+      value = Cachex.get(cache, key, [])
       {return, tempv} = exec.(value)
 
       tempv == value ||
@@ -64,7 +65,7 @@ defmodule Cachex.Actions.Invoke do
           [cache, key, tempv, []]
         )
 
-      {:ok, return}
+      return
     end)
   end
 

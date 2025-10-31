@@ -39,7 +39,7 @@ defmodule Cachex.Actions.Incr do
 
     Locksmith.write(cache, [key], fn ->
       try do
-        {:ok, :ets.update_counter(name, key, modify, default)}
+        :ets.update_counter(name, key, modify, default)
       rescue
         _ -> error(:non_numeric_value)
       end

@@ -6,7 +6,7 @@ defmodule Cachex.Router.LocalTest do
     cache = TestUtils.create_cache(router: Cachex.Router.Local)
 
     # convert the name to a cache and sort
-    cache = Services.Overseer.retrieve(cache)
+    cache = Services.Overseer.lookup(cache)
 
     # fetch the router state after initialize
     cache(router: router(state: state)) = cache

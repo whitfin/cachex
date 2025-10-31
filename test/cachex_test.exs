@@ -153,13 +153,15 @@ defmodule CachexTest do
     # fetch a name
     name = TestUtils.create_name()
 
-    # try to execute a cache action against a missing cache and an invalid name
-    {:error, reason1} = Cachex.execute(name, & &1)
-    {:error, reason2} = Cachex.execute("na", & &1)
+    # try to execute a cache action against a missing cache
+    assert_raise ArgumentError, ~r/no cache available:/, fn ->
+      Cachex.execute(name, & &1)
+    end
 
-    # match the reason to be more granular
-    assert(reason1 == :no_cache)
-    assert(reason2 == :no_cache)
+    # try to execute a cache action against an invalid name
+    assert_raise ArgumentError, ~r/no cache available:/, fn ->
+      Cachex.execute("na", & &1)
+    end
   end
 
   # This tests ensures that we provide delegate functions for Cachex functions
@@ -200,11 +202,6 @@ defmodule CachexTest do
 
     # validate an unsafe call to test handling
     assert_raise(Cachex.Error, fn ->
-      Cachex.get!(:missing_cache, "key")
-    end)
-
-    # validate an unsafe call to test handling
-    assert_raise(Cachex.Error, fn ->
       Cachex.transaction!(cache, ["key"], fn _key ->
         raise RuntimeError, message: "Ding dong! The witch is dead!"
       end)
@@ -242,13 +239,13 @@ defmodule CachexTest do
     {:ok, _pid} = Cachex.start_link(name: :child_spec6, transactions: true)
 
     # verify the caches that are created only from a name
-    {:ok, cache()} = Cachex.inspect(:child_spec1, :cache)
-    {:ok, cache()} = Cachex.inspect(:child_spec3, :cache)
-    {:ok, cache()} = Cachex.inspect(:child_spec5, :cache)
+    cache() = Cachex.inspect(:child_spec1, :cache)
+    cache() = Cachex.inspect(:child_spec3, :cache)
+    cache() = Cachex.inspect(:child_spec5, :cache)
 
     # double check those with options provided by double checking the value
-    {:ok, cache(transactions: true)} = Cachex.inspect(:child_spec2, :cache)
-    {:ok, cache(transactions: true)} = Cachex.inspect(:child_spec4, :cache)
-    {:ok, cache(transactions: true)} = Cachex.inspect(:child_spec6, :cache)
+    cache(transactions: true) = Cachex.inspect(:child_spec2, :cache)
+    cache(transactions: true) = Cachex.inspect(:child_spec4, :cache)
+    cache(transactions: true) = Cachex.inspect(:child_spec6, :cache)
   end
 end

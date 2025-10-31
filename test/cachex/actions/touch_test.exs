@@ -13,11 +13,11 @@ defmodule Cachex.Actions.TouchTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # pull back the state
-    state = Services.Overseer.retrieve(cache)
+    state = Services.Overseer.lookup(cache)
 
     # add some keys to the cache
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2, expire: 1000)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2, expire: 1000)
 
     # clear messages
     TestUtils.flush()
@@ -30,30 +30,23 @@ defmodule Cachex.Actions.TouchTest do
       Cachex.Actions.read(state, 2)
 
     # the first TTL should be nil
-    assert(expiration1 == nil)
+    assert expiration1 == nil
 
     # the second TTL should be roughly 1000
-    assert_in_delta(expiration2, 995, 6)
+    assert_in_delta expiration2, 995, 6
 
     # wait for 50ms
     :timer.sleep(50)
 
     # touch the keys
-    touch1 = Cachex.touch(cache, 1)
-    touch2 = Cachex.touch(cache, 2)
-    touch3 = Cachex.touch(cache, 3)
-
-    # the first two writes should succeed
-    assert(touch1 == {:ok, true})
-    assert(touch2 == {:ok, true})
-
-    # the third shouldn't, as it's missing
-    assert(touch3 == {:ok, false})
+    assert Cachex.touch(cache, 1)
+    assert Cachex.touch(cache, 2)
+    refute Cachex.touch(cache, 3)
 
     # verify the hooks were updated with the message
-    assert_receive({{:touch, [1, []]}, ^touch1})
-    assert_receive({{:touch, [2, []]}, ^touch2})
-    assert_receive({{:touch, [3, []]}, ^touch3})
+    assert_receive {{:touch, [1, []]}, true}
+    assert_receive {{:touch, [2, []]}, true}
+    assert_receive {{:touch, [3, []]}, false}
 
     # retrieve the raw records again
     entry(modified: modified3, expiration: expiration3) =
@@ -63,22 +56,19 @@ defmodule Cachex.Actions.TouchTest do
       Cachex.Actions.read(state, 2)
 
     # the first expiration should still be nil
-    assert(expiration3 == nil)
+    assert expiration3 == nil
 
     # the first touch time should be roughly 50ms after the first one
-    assert_in_delta(modified3, modified1 + 60, 11)
+    assert_in_delta modified3, modified1 + 60, 11
 
     # the second expiration should be roughly 50ms lower than the first
-    assert_in_delta(expiration4, expiration2 - 60, 11)
+    assert_in_delta expiration4, expiration2 - 60, 11
 
     # the second touch time should also be 50ms after the first one
-    assert_in_delta(modified4, modified2 + 60, 11)
-
-    # for good measure, retrieve the second expiration
-    expiration5 = Cachex.ttl!(cache, 2)
+    assert_in_delta modified4, modified2 + 60, 11
 
     # it should be roughly 945ms left
-    assert_in_delta(expiration5, 940, 11)
+    assert_in_delta Cachex.ttl(cache, 2), 940, 11
   end
 
   # This test verifies that this action is correctly distributed across
@@ -90,38 +80,34 @@ defmodule Cachex.Actions.TouchTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    {:ok, true} = Cachex.put(cache, 1, 1)
-    {:ok, true} = Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 2, 2)
 
     # wait a little
     :timer.sleep(10)
 
-    # pull back the records inserted so far
-    {:ok, export1} = Cachex.export(cache)
-
     # sort to guarantee we're checking well
-    [record1, record2] = Enum.sort(export1)
+    [record1, record2] =
+      cache |> Cachex.export() |> Enum.sort()
 
     # unpack the records touch time
     entry(modified: modified1) = record1
     entry(modified: modified2) = record2
 
     # now touch both keys
-    {:ok, true} = Cachex.touch(cache, 1)
-    {:ok, true} = Cachex.touch(cache, 2)
-
-    # pull back the records after the touchs
-    {:ok, export2} = Cachex.export(cache)
+    assert Cachex.touch(cache, 1)
+    assert Cachex.touch(cache, 2)
 
     # sort to guarantee we're checking well
-    [record3, record4] = Enum.sort(export2)
+    [record3, record4] =
+      cache |> Cachex.export() |> Enum.sort()
 
     # unpack the records touch time
     entry(modified: modified3) = record3
     entry(modified: modified4) = record4
 
     # new modified should be larger than old
-    assert(modified3 > modified1)
-    assert(modified4 > modified2)
+    assert modified3 > modified1
+    assert modified4 > modified2
   end
 end

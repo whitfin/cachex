@@ -32,7 +32,7 @@ defmodule Cachex.Actions.Purge do
       filter = Query.expired()
       clause = Query.build(where: filter, output: true)
 
-      {:ok, :ets.select_delete(name, clause)}
+      :ets.select_delete(name, clause)
     end)
   end
 end

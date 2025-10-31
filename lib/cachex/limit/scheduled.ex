@@ -52,7 +52,7 @@ defmodule Cachex.Limit.Scheduled do
   #
   # This will execute a bounds check on a cache and schedule a new check.
   def handle_info(:policy_check, {cache, {size, options, scheduling}} = args) do
-    {:ok, true} = Cachex.prune(cache, size, options)
+    true = Cachex.prune(cache, size, options)
     schedule(scheduling) && {:noreply, args}
   end
 

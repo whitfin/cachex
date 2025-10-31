@@ -36,7 +36,6 @@ defmodule Cachex.Actions.Stream do
         options
         |> Options.get(:buffer, &is_positive_integer/1, 25)
         |> init_stream(name, spec)
-        |> wrap(:ok)
 
       {:error, _result} ->
         error(:invalid_match)

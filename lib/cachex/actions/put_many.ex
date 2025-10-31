@@ -56,7 +56,7 @@ defmodule Cachex.Actions.PutMany do
   end
 
   defp map_entries(_exp, [], [], _entries),
-    do: {:ok, false}
+    do: false
 
   defp map_entries(_exp, [], keys, entries),
     do: {:ok, keys, entries}
