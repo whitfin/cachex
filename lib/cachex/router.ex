@@ -244,55 +244,35 @@ defmodule Cachex.Router do
     # fetch the nodes from the cluster state
     cache(router: router(module: router, state: state)) = cache
 
+    # execution on the local node to combine
+    result = route_local(cache, module, call)
+
     # all calls have options we can use
     options = List.last(arguments)
 
     # can force local node setting local: true
-    results =
-      case Keyword.get(options, :local) do
-        true ->
-          []
+    case Keyword.get(options, :local) do
+      true ->
+        result
 
-        _any ->
-          # don't want to execute on the local node
-          other_nodes =
-            state
-            |> router.nodes()
-            |> List.delete(node())
+      _any ->
+        # don't want to execute on the local node
+        other_nodes =
+          state
+          |> router.nodes()
+          |> List.delete(node())
 
-          # execute the call on all other nodes
-          {results, _} =
-            :rpc.multicall(
-              other_nodes,
-              module,
-              :execute,
-              [cache | arguments]
-            )
+        # execute the call on all other nodes
+        {results, _} =
+          :rpc.multicall(
+            other_nodes,
+            module,
+            :execute,
+            [cache | arguments]
+          )
 
-          results
-      end
-
-    # execution on the local node, using the local macros and then unpack
-    result = route_local(cache, module, call)
-    tagged = match?({:ok, _}, result)
-
-    mapped = fn
-      {:ok, v} -> v
-      v -> v
-    end
-
-    # TODO: patched for migration
-    result = mapped.(result)
-    results = Enum.map(results, mapped)
-
-    # results merge
-    merge_result = Enum.reduce(results, result, &result_merge/2)
-
-    # return after merge
-    if tagged do
-      {:ok, merge_result}
-    else
-      merge_result
+        # run result merging to blend both sets
+        Enum.reduce(results, result, &result_merge/2)
     end
   end
 

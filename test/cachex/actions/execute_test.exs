@@ -19,6 +19,6 @@ defmodule Cachex.Actions.ExecuteTest do
       end)
 
     # verify the block returns correct values
-    assert result == {:ok, [true, true, true]}
+    assert result == [true, true, true]
   end
 end

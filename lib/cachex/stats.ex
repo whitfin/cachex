@@ -33,7 +33,7 @@ defmodule Cachex.Stats do
   @doc """
   Retrieves the latest statistics for a cache.
   """
-  @spec for_cache(cache :: Cachex.t()) :: {:ok, map()} | {:error, atom()}
+  @spec for_cache(cache :: Cachex.t()) :: map() | {:error, atom()}
   def for_cache(cache() = cache) do
     case Hook.locate(cache, __MODULE__) do
       nil ->
@@ -66,7 +66,7 @@ defmodule Cachex.Stats do
   #
   # This will just return the internal state to the calling process.
   def handle_call(:retrieve, _ctx, stats),
-    do: {:reply, {:ok, stats}, stats}
+    do: {:reply, stats, stats}
 
   @doc false
   # Registers an action against the stats container.

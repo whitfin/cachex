@@ -23,21 +23,16 @@ defmodule Cachex.StatsTest do
     # clear the cache values
     assert Cachex.clear(cache) == 5
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 6,
-        evictions: 5,
-        writes: 5,
-        calls: %{
-          clear: 1,
-          put: 5
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 6,
+             evictions: 5,
+             writes: 5,
+             calls: %{
+               clear: 1,
+               put: 5
+             }
+           }
   end
 
   # This test ensures that delete actions are correctly registered. We increment
@@ -61,21 +56,16 @@ defmodule Cachex.StatsTest do
     assert Cachex.del(cache, 0)
     assert Cachex.del(cache, 1)
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 4,
-        evictions: 2,
-        writes: 2,
-        calls: %{
-          del: 2,
-          put: 2
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 4,
+             evictions: 2,
+             writes: 2,
+             calls: %{
+               del: 2,
+               put: 2
+             }
+           }
   end
 
   # This test verifies that exists actions correctly increment the necessary keys
@@ -97,24 +87,19 @@ defmodule Cachex.StatsTest do
     assert Cachex.exists?(cache, 1)
     refute Cachex.exists?(cache, 2)
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 3,
-        writes: 1,
-        hits: 1,
-        misses: 1,
-        hit_rate: 50.0,
-        miss_rate: 50.0,
-        calls: %{
-          exists?: 2,
-          put: 1
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 3,
+             writes: 1,
+             hits: 1,
+             misses: 1,
+             hit_rate: 50.0,
+             miss_rate: 50.0,
+             calls: %{
+               exists?: 2,
+               put: 1
+             }
+           }
   end
 
   # Retrieving a key will increment the hit/miss counts
@@ -135,24 +120,19 @@ defmodule Cachex.StatsTest do
     assert Cachex.get(cache, 1) == 1
     assert Cachex.get(cache, 2) == nil
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 3,
-        writes: 1,
-        hits: 1,
-        misses: 1,
-        hit_rate: 50.0,
-        miss_rate: 50.0,
-        calls: %{
-          get: 2,
-          put: 1
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 3,
+             writes: 1,
+             hits: 1,
+             misses: 1,
+             hit_rate: 50.0,
+             miss_rate: 50.0,
+             calls: %{
+               get: 2,
+               put: 1
+             }
+           }
   end
 
   # Retrieving a key will increment the hit/miss/load counts based on whether the
@@ -175,25 +155,20 @@ defmodule Cachex.StatsTest do
     assert Cachex.fetch(cache, 2, fn _ -> {:commit, "na"} end) == {:commit, "na"}
     assert Cachex.fetch(cache, 3, fn _ -> {:ignore, "na"} end) == {:ignore, "na"}
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 4,
-        fetches: 2,
-        writes: 2,
-        hits: 1,
-        hit_rate: 1 / 3 * 100,
-        misses: 2,
-        miss_rate: 1 / 3 * 2 * 100,
-        calls: %{
-          fetch: 3,
-          put: 1
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 4,
+             fetches: 2,
+             writes: 2,
+             hits: 1,
+             hit_rate: 1 / 3 * 100,
+             misses: 2,
+             miss_rate: 1 / 3 * 2 * 100,
+             calls: %{
+               fetch: 3,
+               put: 1
+             }
+           }
   end
 
   # These actions can update if the key exists, or set if the key does not exist.
@@ -217,21 +192,16 @@ defmodule Cachex.StatsTest do
     assert Cachex.decr(cache, 2, 3, default: -2) == -5
     assert Cachex.decr(cache, 2) == -6
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 4,
-        updates: 2,
-        writes: 2,
-        calls: %{
-          incr: 2,
-          decr: 2
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 4,
+             updates: 2,
+             writes: 2,
+             calls: %{
+               incr: 2,
+               decr: 2
+             }
+           }
   end
 
   test "registering invoke actions" do
@@ -265,31 +235,26 @@ defmodule Cachex.StatsTest do
     assert Cachex.invoke(cache, :last, "list") == 3
     assert Cachex.invoke(cache, :lpop, "list") == 1
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 6,
-        updates: 1,
-        writes: 1,
-        hits: 2,
-        hit_rate: 100.0,
-        misses: 0,
-        miss_rate: 0.0,
-        invocations: %{
-          last: 1,
-          lpop: 1
-        },
-        calls: %{
-          get: 2,
-          invoke: 2,
-          put: 1,
-          update: 1
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 6,
+             updates: 1,
+             writes: 1,
+             hits: 2,
+             hit_rate: 100.0,
+             misses: 0,
+             miss_rate: 0.0,
+             invocations: %{
+               last: 1,
+               lpop: 1
+             },
+             calls: %{
+               get: 2,
+               invoke: 2,
+               put: 1,
+               update: 1
+             }
+           }
   end
 
   # Very similar to the clear test above, with the same behaviour except for
@@ -315,22 +280,17 @@ defmodule Cachex.StatsTest do
     # purge the cache values
     assert Cachex.purge(cache) == 5
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        expirations: 5,
-        operations: 6,
-        evictions: 5,
-        writes: 5,
-        calls: %{
-          purge: 1,
-          put: 5
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             expirations: 5,
+             operations: 6,
+             evictions: 5,
+             writes: 5,
+             calls: %{
+               purge: 1,
+               put: 5
+             }
+           }
   end
 
   # This test ensures that a successful write will increment the setCount in the
@@ -350,19 +310,14 @@ defmodule Cachex.StatsTest do
       assert Cachex.put(cache, i, i)
     end
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 5,
-        writes: 5,
-        calls: %{
-          put: 5
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 5,
+             writes: 5,
+             calls: %{
+               put: 5
+             }
+           }
   end
 
   # This operates in the same way as the test cases above, but verifies that
@@ -385,19 +340,14 @@ defmodule Cachex.StatsTest do
              {5, 5}
            ])
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 1,
-        writes: 5,
-        calls: %{
-          put_many: 1
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 1,
+             writes: 5,
+             calls: %{
+               put_many: 1
+             }
+           }
   end
 
   # This test verifies the take action and the incremenation of the necessary keys.
@@ -420,25 +370,20 @@ defmodule Cachex.StatsTest do
     assert Cachex.take(cache, 1) == 1
     assert Cachex.take(cache, 2) == nil
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 3,
-        evictions: 1,
-        writes: 1,
-        hits: 1,
-        hit_rate: 50.0,
-        misses: 1,
-        miss_rate: 50.0,
-        calls: %{
-          put: 1,
-          take: 2
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 3,
+             evictions: 1,
+             writes: 1,
+             hits: 1,
+             hit_rate: 50.0,
+             misses: 1,
+             miss_rate: 50.0,
+             calls: %{
+               put: 1,
+               take: 2
+             }
+           }
   end
 
   # This test verifies the update actions and the incremenation of the necessary keys.
@@ -455,27 +400,22 @@ defmodule Cachex.StatsTest do
     assert Cachex.put(cache, 1, 1)
     assert Cachex.touch(cache, 1)
 
-    # retrieve the statistics
-    {:ok, stats} = stats_no_meta(cache)
-
     # verify the statistics
-    assert(
-      stats == %{
-        operations: 2,
-        updates: 1,
-        writes: 1,
-        calls: %{
-          put: 1,
-          touch: 1
-        }
-      }
-    )
+    assert stats_no_meta(cache) == %{
+             operations: 2,
+             updates: 1,
+             writes: 1,
+             calls: %{
+               put: 1,
+               touch: 1
+             }
+           }
   end
 
   # Retrieves stats with no :meta field
   defp stats_no_meta(cache) do
-    with {:ok, stats} <- Cachex.stats(cache) do
-      {:ok, Map.delete(stats, :meta)}
+    with %{} = stats <- Cachex.stats(cache) do
+      Map.delete(stats, :meta)
     end
   end
 end
