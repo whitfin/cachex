@@ -43,13 +43,9 @@ defmodule Cachex.Actions.TransactionTest do
     assert result1 == {:error, "Error message"}
 
     # ensure a new transaction executes normally
-    result2 =
-      Cachex.transaction(cache, [], fn ->
-        Cachex.Services.Locksmith.transaction?()
-      end)
-
-    # verify the results are correct
-    assert result2 == {:ok, true}
+    assert Cachex.transaction(cache, [], fn ->
+             Cachex.Services.Locksmith.transaction?()
+           end)
   end
 
   # This test makes sure that a cache with transactions disabled will automatically
@@ -85,11 +81,12 @@ defmodule Cachex.Actions.TransactionTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 2 & 3 hash to the same slots
-    {:ok, result} = Cachex.transaction(cache, [], &:erlang.phash2/1)
-    {:ok, ^result} = Cachex.transaction(cache, [2, 3], &:erlang.phash2/1)
+    result1 = Cachex.transaction(cache, [], &:erlang.phash2/1)
+    result2 = Cachex.transaction(cache, [2, 3], &:erlang.phash2/1)
 
     # check the result phashed ok
-    assert result > 0 && is_integer(result)
+    assert result1 > 0 && is_integer(result1)
+    assert result1 == result2
   end
 
   # This test verifies that all keys in a put_many/3 must hash to the

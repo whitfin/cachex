@@ -75,10 +75,10 @@ defmodule Cachex.Actions.StatsTest do
     assert Cachex.fetch(cache4, 1, & &1) == {:commit, 1}
 
     # retrieve all cache rates
-    stats1 = Cachex.stats!(cache1)
-    stats2 = Cachex.stats!(cache2)
-    stats3 = Cachex.stats!(cache3)
-    stats4 = Cachex.stats!(cache4)
+    stats1 = Cachex.stats(cache1)
+    stats2 = Cachex.stats(cache2)
+    stats3 = Cachex.stats(cache3)
+    stats4 = Cachex.stats(cache4)
 
     # remove the metadata from the stats
     stats1 = Map.delete(stats1, :meta)

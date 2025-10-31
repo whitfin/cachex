@@ -20,22 +20,19 @@ defmodule Cachex.Actions.Stats do
 
   If the provided cache does not have statistics enabled, an error will be returned.
   """
-  @spec execute(Cachex.t(), Keyword.t()) ::
-          {:ok, %{}} | {:error, :stats_disabled}
   def execute(cache() = cache, _options) do
-    with {:ok, stats} <- Stats.for_cache(cache) do
+    with %{} = stats <- Stats.for_cache(cache) do
       hits_count = Map.get(stats, :hits, 0)
       miss_count = Map.get(stats, :misses, 0)
 
       case hits_count + miss_count do
         0 ->
-          {:ok, stats}
+          stats
 
         v ->
           v
           |> generate_rates(hits_count, miss_count)
           |> Map.merge(stats)
-          |> wrap(:ok)
       end
     end
   end
