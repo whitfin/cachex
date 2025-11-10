@@ -113,21 +113,18 @@ defmodule Cachex.Router do
   """
   defmacro route(cache, {action, _arguments} = call) do
     # coveralls-ignore-start
-    act_name =
+    name =
       action
       |> Kernel.to_string()
       |> String.replace_trailing("?", "")
       |> Macro.camelize()
 
-    act_join = :"Elixir.Cachex.Actions.#{act_name}"
+    module = :"Elixir.Cachex.Actions.#{name}"
     # coveralls-ignore-stop
 
     quote do
       Overseer.with(unquote(cache), fn cache ->
-        call = unquote(call)
-        module = unquote(act_join)
-
-        Router.route(cache, module, call)
+        Router.route(cache, unquote(module), unquote(call))
       end)
     end
   end
@@ -232,7 +229,6 @@ defmodule Cachex.Router do
   # actions which merge outputs
   @merge_actions [
     :clear,
-    :count,
     :empty?,
     :export,
     :import,
