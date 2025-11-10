@@ -19,7 +19,7 @@ defmodule Cachex.Actions.EmptyTest do
     assert_receive {{:empty?, [[]]}, true}
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == :ok
 
     # check if the cache is empty
     refute Cachex.empty?(cache)
@@ -39,8 +39,8 @@ defmodule Cachex.Actions.EmptyTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # check if the cache is empty, locally and remote
     refute Cachex.empty?(cache, local: true)

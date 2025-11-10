@@ -13,7 +13,7 @@ defmodule Cachex.Actions.Del do
   @doc """
   Removes an entry from a cache by key.
 
-  This command will always return a true value, signalling that the key no longer
+  This command will always return an :ok value, signalling that the key no longer
   exists in the cache (regardless of whether it previously existed).
 
   Removal runs in a lock aware context, to ensure that we're not removing a key
@@ -22,6 +22,7 @@ defmodule Cachex.Actions.Del do
   def execute(cache(name: name) = cache, key, _options) do
     Locksmith.write(cache, [key], fn ->
       :ets.delete(name, key)
+      :ok
     end)
   end
 end

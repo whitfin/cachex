@@ -12,8 +12,8 @@ defmodule Cachex.Actions.ExistsTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
 
     # let TTLs clear
     :timer.sleep(2)
@@ -49,8 +49,8 @@ defmodule Cachex.Actions.ExistsTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # check the results of the calls across nodes
     assert Cachex.exists?(cache, 1)

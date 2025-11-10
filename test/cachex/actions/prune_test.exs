@@ -7,14 +7,14 @@ defmodule Cachex.Actions.PruneTest do
 
     # insert 100 keys
     for i <- 1..100 do
-      assert Cachex.put(cache, i, i)
+      assert Cachex.put(cache, i, i) == :ok
     end
 
     # guarantee we have 100 keys in the cache
     assert Cachex.size(cache) == 100
 
     # trigger a pruning down to 50 keys
-    assert Cachex.prune(cache, 50)
+    assert Cachex.prune(cache, 50) == :ok
 
     # verify that we're down to 50 keys
     assert Cachex.size(cache) == 45
@@ -26,14 +26,14 @@ defmodule Cachex.Actions.PruneTest do
 
     # insert 100 keys
     for i <- 1..100 do
-      assert Cachex.put(cache, i, i)
+      assert Cachex.put(cache, i, i) == :ok
     end
 
     # guarantee we have 100 keys in the cache
     assert Cachex.size(cache) == 100
 
     # trigger a pruning down to 50 keys, reclaiming 10%
-    assert Cachex.prune(cache, 50, reclaim: 0)
+    assert Cachex.prune(cache, 50, reclaim: 0) == :ok
 
     # verify that we're down to 50 keys
     assert Cachex.size(cache) == 50
@@ -55,7 +55,7 @@ defmodule Cachex.Actions.PruneTest do
     # set 50 keys without ttl
     for x <- 1..50 do
       # set the key
-      assert Cachex.put(state, x, x)
+      assert Cachex.put(state, x, x) == :ok
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
@@ -64,20 +64,20 @@ defmodule Cachex.Actions.PruneTest do
     # set a more recent 50 keys
     for x <- 51..100 do
       # set the key
-      assert Cachex.put(state, x, x, expire: 1)
+      assert Cachex.put(state, x, x, expire: 1) == :ok
 
       # tick to make sure each has a new touch time
       :timer.sleep(1)
     end
 
     # retrieve the cache size
-    size1 = Cachex.size!(cache)
+    size1 = Cachex.size(cache)
 
     # verify the cache size
     assert(size1 == 100)
 
     # add a new key to the cache to trigger oversize
-    assert Cachex.put(state, 101, 101)
+    assert Cachex.put(state, 101, 101) == :ok
 
     # trigger the cache pruning down to 100 records
     assert Cachex.prune(cache, 100, reclaim: 0.3, buffer: -1)

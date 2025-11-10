@@ -7,9 +7,9 @@ defmodule Cachex.Actions.ExportTest do
     cache = TestUtils.create_cache()
 
     # fill with some items
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
-    assert Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
+    assert Cachex.put(cache, 3, 3) == :ok
 
     # export the items
     export = Cachex.export(cache)
@@ -29,8 +29,8 @@ defmodule Cachex.Actions.ExportTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # retrieve the keys from both local & remote
     export1 = Cachex.export(cache, local: true)

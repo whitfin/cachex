@@ -63,11 +63,11 @@ defmodule Cachex.Actions.StatsTest do
     assert Cachex.get(cache1, 1) == nil
 
     # set cache2 to 100% hits
-    assert Cachex.put(cache2, 1, 1)
+    assert Cachex.put(cache2, 1, 1) == :ok
     assert Cachex.get(cache2, 1) == 1
 
     # set cache3 to be 50% each way
-    assert Cachex.put(cache3, 1, 1)
+    assert Cachex.put(cache3, 1, 1) == :ok
     assert Cachex.get(cache3, 1) == 1
     assert Cachex.get(cache3, 2) == nil
 

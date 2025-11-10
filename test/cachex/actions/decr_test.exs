@@ -37,7 +37,7 @@ defmodule Cachex.Actions.DecrTest do
     cache = TestUtils.create_cache()
 
     # set a non-numeric value
-    assert Cachex.put(cache, "key", "value")
+    assert Cachex.put(cache, "key", "value") == :ok
 
     # try to increment the value, we should receive an error
     assert Cachex.decr(cache, "key", 1) == {:error, :non_numeric_value}

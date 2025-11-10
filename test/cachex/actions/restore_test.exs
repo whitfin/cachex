@@ -14,15 +14,15 @@ defmodule Cachex.Actions.RestoreTest do
     start = now()
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
-    assert Cachex.put(cache, 3, 3, expire: 10_000)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
+    assert Cachex.put(cache, 3, 3, expire: 10_000) == :ok
 
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file
-    assert Cachex.save(cache, path)
+    assert Cachex.save(cache, path) == :ok
 
     # verify the result and clearance
     assert Cachex.clear(cache) == 3

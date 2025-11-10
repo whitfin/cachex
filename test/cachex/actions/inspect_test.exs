@@ -10,7 +10,7 @@ defmodule Cachex.Actions.InspectTest do
 
     # set several values in the cache
     for x <- 1..3 do
-      assert Cachex.put(cache, "key#{x}", "value#{x}", expire: 1)
+      assert Cachex.put(cache, "key#{x}", "value#{x}", expire: 1) == :ok
     end
 
     # make sure they expire

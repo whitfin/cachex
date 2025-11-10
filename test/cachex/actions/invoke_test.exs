@@ -17,11 +17,11 @@ defmodule Cachex.Actions.InvokeTest do
       )
 
     # set a list inside the cache
-    assert Cachex.put(cache, "list", [1, 2, 3, 4])
+    assert Cachex.put(cache, "list", [1, 2, 3, 4]) == :ok
 
     # retrieve the raw record
     entry(key: "list", modified: modified) =
-      Cachex.inspect!(cache, {:entry, "list"})
+      Cachex.inspect(cache, {:entry, "list"})
 
     # verify that all results are as expected
     assert Cachex.invoke(cache, :lpop, "list") == 1
@@ -30,7 +30,7 @@ defmodule Cachex.Actions.InvokeTest do
     assert Cachex.invoke(cache, :rpop, "list") == 3
 
     # verify the modified time was unchanged
-    assert Cachex.inspect!(cache, {:entry, "list"}) ==
+    assert Cachex.inspect(cache, {:entry, "list"}) ==
              entry(key: "list", modified: modified, value: [])
 
     # pop some extras to test avoiding writes
@@ -53,7 +53,7 @@ defmodule Cachex.Actions.InvokeTest do
     # define a validation function
     validate = fn list, expected ->
       # set a list inside the cache
-      assert Cachex.put(cache, "list", list)
+      assert Cachex.put(cache, "list", list) == :ok
 
       # retrieve the last value, compare with the expected
       assert Cachex.invoke(cache, :last, "list") == expected
@@ -108,8 +108,8 @@ defmodule Cachex.Actions.InvokeTest do
       )
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, [1, 2, 3])
-    assert Cachex.put(cache, 2, [4, 5, 6])
+    assert Cachex.put(cache, 1, [1, 2, 3]) == :ok
+    assert Cachex.put(cache, 2, [4, 5, 6]) == :ok
 
     # check the results from both keys in the nodes
     assert Cachex.invoke(cache, :last, 1) == 3

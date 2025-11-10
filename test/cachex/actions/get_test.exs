@@ -13,8 +13,8 @@ defmodule Cachex.Actions.GetTest do
     cache1 = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    assert Cachex.put(cache1, 1, 1)
-    assert Cachex.put(cache1, 2, 2, expire: 1)
+    assert Cachex.put(cache1, 1, 1) == :ok
+    assert Cachex.put(cache1, 2, 2, expire: 1) == :ok
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -47,8 +47,8 @@ defmodule Cachex.Actions.GetTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # try to retrieve both of the set keys
     assert Cachex.get(cache, 1) == 1

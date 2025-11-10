@@ -49,7 +49,7 @@ defmodule Cachex.Actions.Prune do
         |> notify_worker(cache)
     end
 
-    true
+    :ok
   end
 
   ###############

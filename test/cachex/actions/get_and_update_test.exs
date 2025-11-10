@@ -12,11 +12,11 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
-    assert Cachex.put(cache, 4, 4, expire: 1000)
-    assert Cachex.put(cache, 5, 5)
-    assert Cachex.put(cache, 6, 6)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
+    assert Cachex.put(cache, 4, 4, expire: 1000) == :ok
+    assert Cachex.put(cache, 5, 5) == :ok
+    assert Cachex.put(cache, 6, 6) == :ok
 
     # wait for the TTL to pass
     :timer.sleep(25)
@@ -92,8 +92,8 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # update both keys with a known function name
     assert Cachex.get_and_update(cache, 1, &Integer.to_string/1) == {:commit, "1"}

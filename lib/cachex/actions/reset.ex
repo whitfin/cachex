@@ -40,7 +40,7 @@ defmodule Cachex.Actions.Reset do
       reset_cache(cache, only, options)
       reset_hooks(cache, only, options)
 
-      true
+      :ok
     end)
   end
 

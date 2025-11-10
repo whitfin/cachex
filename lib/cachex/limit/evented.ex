@@ -65,7 +65,7 @@ defmodule Cachex.Limit.Evented do
     do: {:ok, opts}
 
   def handle_notify(_message, _result, {cache, {size, options}} = opts) do
-    true = Cachex.prune(cache, size, options)
+    Cachex.prune(cache, size, options)
     {:ok, opts}
   end
 

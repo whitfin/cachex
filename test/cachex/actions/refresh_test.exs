@@ -13,8 +13,8 @@ defmodule Cachex.Actions.RefreshTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1000)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1000) == :ok
 
     # clear messages
     TestUtils.flush()
@@ -54,15 +54,15 @@ defmodule Cachex.Actions.RefreshTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1, expire: 500)
-    assert Cachex.put(cache, 2, 2, expire: 500)
+    assert Cachex.put(cache, 1, 1, expire: 500) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 500) == :ok
 
     # pause to reduce the TTL a little
     :timer.sleep(250)
 
     # check the expiration of each key in the cluster
-    assert Cachex.ttl!(cache, 1) < 300
-    assert Cachex.ttl!(cache, 2) < 300
+    assert Cachex.ttl(cache, 1) < 300
+    assert Cachex.ttl(cache, 2) < 300
 
     # refresh the TTL on both keys
     assert Cachex.refresh(cache, 1)

@@ -11,8 +11,8 @@ defmodule Cachex.Actions.SizeTest do
     assert Cachex.size(cache) == 0
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
 
     # wait 2 ms to expire
     :timer.sleep(2)
@@ -33,8 +33,8 @@ defmodule Cachex.Actions.SizeTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # retrieve the cache size, should be 2
     assert Cachex.size(cache) == 2

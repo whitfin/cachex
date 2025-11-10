@@ -8,9 +8,9 @@ defmodule Cachex.Actions.ImportTest do
     start = now()
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
-    assert Cachex.put(cache, 3, 3, expire: 10_000)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
+    assert Cachex.put(cache, 3, 3, expire: 10_000) == :ok
 
     # export the cache to a list
     result1 = Cachex.export(cache)
