@@ -1290,7 +1290,7 @@ defmodule Cachex do
   def transaction(cache, keys, operation, options \\ [])
       when is_function(operation) and is_list(keys) and is_list(options) do
     Overseer.with(cache, fn cache ->
-      trans_cache =
+      enabled =
         case cache(cache, :transactions) do
           true ->
             cache
@@ -1301,7 +1301,7 @@ defmodule Cachex do
             |> Overseer.update(&cache(&1, transactions: true))
         end
 
-      Router.route(trans_cache, {:transaction, [keys, operation, options]})
+      Router.route(enabled, {:transaction, [keys, operation, options]})
     end)
   end
 

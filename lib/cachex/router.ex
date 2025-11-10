@@ -93,8 +93,16 @@ defmodule Cachex.Router do
   def route(cache(router: router(module: Router.Local)) = cache, module, call),
     do: route_local(cache, module, call)
 
-  def route(cache() = cache, module, call),
-    do: route_cluster(cache, module, call)
+  def route(cache() = cache, module, {_action, arguments} = call) do
+    # all calls should have options
+    options = List.last(arguments)
+
+    # can force local node with local: true
+    case Keyword.get(options, :local) do
+      true -> route_local(cache, module, call)
+      _any -> route_cluster(cache, module, call)
+    end
+  end
 
   @doc """
   Dispatches a call to an appropriate execution environment.
@@ -247,33 +255,15 @@ defmodule Cachex.Router do
     # execution on the local node to combine
     result = route_local(cache, module, call)
 
-    # all calls have options we can use
-    options = List.last(arguments)
+    # execute the call on all other nodes
+    {results, _} =
+      state
+      |> router.nodes()
+      |> List.delete(node())
+      |> :rpc.multicall(module, :execute, [cache | arguments])
 
-    # can force local node setting local: true
-    case Keyword.get(options, :local) do
-      true ->
-        result
-
-      _any ->
-        # don't want to execute on the local node
-        other_nodes =
-          state
-          |> router.nodes()
-          |> List.delete(node())
-
-        # execute the call on all other nodes
-        {results, _} =
-          :rpc.multicall(
-            other_nodes,
-            module,
-            :execute,
-            [cache | arguments]
-          )
-
-        # run result merging to blend both sets
-        Enum.reduce(results, result, &result_merge/2)
-    end
+    # run result merging to blend both sets
+    Enum.reduce(results, result, &result_merge/2)
   end
 
   # actions which always run locally
@@ -289,9 +279,8 @@ defmodule Cachex.Router do
   # Provides handling of `:inspect` operations.
   #
   # These operations are guaranteed to run on the local nodes.
-  defp route_cluster(cache, module, {action, _arguments} = call)
-       when action in @local_actions,
-       do: route_local(cache, module, call)
+  defp route_cluster(cache, module, {action, _arguments} = call) when action in @local_actions,
+    do: route_local(cache, module, call)
 
   # Provides handling of `:put_many` operations.
   #
@@ -308,19 +297,6 @@ defmodule Cachex.Router do
   defp route_cluster(cache, module, {:transaction, [_keys | _]} = call),
     do: route_batch(cache, module, call, & &1)
 
-  # Any other actions are only available with local: true in the call
-  defp route_cluster(cache, module, {_action, arguments} = call) do
-    # all calls have options we can use
-    options = List.last(arguments)
-
-    # can force local node setting local: true
-    case Keyword.get(options, :local) do
-      true -> route_local(cache, module, call)
-      _any -> error(:non_distributed)
-    end
-  end
-
-  # coveralls-ignore-start
   # Catch-all just in case we missed something...
   defp route_cluster(_cache, _module, _call),
     do: error(:non_distributed)
@@ -352,12 +328,11 @@ defmodule Cachex.Router do
   #
   # This will determine a local slot and delegate locally if so, bypassing
   # any RPC calls in order to gain a slight bit of performance.
-  defp route_node(cache, module, {action, arguments} = call, node) do
-    current = node()
-    cache(name: name) = cache
+  defp route_node(cache(name: name) = cache, module, {action, arguments} = call, node) do
+    here = node()
 
     case node do
-      ^current ->
+      ^here ->
         route_local(cache, module, call)
 
       targeted ->
