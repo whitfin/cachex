@@ -19,8 +19,7 @@ defmodule Cachex.Actions.Transaction do
   Executes a transaction against the cache.
 
   The Locksmith does most of the work here, we just provide the cache state
-  to the user-defined function. The results are wrapped in an `:ok` tagged
-  Tuple just to protect against internally unwrapped values from bang functions.
+  to the user-defined function, with handles on arity for convenience.
   """
   def execute(cache() = cache, keys, operation, _options) do
     Locksmith.transaction(cache, keys, fn ->
