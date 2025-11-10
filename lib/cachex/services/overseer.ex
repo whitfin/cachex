@@ -138,7 +138,7 @@ defmodule Cachex.Services.Overseer do
   def with(cache, handler) do
     state = lookup(cache)
 
-    if state == nil or :erlang.whereis(cache(state, :name)) == :undefined do
+    if state == nil do
       raise ArgumentError, "no cache available: #{inspect(cache)}"
     end
 
