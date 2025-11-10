@@ -1,6 +1,6 @@
 # Limiting Caches
 
-Cache limits are restrictions on a cache to ensure that it stays within given bounds. The limits currently shipped inside Cachex are based around the number of entries inside a cache, but there are plans to add new policies in future (for example basing the limits on memory spaces). You even even write your own!
+Cache limits are restrictions on a cache to ensure that it stays within given bounds. The limits currently shipped inside Cachex are based around the number of entries inside a cache, but there are plans to add new policies in future (for example basing the limits on memory spaces). You can even write your own!
 
 ## Manual Pruning
 
@@ -14,18 +14,20 @@ Cachex.start(:my_cache)
 
 # insert 100 keys
 for i <- 1..100 do
-  Cachex.put!(:my_cache, i, i)
+  Cachex.put(:my_cache, i, i)
 end
 
 # guarantee we have 100 keys in the cache
-{ :ok,  100 } = Cachex.size(:my_cache)
+100 = Cachex.size(:my_cache)
 
 # trigger a pruning down to 50 keys only
-{ :ok, true } = Cachex.prune(:my_cache, 50, reclaim: 0)
+50 = Cachex.prune(:my_cache, 50, reclaim: 0)
 
 # verify that we're down to 50 keys
-{ :ok,   50 } = Cachex.size(:my_cache)
+50 = Cachex.size(:my_cache)
 ```
+
+As part of pruning, `Cachex.prune/3` will trigger a call to `Cachex.purge/2` to first remove expired entries before cutting potentially unnecessary entries. While the return value of `Cachex.prune/3` represents how many cache entries were *pruned*, it should be noted that the number of expired entries is not included in this value.
 
 The `:reclaim` option can be used to reduce thrashing, by evicting an additional number of entries. In the case above the next write would cause the cache to once again need pruning, and then so on. The `:reclaim` option accepts a percentage (as a decimal) of extra keys to evict, which gives us a buffer between pruning of a cache.
 
@@ -37,17 +39,17 @@ Cachex.start(:my_cache)
 
 # insert 100 keys
 for i <- 1..100 do
-  Cachex.put!(:my_cache, i, i)
+  Cachex.put(:my_cache, i, i)
 end
 
 # guarantee we have 100 keys in the cache
-{ :ok,  100 } = Cachex.size(:my_cache)
+100 = Cachex.size(:my_cache)
 
 # trigger a pruning down to 50 keys, reclaiming 10%
-{ :ok, true } = Cachex.prune(:my_cache, 50, reclaim: 0.1)
+55 = Cachex.prune(:my_cache, 50, reclaim: 0.1)
 
 # verify that we're down to 45 keys
-{ :ok,   45 } = Cachex.size(:my_cache)
+45 = Cachex.size(:my_cache)
 ```
 
 It is almost never a good idea to set `reclaim: 0` unless you have very specific use cases, so if you don't it's recommended to leave `:reclaim` at the default value - it was only used above for example purposes.

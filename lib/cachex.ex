@@ -870,6 +870,9 @@ defmodule Cachex do
   Pruning is done via a Least Recently Written (LRW) approach, determined by the
   modification time inside each cache record to avoid storing additional state.
 
+  The return value of this function represents the number of entries removed in
+  order to trim the cache to the required bounds.
+
   For full details on this feature, please see the section of the documentation
   related to limitation of caches.
 
@@ -899,13 +902,13 @@ defmodule Cachex do
       :ok
 
       iex> Cachex.prune(:my_cache, 1, reclaim: 0)
-      :ok
+      1
 
       iex> Cachex.keys(:my_cache)
       [ "key2"]
 
   """
-  @spec prune(Cachex.t(), integer, Keyword.t()) :: :ok
+  @spec prune(Cachex.t(), integer, Keyword.t()) :: integer()
   def prune(cache, size, options \\ []) when is_positive_integer(size) and is_list(options),
     do: Router.route(cache, {:prune, [size, options]})
 

@@ -8,7 +8,6 @@ defmodule Cachex.Actions.Prune do
   #
   # This command is used by the various limit hooks provided by Cachex.
   alias Cachex.Query
-  alias Cachex.Services.Informant
 
   # add required imports
   import Cachex.Spec
@@ -39,17 +38,14 @@ defmodule Cachex.Actions.Prune do
 
     case Cachex.size(cache, const(:local) ++ const(:notify_false)) do
       cache_size when cache_size <= size ->
-        notify_worker(0, cache)
+        0
 
       cache_size ->
         cache_size
         |> calculate_reclaim(size, reclaim_bound)
         |> calculate_poffset(cache)
         |> erase_lower_bound(cache, buffer)
-        |> notify_worker(cache)
     end
-
-    :ok
   end
 
   ###############
@@ -102,24 +98,6 @@ defmodule Cachex.Actions.Prune do
     offset
   end
 
-  defp erase_lower_bound(offset, _state, _buffer),
-    do: offset
-
-  # Broadcasts the number of removed entries to the cache hooks.
-  #
-  # If the offset is not positive we didn't have to remove anything and so we
-  # don't broadcast any results. An 0 Tuple is returned just to keep compatibility
-  # with the response type from `Informant.broadcast/3`.
-  #
-  # It should be noted that we use a `:clear` action here as these evictions are
-  # based on size and not on expiration. The evictions done during the purge earlier
-  # in the pipeline are reported separately and we're only reporting the delta at this
-  # point in time. Therefore remember that it's important that we're ignoring the
-  # results of `clear()` and `purge()` calls in this hook, otherwise we would end
-  # up in a recursive loop due to the hook system.
-  defp notify_worker(offset, state) when offset > 0,
-    do: Informant.broadcast(state, {:clear, [[]]}, offset)
-
-  defp notify_worker(_offset, _state),
-    do: :ok
+  defp erase_lower_bound(_offset, _state, _buffer),
+    do: 0
 end
