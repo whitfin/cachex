@@ -405,13 +405,13 @@ defmodule Cachex do
       { :ok, "value" }
 
       iex> Cachex.del(:my_cache, "key")
-      true
+      :ok
 
       iex> Cachex.get(:my_cache, "key")
       nil
 
   """
-  @spec del(Cachex.t(), any(), Keyword.t()) :: boolean()
+  @spec del(Cachex.t(), any(), Keyword.t()) :: :ok
   def del(cache, key, options \\ []) when is_list(options),
     do: Router.route(cache, {:del, [key, options]})
 
@@ -456,8 +456,8 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "key1", "value1")
       iex> Cachex.put(:my_cache, "key2", "value2")
       iex> Cachex.execute(:my_cache, fn(worker) ->
-      ...>   val1 = Cachex.get!(worker, "key1")
-      ...>   val2 = Cachex.get!(worker, "key2")
+      ...>   val1 = Cachex.get(worker, "key1")
+      ...>   val2 = Cachex.get(worker, "key2")
       ...>   [val1, val2]
       ...> end)
       [ "value1", "value2" ]
@@ -526,10 +526,10 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.expire_at(:my_cache, "key", 1455728085502)
-      { :ok, true }
+      true
 
       iex> Cachex.expire_at(:my_cache, "missing_key", 1455728085502)
-      { :ok, false }
+      false
 
   """
   @spec expire_at(Cachex.t(), any(), number(), Keyword.t()) :: boolean()
@@ -661,8 +661,7 @@ defmodule Cachex do
       { :ignore, nil }
 
   """
-  @spec get_and_update(Cachex.t(), any(), function(), Keyword.t()) ::
-          {:commit | :ignore, any()}
+  @spec get_and_update(Cachex.t(), any(), function(), Keyword.t()) :: {:commit | :ignore, any()}
   def get_and_update(cache, key, updater, options \\ [])
       when is_function(updater, 1) and is_list(options),
       do: Router.route(cache, {:get_and_update, [key, updater, options]})
@@ -841,7 +840,7 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
       iex> Cachex.invoke(:my_cache, :last, "my_list")
-      { :ok, 3 }
+      3
 
   """
   @spec invoke(Cachex.t(), atom(), any(), Keyword.t()) :: any()
@@ -891,22 +890,22 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put(:my_cache, "key1", "value1")
-      true
+      :ok
 
       iex> :timer.sleep(1)
       :ok
 
       iex> Cachex.put(:my_cache, "key2", "value2")
-      true
+      :ok
 
       iex> Cachex.prune(:my_cache, 1, reclaim: 0)
-      true
+      :ok
 
       iex> Cachex.keys(:my_cache)
       [ "key2"]
 
   """
-  @spec prune(Cachex.t(), integer, Keyword.t()) :: boolean()
+  @spec prune(Cachex.t(), integer, Keyword.t()) :: :ok
   def prune(cache, size, options \\ []) when is_positive_integer(size) and is_list(options),
     do: Router.route(cache, {:prune, [size, options]})
 
@@ -924,7 +923,7 @@ defmodule Cachex do
       15
 
   """
-  @spec purge(Cachex.t(), Keyword.t()) :: number()
+  @spec purge(Cachex.t(), Keyword.t()) :: integer()
   def purge(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:purge, [options]})
 
@@ -944,14 +943,14 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put(:my_cache, "key", "value")
-      true
+      :ok
 
       iex> Cachex.put(:my_cache, "key", "value", expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
       5000
 
   """
-  @spec put(Cachex.t(), any(), any(), Keyword.t()) :: boolean()
+  @spec put(Cachex.t(), any(), any(), Keyword.t()) :: :ok
   def put(cache, key, value, options \\ []) when is_list(options),
     do: Router.route(cache, {:put, [key, value, options]})
 
@@ -973,14 +972,14 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ])
-      true
+      :ok
 
       iex> Cachex.put_many(:my_cache, [ { "key", "value" } ], expire: :timer.seconds(5))
       iex> Cachex.ttl(:my_cache, "key")
       5000
 
   """
-  @spec put_many(Cachex.t(), [{any(), any()}], Keyword.t()) :: boolean() | Cachex.error()
+  @spec put_many(Cachex.t(), [{any(), any()}], Keyword.t()) :: :ok | Cachex.error()
   def put_many(cache, pairs, options \\ []) when is_list(pairs) and is_list(options),
     do: Router.route(cache, {:put_many, [pairs, options]})
 
@@ -1037,16 +1036,16 @@ defmodule Cachex do
       0
 
       iex> Cachex.reset(:my_cache, [ only: :hooks ])
-      true
+      :ok
 
       iex> Cachex.reset(:my_cache, [ only: :hooks, hooks: [ MyHook ] ])
-      true
+      :ok
 
       iex> Cachex.reset(:my_cache, [ only: :cache ])
-      true
+      :ok
 
   """
-  @spec reset(Cachex.t(), Keyword.t()) :: boolean()
+  @spec reset(Cachex.t(), Keyword.t()) :: :ok
   def reset(cache, options \\ []) when is_list(options),
     do: Router.route(cache, {:reset, [options]})
 
@@ -1112,10 +1111,10 @@ defmodule Cachex do
   ## Examples
 
       iex> Cachex.save(:my_cache, "/tmp/my_default_backup")
-      true
+      :ok
 
   """
-  @spec save(Cachex.t(), binary(), Keyword.t()) :: boolean() | Cachex.error()
+  @spec save(Cachex.t(), binary(), Keyword.t()) :: :ok | Cachex.error()
   def save(cache, path, options \\ []) when is_binary(path) and is_list(options),
     do: Router.route(cache, {:save, [path, options]})
 

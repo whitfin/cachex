@@ -37,9 +37,7 @@ defmodule Cachex.Actions.Save do
     |> Stream.map(&handle_batch/1)
     |> Enum.each(&IO.binwrite(file, &1))
 
-    with :ok <- File.close(file) do
-      true
-    end
+    File.close(file)
   rescue
     File.Error -> error(:unreachable_file)
   end

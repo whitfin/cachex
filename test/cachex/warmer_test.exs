@@ -139,8 +139,8 @@ defmodule Cachex.WarmerTest do
     )
 
     # ensure that we receive the creation of both warmers
-    assert_receive {{:put_many, [[{1, 1}], []]}, true}
-    assert_receive {{:put_many, [[{2, 2}], []]}, true}
+    assert_receive {{:put_many, [[{1, 1}], []]}, :ok}
+    assert_receive {{:put_many, [[{2, 2}], []]}, :ok}
   end
 
   test "accessing $callers in warmers" do

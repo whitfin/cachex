@@ -13,9 +13,9 @@ defmodule Cachex.Actions.ExpireTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some keys to the cache
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 10)
-    assert Cachex.put(cache, 3, 3, expire: 10)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 10) == :ok
+    assert Cachex.put(cache, 3, 3, expire: 10) == :ok
 
     # clear messages
     TestUtils.flush()
@@ -35,6 +35,9 @@ defmodule Cachex.Actions.ExpireTest do
     assert_receive {{:expire, [2, ^f_expire_time, []]}, true}
     assert_receive {{:expire, [3, ^p_expire_time, []]}, true}
     assert_receive {{:expire, [4, ^f_expire_time, []]}, false}
+
+    # purge expired records
+    assert Cachex.purge(cache)
 
     # check we received valid purge actions for the removed key
     assert_receive {{:purge, [[]]}, 1}
@@ -57,8 +60,8 @@ defmodule Cachex.Actions.ExpireTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # set expirations on both keys
     assert Cachex.expire(cache, 1, 5000)

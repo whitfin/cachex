@@ -13,8 +13,8 @@ defmodule Cachex.Actions.FetchTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # set some keys in the cache
-    assert Cachex.put(cache, "key1", 1)
-    assert Cachex.put(cache, "key2", 2, expire: 1)
+    assert Cachex.put(cache, "key1", 1) == :ok
+    assert Cachex.put(cache, "key2", 2, expire: 1) == :ok
 
     # wait for the TTL to pass
     :timer.sleep(2)
@@ -64,14 +64,14 @@ defmodule Cachex.Actions.FetchTest do
 
       # basic fallback
       fallback1 = fn ->
-        Cachex.incr!(cache, "key1_count")
+        Cachex.incr(cache, "key1_count")
         {:commit, "val"}
       end
 
       # secondary fallback
       fallback2 = fn ->
         # incr! exists to match the fallback1 exec time
-        Cachex.incr!(cache, "key2_count")
+        Cachex.incr(cache, "key2_count")
         Cachex.fetch(cache, "key1", fallback1)
       end
 

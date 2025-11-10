@@ -12,15 +12,15 @@ defmodule Cachex.Actions.DelTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == :ok
 
     # delete some entries
-    assert Cachex.del(cache, 1)
-    assert Cachex.del(cache, 2)
+    assert Cachex.del(cache, 1) == :ok
+    assert Cachex.del(cache, 2) == :ok
 
     # verify the hooks were updated with the delete
-    assert_receive {{:del, [1, []]}, true}
-    assert_receive {{:del, [2, []]}, true}
+    assert_receive {{:del, [1, []]}, :ok}
+    assert_receive {{:del, [2, []]}, :ok}
 
     # retrieve all items, verify the items are gone
     assert Cachex.get(cache, 1) == nil
@@ -36,16 +36,16 @@ defmodule Cachex.Actions.DelTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1
     assert Cachex.size(cache, local: false) == 2
 
     # delete each item from the cache cluster
-    assert Cachex.del(cache, 1)
-    assert Cachex.del(cache, 2)
+    assert Cachex.del(cache, 1) == :ok
+    assert Cachex.del(cache, 2) == :ok
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 0

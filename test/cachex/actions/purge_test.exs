@@ -13,7 +13,7 @@ defmodule Cachex.Actions.PurgeTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # add a new cache entry
-    assert Cachex.put(cache, "key", "value", expire: 25)
+    assert Cachex.put(cache, "key", "value", expire: 25) == :ok
 
     # flush messages
     TestUtils.flush()
@@ -48,8 +48,8 @@ defmodule Cachex.Actions.PurgeTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1, expire: 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1, expire: 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
 
     # retrieve the cache size, should be 2
     assert Cachex.size(cache) == 2

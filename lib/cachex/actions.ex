@@ -97,7 +97,7 @@ defmodule Cachex.Actions do
   """
   @spec write(Cachex.t(), Cachex.Spec.entries()) :: boolean()
   def write(cache(name: name), entries),
-    do: :ets.insert(name, entries)
+    do: :ets.insert(name, entries) && :ok
 
   @doc """
   Returns the operation used for a write based on a prior value.

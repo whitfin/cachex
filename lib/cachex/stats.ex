@@ -118,21 +118,21 @@ defmodule Cachex.Stats do
   #
   # These calls will just increment the `:writes` count of the statistics
   # container, but only if the write succeeded (as determined by the value).
-  defp register_action(stats, {:put, _args}, true),
+  defp register_action(stats, {:put, _args}, :ok),
     do: increment(stats, [:writes], 1)
 
   # Handles registration of `put_many()` command calls.
   #
   # This is the same as the `put()` handler except that it will count the
   # number of pairs being processed when incrementing the `:writes` key.
-  defp register_action(stats, {:put_many, [pairs | _]}, true),
+  defp register_action(stats, {:put_many, [pairs | _]}, :ok),
     do: increment(stats, [:writes], length(pairs))
 
   # Handles registration of `del()` command calls.
   #
   # Cache deletions will increment the `:evictions` key count, based on
   # whether the call succeeded (i.e. the result value is truthy).
-  defp register_action(stats, {:del, _args}, true),
+  defp register_action(stats, {:del, _args}, :ok),
     do: increment(stats, [:evictions], 1)
 
   # Handles registration of `purge()` command calls.
@@ -221,9 +221,8 @@ defmodule Cachex.Stats do
   #
   # All of the matches calls (dictated by @update_calls) will increment the main
   # `:updates` key in the statistics map only if the value is received as `true`.
-  defp register_action(stats, {action, _args}, true)
-       when action in @update_calls,
-       do: increment(stats, [:updates], 1)
+  defp register_action(stats, {action, _args}, true) when action in @update_calls,
+    do: increment(stats, [:updates], 1)
 
   # No-op to avoid crashing on other statistics.
   defp register_action(stats, _action, _result),

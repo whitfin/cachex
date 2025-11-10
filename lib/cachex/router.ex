@@ -142,8 +142,11 @@ defmodule Cachex.Router do
   # - Booleans are always AND-ed.
   # - Maps are always merged (recursively).
   #
-  # This has to be public due to scopes, but we hide the docs
-  # because we don't really care for anybody else calling it.
+  # Any :ok types are just matched to cause a crash otherwise,
+  # until we figure out a better way to handle them...
+  defp result_merge(:ok, :ok),
+    do: :ok
+
   defp result_merge(left, right) when is_list(left),
     do: left ++ right
 
@@ -296,8 +299,6 @@ defmodule Cachex.Router do
   # Catch-all just in case we missed something...
   defp route_cluster(_cache, _module, _call),
     do: error(:non_distributed)
-
-  # coveralls-ignore-stop
 
   # Calls a slot for the provided cache action if all keys slot to the same node.
   #

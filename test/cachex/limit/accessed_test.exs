@@ -9,7 +9,7 @@ defmodule Cachex.Limit.AccessedTest do
     cache = TestUtils.create_cache(hooks: [hook(module: Cachex.Limit.Accessed)])
 
     # create a new key to check against
-    assert Cachex.put(cache, "key", 1)
+    assert Cachex.put(cache, "key", 1) == :ok
 
     # fetch the raw modification time of the cache entry
     entry(modified: modified1) = Cachex.inspect!(cache, {:entry, "key"})

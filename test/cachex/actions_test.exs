@@ -24,8 +24,8 @@ defmodule Cachex.ActionsTest do
     state = Services.Overseer.lookup(cache)
 
     # write several values
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1) == :ok
 
     # let the TTL expire
     :timer.sleep(2)

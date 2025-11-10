@@ -16,8 +16,8 @@ defmodule Cachex.Actions.TouchTest do
     state = Services.Overseer.lookup(cache)
 
     # add some keys to the cache
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2, expire: 1000)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2, expire: 1000) == :ok
 
     # clear messages
     TestUtils.flush()
@@ -80,8 +80,8 @@ defmodule Cachex.Actions.TouchTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # wait a little
     :timer.sleep(10)

@@ -20,16 +20,16 @@ defmodule Cachex.Actions.PutTest do
       )
 
     # set some values in the cache
-    assert Cachex.put(cache1, 1, 1)
-    assert Cachex.put(cache1, 2, 2, expire: 5000)
-    assert Cachex.put(cache2, 1, 1)
-    assert Cachex.put(cache2, 2, 2, expire: 5000)
+    assert Cachex.put(cache1, 1, 1) == :ok
+    assert Cachex.put(cache1, 2, 2, expire: 5000) == :ok
+    assert Cachex.put(cache2, 1, 1) == :ok
+    assert Cachex.put(cache2, 2, 2, expire: 5000) == :ok
 
     # verify the hooks were updated with the message
-    assert_receive {{:put, [1, 1, []]}, true}
-    assert_receive {{:put, [1, 1, []]}, true}
-    assert_receive {{:put, [2, 2, [expire: 5000]]}, true}
-    assert_receive {{:put, [2, 2, [expire: 5000]]}, true}
+    assert_receive {{:put, [1, 1, []]}, :ok}
+    assert_receive {{:put, [1, 1, []]}, :ok}
+    assert_receive {{:put, [2, 2, [expire: 5000]]}, :ok}
+    assert_receive {{:put, [2, 2, [expire: 5000]]}, :ok}
 
     # read back all values from the cache
     assert Cachex.get(cache1, 1) == 1
@@ -59,8 +59,8 @@ defmodule Cachex.Actions.PutTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # check the results of the calls across nodes
     assert Cachex.size(cache, local: true) == 1

@@ -13,9 +13,9 @@ defmodule Cachex.Actions.KeysTest do
     cache = TestUtils.create_cache(hooks: [hook])
 
     # fill with some items
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
-    assert Cachex.put(cache, 3, 3)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
+    assert Cachex.put(cache, 3, 3) == :ok
 
     # add some expired items
     assert Cachex.put(cache, 4, 4, expire: 1)
@@ -49,8 +49,8 @@ defmodule Cachex.Actions.KeysTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # retrieve the keys from both local & remote
     keys1 = Cachex.keys(cache, local: true)

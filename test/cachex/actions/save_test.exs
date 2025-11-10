@@ -13,13 +13,13 @@ defmodule Cachex.Actions.SaveTest do
     cache = TestUtils.create_cache()
 
     # add some cache entries
-    assert Cachex.put(cache, 1, 1)
+    assert Cachex.put(cache, 1, 1) == :ok
 
     # create a local path to write to
     path = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file
-    assert Cachex.save(cache, path)
+    assert Cachex.save(cache, path) == :ok
 
     # verify the result and clearance
     assert Cachex.clear(cache) == 1
@@ -44,16 +44,16 @@ defmodule Cachex.Actions.SaveTest do
     {cache, _nodes, _cluster} = TestUtils.create_cache_cluster(2)
 
     # we know that 1 & 2 hash to different nodes
-    assert Cachex.put(cache, 1, 1)
-    assert Cachex.put(cache, 2, 2)
+    assert Cachex.put(cache, 1, 1) == :ok
+    assert Cachex.put(cache, 2, 2) == :ok
 
     # create a local path to write to
     path1 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
     path2 = Path.join(tmp, TestUtils.gen_rand_bytes(8))
 
     # save the cache to a local file for local/remote
-    assert Cachex.save(cache, path1, local: true)
-    assert Cachex.save(cache, path2, local: false)
+    assert Cachex.save(cache, path1, local: true) == :ok
+    assert Cachex.save(cache, path2, local: false) == :ok
 
     # clear the cache to remove all
     assert Cachex.clear(cache) == 2
