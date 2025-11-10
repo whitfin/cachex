@@ -177,11 +177,11 @@ defmodule Cachex.Stats do
   defp register_action(stats, {:update, _args}, true),
     do: increment(stats, [:updates], 1)
 
-  # Handles registration of `clear()` command calls.
+  # Handles registration of `clear()` and `prune()` command calls.
   #
   # This operates in the same way as the `del()` call statistics, except that
   # a count is received in the result, and is used to increment by instead.
-  defp register_action(stats, {:clear, _args}, count),
+  defp register_action(stats, {action, _args}, count) when action in [:clear, :prune],
     do: increment(stats, [:evictions], count)
 
   # Handles registration of `exists?()` command calls.

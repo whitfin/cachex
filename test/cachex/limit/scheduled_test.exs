@@ -73,7 +73,7 @@ defmodule Cachex.Limit.ScheduledTest do
 
     # verify the cache shrinks to 25%
     TestUtils.poll(250, 25, fn ->
-      Cachex.size!(state)
+      Cachex.size(state)
     end)
 
     # our validation step
@@ -91,8 +91,8 @@ defmodule Cachex.Limit.ScheduledTest do
     # verify the latest 25 are retained
     validate.(77..101, true)
 
-    # finally, verify hooks are notified
-    assert_receive {{:clear, [[]]}, 76}
+    # finally, verify hooks are notified via the pruned counter
+    assert_receive {{:prune, [100, [buffer: 25, reclaim: 0.75]]}, 76}
 
     # retrieve the policy hook definition
     cache(hooks: hooks(post: [hook1 | _])) = state
