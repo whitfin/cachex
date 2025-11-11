@@ -61,12 +61,12 @@ defmodule Cachex.Actions.GetAndUpdateTest do
     assert result6 == {:commit, "6"}
 
     # assert we receive valid notifications
-    assert_receive {{:get_and_update, [1, _to_string, []]}, ^result1}
-    assert_receive {{:get_and_update, [2, _to_string, []]}, ^result2}
-    assert_receive {{:get_and_update, [3, _to_string, []]}, ^result3}
-    assert_receive {{:get_and_update, [4, _to_string, []]}, ^result4}
-    assert_receive {{:get_and_update, [5, _my_functs, []]}, ^result5}
-    assert_receive {{:get_and_update, [6, _my_functs, []]}, ^result6}
+    assert_receive {{:get_and_update, [1, _to_string, nil, []]}, ^result1}
+    assert_receive {{:get_and_update, [2, _to_string, nil, []]}, ^result2}
+    assert_receive {{:get_and_update, [3, _to_string, nil, []]}, ^result3}
+    assert_receive {{:get_and_update, [4, _to_string, nil, []]}, ^result4}
+    assert_receive {{:get_and_update, [5, _my_functs, nil, []]}, ^result5}
+    assert_receive {{:get_and_update, [6, _my_functs, nil, []]}, ^result6}
 
     # check we received valid purge actions for the TTL
     assert_receive {{:purge, [[]]}, 1}

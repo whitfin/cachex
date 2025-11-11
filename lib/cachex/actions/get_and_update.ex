@@ -27,13 +27,13 @@ defmodule Cachex.Actions.GetAndUpdate do
   value in the cache directly. If it does exist, then we use the update actions
   to update the existing record.
   """
-  def execute(cache() = cache, key, update_fun, _options) do
+  def execute(cache() = cache, key, updater, default, _options) do
     Locksmith.transaction(cache, [key], fn ->
-      value = Cachex.get(cache, key, [])
+      value = Cachex.get(cache, key, default)
 
       formatted =
         value
-        |> update_fun.()
+        |> updater.()
         |> Actions.format_fetch_value()
 
       operation = Actions.write_op(value)

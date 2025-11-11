@@ -26,10 +26,10 @@ defmodule Cachex.Actions.Invoke do
   to a custom command for a given key, and based on the type of command might be
   written back into the cache table.
   """
-  def execute(cache(commands: commands) = cache, cmd, key, _options) do
+  def execute(cache(commands: commands) = cache, cmd, key, default, _options) do
     commands
     |> Map.get(cmd)
-    |> invoke(cache, key)
+    |> invoke(cache, key, default)
   end
 
   ###############
@@ -41,9 +41,9 @@ defmodule Cachex.Actions.Invoke do
   # Values read back will be passed directly to the custom command implementation.
   # It should be noted that expirations are taken into account, and nil will be
   # passed through in expired/missing cases.
-  defp invoke(command(type: :read, execute: exec), cache, key) do
+  defp invoke(command(type: :read, execute: exec), cache, key, default) do
     cache
-    |> Cachex.get(key, [])
+    |> Cachex.get(key, default)
     |> exec.()
   end
 
@@ -53,23 +53,20 @@ defmodule Cachex.Actions.Invoke do
   # kept in sync with other actions happening at the same time. The return format
   # is enforced per the documentation and will crash out if something unexpected
   # is returned (i.e. a non-Tuple, or a Tuple with invalid size).
-  defp invoke(command(type: :write, execute: exec), cache() = cache, key) do
+  defp invoke(command(type: :write, execute: exec), cache() = cache, key, default) do
     Locksmith.transaction(cache, [key], fn ->
-      value = Cachex.get(cache, key, [])
+      value = Cachex.get(cache, key, default)
       {return, tempv} = exec.(value)
 
-      tempv == value ||
-        apply(
-          Cachex,
-          Actions.write_op(value),
-          [cache, key, tempv, []]
-        )
+      if tempv != value do
+        apply(Cachex, Actions.write_op(value), [cache, key, tempv, []])
+      end
 
       return
     end)
   end
 
   # Returns an error due to a missing command.
-  defp invoke(_invalid, _cache, _key),
+  defp invoke(_invalid, _cache, _key, _default),
     do: error(:invalid_command)
 end

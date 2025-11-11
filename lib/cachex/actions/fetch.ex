@@ -30,7 +30,7 @@ defmodule Cachex.Actions.Fetch do
   placed in the cache in order to allow read-through caches.
   """
   def execute(cache() = cache, key, fallback, _options) do
-    with nil <- Get.execute(cache, key, []) do
+    with :"$fetch" <- Get.execute(cache, key, :"$fetch", []) do
       Courier.dispatch(cache, key, generate_task(fallback, key))
     end
   end
