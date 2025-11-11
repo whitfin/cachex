@@ -30,9 +30,9 @@ defmodule Cachex.Actions.GetTest do
     assert Cachex.get(cache1, 3) == nil
 
     # assert we receive valid notifications
-    assert_receive {{:get, [1, []]}, 1}
-    assert_receive {{:get, [2, []]}, nil}
-    assert_receive {{:get, [3, []]}, nil}
+    assert_receive {{:get, [1, nil, []]}, 1}
+    assert_receive {{:get, [2, nil, []]}, nil}
+    assert_receive {{:get, [3, nil, []]}, nil}
 
     # check we received valid purge actions for the TTL
     assert_receive {{:purge, [[]]}, 1}

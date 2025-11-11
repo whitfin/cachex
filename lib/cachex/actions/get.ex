@@ -18,13 +18,13 @@ defmodule Cachex.Actions.Get do
   @doc """
   Retrieves a value from inside the cache.
   """
-  def execute(cache() = cache, key, _options) do
+  def execute(cache() = cache, key, default, _options) do
     case Actions.read(cache, key) do
       entry(value: value) ->
         value
 
       nil ->
-        nil
+        default
     end
   end
 end

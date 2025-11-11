@@ -70,8 +70,8 @@ defmodule Cachex.Services.Courier do
         {:noreply, {cache, Map.put(tasks, key, {pid, [caller | listeners]})}}
 
       nil ->
-        case Get.execute(cache, key, []) do
-          nil ->
+        case Get.execute(cache, key, :"$fetch", []) do
+          :"$fetch" ->
             parent = self()
 
             worker =

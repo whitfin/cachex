@@ -73,12 +73,12 @@ defmodule Cachex do
     expire_at: [3, 4],
     export: [1, 2],
     fetch: [3, 4],
-    get: [2, 3],
-    get_and_update: [3, 4],
+    get: [2, 3, 4],
+    get_and_update: [3, 4, 5],
     import: [2, 3],
     incr: [2, 3, 4],
     inspect: [2, 3],
-    invoke: [3, 4],
+    invoke: [3, 4, 5],
     keys: [1, 2],
     persist: [2, 3],
     prune: [2, 3],
@@ -631,10 +631,13 @@ defmodule Cachex do
       iex> Cachex.get(:my_cache, "missing_key")
       nil
 
+      iex> Cachex.get(:my_cache, "missing_key", "default")
+      "default"
+
   """
-  @spec get(Cachex.t(), any(), Keyword.t()) :: any() | nil
-  def get(cache, key, options \\ []) when is_list(options),
-    do: Router.route(cache, {:get, [key, options]})
+  @spec get(Cachex.t(), any(), any(), Keyword.t()) :: any() | nil
+  def get(cache, key, default \\ nil, options \\ []) when is_list(options),
+    do: Router.route(cache, {:get, [key, default, options]})
 
   @doc """
   Retrieves and updates an entry in a cache.
@@ -661,11 +664,15 @@ defmodule Cachex do
       ...> end)
       { :ignore, nil }
 
+      iex> Cachex.get_and_update(:my_cache, "missing_key", &([1|&1]), [])
+      { :commit, [1] }
+
   """
-  @spec get_and_update(Cachex.t(), any(), function(), Keyword.t()) :: {:commit | :ignore, any()}
-  def get_and_update(cache, key, updater, options \\ [])
+  @spec get_and_update(Cachex.t(), any(), function(), any(), Keyword.t()) ::
+          {:commit | :ignore, any()}
+  def get_and_update(cache, key, updater, default \\ nil, options \\ [])
       when is_function(updater, 1) and is_list(options),
-      do: Router.route(cache, {:get_and_update, [key, updater, options]})
+      do: Router.route(cache, {:get_and_update, [key, updater, default, options]})
 
   @doc """
   Retrieves a list of all entry keys from a cache.
@@ -843,10 +850,13 @@ defmodule Cachex do
       iex> Cachex.invoke(:my_cache, :last, "my_list")
       3
 
+      iex> Cachex.invoke(:my_cache, :last, "missing", [1])
+      1
+
   """
   @spec invoke(Cachex.t(), atom(), any(), Keyword.t()) :: any()
-  def invoke(cache, cmd, key, options \\ []) when is_list(options),
-    do: Router.route(cache, {:invoke, [cmd, key, options]})
+  def invoke(cache, cmd, key, default \\ nil, options \\ []) when is_list(options),
+    do: Router.route(cache, {:invoke, [cmd, key, default, options]})
 
   @doc """
   Removes an expiration time from an entry in a cache.
