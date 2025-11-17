@@ -55,14 +55,21 @@ defmodule Cachex.Actions.Invoke do
   # is returned (i.e. a non-Tuple, or a Tuple with invalid size).
   defp invoke(command(type: :write, execute: exec), cache() = cache, key, default) do
     Locksmith.transaction(cache, [key], fn ->
-      value = Cachex.get(cache, key, default)
-      {return, tempv} = exec.(value)
+      temporary =
+        cache
+        |> Cachex.get(key, default)
+        |> exec.()
+        |> Actions.format_fetch_value()
+        |> Actions.normalize_commit()
 
-      if tempv != value do
-        apply(Cachex, Actions.write_op(value), [cache, key, tempv, []])
+      case temporary do
+        {:commit, {read, write}, options} ->
+          apply(Cachex, Actions.write_op(write), [cache, key, write, options])
+          read
+
+        {:ignore, read} ->
+          read
       end
-
-      return
     end)
   end
 

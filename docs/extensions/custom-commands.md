@@ -38,9 +38,20 @@ Cachex.start_link(:my_cache, [
 ])
 ```
 
-Each command receives a cache value to operate on and return. A command flagged as `:read` (such as `:last` above) will simply transforms the cache value before the final command return occurs, allowing the cache to mask complicated logic from the calling module. Commands flagged as `:write` are a little more complicated, but still fairly easy to grasp. These commands *must* return a 2-element tuple, with the return value in index `0` and the new cache value in index `1`.
+Each command receives a cache value to operate on an return. A command flagged as `:read` will simply transform the cache value before it's returned the user, allowing a developer to mask complicated logic directly in the cache itself rather than the calling module. This is suitable for storing specific structures in your cache and allowing "direct" operations on them (i.e. lists, maps, etc.).
 
-It is important to note that custom cache commands _will_ receive `nil` values in the cache of a missing cache key. If you're using a `:write` command and receive a misisng value, your returned modified value will only be written back to the cache if it's no longer `nil`. This allows the developer to implement logic such as lazy loading, but also escape the situation where you're cornered into writing to the cache.
+Commands flagged as `:write` as a little more complicated, but still fairly easy to grasp. These commands *must* always resolve to a 2 element tuple, with the value to return from the call at index `0` and the new cache value in index `1`. You can either return a 2 element tuple as-is, or it can be contained in the `:commit` interfaces of Cachex:
+
+```elixir
+lpop = fn
+  ([ head | tail ]) ->
+    {:commit, {head, tail}}
+  (_) ->
+    {:ignore, nil}
+end
+```
+
+This provides uniform handling across other cache interfaces, and makes it possible to implement things like lazy loading while providing an escape for the developer in cases where writing should be skipped. This is not perfect, so behaviour here may change in future as new options become available.
 
 ## Invoking Commands
 
