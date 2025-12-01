@@ -12,9 +12,9 @@ defmodule Cachex.Actions.ExecuteTest do
     result =
       Cachex.execute(cache, fn cache ->
         [
-          Cachex.put!(cache, 1, 1),
-          Cachex.put!(cache, 2, 2),
-          Cachex.put!(cache, 3, 3)
+          Cachex.put(cache, 1, 1),
+          Cachex.put(cache, 2, 2),
+          Cachex.put(cache, 3, 3)
         ]
       end)
 

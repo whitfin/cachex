@@ -17,20 +17,20 @@ defmodule CachexTest do
     {:ok, pid1} = Cachex.start_link(name1)
 
     # check valid pid
-    assert(is_pid(pid1))
-    assert(Process.alive?(pid1))
+    assert is_pid(pid1)
+    assert Process.alive?(pid1)
 
     # this process should die
     spawn(fn ->
       {:ok, pid} = Cachex.start_link(name2)
-      assert(is_pid(pid))
+      assert is_pid(pid)
     end)
 
     # wait for spawn to end
     :timer.sleep(15)
 
     # process should've died
-    assert(Process.whereis(name2) == nil)
+    assert Process.whereis(name2) == nil
   end
 
   # Ensures that we're able to start a cache without a link to the current process.
@@ -49,20 +49,20 @@ defmodule CachexTest do
     {:ok, pid1} = Cachex.start(name1)
 
     # check valid pid
-    assert(is_pid(pid1))
-    assert(Process.alive?(pid1))
+    assert is_pid(pid1)
+    assert Process.alive?(pid1)
 
     # this process should die
     spawn(fn ->
       {:ok, pid} = Cachex.start(name2)
-      assert(is_pid(pid))
+      assert is_pid(pid)
     end)
 
     # wait for spawn to end
     :timer.sleep(5)
 
     # process should've lived
-    refute(Process.whereis(name2) == nil)
+    refute Process.whereis(name2) == nil
   end
 
   # Ensures that trying to start a cache when the application has not been started
@@ -88,7 +88,7 @@ defmodule CachexTest do
     {:error, reason} = Cachex.start_link(name)
 
     # we should receive a prompt to start our application properly
-    assert(reason == :not_started)
+    assert reason == :not_started
   end
 
   # This test does a simple check that a cache must be started with a valid atom
@@ -116,7 +116,7 @@ defmodule CachexTest do
     {:error, reason} = Cachex.start_link(name, hooks: hook(module: Missing))
 
     # we should've received an atom warning
-    assert(reason == :invalid_hook)
+    assert reason == :invalid_hook
   end
 
   # Naturally starting a cache when a cache already exists with the same name will
@@ -133,16 +133,16 @@ defmodule CachexTest do
     {:ok, pid} = Cachex.start_link(name)
 
     # check valid pid
-    assert(is_pid(pid))
-    assert(Process.alive?(pid))
+    assert is_pid(pid)
+    assert Process.alive?(pid)
 
     # try to start a cache with the same name
     {:error, reason1} = Cachex.start_link(name)
     {:error, reason2} = Cachex.start(name)
 
     # match the reason to be more granular
-    assert(reason1 == {:already_started, pid})
-    assert(reason2 == {:already_started, pid})
+    assert reason1 == {:already_started, pid}
+    assert reason2 == {:already_started, pid}
   end
 
   # We also need to make sure that a cache function executed against an invalid
@@ -174,49 +174,37 @@ defmodule CachexTest do
       |> Cachex.__info__()
       |> Keyword.drop([:child_spec, :init, :start, :start_link])
 
-    # it has to always be even (one signature creates ! versions)
-    assert(rem(length(definitions), 2) == 0)
-
-    # verify the size to cause errors on addition/removal
-    assert(length(definitions) == 152)
-
     # validate all definitions
     for {name, arity} <- definitions do
       # create name as string
       name_st = "#{name}"
 
       # generate the new definition
-      inverse =
-        if String.ends_with?(name_st, "!") do
-          :"#{String.replace_trailing(name_st, "!", "")}"
-        else
-          :"#{name_st}!"
-        end
-
-      # ensure the definitions contains the inverse
-      assert({inverse, arity} in definitions)
+      if String.ends_with?(name_st, "!") do
+        # ensure the definitions contains the inverse
+        assert {:"#{String.replace_trailing(name_st, "!", "")}", arity} in definitions
+      end
     end
 
     # create a basic test cache
     cache = TestUtils.create_cache()
 
     # validate an unsafe call to test handling
-    assert_raise(Cachex.Error, fn ->
+    assert_raise Cachex.Error, fn ->
       Cachex.transaction!(cache, ["key"], fn _key ->
         raise RuntimeError, message: "Ding dong! The witch is dead!"
       end)
-    end)
+    end
 
     # validate an unsafe call to fetch handling
-    assert_raise(Cachex.Error, fn ->
+    assert_raise Cachex.Error, fn ->
       Cachex.fetch!(cache, "key", fn _key ->
         raise RuntimeError, message: "Which old witch? The wicked witch!"
       end)
-    end)
+    end
 
-    # verify both unpacking pac
-    nil = Cachex.get!(cache, "key")
-    nil = Cachex.fetch!(cache, "key", fn _ -> nil end)
+    # verify unpacking a commit tuple
+    assert Cachex.fetch!(cache, "key", fn _ -> nil end) == nil
   end
 
   # This test validates `Cachex.start_link/1` mtaintains compatibility

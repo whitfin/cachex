@@ -68,7 +68,7 @@ defmodule Cachex.Actions.ExpireTest do
     assert Cachex.expire(cache, 2, 5000)
 
     # check the expiration of each key in the cluster
-    assert Cachex.ttl!(cache, 1) != nil
-    assert Cachex.ttl!(cache, 2) != nil
+    assert Cachex.ttl(cache, 1) != nil
+    assert Cachex.ttl(cache, 2) != nil
   end
 end

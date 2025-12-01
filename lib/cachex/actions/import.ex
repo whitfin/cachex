@@ -31,7 +31,7 @@ defmodule Cachex.Actions.Import do
   # As this is a direct import, we just use `Cachex.put/4` with the provided
   # key and value from the existing entry record - nothing special here.
   defp import(cache, entry(key: k, expiration: nil, value: v), c, _t) do
-    Cachex.put!(cache, k, v, const(:notify_false))
+    Cachex.put(cache, k, v, const(:notify_false))
     c + 1
   end
 
@@ -49,7 +49,7 @@ defmodule Cachex.Actions.Import do
   # import time, so that the rest of the lifetime of the key is the same. If
   # we didn't do this, the key would live longer in the cache than intended.
   defp import(cache, entry(key: k, modified: m, expiration: e, value: v), c, t) do
-    Cachex.put!(cache, k, v, const(:notify_false) ++ [expire: m + e - t])
+    Cachex.put(cache, k, v, const(:notify_false) ++ [expire: m + e - t])
     c + 1
   end
 end

@@ -63,41 +63,21 @@ defmodule Cachex do
 
   # generate unsafe definitions
   @unsafe [
-    clear: [1, 2],
     decr: [2, 3, 4],
-    del: [2, 3],
-    empty?: [1, 2],
     execute: [2, 3],
-    exists?: [2, 3],
-    expire: [3, 4],
-    expire_at: [3, 4],
     export: [1, 2],
     fetch: [3, 4],
-    get: [2, 3, 4],
     get_and_update: [3, 4, 5],
     import: [2, 3],
     incr: [2, 3, 4],
     inspect: [2, 3],
     invoke: [3, 4, 5],
-    keys: [1, 2],
-    persist: [2, 3],
-    prune: [2, 3],
-    purge: [1, 2],
-    put: [3, 4],
     put_many: [2, 3],
-    refresh: [2, 3],
-    reset: [1, 2],
     restore: [2, 3],
     save: [2, 3],
-    size: [1, 2],
     stats: [1, 2],
     stream: [1, 2, 3],
-    take: [2, 3],
-    touch: [2, 3],
-    transaction: [3, 4],
-    ttl: [2, 3],
-    update: [3, 4],
-    warm: [1, 2]
+    transaction: [3, 4]
   ]
 
   ##############
@@ -1474,8 +1454,8 @@ defmodule Cachex do
   defp unwrap_unsafe({:error, value}) when is_binary(value),
     do: raise(Cachex.Error, message: value)
 
-  defp unwrap_unsafe({:error, %Cachex.Error{stack: stack} = e}),
-    do: reraise(e, stack)
+  defp unwrap_unsafe({:error, %Cachex.Error{stack: stack} = error}),
+    do: reraise(error, stack)
 
   defp unwrap_unsafe({_state, value}),
     do: value
