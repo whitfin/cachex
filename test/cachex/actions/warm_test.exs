@@ -34,7 +34,7 @@ defmodule Cachex.Actions.WarmTest do
     :timer.sleep(50)
 
     # check that our key has been put back
-    assert Cachex.get!(cache, 1) == 1
+    assert Cachex.get(cache, 1) == 1
   end
 
   test "manually warming a cache and awaiting results" do

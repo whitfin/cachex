@@ -28,7 +28,7 @@ defmodule Cachex.Actions.UpdateTest do
 
     # the second should still be set
     cache
-    |> Cachex.ttl!(2)
+    |> Cachex.ttl(2)
     |> assert_in_delta(10000, 10)
   end
 
