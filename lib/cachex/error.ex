@@ -13,7 +13,7 @@ defmodule Cachex.Error do
 
   All error messages (both shorthand and long form) can be found in this module,
   including the ability to convert from the short form to the long form using the
-  `long_form/1` function.
+  `explain/1` function.
   """
   defexception message: "Error during cache action", stack: nil
 
@@ -58,74 +58,74 @@ defmodule Cachex.Error do
   ##############
 
   @doc """
-  Returns the list of known error keys.
-  """
-  @spec known :: [shortname :: atom]
-  def known,
-    do: @known_errors
-
-  @doc """
   Converts an error identifier to it's longer form.
 
   Error identifiers should be atoms and should be contained in the
   list of errors returned by `known/0`. The return type from this
   function will always be a binary.
   """
-  @spec long_form(shortname :: atom) :: description :: binary
-  def long_form(:cross_slot),
+  @spec explain(shortname :: atom) :: description :: binary
+  def explain(:cross_slot),
     do: "Target keys do not live on the same node"
 
-  def long_form(:invalid_command),
+  def explain(:invalid_command),
     do: "Invalid command definition provided"
 
-  def long_form(:invalid_expiration),
+  def explain(:invalid_expiration),
     do: "Invalid expiration definition provided"
 
-  def long_form(:invalid_hook),
+  def explain(:invalid_hook),
     do: "Invalid hook definition provided"
 
-  def long_form(:invalid_limit),
+  def explain(:invalid_limit),
     do: "Invalid limit fields provided"
 
-  def long_form(:invalid_match),
+  def explain(:invalid_match),
     do: "Invalid match specification provided"
 
-  def long_form(:invalid_name),
+  def explain(:invalid_name),
     do: "Invalid cache name provided"
 
-  def long_form(:invalid_option),
+  def explain(:invalid_option),
     do: "Invalid option syntax provided"
 
-  def long_form(:invalid_pairs),
+  def explain(:invalid_pairs),
     do: "Invalid insertion pairs provided"
 
-  def long_form(:invalid_router),
+  def explain(:invalid_router),
     do: "Invalid router definition provided"
 
-  def long_form(:invalid_warmer),
+  def explain(:invalid_warmer),
     do: "Invalid warmer definition provided"
 
-  def long_form(:janitor_disabled),
+  def explain(:janitor_disabled),
     do: "Specified janitor process running"
 
-  def long_form(:no_cache),
+  def explain(:no_cache),
     do: "Specified cache not running"
 
-  def long_form(:non_distributed),
+  def explain(:non_distributed),
     do: "Attempted to use a local function across nodes"
 
-  def long_form(:non_numeric_value),
+  def explain(:non_numeric_value),
     do: "Attempted arithmetic operations on a non-numeric value"
 
-  def long_form(:not_started),
+  def explain(:not_started),
     do: "Cache table not active, have you started the Cachex application?"
 
-  def long_form(:stats_disabled),
+  def explain(:stats_disabled),
     do: "Stats are not enabled for the specified cache"
 
-  def long_form(:unreachable_file),
+  def explain(:unreachable_file),
     do: "Unable to access provided file path"
 
-  def long_form(error),
+  def explain(error),
     do: error
+
+  @doc """
+  Returns the list of known error keys.
+  """
+  @spec known :: [shortname :: atom]
+  def known,
+    do: @known_errors
 end

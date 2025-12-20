@@ -1447,7 +1447,7 @@ defmodule Cachex do
   # remove the binding Tuples in order to allow for easy piping of
   # results from cache calls.
   defp unwrap_unsafe({:error, value}) when is_atom(value),
-    do: raise(Cachex.Error, message: Cachex.Error.long_form(value))
+    do: raise(Cachex.Error, message: Cachex.Error.explain(value))
 
   defp unwrap_unsafe({:error, value}) when is_binary(value),
     do: raise(Cachex.Error, message: value)
