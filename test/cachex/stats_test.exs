@@ -192,12 +192,18 @@ defmodule Cachex.StatsTest do
     assert Cachex.decr(cache, 2, 3, default: -2) == -5
     assert Cachex.decr(cache, 2) == -6
 
+    # test invalid types are not recognised
+    assert Cachex.put(cache, 3, "3") == :ok
+    assert Cachex.incr(cache, 3) == error(:non_numeric_value)
+    assert Cachex.decr(cache, 3) == error(:non_numeric_value)
+
     # verify the statistics
     assert stats_no_meta(cache) == %{
-             operations: 4,
+             operations: 5,
              updates: 2,
-             writes: 2,
+             writes: 3,
              calls: %{
+               put: 1,
                incr: 2,
                decr: 2
              }

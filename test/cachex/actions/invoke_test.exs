@@ -12,7 +12,14 @@ defmodule Cachex.Actions.InvokeTest do
       TestUtils.create_cache(
         commands: [
           lpop: command(type: :write, execute: &lpop/1),
-          rpop: command(type: :write, execute: &rpop/1)
+          rpop: command(type: :write, execute: &rpop/1),
+          skip:
+            command(
+              type: :write,
+              execute: fn val ->
+                {:ignore, String.reverse(val)}
+              end
+            )
         ]
       )
 
@@ -36,6 +43,10 @@ defmodule Cachex.Actions.InvokeTest do
     # pop some extras to test avoiding writes
     assert Cachex.invoke(cache, :lpop, "list") == nil
     assert Cachex.invoke(cache, :rpop, "list") == nil
+
+    # test being able to exit without writing on :ignore
+    assert Cachex.invoke(cache, :skip, "skip", "one") == "eno"
+    refute Cachex.exists?(cache, "skip")
   end
 
   # This test covers the ability to run commands tagged with the `:return type.
