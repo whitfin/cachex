@@ -247,17 +247,18 @@ defmodule Cachex do
       Please see the `Cachex.Spec.warmer/1` documentation for further customization options.
 
   """
-  @spec start_link(atom, Keyword.t()) :: {atom, pid}
+  @spec start_link(atom(), Keyword.t()) :: Supervisor.on_start() | {:error, atom()}
   def start_link(name, options) when is_atom(name) and is_list(options) do
-    with {:ok, true} <- ensure_started(),
-         {:ok, true} <- ensure_unused(name),
-         {:ok, cache} <- Options.parse(name, options),
-         {:ok, pid} = Supervisor.start_link(__MODULE__, cache, name: name),
-         {:ok, cache} = Services.link(cache),
-         {:ok, cache} <- setup_router(cache),
-         ^cache <- Overseer.update(name, cache),
-         :ok <- setup_warmers(cache) do
-      {:ok, pid}
+    with cache() = cache <- initialize(name, options) do
+      with {:ok, pid} <- Supervisor.start_link(__MODULE__, cache, name: name) do
+        cache
+        |> Services.link()
+        |> setup_router()
+        |> tap(&Overseer.update(name, &1))
+        |> setup_warmers()
+
+        {:ok, pid}
+      end
     end
   end
 
@@ -265,7 +266,7 @@ defmodule Cachex do
   # Grace handlers for `Supervisor.child_spec/1`.
   #
   # Without this, Cachex is not compatible per Elixir's documentation.
-  @spec start_link(atom | Keyword.t()) :: {atom, pid} | {:error, :invalid_name}
+  @spec start_link(atom() | Keyword.t()) :: Supervisor.on_start() | {:error, :invalid_name}
   def start_link([name]) when is_atom(name),
     do: start_link(name)
 
@@ -1389,25 +1390,13 @@ defmodule Cachex do
   # Private API #
   ###############
 
-  # Determines whether the Cachex application has been started.
+  # Creates a new cache record for provided options.
   #
-  # This will return an error if the application has not been
-  # started, otherwise a truthy result will be returned.
-  defp ensure_started do
-    if Overseer.started?() do
-      {:ok, true}
-    else
-      error(:not_started)
-    end
-  end
-
-  # Determines if a cache name is already in use.
-  #
-  # If the name is in use, we return an error.
-  defp ensure_unused(cache) do
-    case GenServer.whereis(cache) do
-      nil -> {:ok, true}
-      pid -> {:error, {:already_started, pid}}
+  # This will return errors if a cache is not creatable.
+  defp initialize(name, options) do
+    case Overseer.started?() do
+      true -> Options.bind(name, options)
+      false -> error(:not_started)
     end
   end
 
@@ -1421,7 +1410,7 @@ defmodule Cachex do
     state = module.init(cache, options)
     route = router(router, state: state)
 
-    {:ok, cache(cache, router: route)}
+    cache(cache, router: route)
   end
 
   # Initializes cache warmers on startup.
@@ -1437,7 +1426,7 @@ defmodule Cachex do
     Cachex.warm(cache, const(:notify_false) ++ required)
     Cachex.warm(cache, const(:notify_false) ++ optional)
 
-    :ok
+    cache
   end
 
   # Unwraps a command result into an unsafe form.

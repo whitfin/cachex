@@ -476,4 +476,19 @@ defmodule Cachex.Spec do
   @spec wrap(any, atom) :: {atom, any}
   defmacro wrap(value, tag) when is_atom(tag),
     do: quote(do: {unquote(tag), unquote(value)})
+
+  ############
+  # Shimming #
+  ############
+
+  # Simple early shim for the Kernel.tap/2.
+  unless macro_exported?(Kernel, :tap, 2) do
+    @doc false
+    defmacro tap(value, fun) do
+      quote bind_quoted: [fun: fun, value: value] do
+        _ = fun.(value)
+        value
+      end
+    end
+  end
 end
