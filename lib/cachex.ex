@@ -64,7 +64,6 @@ defmodule Cachex do
   # generate unsafe definitions
   @unsafe [
     decr: [2, 3, 4],
-    execute: [2, 3],
     export: [1, 2],
     fetch: [3, 4],
     get_and_update: [3, 4, 5],

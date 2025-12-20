@@ -203,6 +203,11 @@ defmodule CachexTest do
       end)
     end
 
+    # unpacking an error atom
+    assert_raise Cachex.Error, fn ->
+      Cachex.inspect!(cache, :missing)
+    end
+
     # verify unpacking a commit tuple
     assert Cachex.fetch!(cache, "key", fn _ -> nil end) == nil
   end
