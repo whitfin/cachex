@@ -31,6 +31,27 @@ defmodule Cachex.Options do
   ##############
 
   @doc """
+  Bind a list of cache options into a cache record.
+
+  This will validate any options and error on anything we don't understand. The
+  advantage of binding into a cache instance is that we can blindly use it in
+  other areas of the library without needing to validate. As such, this code can
+  easily become a little messy - but that's ok!
+  """
+  @spec bind(atom, Keyword.t()) :: Spec.cache() | {:error, atom}
+  def bind(name, options) when is_list(options) do
+    Enum.reduce_while(@option_parsers, name, fn type, state ->
+      case parse_type(type, state, options) do
+        cache() = cache ->
+          {:cont, cache}
+
+        error ->
+          {:halt, error}
+      end
+    end)
+  end
+
+  @doc """
   Retrieves a conditional option from a Keyword List.
 
   If the value satisfies the condition provided, it will be returned. Otherwise
@@ -61,34 +82,6 @@ defmodule Cachex.Options do
         _ -> default
       end
     end)
-  end
-
-  @doc """
-  Parses a list of cache options into a cache record.
-
-  This will validate any options and error on anything we don't understand. The
-  advantage of binding into a cache instance is that we can blindly use it in
-  other areas of the library without needing to validate. As such, this code can
-  easily become a little messy - but that's ok!
-  """
-  @spec parse(atom, Keyword.t()) :: {:ok, Spec.cache()} | {:error, atom}
-  def parse(name, options) when is_list(options) do
-    # iterate all option parsers and accumulate a cache record
-    parsed =
-      Enum.reduce_while(@option_parsers, name, fn type, state ->
-        case parse_type(type, state, options) do
-          cache() = new_state ->
-            {:cont, new_state}
-
-          error ->
-            {:halt, error}
-        end
-      end)
-
-    # wrap for compatibility
-    with cache() <- parsed do
-      {:ok, parsed}
-    end
   end
 
   @doc """

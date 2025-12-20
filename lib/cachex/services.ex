@@ -67,25 +67,22 @@ defmodule Cachex.Services do
   are not named in a deterministic way. It will look up all hooks using
   the Supervisor children and place them in a modified cache record.
   """
-  @spec link(Cachex.t()) :: {:ok, Cachex.t()}
+  @spec link(Cachex.t()) :: Cachex.t()
   def link(cache(hooks: hooks, warmers: warmers) = cache) do
     hooks(pre: pre, post: post, service: service) = hooks
 
     hook_children = find_children(cache, Services.Informant)
     warmer_children = find_children(cache, Services.Incubator)
 
-    linked =
-      cache(cache,
-        hooks:
-          hooks(
-            pre: attach_child(pre, hook_children),
-            post: attach_child(post, hook_children),
-            service: attach_child(service, hook_children)
-          ),
-        warmers: attach_child(warmers, warmer_children)
-      )
-
-    {:ok, linked}
+    cache(cache,
+      hooks:
+        hooks(
+          pre: attach_child(pre, hook_children),
+          post: attach_child(post, hook_children),
+          service: attach_child(service, hook_children)
+        ),
+      warmers: attach_child(warmers, warmer_children)
+    )
   end
 
   @doc """
