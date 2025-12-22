@@ -19,17 +19,17 @@ Cachex.start(:my_cache,
 
 # insert 100 keys
 for i <- 1..100 do
-  Cachex.put!(:my_cache, i, i)
+  Cachex.put(:my_cache, i, i)
 end
 
 # generate both a cache hit and a miss
-{ :ok,   1 } = Cachex.get(:my_cache, 1)
-{ :ok, nil } = Cachex.get(:my_cache, 101)
+1 = Cachex.get(:my_cache, 1)
+nil = Cachex.get(:my_cache, 101)
 
 # print stats
 :my_cache
-|> Cachex.stats!()
-|> IO.inspect
+|> Cachex.stats()
+|> IO.inspect()
 ```
 
 Running this will give you a map of various statistics based on the actions and operations taken by your cache.

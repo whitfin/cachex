@@ -56,40 +56,37 @@ Let's take a quick look at some basic calls you can make to a cache in a quick `
 {:ok, _pid} = Cachex.start_link(:my_cache)
 
 # place a "my_value" string against the key "my_key"
-{:ok, true} = Cachex.put(:my_cache, "my_key", "my_value")
+:ok = Cachex.put(:my_cache, "my_key", "my_value")
 
 # verify that the key exists under the key name
-{:ok, true} = Cachex.exists?(:my_cache, "my_key")
+true = Cachex.exists?(:my_cache, "my_key")
 
 # verify that "my_value" is returned when we retrieve
-{:ok, "my_value"} = Cachex.get(:my_cache, "my_key")
+"my_value" = Cachex.get(:my_cache, "my_key")
 
 # remove the "my_key" key from the cache
-{:ok, true} = Cachex.del(:my_cache, "my_key")
+:ok = Cachex.del(:my_cache, "my_key")
 
 # verify that the key no longer exists
-{:ok, false} = Cachex.exists?(:my_cache, "my_key")
+false = Cachex.exists?(:my_cache, "my_key")
 
 # verify that "my_value" is no longer returned
-{:ok, nil} = Cachex.get(:my_cache, "my_key")
+nil = Cachex.get(:my_cache, "my_key")
 ```
 
-It's worth noting here that the actions supported by the Cachex API have an automatically generated "unsafe" equivalent (i.e. appended with `!`). These options will unpack the returned tuple, and return values directly:
+For cache actions which are fallible and can return an error tuple, the Cachex API provides an automatically generated "unsafe" equivalent (i.e. appended with `!`). These options will unpack the returned tuple, and return values directly:
 
 ```elixir
-# calling by default will return a tuple
-{:ok, nil} = Cachex.get(:my_cache, "key")
+# write a non-numeric value to the table
+:ok = Cachex.put(:my_cache, "one", "one")
 
-# calling with `!` unpacks the tuple
-nil = Cachex.get!(:my_cache, "key")
-
-# causing an error will return an error tuple value
-{:error, :no_cache} =  Cachex.get(:missing_cache, "key")
+# attempt to increment a non-numeric value and get an error
+{:error, :non_numeric_value} = Cachex.incr(:my_cache, "one")
 
 # but calling with `!` raises the error
-Cachex.get!(:missing_cache, "key")
-** (Cachex.Error) Specified cache not running
-    (cachex) lib/cachex.ex:249: Cachex.get!/3
+Cachex.incr!(:my_cache, "one")
+** (Cachex.Error) Attempted arithmetic operations on a non-numeric value
+    (cachex) lib/cachex.ex:1439: Cachex.unwrap/1
 ```
 
 The `!` version of functions exists for convenience, in particular to make chaining and assertions easier in unit testing. For production use cases it's recommended to avoid `!` wrappers, and instead explicitly handle the different response types.
@@ -105,7 +102,7 @@ While the list is too long to properly cover everything in detail here, let's ta
 {:ok, _pid} = Cachex.start_link(:my_cache)
 
 # place some values in a single batch call
-{:ok, true} = Cachex.put_many(:my_cache, [
+:ok = Cachex.put_many(:my_cache, [
     {"key1", 1},
     {"key2", 2},
     {"key3", 3}
@@ -117,10 +114,10 @@ While the list is too long to properly cover everything in detail here, let's ta
 end)
 
 # we can also do this via `Cachex.incr/2`
-{:ok, 2} = Cachex.incr(:my_cache, "key2")
+2 = Cachex.incr(:my_cache, "key2")
 
 # and of course the inverse via `Cachex.decr/2`
-{:ok, 0} = Cachex.decr(:my_cache, "key3")
+0 = Cachex.decr(:my_cache, "key3")
 
 # we can also lazily compute keys if they're missing from the cache
 {:commit, "nazrat"} = Cachex.fetch(:my_cache, "tarzan", fn key ->
@@ -128,10 +125,10 @@ end)
 end)
 
 # we can also write keys with a time expiration (in milliseconds)
-{:ok, true} = Cachex.put(:my_cache, "secret_mission", "...", expire: 1)
+:ok = Cachex.put(:my_cache, "secret_mission", "...", expire: 1)
 
 # and if we pull it back after expiration, it's not there!
-{:ok, nil} = Cachex.get(:my_cache, "secret_mission")
+nil = Cachex.get(:my_cache, "secret_mission")
 ```
 
 These are just some of the conveniences made available by Cachex's API, but there's still a bunch of other fun stuff in the `Cachex` API, covering a broad range of patterns and use cases.

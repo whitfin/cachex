@@ -36,7 +36,7 @@ defmodule Cachex do
 
   # allow unsafe generation
   use Unsafe.Generator,
-    handler: :unwrap_unsafe
+    handler: :unwrap
 
   # add some aliases
   alias Cachex.Options
@@ -1435,18 +1435,18 @@ defmodule Cachex do
   # bang functions for the API. This will expand error messages and
   # remove the binding Tuples in order to allow for easy piping of
   # results from cache calls.
-  defp unwrap_unsafe({:error, value}) when is_atom(value),
-    do: raise(Cachex.Error, message: Cachex.Error.explain(value))
+  defp unwrap({:error, value}) when is_atom(value),
+    do: unwrap({:error, Cachex.Error.explain(value)})
 
-  defp unwrap_unsafe({:error, value}) when is_binary(value),
+  defp unwrap({:error, value}) when is_binary(value),
     do: raise(Cachex.Error, message: value)
 
-  defp unwrap_unsafe({:error, %Cachex.Error{stack: stack} = error}),
+  defp unwrap({:error, %Cachex.Error{stack: stack} = error}),
     do: reraise(error, stack)
 
-  defp unwrap_unsafe({_state, value}),
+  defp unwrap({_state, value}),
     do: value
 
-  defp unwrap_unsafe(value),
+  defp unwrap(value),
     do: value
 end
