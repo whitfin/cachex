@@ -7,6 +7,9 @@ Cachex provides the ability to create an Elixir `Stream` seeded by the contents 
 By default, `Cachex.stream/3` will return a `Stream` over all entries in a cache which are yet to expire (at the time of stream creation). These cache entries will be streamed as `Cachex.Spec.entry` records, so you can use pattern matching to pull any of the entry fields assuming you have `Cachex.Spec` imported:
 
 ```elixir
+# for matching
+import Cachex.Spec
+
 # store some values in the cache
 Cachex.start(:my_cache)
 Cachex.put(:my_cache, "one", 1)
@@ -14,7 +17,7 @@ Cachex.put(:my_cache, "two", 2)
 Cachex.put(:my_cache, "three", 3)
 
 # create our cache stream of all records
-{ :ok, stream } = Cachex.stream(:my_cache)
+stream = Cachex.stream(:my_cache)
 
 # sum up all the cache record values, which == 6
 Enum.reduce(stream, 0, fn entry(value: value), total ->
@@ -46,7 +49,7 @@ query = Cachex.Query.build(where: filter, output: :value)
 
 # == 4
 :my_cache
-|> Cachex.stream!(query)
+|> Cachex.stream(query)
 |> Enum.sum()
 ```
 
@@ -72,7 +75,7 @@ query = Cachex.Query.build(where: filter, output: :value)
 
 # == 4
 :my_cache
-|> Cachex.stream!(query)
+|> Cachex.stream(query)
 |> Enum.sum()
 ```
 

@@ -7,7 +7,7 @@ Cachex ships with basic support for saving a cache to a local file using the [Ex
 To save a cache to a file on disk, you can use the `Cachex.save/3` function. This function will handle compression automatically and populate the path on disk with a file you can import later. It should be noted that the internal format of this file should not be relied upon.
 
 ```elixir
-{ :ok, true } = Cachex.save(:my_cache, "/tmp/my_cache.dat")
+:ok = Cachex.save(:my_cache, "/tmp/my_cache.dat")
 ```
 
 The above demonstrates how simple it is to save your cache to a location on disk (in this case `/tmp/my_cache.dat`). Any options can be provided as a `Keyword` list as an optional third parameter.
@@ -18,10 +18,10 @@ To seed a cache from an existing file, you can use `Cachex.restore/3`. This will
 
 ```elixir
 # optionally clean your cache first
-{ :ok, _amt } = Cachex.clear(:my_cache)
+amount = Cachex.clear(:my_cache)
 
 # then you can load the existing save into your cache
-{ :ok, true } = Cachex.restore(:my_cache, "/tmp/my_cache.dat")
+^amount = Cachex.restore(:my_cache, "/tmp/my_cache.dat")
 ```
 
 Please note that loading from an existing file will maintain all existing expirations, and records which have already expired will *not* be added to the cache table. This should not be surprising, but it is worth calling out.

@@ -56,10 +56,10 @@ Below is an example just to show this in context of a cache call, assuming we're
 
 ```elixir
 # given this cache call and result
-{ :ok, "value" } = Cachex.get(:my_cache, "key")
+"value" = Cachex.get(:my_cache, "key")
 
 # you would receive these notification params
-{ :get, [ :my_cache, "key" ] }, { :ok, "value" }
+{ :get, [ :my_cache, "key" ], "value" }
 ```
 
 Using this pattern makes it simple to hook into specific actions or specific cases (such as error cases), which is a powerful tool enabled by a very simple interface.

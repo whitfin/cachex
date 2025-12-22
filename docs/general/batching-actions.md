@@ -8,17 +8,17 @@ The simplest way to make several cache calls together is `Cachex.execute/3`. Thi
 
 ```elixir
 # standard way to execute several actions
-r1 = Cachex.get!(:my_cache, "key1")
-r2 = Cachex.get!(:my_cache, "key2")
-r3 = Cachex.get!(:my_cache, "key3")
+r1 = Cachex.get(:my_cache, "key1")
+r2 = Cachex.get(:my_cache, "key2")
+r3 = Cachex.get(:my_cache, "key3")
 
 # using Cachex.execute/3 to optimize the batch of calls
 {r1, r2, r3} =
   Cachex.execute!(:my_cache, fn cache ->
     # execute our batch of actions
-    r1 = Cachex.get!(cache, "key1")
-    r2 = Cachex.get!(cache, "key2")
-    r3 = Cachex.get!(cache, "key3")
+    r1 = Cachex.get(cache, "key1")
+    r2 = Cachex.get(cache, "key2")
+    r3 = Cachex.get(cache, "key3")
 
     # pass back all results as a tuple
     {r1, r2, r3}
@@ -41,13 +41,13 @@ It's important to note that even though you're executing a batch of actions, oth
 # start our execution block
 Cachex.execute!(:my_cache, fn cache ->
   # set a base value in the cache
-  Cachex.put!(cache, "key", "value")
+  Cachex.put(cache, "key", "value")
 
   # we're paused but other changes can happen
   :timer.sleep(5000)
 
   # this may have have been set elsewhere
-  Cachex.get!(cache, "key")
+  Cachex.get(cache, "key")
 end)
 ```
 
@@ -61,15 +61,15 @@ The entry point to a Cachex transaction is (unsurprisingly) `Cachex.transaction/
 
 ```elixir
 # start our execution block
-Cachex.transaction!(:my_cache, ["key"], fn cache ->
+Cachex.transaction(:my_cache, ["key"], fn cache ->
   # set a base value in the cache
-  Cachex.put!(cache, "key", "value")
+  Cachex.put(cache, "key", "value")
 
   # we're paused but other changes will not happen
   :timer.sleep(5000)
 
   # this will be guaranteed to return "value"
-  Cachex.get!(cache, "key")
+  Cachex.get(cache, "key")
 end)
 ```
 
@@ -78,7 +78,7 @@ It's critical to provide the keys you wish to lock when calling `Cachex.transact
 Another pattern which may prove useful is providing an empty list of keys, which will guarantee that your transaction runs at a time when no keys in the cache are currently locked. For example, the following code will guarantee that no keys are locked when purging expired records:
 
 ```elixir
-Cachex.transaction!(:my_cache, [], fn cache ->
+Cachex.transaction(:my_cache, [], fn cache ->
   Cachex.purge!(cache)
 end)
 ```

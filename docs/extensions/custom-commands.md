@@ -61,19 +61,19 @@ Let's look at some examples of calling the new `:last` and `:lpop` commands we d
 
 ```elixir
 # place a new list into our cache of 3 elements
-{ :ok, true } = Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
+:ok = Cachex.put(:my_cache, "my_list", [ 1, 2, 3 ])
 
 # check the last value in the list stored under "my_list"
-{ :ok,    3 } = Cachex.invoke(:my_cache, :last, "my_list")
+3 = Cachex.invoke(:my_cache, :last, "my_list")
 
 # pop all values from the list stored under "my_list"
-{ :ok,    1 } = Cachex.invoke(:my_cache, :lpop, "my_list")
-{ :ok,    2 } = Cachex.invoke(:my_cache, :lpop, "my_list")
-{ :ok,    3 } = Cachex.invoke(:my_cache, :lpop, "my_list")
-{ :ok,  nil } = Cachex.invoke(:my_cache, :lpop, "my_list")
+1 = Cachex.invoke(:my_cache, :lpop, "my_list")
+2 = Cachex.invoke(:my_cache, :lpop, "my_list")
+3 = Cachex.invoke(:my_cache, :lpop, "my_list")
+nil = Cachex.invoke(:my_cache, :lpop, "my_list")
 
 # check the last value in the list stored under "my_list"
-{ :ok,  nil } = Cachex.invoke(:my_cache, :last, "my_list")
+nil = Cachex.invoke(:my_cache, :last, "my_list")
 ```
 
 We can see how both commands are doing their job and we're left with an empty list at the end of this snippet. At the time of writing there are no options recognised by `Cachex.invoke/4` even though there _is_ an optional fourth parameter for options, it's simply future proofing.
