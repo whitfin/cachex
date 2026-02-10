@@ -10,14 +10,14 @@ defmodule Cachex.Router.Local do
   @doc """
   Retrieve the list of nodes from a local routing state.
   """
-  @spec nodes(state :: nil) :: [atom]
+  @spec nodes(state :: nil) :: [atom()]
   def nodes(_state),
     do: [node()]
 
   @doc """
   Route a key to a node in a local routing state.
   """
-  @spec route(state :: nil, key :: any) :: atom
+  @spec route(state :: nil, key :: any()) :: atom()
   def route(_state, _key),
     do: node()
 end

@@ -29,7 +29,7 @@ defmodule Cachex.Router.Jump do
       by using `Node.self/0` and `Node.list/1`.
 
   """
-  @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom]
+  @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom()]
   def init(_cache, options) do
     options
     |> Keyword.get_lazy(:nodes, &Router.connected/0)
@@ -40,14 +40,14 @@ defmodule Cachex.Router.Jump do
   @doc """
   Retrieve the list of nodes from a jump hash routing state.
   """
-  @spec nodes(nodes :: [atom]) :: [atom]
+  @spec nodes(nodes :: [atom()]) :: [atom()]
   def nodes(nodes),
     do: nodes
 
   @doc """
   Route a key to a node in a jump hash routing state.
   """
-  @spec route(nodes :: [atom], key :: any) :: atom
+  @spec route(nodes :: [atom()], key :: any) :: atom()
   def route(nodes, key) do
     slot =
       key

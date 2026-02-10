@@ -20,6 +20,25 @@ defmodule Cachex.Router.RingTest do
     assert Cachex.Router.Ring.route(state, "erlang") in nodes
   end
 
+  test "routing keys via a ring router with no protocol" do
+    # create a test cache cluster for nodes
+    {cache, nodes, _cluster} =
+      TestUtils.create_cache_cluster(3,
+        router: Cachex.Router.Ring
+      )
+
+    # convert the name to a cache and sort
+    cache = Services.Overseer.lookup(cache)
+
+    # fetch the router state after initialize
+    cache(router: router(state: state)) = cache
+
+    # test that we can route to expected nodes
+    assert Cachex.Router.nodes(cache) == {:ok, nodes}
+    assert Cachex.Router.Ring.route(state, {"elixir"}) in nodes
+    assert Cachex.Router.Ring.route(state, {"erlang"}) in nodes
+  end
+
   test "routing keys via a ring router with defined nodes" do
     # create a test cache cluster for nodes
     {cache, _nodes, _cluster} =

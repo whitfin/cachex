@@ -27,17 +27,17 @@ defmodule Cachex.Router do
 
   Please see all child implementations for supported options.
   """
-  @callback init(cache :: Cachex.t(), options :: Keyword.t()) :: any
+  @callback init(cache :: Cachex.t(), options :: Keyword.t()) :: any()
 
   @doc """
   Retrieve the list of nodes from a routing state.
   """
-  @callback nodes(state :: any) :: [atom]
+  @callback nodes(state :: any()) :: [atom()]
 
   @doc """
   Route a key to a node in a routing state.
   """
-  @callback route(state :: any, key :: any) :: atom
+  @callback route(state :: any(), key :: any()) :: atom()
 
   @doc """
   Create a child specification to back a routing state.
@@ -74,14 +74,14 @@ defmodule Cachex.Router do
   @doc """
   Retrieve all currently connected nodes (including this one).
   """
-  @spec connected() :: [atom]
+  @spec connected() :: [atom()]
   def connected(),
     do: [node() | :erlang.nodes(:connected)]
 
   @doc """
   Retrieve all routable nodes for a cache.
   """
-  @spec nodes(cache :: Cachex.t()) :: {:ok, [atom]}
+  @spec nodes(cache :: Cachex.t()) :: {:ok, [atom()]}
   def nodes(cache(router: router(module: module, state: state))),
     do: {:ok, module.nodes(state)}
 
@@ -89,7 +89,7 @@ defmodule Cachex.Router do
   Executes a previously dispatched action..
   """
   # The first match short circuits local-only caches
-  @spec route(Cachex.t(), atom, {atom, [any]}) :: any
+  @spec route(Cachex.t(), atom(), {atom(), [any()]}) :: any()
   def route(cache(router: router(module: Router.Local)) = cache, module, call),
     do: route_local(cache, module, call)
 
