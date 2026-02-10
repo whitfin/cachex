@@ -14,7 +14,7 @@ r3 = Cachex.get(:my_cache, "key3")
 
 # using Cachex.execute/3 to optimize the batch of calls
 {r1, r2, r3} =
-  Cachex.execute!(:my_cache, fn cache ->
+  Cachex.execute(:my_cache, fn cache ->
     # execute our batch of actions
     r1 = Cachex.get(cache, "key1")
     r2 = Cachex.get(cache, "key2")
@@ -39,7 +39,7 @@ It's important to note that even though you're executing a batch of actions, oth
 
 ```elixir
 # start our execution block
-Cachex.execute!(:my_cache, fn cache ->
+Cachex.execute(:my_cache, fn cache ->
   # set a base value in the cache
   Cachex.put(cache, "key", "value")
 
@@ -79,7 +79,7 @@ Another pattern which may prove useful is providing an empty list of keys, which
 
 ```elixir
 Cachex.transaction(:my_cache, [], fn cache ->
-  Cachex.purge!(cache)
+  Cachex.purge(cache)
 end)
 ```
 
