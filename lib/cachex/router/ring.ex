@@ -66,7 +66,7 @@ defmodule Cachex.Router.Ring do
   @doc """
   Retrieve the list of nodes from a ring routing state.
   """
-  @spec nodes(ring :: Ring.t()) :: {:ok, [atom]}
+  @spec nodes(ring :: Ring.t()) :: {:ok, [atom()]}
   def nodes(ring) do
     with {:ok, nodes} <- Ring.get_nodes(ring) do
       nodes
@@ -76,8 +76,14 @@ defmodule Cachex.Router.Ring do
   @doc """
   Route a key to a node in a ring routing state.
   """
-  @spec route(ring :: Ring.t(), key :: any) :: {:ok, atom}
+  @spec route(ring :: Ring.t(), key :: any()) :: {:ok, atom()}
   def route(ring, key) do
+    key =
+      case String.Chars.impl_for(key) do
+        nil -> :erlang.term_to_binary(key)
+        _na -> key
+      end
+
     with {:ok, node} <- Ring.find_node(ring, key) do
       node
     end

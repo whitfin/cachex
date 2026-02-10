@@ -26,7 +26,7 @@ defmodule Cachex.Router.Mod do
       by using `Node.self/0` and `Node.list/1`.
 
   """
-  @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom]
+  @spec init(cache :: Cachex.t(), options :: Keyword.t()) :: [atom()]
   def init(_cache, options) do
     options
     |> Keyword.get_lazy(:nodes, &Router.connected/0)
@@ -37,14 +37,14 @@ defmodule Cachex.Router.Mod do
   @doc """
   Retrieve the list of nodes from a modulo routing state.
   """
-  @spec nodes(nodes :: [atom]) :: [atom]
+  @spec nodes(nodes :: [atom()]) :: [atom()]
   def nodes(nodes),
     do: Enum.sort(nodes)
 
   @doc """
   Route a key to a node in a modulo routing state.
   """
-  @spec route(nodes :: [atom], key :: any) :: atom
+  @spec route(nodes :: [atom()], key :: any()) :: atom()
   def route(nodes, key) do
     slot =
       key
