@@ -75,6 +75,6 @@ defmodule Cachex.Actions.SaveTest do
     cache = TestUtils.create_cache()
 
     # verify that saving to the invalid path gives an error
-    assert Cachex.save(cache, "") == {:error, :unreachable_file}
+    assert Cachex.save(cache, "") == {:error, :enoent}
   end
 end

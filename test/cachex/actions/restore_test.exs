@@ -39,6 +39,6 @@ defmodule Cachex.Actions.RestoreTest do
     assert_in_delta Cachex.ttl(cache, 3), 10_000 - (now() - start), 5
 
     # reload a bad file from disk (should not be trusted)
-    assert Cachex.restore(cache, tmp, trust: false) == {:error, :unreachable_file}
+    assert Cachex.restore(cache, tmp, trust: false) == {:error, :eisdir}
   end
 end

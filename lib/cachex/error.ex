@@ -20,6 +20,8 @@ defmodule Cachex.Error do
   # all shorthands
   @known_errors [
     :cross_slot,
+    :eisdir,
+    :enoent,
     :invalid_command,
     :invalid_expiration,
     :invalid_hook,
@@ -35,8 +37,7 @@ defmodule Cachex.Error do
     :non_distributed,
     :non_numeric_value,
     :not_started,
-    :stats_disabled,
-    :unreachable_file
+    :stats_disabled
   ]
 
   ##########
@@ -67,6 +68,12 @@ defmodule Cachex.Error do
   @spec explain(shortname :: atom) :: description :: binary
   def explain(:cross_slot),
     do: "Target keys do not live on the same node"
+
+  def explain(:eisdir),
+    do: "A directory path was provided when a file was expected"
+
+  def explain(:enoent),
+    do: "Unable to access provided file path"
 
   def explain(:invalid_command),
     do: "Invalid command definition provided"
@@ -115,9 +122,6 @@ defmodule Cachex.Error do
 
   def explain(:stats_disabled),
     do: "Stats are not enabled for the specified cache"
-
-  def explain(:unreachable_file),
-    do: "Unable to access provided file path"
 
   def explain(error),
     do: error

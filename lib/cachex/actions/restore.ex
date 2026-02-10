@@ -7,7 +7,6 @@ defmodule Cachex.Actions.Restore do
   alias Cachex.Options
 
   # we need our imports
-  import Cachex.Error
   import Cachex.Spec
 
   ##############
@@ -32,18 +31,18 @@ defmodule Cachex.Actions.Restore do
         _any -> [:safe]
       end
 
-    stream =
-      Stream.resource(
-        fn ->
-          File.open!(path, [:read, :compressed])
-        end,
-        &read_next_term(&1, option),
-        &File.close/1
-      )
+    with {:ok, file} <- File.open(path, [:read, :compressed]) do
+      stream =
+        Stream.resource(
+          fn ->
+            file
+          end,
+          &read_next_term(&1, option),
+          &File.close/1
+        )
 
-    Cachex.import(cache, stream, const(:local) ++ const(:notify_false))
-  rescue
-    File.Error -> error(:unreachable_file)
+      Cachex.import(cache, stream, const(:local) ++ const(:notify_false))
+    end
   end
 
   ###############

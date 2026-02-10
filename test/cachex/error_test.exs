@@ -7,6 +7,8 @@ defmodule Cachex.ErrorTest do
     # define all recognised errors
     errors = [
       cross_slot: "Target keys do not live on the same node",
+      eisdir: "A directory path was provided when a file was expected",
+      enoent: "Unable to access provided file path",
       invalid_command: "Invalid command definition provided",
       invalid_expiration: "Invalid expiration definition provided",
       invalid_hook: "Invalid hook definition provided",
@@ -22,8 +24,7 @@ defmodule Cachex.ErrorTest do
       non_numeric_value: "Attempted arithmetic operations on a non-numeric value",
       non_distributed: "Attempted to use a local function across nodes",
       not_started: "Cache table not active, have you started the Cachex application?",
-      stats_disabled: "Stats are not enabled for the specified cache",
-      unreachable_file: "Unable to access provided file path"
+      stats_disabled: "Stats are not enabled for the specified cache"
     ]
 
     # validate all error pairs

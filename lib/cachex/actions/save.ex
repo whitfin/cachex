@@ -12,7 +12,6 @@ defmodule Cachex.Actions.Save do
   alias Cachex.Router.Local
 
   # import our macros
-  import Cachex.Error
   import Cachex.Spec
 
   ##############
@@ -27,19 +26,18 @@ defmodule Cachex.Actions.Save do
   interfaces.
   """
   def execute(cache(router: router(module: router)) = cache, path, options) do
-    file = File.open!(path, [:write, :compressed])
-    buffer = Options.get(options, :buffer, &is_positive_integer/1, 25)
+    with {:ok, file} <- File.open(path, [:write, :compressed]) do
+      buffer = Options.get(options, :buffer, &is_positive_integer/1, 25)
 
-    options
-    |> Keyword.get(:local)
-    |> init_stream(router, cache, buffer)
-    |> Stream.chunk_every(buffer)
-    |> Stream.map(&handle_batch/1)
-    |> Enum.each(&IO.binwrite(file, &1))
+      options
+      |> Keyword.get(:local)
+      |> init_stream(router, cache, buffer)
+      |> Stream.chunk_every(buffer)
+      |> Stream.map(&handle_batch/1)
+      |> Enum.each(&IO.binwrite(file, &1))
 
-    File.close(file)
-  rescue
-    File.Error -> error(:unreachable_file)
+      File.close(file)
+    end
   end
 
   ###############
