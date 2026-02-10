@@ -100,7 +100,7 @@ defmodule Cachex.Mixfile do
     [
       # Production dependencies
       {:eternal, "~> 1.2"},
-      {:ex_hash_ring, "~> 7.0"},
+      {:ex_hash_ring, "~> 6.0"},
       {:jumper, "~> 1.0"},
       {:sleeplocks, "~> 1.1"},
       {:unsafe, "~> 1.0"},
