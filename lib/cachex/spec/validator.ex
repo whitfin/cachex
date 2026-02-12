@@ -10,7 +10,7 @@ defmodule Cachex.Spec.Validator do
   import Cachex.Spec
 
   # internal spec to refer to each record type
-  @type record ::
+  @type cache_record ::
           Cachex.Spec.command()
           | Cachex.Spec.entry()
           | Cachex.Spec.expiration()
@@ -31,7 +31,7 @@ defmodule Cachex.Spec.Validator do
 
   This will delegate each record type to a customized validation function.
   """
-  @spec valid?(atom, record) :: boolean
+  @spec valid?(atom, cache_record) :: boolean
 
   # Validates a command specification record.
   #
