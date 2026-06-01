@@ -126,4 +126,46 @@ defmodule Cachex.OverseerTest do
     # now we need to make sure our state was forwarded
     assert_receive({:cache, ^update2})
   end
+
+  # With no resolver configured, resolve_name/1 is the identity function
+  # and lookup/1 behaves exactly as before.
+  test "resolve_name/1 returns the name unchanged by default" do
+    assert(Services.Overseer.resolve_name(:some_cache) == :some_cache)
+  end
+
+  # A configured resolver redirects name resolution, so lookup/1 returns
+  # the state registered under the resolved name. This is the supported
+  # hook for per-process redirection (e.g. test sandboxing).
+  test "lookup/1 routes through a configured name resolver" do
+    real = TestUtils.create_name()
+    alias_name = TestUtils.create_name()
+
+    state = cache(name: real)
+    Services.Overseer.register(real, state)
+
+    # Resolver maps the alias to the real registered name.
+    Application.put_env(:cachex, :name_resolver, fn
+      ^alias_name -> real
+      other -> other
+    end)
+
+    on_exit(fn -> Application.delete_env(:cachex, :name_resolver) end)
+
+    # Looking up the alias resolves to the real cache's state...
+    assert(Services.Overseer.lookup(alias_name) == state)
+    # ...while the real name still resolves to itself.
+    assert(Services.Overseer.lookup(real) == state)
+  end
+
+  # A resolver returning nil falls back to the original name (no redirect).
+  test "a resolver returning nil falls back to the original name" do
+    name = TestUtils.create_name()
+    state = cache(name: name)
+    Services.Overseer.register(name, state)
+
+    Application.put_env(:cachex, :name_resolver, fn _ -> nil end)
+    on_exit(fn -> Application.delete_env(:cachex, :name_resolver) end)
+
+    assert(Services.Overseer.lookup(name) == state)
+  end
 end

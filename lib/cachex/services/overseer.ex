@@ -62,14 +62,21 @@ defmodule Cachex.Services.Overseer do
 
   Retrieving a cache will map the provided argument to a
   cache record if available, otherwise a nil value.
+
+  When a name resolver is configured (see `resolve_name/1`), the name is
+  passed through it first, allowing the caller to be transparently routed
+  to a different cache instance. This makes per-process redirection (e.g.
+  test sandboxing) possible without intercepting every cache call.
   """
   @spec lookup(Cachex.t()) :: Cachex.t() | nil
   def lookup(cache() = cache),
     do: cache
 
   def lookup(name) when is_atom(name) do
-    case :ets.lookup(@table_name, name) do
-      [{^name, state}] ->
+    resolved = resolve_name(name)
+
+    case :ets.lookup(@table_name, resolved) do
+      [{^resolved, state}] ->
         state
 
       _other ->
@@ -79,6 +86,34 @@ defmodule Cachex.Services.Overseer do
 
   def lookup(_any),
     do: nil
+
+  @doc """
+  Resolves a cache name through the optionally-configured resolver.
+
+  By default this is the identity function: the name is returned
+  unchanged and there is no measurable overhead. Setting
+
+      config :cachex, :name_resolver, &MyModule.resolve/1
+
+  installs a `(atom -> atom)` function that is consulted on every cache
+  name resolution. It must return a cache name (an atom); returning the
+  same name is a no-op. This is the supported extension point for
+  redirecting cache resolution per process — for example, a test-isolation
+  library can return a per-test cache name based on the calling process
+  (via the process dictionary or `$callers`), giving each async test its
+  own isolated cache without forking or patching Cachex.
+
+  Resolution is **not** applied recursively: the resolver's result is used
+  directly as the ETS key, so a resolver must return a concrete name, not
+  another name that itself needs resolving.
+  """
+  @spec resolve_name(atom) :: atom
+  def resolve_name(name) when is_atom(name) do
+    case Application.get_env(:cachex, :name_resolver) do
+      nil -> name
+      resolver when is_function(resolver, 1) -> resolver.(name) || name
+    end
+  end
 
   @doc """
   Registers a cache record against a name.
