@@ -49,7 +49,6 @@ defmodule Cachex do
 
   # import util macros
   require Router
-  require Overseer
 
   # avoid inspect clashes
   import Kernel, except: [inspect: 2]
