@@ -94,17 +94,36 @@ defmodule Cachex.Services.Locksmith do
   @doc """
   Executes a transaction against a cache table.
 
-  If the process is already in a transactional context, the provided function
-  will be executed immediately. Otherwise the required keys will be locked until
-  the provided function has finished executing.
+  If the process is not already in a transactional context, the required keys
+  will be locked until the provided function has finished executing.
+
+  If the process is already in a transactional context, the enclosing
+  transaction must already hold a lock on every requested key; the function is
+  then executed immediately. If any requested key is not already locked, a
+  `Cachex.Error` is raised, as executing against unlocked keys inside a
+  transaction is almost certainly a logic error.
 
   This is mainly shorthand to avoid having to handle row locking explicitly.
   """
   @spec transaction(Cachex.t(), [any], (-> any)) :: any
   def transaction(cache() = cache, keys, fun) when is_list(keys) do
-    case transaction?() do
-      true -> fun.()
-      false -> Queue.transaction(cache, keys, fun)
+    case Process.get(:cachex_transaction, false) do
+      false ->
+        Queue.transaction(cache, keys, fun)
+
+      locked ->
+        # Already inside a transaction; the enclosing transaction must already
+        # hold a lock on every key we're asking for. If it doesn't, the caller
+        # is executing against keys with no locking in place, which is almost
+        # certainly a logic error, so we raise rather than silently proceed.
+        case keys -- locked do
+          [] ->
+            fun.()
+
+          _missing ->
+            raise Cachex.Error,
+              message: "Nested transaction requested keys not locked by the enclosing transaction"
+        end
     end
   end
 
@@ -113,14 +132,18 @@ defmodule Cachex.Services.Locksmith do
   """
   @spec transaction? :: boolean
   def transaction?,
-    do: Process.get(:cachex_transaction, false)
+    do: Process.get(:cachex_transaction, false) != false
 
   @doc """
   Flags this process as running in a transaction.
+
+  The process dictionary stores the list of keys currently locked by the
+  transaction (empty when no specific keys are held), which allows nested
+  transactions to verify that they operate against already-locked keys.
   """
   @spec start_transaction :: no_return
   def start_transaction,
-    do: Process.put(:cachex_transaction, true)
+    do: Process.put(:cachex_transaction, [])
 
   @doc """
   Flags this process as not running in a transaction.

@@ -184,14 +184,14 @@ defmodule Cachex.Services.LocksmithTest do
     # ensure unsert
     assert(is_transaction1 == nil)
 
-    # set the value to true
+    # flag the process as transactional
     Services.Locksmith.start_transaction()
 
-    # check that the current process is true
+    # check that the current process holds a (empty) lock set
     is_transaction2 = Process.get(:cachex_transaction)
 
-    # ensure set to true
-    assert(is_transaction2 == true)
+    # ensure set to an empty key list
+    assert(is_transaction2 == [])
 
     # set the value to false
     Services.Locksmith.stop_transaction()
@@ -201,5 +201,39 @@ defmodule Cachex.Services.LocksmithTest do
 
     # ensure set to false
     assert(is_transaction3 == false)
+  end
+
+  # A transaction nested inside another transaction must only operate against
+  # keys already locked by the enclosing transaction. Requesting a subset of the
+  # locked keys is fine and executes inline, but requesting a key which is not
+  # locked is almost certainly a logic error and should surface as an error
+  # rather than silently executing without any locking actually in place.
+  test "nested transactions enforce locking of their keys" do
+    # create a test cache
+    cache = TestUtils.create_cache(transactions: true)
+
+    # retrieve the state for our cache
+    state = Services.Overseer.lookup(cache)
+
+    # a nested transaction over a subset of the locked keys should run inline
+    nested_ok =
+      Services.Locksmith.transaction(state, ["a", "b"], fn ->
+        Services.Locksmith.transaction(state, ["a"], fn -> :nested end)
+      end)
+
+    # the inner function should have executed and returned its value
+    assert(nested_ok == :nested)
+
+    # a nested transaction over a key which is not locked by the enclosing
+    # transaction should raise; the transaction server catches this and surfaces
+    # it as an error tuple rather than crashing
+    nested_bad =
+      Services.Locksmith.transaction(state, ["a"], fn ->
+        Services.Locksmith.transaction(state, ["b"], fn -> :nested end)
+      end)
+
+    # the error should describe the locking violation
+    assert({:error, message} = nested_bad)
+    assert(message =~ "not locked by the enclosing transaction")
   end
 end
