@@ -73,7 +73,16 @@ defmodule Cachex.Services.Locksmith.Queue do
   # inside this queue process instead.
   def handle_call({:transaction, keys, func, callers}, {caller, _tag}, cache) do
     true = lock(cache, keys)
+
+    # Track the keys locked by this transaction in the process dictionary so
+    # that any nested transactions can validate that they only touch keys that
+    # are already locked (see `Locksmith.transaction/3`).
+    locked = Process.get(:cachex_transaction, [])
+    Process.put(:cachex_transaction, locked ++ keys)
+
     val = safe_exec(func, [caller | callers])
+
+    Process.put(:cachex_transaction, locked)
     true = unlock(cache, keys)
 
     {:reply, val, cache}
