@@ -356,11 +356,11 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "my_key", 10)
       iex> Cachex.decr(:my_cache, "my_key")
-      :ok, 9
+      9
 
       iex> Cachex.put(:my_cache, "my_new_key", 10)
       iex> Cachex.decr(:my_cache, "my_new_key", 5)
-      :ok, 5
+      5
 
       iex> Cachex.decr(:my_cache, "missing_key", 5, default: 2)
       -3
@@ -533,7 +533,7 @@ defmodule Cachex do
 
       iex> Cachex.put(:my_cache, "key", "value")
       iex> Cachex.export(:my_cache)
-      [ { :entry, "key", 1538714590095, nil, "value" } ]
+      [ { :entry, "key", "value", 1538714590095, nil } ]
 
   """
   @spec export(Cachex.t(), Keyword.t()) :: [Cachex.Spec.entry()] | Cachex.error()
@@ -784,7 +784,7 @@ defmodule Cachex do
         false, []}
 
       iex> Cachex.inspect(:my_cache, { :entry, "my_key" } )
-      { :entry, "my_key", 1475476615662, 1, "my_value" }
+      { :entry, "my_key", "my_value", 1475476615662, 1 }
 
       iex> Cachex.inspect(:my_cache, { :expired, :count })
       0
@@ -1184,12 +1184,12 @@ defmodule Cachex do
       iex> Cachex.put(:my_cache, "a", 1)
       iex> Cachex.put(:my_cache, "b", 2)
       iex> Cachex.put(:my_cache, "c", 3)
-      true
+      :ok
 
       iex> :my_cache |> Cachex.stream |> Enum.to_list
-      [{:entry, "b", 1519015801794, nil, 2},
-        {:entry, "c", 1519015805679, nil, 3},
-        {:entry, "a", 1519015794445, nil, 1}]
+      [{:entry, "b", 2, 1519015801794, nil},
+        {:entry, "c", 3, 1519015805679, nil},
+        {:entry, "a", 1, 1519015794445, nil}]
 
       iex> query = Cachex.Query.build(output: :key)
       iex> :my_cache |> Cachex.stream(query) |> Enum.to_list

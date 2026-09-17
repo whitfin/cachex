@@ -82,7 +82,7 @@ Route a key to a node in a routing state.
 @doc """
 Create a child specification to back a routing state.
 """
-@callback children(cache :: Cachex.t(), options :: Keyword.t()) ::  Supervisor.child_spec()
+@callback children(cache :: Cachex.t(), options :: Keyword.t()) :: [Supervisor.child_spec()]
 ```
 
 As a demonstration let's walk through implementing a router using the logic that [Redis](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/) follows.

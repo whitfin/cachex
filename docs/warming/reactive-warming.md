@@ -82,7 +82,7 @@ Cachex.start(:cache)
 
 # lazily load a missing value
 case Cachex.get(:cache, "key") do
-  {:ok, nil} ->
+  nil ->
     value = call_database_with_network_delay("key")
     Cachex.put(:cache, "key", value)
     value
@@ -106,7 +106,7 @@ Cachex.start(:cache)
 for _ <- 1..10 do
   spawn(fn ->
     case Cachex.get(:cache, "key1") do
-      {:ok, nil} ->
+      nil ->
         IO.puts("Running warmer after get/2")
         value = :timer.sleep(1000)
         Cachex.put(:cache, "key1", value)
