@@ -50,6 +50,8 @@ defmodule Cachex.Services.Steward do
     for {name, mod} <- provisioned, key in mod.provisions() do
       send(name, {:cachex_provision, provision})
     end
+
+    :ok
   end
 
   ##############
